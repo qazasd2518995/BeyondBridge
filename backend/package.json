@@ -1,0 +1,25 @@
+{
+  "name": "beyondbridge-backend",
+  "version": "1.0.0",
+  "description": "BeyondBridge Education Platform Backend",
+  "main": "src/index.js",
+  "scripts": {
+    "setup": "node scripts/setup-dynamodb.js",
+    "seed": "node scripts/seed-data.js",
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.0.0",
+    "@aws-sdk/lib-dynamodb": "^3.0.0",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.0",
+    "express": "^4.18.0",
+    "jsonwebtoken": "^9.0.0",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.0"
+  }
+}
