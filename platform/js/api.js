@@ -461,6 +461,75 @@ const API = {
     async getAnalytics() {
       return API.request('/admin/analytics/overview');
     }
+  },
+
+  // ===== 班級 API =====
+  classes: {
+    async list() {
+      return API.request('/classes');
+    },
+
+    async get(classId) {
+      return API.request(`/classes/${classId}`);
+    },
+
+    async create(data) {
+      return API.request('/classes', {
+        method: 'POST',
+        body: data
+      });
+    },
+
+    async update(classId, data) {
+      return API.request(`/classes/${classId}`, {
+        method: 'PUT',
+        body: data
+      });
+    },
+
+    async delete(classId) {
+      return API.request(`/classes/${classId}`, {
+        method: 'DELETE'
+      });
+    },
+
+    async join(classId, inviteCode) {
+      return API.request(`/classes/${classId}/join`, {
+        method: 'POST',
+        body: { inviteCode }
+      });
+    },
+
+    async joinByCode(inviteCode) {
+      return API.request('/classes/join-by-code', {
+        method: 'POST',
+        body: { inviteCode }
+      });
+    },
+
+    async removeMember(classId, userId) {
+      return API.request(`/classes/${classId}/members/${userId}`, {
+        method: 'DELETE'
+      });
+    },
+
+    async getAssignments(classId, type = null) {
+      const params = type ? `?type=${type}` : '';
+      return API.request(`/classes/${classId}/assignments${params}`);
+    },
+
+    async createAssignment(classId, data) {
+      return API.request(`/classes/${classId}/assignments`, {
+        method: 'POST',
+        body: data
+      });
+    },
+
+    async deleteAssignment(classId, assignmentId) {
+      return API.request(`/classes/${classId}/assignments/${assignmentId}`, {
+        method: 'DELETE'
+      });
+    }
   }
 };
 

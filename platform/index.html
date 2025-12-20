@@ -6,7 +6,7 @@
     <title>BeyondBridge Platform | 教育資源平台</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Noto+Sans+TC:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600;700&family=DM+Sans:wght@400;500;600&family=Noto+Sans+TC:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600&family=Playfair+Display:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
         :root {
             --olive-deep: #3D4A2D;
@@ -937,7 +937,7 @@
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="sidebar-header">
-                <a href="../website/index.html" class="sidebar-logo">
+                <a href="#" class="sidebar-logo" onclick="event.preventDefault(); showView('dashboard'); document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active')); document.querySelector('.nav-item[data-view=dashboard]')?.classList.add('active');">
                     BeyondBridge
                     <span>教育資源平台</span>
                 </a>
@@ -953,12 +953,12 @@
                         </svg>
                         儀表板
                     </a>
-                    <a href="#" class="nav-item" onclick="showLibrary()">
+                    <a href="#" class="nav-item" onclick="showView('library')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M4 19.5A2.5 2.5 0 016.5 17H20"/>
                             <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>
                         </svg>
-                        教材資源庫
+                        知識建材庫
                         <span class="nav-badge">128</span>
                     </a>
                     <a href="#" class="nav-item">
@@ -979,6 +979,15 @@
                         </svg>
                         授權管理
                     </a>
+                    <a href="#" class="nav-item" onclick="showView('classes')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="M23 21v-2a4 4 0 00-3-3.87"/>
+                            <path d="M16 3.13a4 4 0 010 7.75"/>
+                        </svg>
+                        共建團隊
+                    </a>
                 </div>
 
                 <div class="nav-section">
@@ -988,7 +997,7 @@
                             <polygon points="23,7 16,12 23,17"/>
                             <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
                         </svg>
-                        影音教材
+                        影音橋段
                     </a>
                     <a href="#" class="nav-item">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1007,13 +1016,13 @@
                 </div>
 
                 <div class="nav-section">
-                    <div class="nav-section-title">帳戶設定</div>
+                    <div class="nav-section-title">建橋者檔案</div>
                     <a href="#" class="nav-item">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <circle cx="12" cy="12" r="3"/>
                             <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
                         </svg>
-                        系統設定
+                        橋樑設定
                     </a>
                     <a href="#" class="nav-item">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1021,7 +1030,7 @@
                             <polyline points="16,17 21,12 16,7"/>
                             <line x1="21" y1="12" x2="9" y2="12"/>
                         </svg>
-                        登出
+                        離開橋樑
                     </a>
                 </div>
             </nav>
@@ -1031,7 +1040,7 @@
                     <div class="user-avatar">林</div>
                     <div class="user-info">
                         <div class="user-name">林老師</div>
-                        <div class="user-role">高級教師</div>
+                        <div class="user-role">資深建橋者</div>
                     </div>
                 </div>
             </div>
@@ -1048,20 +1057,14 @@
                             <circle cx="11" cy="11" r="8"/>
                             <line x1="21" y1="21" x2="16.65" y2="16.65"/>
                         </svg>
-                        <input type="text" placeholder="搜尋教材、課程...">
+                        <input type="text" placeholder="搜尋建材、橋樑...">
                     </div>
-                    <button class="icon-btn">
+                    <button class="icon-btn" onclick="toggleNotifications()">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                             <path d="M13.73 21a2 2 0 01-3.46 0"/>
                         </svg>
                         <span class="notification-dot"></span>
-                    </button>
-                    <button class="icon-btn">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="4"/>
-                            <path d="M16 8v5a3 3 0 006 0v-1a10 10 0 10-3.92 7.94"/>
-                        </svg>
                     </button>
                 </div>
             </header>
@@ -1081,7 +1084,7 @@
                             <span class="stat-trend up">+12%</span>
                         </div>
                         <div class="stat-value">24</div>
-                        <div class="stat-label">已授權教材</div>
+                        <div class="stat-label">已授權建材</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-header">
@@ -1141,7 +1144,7 @@
                                         </svg>
                                     </div>
                                     <div class="course-info">
-                                        <h3 class="course-title">數位教材設計基礎</h3>
+                                        <h3 class="course-title">知識建材設計基礎</h3>
                                         <p class="course-meta">12 個單元 ・ 共 8 小時</p>
                                         <div class="course-progress">
                                             <div class="progress-bar">
@@ -1206,7 +1209,7 @@
                                             </svg>
                                         </div>
                                         <div class="activity-content">
-                                            <p class="activity-text">完成了 <strong>數位教材設計基礎</strong> 第 9 單元</p>
+                                            <p class="activity-text">完成了 <strong>知識建材設計基礎</strong> 第 9 單元</p>
                                             <span class="activity-time">2 小時前</span>
                                         </div>
                                     </div>
@@ -1218,7 +1221,7 @@
                                             </svg>
                                         </div>
                                         <div class="activity-content">
-                                            <p class="activity-text">新增授權：<strong>國中數學教材包</strong></p>
+                                            <p class="activity-text">新增授權：<strong>國中數學建材包</strong></p>
                                             <span class="activity-time">昨天</span>
                                         </div>
                                     </div>
@@ -1298,7 +1301,7 @@
                                             <circle cx="11" cy="11" r="8"/>
                                             <line x1="21" y1="21" x2="16.65" y2="16.65"/>
                                         </svg>
-                                        <span>瀏覽教材</span>
+                                        <span>瀏覽建材</span>
                                     </a>
                                     <a href="#" class="quick-action-btn">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1333,13 +1336,13 @@
                     </div>
                 </div>
                 <div class="courses-grid">
-                    <div class="course-card" onclick="openCourseModal('數位教材設計基礎')">
+                    <div class="course-card" onclick="openCourseModal('知識建材設計基礎')">
                         <div class="course-card-cover" style="background: linear-gradient(135deg, var(--olive) 0%, var(--olive-light) 100%);">
                             <span class="course-badge">進行中</span>
                             <div class="course-play-btn"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg></div>
                         </div>
                         <div class="course-card-body">
-                            <h3>數位教材設計基礎</h3>
+                            <h3>知識建材設計基礎</h3>
                             <p>12 個單元 · 8 小時 · Benjamin</p>
                             <div class="course-progress"><div class="progress-bar"><div class="progress-fill" style="width:75%"></div></div><span>75%</span></div>
                         </div>
@@ -1391,7 +1394,7 @@
                 <div class="license-stats">
                     <div class="license-stat-card">
                         <div class="license-stat-value">24</div>
-                        <div class="license-stat-label">已授權教材</div>
+                        <div class="license-stat-label">已授權建材</div>
                     </div>
                     <div class="license-stat-card">
                         <div class="license-stat-value">3</div>
@@ -1410,11 +1413,11 @@
                     <div class="card-body">
                         <table class="data-table">
                             <thead>
-                                <tr><th>教材名稱</th><th>類型</th><th>授權日期</th><th>到期日</th><th>狀態</th><th>操作</th></tr>
+                                <tr><th>建材名稱</th><th>類型</th><th>授權日期</th><th>到期日</th><th>狀態</th><th>操作</th></tr>
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td><strong>國中數學教材包</strong></td>
+                                    <td><strong>國中數學建材包</strong></td>
                                     <td><span class="tag">影音</span></td>
                                     <td>2025/11/01</td>
                                     <td>2026/10/31</td>
@@ -1443,6 +1446,479 @@
                 </div>
             </div>
 
+            <!-- Videos View - 影音橋段 -->
+            <div class="dashboard" id="videosView" style="display: none;">
+                <!-- Video Hero Section -->
+                <div class="video-hero" style="background: linear-gradient(135deg, var(--olive-deep) 0%, var(--olive) 100%); border-radius: 16px; padding: 2rem; margin-bottom: 1.5rem; color: var(--cream);">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <h2 style="font-size: 1.5rem; margin-bottom: 0.5rem;">影音學習中心</h2>
+                            <p style="opacity: 0.8;">探索高品質教學影片，隨時隨地學習新知識</p>
+                        </div>
+                        <div style="display: flex; gap: 1rem;">
+                            <div style="text-align: center; padding: 0.75rem 1.5rem; background: rgba(255,255,255,0.1); border-radius: 8px;">
+                                <div style="font-size: 1.5rem; font-weight: 600;" id="videoCount">24</div>
+                                <div style="font-size: 0.75rem; opacity: 0.8;">可觀看影片</div>
+                            </div>
+                            <div style="text-align: center; padding: 0.75rem 1.5rem; background: rgba(255,255,255,0.1); border-radius: 8px;">
+                                <div style="font-size: 1.5rem; font-weight: 600;">12.5h</div>
+                                <div style="font-size: 0.75rem; opacity: 0.8;">總學習時數</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Video Filters -->
+                <div class="video-filters" style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+                    <div class="search-box" style="flex: 1; min-width: 250px; position: relative;">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--gray-400);"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                        <input type="text" id="videoSearch" placeholder="搜尋影片..." style="width: 100%; padding: 0.75rem 1rem 0.75rem 2.5rem; border: 1px solid var(--gray-200); border-radius: 8px; font-size: 0.9rem;" oninput="filterVideos()">
+                    </div>
+                    <select id="videoCategory" style="padding: 0.75rem 1rem; border: 1px solid var(--gray-200); border-radius: 8px; min-width: 150px;" onchange="filterVideos()">
+                        <option value="">所有分類</option>
+                        <option value="math">數學</option>
+                        <option value="english">英文</option>
+                        <option value="science">自然科學</option>
+                        <option value="business">企業培訓</option>
+                    </select>
+                    <select id="videoDuration" style="padding: 0.75rem 1rem; border: 1px solid var(--gray-200); border-radius: 8px; min-width: 120px;" onchange="filterVideos()">
+                        <option value="">影片長度</option>
+                        <option value="short">10分鐘以下</option>
+                        <option value="medium">10-30分鐘</option>
+                        <option value="long">30分鐘以上</option>
+                    </select>
+                </div>
+
+                <!-- Video Grid -->
+                <div class="video-grid" id="videoGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem;">
+                    <!-- Video Card 1 -->
+                    <div class="video-card" onclick="openVideoPlayer('vid001')" style="background: var(--white); border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;">
+                        <div class="video-thumbnail" style="position: relative; aspect-ratio: 16/9; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); display: flex; align-items: center; justify-content: center;">
+                            <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="var(--cream)" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polygon points="10,8 16,12 10,16" fill="var(--cream)"/></svg>
+                            <span style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.8); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem;">45:30</span>
+                            <span style="position: absolute; top: 8px; left: 8px; background: var(--terracotta); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 600;">熱門</span>
+                        </div>
+                        <div class="video-info" style="padding: 1rem;">
+                            <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem; line-height: 1.4;">一元二次方程式完整教學</h3>
+                            <p style="font-size: 0.85rem; color: var(--gray-500); margin-bottom: 0.75rem;">從基礎概念到進階解題技巧，附帶大量練習題</p>
+                            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: var(--gray-400);">
+                                <span style="display: flex; align-items: center; gap: 4px;"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M5.5 21a7.5 7.5 0 0115 0"/></svg>Benjamin</span>
+                                <span style="display: flex; align-items: center; gap: 4px;"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>1.2k</span>
+                                <span style="display: flex; align-items: center; gap: 4px;"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>4.8</span>
+                            </div>
+                        </div>
+                        <div class="video-progress" style="height: 3px; background: var(--gray-100);"><div style="height: 100%; width: 65%; background: var(--olive);"></div></div>
+                    </div>
+
+                    <!-- Video Card 2 -->
+                    <div class="video-card" onclick="openVideoPlayer('vid002')" style="background: var(--white); border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;">
+                        <div class="video-thumbnail" style="position: relative; aspect-ratio: 16/9; background: linear-gradient(135deg, #2d3436 0%, #636e72 100%); display: flex; align-items: center; justify-content: center;">
+                            <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="var(--cream)" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polygon points="10,8 16,12 10,16" fill="var(--cream)"/></svg>
+                            <span style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.8); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem;">32:15</span>
+                        </div>
+                        <div class="video-info" style="padding: 1rem;">
+                            <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem; line-height: 1.4;">英文時態完全攻略</h3>
+                            <p style="font-size: 0.85rem; color: var(--gray-500); margin-bottom: 0.75rem;">12種時態一次學會，搭配實用例句練習</p>
+                            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: var(--gray-400);">
+                                <span style="display: flex; align-items: center; gap: 4px;"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M5.5 21a7.5 7.5 0 0115 0"/></svg>Mina</span>
+                                <span style="display: flex; align-items: center; gap: 4px;"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>856</span>
+                                <span style="display: flex; align-items: center; gap: 4px;"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>4.9</span>
+                            </div>
+                        </div>
+                        <div class="video-progress" style="height: 3px; background: var(--gray-100);"><div style="height: 100%; width: 30%; background: var(--olive);"></div></div>
+                    </div>
+
+                    <!-- Video Card 3 -->
+                    <div class="video-card" onclick="openVideoPlayer('vid003')" style="background: var(--white); border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;">
+                        <div class="video-thumbnail" style="position: relative; aspect-ratio: 16/9; background: linear-gradient(135deg, #0c0c0c 0%, #434343 100%); display: flex; align-items: center; justify-content: center;">
+                            <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="var(--cream)" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polygon points="10,8 16,12 10,16" fill="var(--cream)"/></svg>
+                            <span style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.8); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem;">28:40</span>
+                            <span style="position: absolute; top: 8px; left: 8px; background: var(--olive); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 600;">新上架</span>
+                        </div>
+                        <div class="video-info" style="padding: 1rem;">
+                            <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem; line-height: 1.4;">企業簡報設計實戰</h3>
+                            <p style="font-size: 0.85rem; color: var(--gray-500); margin-bottom: 0.75rem;">職場必備技能，打造專業級商務簡報</p>
+                            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: var(--gray-400);">
+                                <span style="display: flex; align-items: center; gap: 4px;"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M5.5 21a7.5 7.5 0 0115 0"/></svg>Justin</span>
+                                <span style="display: flex; align-items: center; gap: 4px;"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>2.3k</span>
+                                <span style="display: flex; align-items: center; gap: 4px;"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>4.7</span>
+                            </div>
+                        </div>
+                        <div class="video-progress" style="height: 3px; background: var(--gray-100);"><div style="height: 100%; width: 0%; background: var(--olive);"></div></div>
+                    </div>
+
+                    <!-- Video Card 4 -->
+                    <div class="video-card" onclick="openVideoPlayer('vid004')" style="background: var(--white); border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;">
+                        <div class="video-thumbnail" style="position: relative; aspect-ratio: 16/9; background: linear-gradient(135deg, #134e5e 0%, #71b280 100%); display: flex; align-items: center; justify-content: center;">
+                            <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="var(--cream)" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polygon points="10,8 16,12 10,16" fill="var(--cream)"/></svg>
+                            <span style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.8); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem;">52:00</span>
+                        </div>
+                        <div class="video-info" style="padding: 1rem;">
+                            <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem; line-height: 1.4;">自然科學實驗精選</h3>
+                            <p style="font-size: 0.85rem; color: var(--gray-500); margin-bottom: 0.75rem;">物理化學生物實驗影片，安全又有趣</p>
+                            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: var(--gray-400);">
+                                <span style="display: flex; align-items: center; gap: 4px;"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M5.5 21a7.5 7.5 0 0115 0"/></svg>Benjamin</span>
+                                <span style="display: flex; align-items: center; gap: 4px;"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>1.5k</span>
+                                <span style="display: flex; align-items: center; gap: 4px;"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>4.6</span>
+                            </div>
+                        </div>
+                        <div class="video-progress" style="height: 3px; background: var(--gray-100);"><div style="height: 100%; width: 100%; background: var(--olive);"></div></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quizzes View - 測驗題庫 -->
+            <div class="dashboard" id="quizzesView" style="display: none;">
+                <!-- Quiz Stats -->
+                <div class="quiz-stats" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
+                    <div style="background: var(--white); padding: 1.5rem; border-radius: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+                        <div style="font-size: 2rem; font-weight: 700; color: var(--olive);">15</div>
+                        <div style="font-size: 0.85rem; color: var(--gray-500);">可用測驗</div>
+                    </div>
+                    <div style="background: var(--white); padding: 1.5rem; border-radius: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+                        <div style="font-size: 2rem; font-weight: 700; color: var(--terracotta);">8</div>
+                        <div style="font-size: 0.85rem; color: var(--gray-500);">已完成</div>
+                    </div>
+                    <div style="background: var(--white); padding: 1.5rem; border-radius: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+                        <div style="font-size: 2rem; font-weight: 700; color: var(--charcoal);">85%</div>
+                        <div style="font-size: 0.85rem; color: var(--gray-500);">平均分數</div>
+                    </div>
+                    <div style="background: var(--white); padding: 1.5rem; border-radius: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+                        <div style="font-size: 2rem; font-weight: 700; color: var(--sage);">12</div>
+                        <div style="font-size: 0.85rem; color: var(--gray-500);">獲得徽章</div>
+                    </div>
+                </div>
+
+                <!-- Quiz Tabs -->
+                <div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--gray-200); padding-bottom: 0.5rem;">
+                    <button class="quiz-tab active" onclick="switchQuizTab(this, 'all')" style="padding: 0.5rem 1.5rem; border: none; background: var(--olive); color: var(--cream); border-radius: 20px; cursor: pointer; font-weight: 500;">全部測驗</button>
+                    <button class="quiz-tab" onclick="switchQuizTab(this, 'progress')" style="padding: 0.5rem 1.5rem; border: none; background: var(--gray-100); color: var(--gray-600); border-radius: 20px; cursor: pointer;">進行中</button>
+                    <button class="quiz-tab" onclick="switchQuizTab(this, 'completed')" style="padding: 0.5rem 1.5rem; border: none; background: var(--gray-100); color: var(--gray-600); border-radius: 20px; cursor: pointer;">已完成</button>
+                    <button class="quiz-tab" onclick="switchQuizTab(this, 'recommended')" style="padding: 0.5rem 1.5rem; border: none; background: var(--gray-100); color: var(--gray-600); border-radius: 20px; cursor: pointer;">推薦</button>
+                </div>
+
+                <!-- Quiz List -->
+                <div class="quiz-list" id="quizList">
+                    <!-- Quiz Item 1 -->
+                    <div class="quiz-item" style="background: var(--white); border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.06); display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <div style="width: 56px; height: 56px; background: linear-gradient(135deg, var(--olive) 0%, var(--olive-deep) 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="var(--cream)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                            </div>
+                            <div>
+                                <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.25rem;">一元二次方程式測驗</h3>
+                                <p style="font-size: 0.85rem; color: var(--gray-500);">20題 · 30分鐘 · 國中數學</p>
+                                <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                                    <span class="tag" style="font-size: 0.7rem;">數學</span>
+                                    <span class="tag" style="font-size: 0.7rem;">代數</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <div style="text-align: right;">
+                                <div style="font-size: 1.25rem; font-weight: 600; color: var(--olive);">92%</div>
+                                <div style="font-size: 0.75rem; color: var(--gray-400);">最高分</div>
+                            </div>
+                            <button onclick="startQuiz('quiz001')" style="padding: 0.75rem 1.5rem; background: var(--olive); color: var(--cream); border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 0.5rem;">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5,3 19,12 5,21"/></svg>
+                                再次挑戰
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Quiz Item 2 -->
+                    <div class="quiz-item" style="background: var(--white); border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.06); display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <div style="width: 56px; height: 56px; background: linear-gradient(135deg, var(--terracotta) 0%, #a85f4d 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="var(--cream)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                            </div>
+                            <div>
+                                <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.25rem;">英文時態綜合測驗</h3>
+                                <p style="font-size: 0.85rem; color: var(--gray-500);">25題 · 40分鐘 · 高中英文</p>
+                                <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                                    <span class="tag" style="font-size: 0.7rem;">英文</span>
+                                    <span class="tag" style="font-size: 0.7rem;">文法</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <div style="text-align: right;">
+                                <div style="font-size: 0.85rem; color: var(--terracotta); font-weight: 500;">進行中 (60%)</div>
+                                <div style="font-size: 0.75rem; color: var(--gray-400);">剩餘 10 題</div>
+                            </div>
+                            <button onclick="startQuiz('quiz002')" style="padding: 0.75rem 1.5rem; background: var(--terracotta); color: var(--cream); border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 0.5rem;">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5,3 19,12 5,21"/></svg>
+                                繼續作答
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Quiz Item 3 -->
+                    <div class="quiz-item" style="background: var(--white); border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.06); display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="var(--cream)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                            </div>
+                            <div>
+                                <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.25rem;">商務簡報設計認證</h3>
+                                <p style="font-size: 0.85rem; color: var(--gray-500);">30題 · 45分鐘 · 企業培訓</p>
+                                <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                                    <span class="tag" style="font-size: 0.7rem;">簡報</span>
+                                    <span class="tag" style="font-size: 0.7rem;">認證考試</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <div style="text-align: right;">
+                                <div style="font-size: 0.85rem; color: var(--gray-500);">尚未開始</div>
+                                <div style="font-size: 0.75rem; color: var(--gray-400);">通過即獲認證</div>
+                            </div>
+                            <button onclick="startQuiz('quiz003')" style="padding: 0.75rem 1.5rem; background: var(--charcoal); color: var(--cream); border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 0.5rem;">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5,3 19,12 5,21"/></svg>
+                                開始測驗
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Quiz Item 4 -->
+                    <div class="quiz-item" style="background: var(--white); border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.06); display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #059669 0%, #10b981 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="var(--cream)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                            </div>
+                            <div>
+                                <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.25rem;">自然科學實驗安全測驗</h3>
+                                <p style="font-size: 0.85rem; color: var(--gray-500);">15題 · 20分鐘 · 實驗安全</p>
+                                <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                                    <span class="tag" style="font-size: 0.7rem;">自然</span>
+                                    <span class="tag" style="font-size: 0.7rem;">安全規範</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <div style="text-align: right;">
+                                <div style="font-size: 1.25rem; font-weight: 600; color: #059669;">100%</div>
+                                <div style="font-size: 0.75rem; color: var(--gray-400);">滿分通過！</div>
+                            </div>
+                            <button onclick="viewQuizResult('quiz004')" style="padding: 0.75rem 1.5rem; background: var(--gray-100); color: var(--gray-600); border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 0.5rem;">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                查看結果
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Discussions View - 互動討論 -->
+            <div class="dashboard" id="discussionsView" style="display: none;">
+                <!-- Discussion Header -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="disc-tab active" onclick="switchDiscTab(this, 'all')" style="padding: 0.5rem 1.25rem; border: none; background: var(--olive); color: var(--cream); border-radius: 20px; cursor: pointer; font-weight: 500;">所有討論</button>
+                        <button class="disc-tab" onclick="switchDiscTab(this, 'my')" style="padding: 0.5rem 1.25rem; border: none; background: var(--gray-100); color: var(--gray-600); border-radius: 20px; cursor: pointer;">我的發文</button>
+                        <button class="disc-tab" onclick="switchDiscTab(this, 'popular')" style="padding: 0.5rem 1.25rem; border: none; background: var(--gray-100); color: var(--gray-600); border-radius: 20px; cursor: pointer;">熱門話題</button>
+                        <button class="disc-tab" onclick="switchDiscTab(this, 'unanswered')" style="padding: 0.5rem 1.25rem; border: none; background: var(--gray-100); color: var(--gray-600); border-radius: 20px; cursor: pointer;">待回覆</button>
+                    </div>
+                    <button onclick="openNewPostModal()" style="padding: 0.75rem 1.5rem; background: var(--olive); color: var(--cream); border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 0.5rem;">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        發起討論
+                    </button>
+                </div>
+
+                <!-- Discussion List -->
+                <div class="discussion-list" id="discussionList">
+                    <!-- Discussion Post 1 -->
+                    <div class="discussion-post" style="background: var(--white); border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+                        <div style="display: flex; gap: 1rem;">
+                            <div style="width: 48px; height: 48px; background: var(--olive); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--cream); font-weight: 600; flex-shrink: 0;">林</div>
+                            <div style="flex: 1;">
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+                                    <div>
+                                        <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.25rem;">如何讓探橋者更容易理解一元二次方程式？</h3>
+                                        <div style="font-size: 0.8rem; color: var(--gray-400);">
+                                            <span>林建橋者</span> · <span>2小時前</span> · <span class="tag" style="font-size: 0.7rem;">數學築橋</span>
+                                        </div>
+                                    </div>
+                                    <span style="background: var(--terracotta); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem;">熱門</span>
+                                </div>
+                                <p style="color: var(--gray-600); margin-bottom: 1rem; line-height: 1.6;">最近在教一元二次方程式，發現探橋者對於因式分解和公式解的應用時機常常搞混。想請教各位建橋者有沒有什麼好的築橋方法或是建材推薦？</p>
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div style="display: flex; gap: 1.5rem;">
+                                        <button onclick="likePost('post001')" style="display: flex; align-items: center; gap: 0.5rem; background: none; border: none; cursor: pointer; color: var(--gray-500); font-size: 0.85rem;">
+                                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3zM7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg>
+                                            <span>24 讚</span>
+                                        </button>
+                                        <button onclick="toggleReplies('post001')" style="display: flex; align-items: center; gap: 0.5rem; background: none; border: none; cursor: pointer; color: var(--gray-500); font-size: 0.85rem;">
+                                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                                            <span>8 則回覆</span>
+                                        </button>
+                                        <button style="display: flex; align-items: center; gap: 0.5rem; background: none; border: none; cursor: pointer; color: var(--gray-500); font-size: 0.85rem;">
+                                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                                            <span>分享</span>
+                                        </button>
+                                    </div>
+                                    <button onclick="openReplyModal('post001')" style="padding: 0.5rem 1rem; background: var(--gray-100); border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; color: var(--gray-600);">回覆</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Discussion Post 2 -->
+                    <div class="discussion-post" style="background: var(--white); border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+                        <div style="display: flex; gap: 1rem;">
+                            <div style="width: 48px; height: 48px; background: var(--terracotta); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--cream); font-weight: 600; flex-shrink: 0;">陳</div>
+                            <div style="flex: 1;">
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+                                    <div>
+                                        <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.25rem;">推薦幾個製作互動建材的好工具</h3>
+                                        <div style="font-size: 0.8rem; color: var(--gray-400);">
+                                            <span>陳建橋者</span> · <span>昨天</span> · <span class="tag" style="font-size: 0.7rem;">築橋工具</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <p style="color: var(--gray-600); margin-bottom: 1rem; line-height: 1.6;">分享一下我最近使用的幾個互動建材製作工具，包括 H5P、Genially 和 Nearpod，各有優缺點...</p>
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div style="display: flex; gap: 1.5rem;">
+                                        <button onclick="likePost('post002')" style="display: flex; align-items: center; gap: 0.5rem; background: none; border: none; cursor: pointer; color: var(--olive); font-size: 0.85rem;">
+                                            <svg viewBox="0 0 24 24" width="18" height="18" fill="var(--olive)" stroke="var(--olive)" stroke-width="2"><path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3zM7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg>
+                                            <span>56 讚</span>
+                                        </button>
+                                        <button onclick="toggleReplies('post002')" style="display: flex; align-items: center; gap: 0.5rem; background: none; border: none; cursor: pointer; color: var(--gray-500); font-size: 0.85rem;">
+                                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                                            <span>15 則回覆</span>
+                                        </button>
+                                        <button style="display: flex; align-items: center; gap: 0.5rem; background: none; border: none; cursor: pointer; color: var(--gray-500); font-size: 0.85rem;">
+                                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                                            <span>分享</span>
+                                        </button>
+                                    </div>
+                                    <button onclick="openReplyModal('post002')" style="padding: 0.5rem 1rem; background: var(--gray-100); border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; color: var(--gray-600);">回覆</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Discussion Post 3 -->
+                    <div class="discussion-post" style="background: var(--white); border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+                        <div style="display: flex; gap: 1rem;">
+                            <div style="width: 48px; height: 48px; background: #6366f1; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--cream); font-weight: 600; flex-shrink: 0;">王</div>
+                            <div style="flex: 1;">
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+                                    <div>
+                                        <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.25rem;">企業內訓如何評估學習成效？</h3>
+                                        <div style="font-size: 0.8rem; color: var(--gray-400);">
+                                            <span>王主管</span> · <span>3天前</span> · <span class="tag" style="font-size: 0.7rem;">企業培訓</span>
+                                        </div>
+                                    </div>
+                                    <span style="background: var(--olive); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem;">已解決</span>
+                                </div>
+                                <p style="color: var(--gray-600); margin-bottom: 1rem; line-height: 1.6;">公司最近導入線上學習平台，想請教各位如何有效評估員工的學習成效？除了測驗成績之外還有哪些指標可以參考？</p>
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div style="display: flex; gap: 1.5rem;">
+                                        <button onclick="likePost('post003')" style="display: flex; align-items: center; gap: 0.5rem; background: none; border: none; cursor: pointer; color: var(--gray-500); font-size: 0.85rem;">
+                                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3zM7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg>
+                                            <span>12 讚</span>
+                                        </button>
+                                        <button onclick="toggleReplies('post003')" style="display: flex; align-items: center; gap: 0.5rem; background: none; border: none; cursor: pointer; color: var(--gray-500); font-size: 0.85rem;">
+                                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                                            <span>6 則回覆</span>
+                                        </button>
+                                        <button style="display: flex; align-items: center; gap: 0.5rem; background: none; border: none; cursor: pointer; color: var(--gray-500); font-size: 0.85rem;">
+                                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                                            <span>分享</span>
+                                        </button>
+                                    </div>
+                                    <button onclick="openReplyModal('post003')" style="padding: 0.5rem 1rem; background: var(--gray-100); border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; color: var(--gray-600);">回覆</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Classes View - 建橋者的橋隊管理 -->
+            <div class="dashboard" id="classesView" style="display: none;">
+                <!-- Classes Header -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <div>
+                        <p style="color: var(--gray-500); font-size: 0.9rem;">管理您搭建的橋隊與探橋者</p>
+                    </div>
+                    <button onclick="openCreateClassModal()" style="padding: 0.75rem 1.5rem; background: var(--olive); color: var(--cream); border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 0.5rem;">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        搭建新橋
+                    </button>
+                </div>
+
+                <!-- Classes List -->
+                <div class="classes-list" id="classesListContainer">
+                    <!-- 橋隊卡片會由 JavaScript 動態載入 -->
+                    <div style="text-align: center; padding: 4rem 2rem; color: var(--gray-400);">
+                        <svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="currentColor" stroke-width="1" style="margin-bottom: 1rem; opacity: 0.5;">
+                            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="M23 21v-2a4 4 0 00-3-3.87"/>
+                            <path d="M16 3.13a4 4 0 010 7.75"/>
+                        </svg>
+                        <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">載入中...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Class Detail View - 橋隊詳情 -->
+            <div class="dashboard" id="classDetailView" style="display: none;">
+                <div id="classDetailContent">
+                    <!-- 橋隊詳情會由 JavaScript 動態載入 -->
+                </div>
+            </div>
+
+            <!-- Student Classes View - 探橋者的橋隊 -->
+            <div class="dashboard" id="studentClassesView" style="display: none;">
+                <!-- Student Classes Header -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <div>
+                        <p style="color: var(--gray-500); font-size: 0.9rem;">查看您已加入的橋隊和探橋進度</p>
+                    </div>
+                    <button onclick="openStudentJoinClassModal()" style="padding: 0.75rem 1.5rem; background: var(--olive); color: var(--cream); border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 0.5rem;">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        加入新橋隊
+                    </button>
+                </div>
+
+                <!-- Enrolled Classes List -->
+                <div id="studentClassesList">
+                    <!-- 橋隊卡片會由 JavaScript 動態載入 -->
+                    <div style="text-align: center; padding: 4rem 2rem; color: var(--gray-400);">
+                        <svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="currentColor" stroke-width="1" style="margin-bottom: 1rem; opacity: 0.5;">
+                            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="M23 21v-2a4 4 0 00-3-3.87"/>
+                            <path d="M16 3.13a4 4 0 010 7.75"/>
+                        </svg>
+                        <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">載入中...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Student Join Class Modal -->
+            <div id="studentJoinClassModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;">
+                <div style="width: 90%; max-width: 400px; background: var(--cream); border-radius: 16px; overflow: hidden;">
+                    <div style="padding: 1.5rem 2rem; border-bottom: 1px solid var(--gray-200); display: flex; justify-content: space-between; align-items: center;">
+                        <h3 style="font-size: 1.2rem; font-weight: 600;">加入橋隊</h3>
+                        <button onclick="closeStudentJoinClassModal()" style="background: none; border: none; cursor: pointer; padding: 0.5rem;">
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                    </div>
+                    <div style="padding: 2rem;">
+                        <p style="margin-bottom: 1.25rem; color: var(--gray-600);">請輸入建橋者提供的橋樑通行碼來加入橋隊：</p>
+                        <input type="text" id="studentInviteCodeInput" placeholder="例如：ABC123" maxlength="6" style="width: 100%; padding: 1rem; border: 1px solid var(--gray-200); border-radius: 8px; font-size: 1.5rem; text-align: center; letter-spacing: 0.25rem; text-transform: uppercase;">
+                    </div>
+                    <div style="padding: 1rem 2rem; border-top: 1px solid var(--gray-200); display: flex; justify-content: flex-end; gap: 0.75rem;">
+                        <button onclick="closeStudentJoinClassModal()" style="padding: 0.75rem 1.5rem; background: var(--gray-200); border: none; border-radius: 8px; cursor: pointer;">取消</button>
+                        <button onclick="submitStudentJoinClass()" style="padding: 0.75rem 1.5rem; background: var(--olive); color: var(--cream); border: none; border-radius: 8px; cursor: pointer; font-weight: 500;">加入橋隊</button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Settings View -->
             <div class="dashboard" id="settingsView" style="display: none;">
                 <!-- Profile Banner -->
@@ -1450,7 +1926,7 @@
                     <div class="card-body" style="display: flex; align-items: center; gap: 1.5rem; padding: 2rem;">
                         <div style="width: 80px; height: 80px; border-radius: 50%; background: var(--terracotta); display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 700;">林</div>
                         <div style="flex: 1;">
-                            <h2 style="font-size: 1.5rem; margin-bottom: 0.25rem;">林老師</h2>
+                            <h2 style="font-size: 1.5rem; margin-bottom: 0.25rem;">林建橋者</h2>
                             <p style="opacity: 0.8; margin-bottom: 0.5rem;">teacher.lin@school.edu.tw</p>
                             <div style="display: flex; gap: 1.5rem; font-size: 0.85rem;">
                                 <span><strong>會員等級:</strong> 專業版</span>
@@ -1463,11 +1939,11 @@
                 </div>
                 <div class="settings-grid">
                     <div class="card">
-                        <div class="card-header"><h2 class="card-title">個人資料</h2></div>
+                        <div class="card-header"><h2 class="card-title">建橋者資料</h2></div>
                         <div class="card-body">
                             <div class="form-group">
                                 <label>姓名</label>
-                                <input type="text" class="form-input" value="林老師">
+                                <input type="text" class="form-input" value="林建橋者">
                             </div>
                             <div class="form-group">
                                 <label>電子郵件</label>
@@ -1479,7 +1955,7 @@
                             </div>
                             <div class="form-group">
                                 <label>角色</label>
-                                <select class="form-input"><option>教師</option><option>教授</option><option>培訓主管</option></select>
+                                <select class="form-input"><option>建橋者</option><option>橋樑工匠</option><option>知識建築師</option></select>
                             </div>
                             <button class="btn-primary" onclick="showToast('資料已儲存！')">儲存變更</button>
                         </div>
@@ -1488,7 +1964,7 @@
                         <div class="card-header"><h2 class="card-title">通知設定</h2></div>
                         <div class="card-body">
                             <div class="toggle-group">
-                                <label><span>新教材上架通知</span><input type="checkbox" checked><span class="toggle"></span></label>
+                                <label><span>新建材上架通知</span><input type="checkbox" checked><span class="toggle"></span></label>
                             </div>
                             <div class="toggle-group">
                                 <label><span>課程進度提醒</span><input type="checkbox" checked><span class="toggle"></span></label>
@@ -1548,14 +2024,14 @@
                     <div style="display: flex; align-items: center; gap: 1rem;">
                         <div class="search-box" style="width: 300px; background: var(--white);">
                             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                            <input type="text" placeholder="搜尋教材資源..." id="librarySearch">
+                            <input type="text" placeholder="搜尋知識建材..." id="librarySearch">
                         </div>
-                        <span style="color: var(--gray-500); font-size: 0.9rem;">找到 <strong>128</strong> 個教材</span>
+                        <span style="color: var(--gray-500); font-size: 0.9rem;">找到 <strong>128</strong> 個建材</span>
                     </div>
                     <div style="display: flex; gap: 0.5rem;">
                         <button class="icon-btn" style="background: var(--olive); color: var(--cream);" title="卡片檢視"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></button>
                         <button class="icon-btn" title="列表檢視" onclick="showToast('切換至列表檢視')"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></button>
-                        <button class="btn-primary" style="padding: 0.5rem 1rem; display: flex; align-items: center; gap: 0.5rem;" onclick="showToast('聯繫顧問申請自訂教材')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>申請自訂教材</button>
+                        <button class="btn-primary" style="padding: 0.5rem 1rem; display: flex; align-items: center; gap: 0.5rem;" onclick="showToast('聯繫顧問申請客製建材')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>申請客製建材</button>
                     </div>
                 </div>
                 <div class="library-filters">
@@ -1582,10 +2058,10 @@
                         </select>
                     </div>
                     <div class="filter-group">
-                        <span class="filter-label">教材類型</span>
+                        <span class="filter-label">建材類型</span>
                         <select class="filter-select">
                             <option value="">全部類型</option>
-                            <option value="video">影音教材</option>
+                            <option value="video">影音建材</option>
                             <option value="interactive">互動模組</option>
                             <option value="document">電子講義</option>
                             <option value="quiz">測驗題庫</option>
@@ -1855,7 +2331,7 @@
     <!-- Resource Detail Modal -->
     <div id="resourceModal" class="modal">
         <div class="modal-header">
-            <h2 id="modalTitle">教材詳情</h2>
+            <h2 id="modalTitle">建材詳情</h2>
             <button class="modal-close" onclick="closeModal()">&times;</button>
         </div>
         <div class="modal-body" id="modalBody"></div>
@@ -1875,7 +2351,7 @@
             <div class="notification-item unread">
                 <div class="notification-icon new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg></div>
                 <div class="notification-content">
-                    <p>新教材上架：<strong>AI 輔助教學設計</strong></p>
+                    <p>新建材上架：<strong>AI 輔助築橋設計</strong></p>
                     <span>10 分鐘前</span>
                 </div>
             </div>
@@ -2350,125 +2826,419 @@
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* Login View */
+        /* ═══════════════════════════════════════════════════════════
+           LOGIN VIEW - ARCHITECTURAL MINIMALISM × ZEN
+           Full-screen centered design with dramatic typography
+           ═══════════════════════════════════════════════════════════ */
+
         .login-view {
             display: none;
             min-height: 100vh;
-            background: linear-gradient(135deg, var(--olive-deep) 0%, #2D3A1F 100%);
+            background: #FAFAF8;
+            position: relative;
+            overflow: hidden;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             padding: 2rem;
         }
-        .login-card {
-            background: var(--white);
-            border-radius: 16px;
-            box-shadow: 0 25px 50px rgba(0,0,0,0.25);
-            width: 100%;
-            max-width: 420px;
-            padding: 3rem;
-        }
-        .login-logo {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-        .login-logo h1 {
-            font-family: 'Cormorant Garamond', serif;
-            font-size: 2rem;
-            color: var(--olive-deep);
-            margin-bottom: 0.25rem;
-        }
-        .login-logo p {
-            color: var(--gray-500);
-            font-size: 0.9rem;
-        }
-        .login-tabs {
+
+        .login-view.active {
             display: flex;
-            margin-bottom: 2rem;
-            background: var(--gray-100);
-            border-radius: 8px;
-            padding: 4px;
         }
-        .login-tab {
-            flex: 1;
-            padding: 0.75rem;
-            border: none;
-            background: transparent;
-            cursor: pointer;
-            font-size: 0.9rem;
-            font-weight: 500;
-            color: var(--gray-500);
-            border-radius: 6px;
-            transition: all 0.2s;
+
+        /* Giant watermark text */
+        .login-view::before {
+            content: '超越';
+            position: absolute;
+            top: 50%;
+            left: -5%;
+            transform: translateY(-50%);
+            font-family: 'Noto Sans TC', sans-serif;
+            font-size: clamp(20rem, 35vw, 45rem);
+            font-weight: 300;
+            color: rgba(0, 0, 0, 0.018);
+            letter-spacing: -0.05em;
+            pointer-events: none;
+            z-index: 0;
+            line-height: 1;
+            white-space: nowrap;
         }
-        .login-tab.active {
-            background: var(--white);
-            color: var(--olive-deep);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+
+        /* Geometric accent lines */
+        .login-view .geo-line {
+            position: absolute;
+            background: #1a1a1a;
+            z-index: 1;
         }
-        .login-form { display: block; }
-        .login-form.hidden { display: none; }
-        .login-form .form-group {
-            margin-bottom: 1.25rem;
+
+        .login-view .geo-line-1 {
+            width: 1px;
+            height: 120px;
+            top: 0;
+            left: 15%;
+            animation: lineDown 1.5s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards;
+            transform: scaleY(0);
+            transform-origin: top;
         }
-        .login-form label {
-            display: block;
-            font-size: 0.85rem;
-            font-weight: 500;
-            color: var(--charcoal);
-            margin-bottom: 0.5rem;
+
+        .login-view .geo-line-2 {
+            width: 80px;
+            height: 1px;
+            bottom: 20%;
+            right: 0;
+            animation: lineLeft 1.5s cubic-bezier(0.16, 1, 0.3, 1) 0.5s forwards;
+            transform: scaleX(0);
+            transform-origin: right;
         }
-        .login-form input, .login-form select {
-            width: 100%;
-            padding: 0.875rem 1rem;
-            border: 1px solid var(--gray-200);
-            border-radius: 8px;
-            font-size: 0.95rem;
-            transition: all 0.2s;
+
+        .login-view .geo-line-3 {
+            width: 1px;
+            height: 200px;
+            bottom: 0;
+            right: 25%;
+            animation: lineUp 1.5s cubic-bezier(0.16, 1, 0.3, 1) 0.7s forwards;
+            transform: scaleY(0);
+            transform-origin: bottom;
         }
-        .login-form input:focus, .login-form select:focus {
-            outline: none;
-            border-color: var(--olive);
-            box-shadow: 0 0 0 3px rgba(74, 93, 35, 0.1);
+
+        @keyframes lineDown { to { transform: scaleY(1); } }
+        @keyframes lineUp { to { transform: scaleY(1); } }
+        @keyframes lineLeft { to { transform: scaleX(1); } }
+
+        /* Floating dot accent */
+        .login-view .float-dot {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: var(--terracotta);
+            border-radius: 50%;
+            z-index: 1;
         }
-        .login-btn {
-            width: 100%;
-            padding: 1rem;
-            background: var(--olive);
-            color: var(--cream);
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            margin-top: 0.5rem;
+
+        .login-view .float-dot-1 {
+            top: 18%;
+            right: 20%;
+            animation: dotPulse 4s ease-in-out infinite, fadeIn 1s ease 0.8s forwards;
+            opacity: 0;
         }
-        .login-btn:hover { background: var(--olive-deep); }
-        .login-btn:disabled {
-            background: var(--gray-300);
-            cursor: not-allowed;
+
+        .login-view .float-dot-2 {
+            bottom: 25%;
+            left: 12%;
+            animation: dotPulse 4s ease-in-out 1s infinite, fadeIn 1s ease 1s forwards;
+            opacity: 0;
         }
-        .login-footer {
-            text-align: center;
-            margin-top: 2rem;
-            color: var(--gray-500);
-            font-size: 0.85rem;
+
+        @keyframes dotPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.3); }
         }
-        .login-footer a {
-            color: var(--olive);
-            text-decoration: none;
-            font-weight: 500;
+
+        @keyframes fadeIn {
+            to { opacity: 1; }
         }
-        .login-error {
-            background: #FEE2E2;
-            color: #DC2626;
-            padding: 0.75rem 1rem;
-            border-radius: 8px;
-            font-size: 0.85rem;
-            margin-bottom: 1rem;
+
+        /* Watermark text element (hidden - using ::before instead) */
+        .login-watermark {
             display: none;
         }
+
+        /* Brand header */
+        .login-brand {
+            text-align: center;
+            margin-bottom: 3rem;
+            opacity: 0;
+            animation: revealUp 1s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards;
+        }
+
+        .login-brand h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            font-weight: 500;
+            color: #1a1a1a;
+            letter-spacing: -0.03em;
+            margin-bottom: 0.5rem;
+        }
+
+        .login-brand p {
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.7rem;
+            font-weight: 400;
+            letter-spacing: 0.35em;
+            text-transform: uppercase;
+            color: #999;
+        }
+
+        /* Login card */
+        .login-card {
+            background: #fff;
+            padding: 2.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 20px 60px rgba(0,0,0,0.06);
+            opacity: 0;
+            animation: cardFloat 1s cubic-bezier(0.16, 1, 0.3, 1) 0.4s forwards;
+        }
+
+        @keyframes cardFloat {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes revealUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Auth tabs */
+        .auth-tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        .auth-tab {
+            flex: 1;
+            padding: 1rem 0;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.75rem;
+            font-weight: 500;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: #bbb;
+            transition: all 0.4s ease;
+            position: relative;
+        }
+
+        .auth-tab.active {
+            color: #1a1a1a;
+        }
+
+        .auth-tab::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #1a1a1a;
+            transform: scaleX(0);
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .auth-tab.active::after {
+            transform: scaleX(1);
+        }
+
+        .auth-tab:hover:not(.active) {
+            color: #666;
+        }
+
+        /* Welcome text - hidden in new design, info in tabs */
+        .login-welcome {
+            display: none;
+        }
+
+        /* Form styles */
+        .login-form { display: block; }
+        .login-form.hidden { display: none; }
+
+        .login-form .form-group {
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+
+        .login-form label {
+            display: block;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.65rem;
+            font-weight: 500;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: #1a1a1a;
+            margin-bottom: 0.75rem;
+        }
+
+        .login-form input {
+            width: 100%;
+            padding: 0.875rem 0;
+            border: none;
+            border-bottom: 1px solid #e5e5e5;
+            background: transparent;
+            font-family: 'Noto Sans TC', sans-serif;
+            font-size: 1rem;
+            font-weight: 400;
+            color: #1a1a1a;
+            transition: all 0.3s ease;
+        }
+
+        .login-form input::placeholder {
+            color: #ccc;
+            font-weight: 300;
+        }
+
+        .login-form input:focus {
+            outline: none;
+            border-bottom-color: #1a1a1a;
+        }
+
+        .login-form input:focus + .input-line {
+            transform: scaleX(1);
+        }
+
+        .input-line {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: var(--terracotta);
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* Submit button */
+        .login-btn {
+            width: 100%;
+            padding: 1rem 2rem;
+            background: #1a1a1a;
+            color: #fff;
+            border: none;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.75rem;
+            font-weight: 500;
+            letter-spacing: 0.25em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            margin-top: 1.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .login-btn:hover {
+            background: var(--terracotta);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(193, 122, 94, 0.3);
+        }
+
+        .login-btn:hover::before {
+            left: 100%;
+        }
+
+        .login-btn:active {
+            transform: translateY(0);
+        }
+
+        .login-btn:disabled {
+            background: #ddd;
+            color: #999;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Error message */
+        .login-error {
+            background: #FEF2F2;
+            border-left: 3px solid #EF4444;
+            color: #DC2626;
+            padding: 0.875rem 1rem;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.8rem;
+            margin-bottom: 1.5rem;
+            display: none;
+            animation: shake 0.5s ease;
+        }
+
         .login-error.show { display: block; }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        /* Footer */
+        .login-footer {
+            text-align: center;
+            margin-top: 2.5rem;
+            opacity: 0;
+            animation: fadeIn 1s ease 1s forwards;
+        }
+
+        .login-footer p {
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.7rem;
+            font-weight: 400;
+            color: #bbb;
+            letter-spacing: 0.1em;
+        }
+
+        /* Invite code section styling for register form */
+        .invite-code-group {
+            background: #F8F8F6;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            border-left: 3px solid var(--terracotta);
+        }
+
+        .invite-code-group label {
+            color: var(--terracotta) !important;
+            font-size: 0.65rem !important;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .invite-code-input {
+            font-size: 1.1rem !important;
+            letter-spacing: 0.3em !important;
+            font-weight: 500 !important;
+            text-transform: uppercase;
+            text-align: center;
+        }
+
+        /* Hide old logo element */
+        .login-logo { display: none; }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .login-view::before {
+                font-size: 15rem;
+                left: -15%;
+            }
+
+            .login-card {
+                padding: 2rem 1.5rem;
+            }
+
+            .login-brand h1 {
+                font-size: 2rem;
+            }
+
+            .login-view .geo-line-1,
+            .login-view .geo-line-2,
+            .login-view .geo-line-3,
+            .login-view .float-dot {
+                display: none;
+            }
+        }
 
         /* Announcement Banner */
         .announcement-banner {
@@ -2510,15 +3280,30 @@
 
     <!-- Login View -->
     <div id="loginView" class="login-view">
-        <div class="login-card">
-            <div class="login-logo">
-                <h1>BeyondBridge</h1>
-                <p>教育資源平台</p>
-            </div>
+        <!-- Watermark -->
+        <div class="login-watermark">超越</div>
 
-            <div class="login-tabs">
-                <button class="login-tab active" onclick="switchLoginTab('login')">登入</button>
-                <button class="login-tab" onclick="switchLoginTab('register')">註冊</button>
+        <!-- Geometric Accent Lines -->
+        <div class="geo-line geo-line-1"></div>
+        <div class="geo-line geo-line-2"></div>
+        <div class="geo-line geo-line-3"></div>
+
+        <!-- Floating Dots -->
+        <div class="float-dot float-dot-1"></div>
+        <div class="float-dot float-dot-2"></div>
+
+        <!-- Brand Header -->
+        <div class="login-brand">
+            <h1>BeyondBridge</h1>
+            <p>Build the bridge. Go beyond.</p>
+        </div>
+
+        <!-- Login Card -->
+        <div class="login-card">
+            <!-- Tab Switcher -->
+            <div class="auth-tabs">
+                <button type="button" class="auth-tab active" onclick="switchAuthTab('login')">登入</button>
+                <button type="button" class="auth-tab" onclick="switchAuthTab('register')">註冊</button>
             </div>
 
             <div id="loginError" class="login-error"></div>
@@ -2533,14 +3318,26 @@
                     <label>密碼</label>
                     <input type="password" id="loginPassword" placeholder="請輸入密碼" required>
                 </div>
-                <button type="submit" class="login-btn">登入</button>
+                <button type="submit" class="login-btn">踏上橋樑</button>
             </form>
 
-            <!-- Register Form -->
-            <form id="registerForm" class="login-form hidden" onsubmit="handleRegister(event)">
+            <!-- Register Form (Student Only) -->
+            <form id="registerForm" class="login-form" onsubmit="handleRegister(event)" style="display: none;">
+                <!-- Hidden role field (always student) -->
+                <input type="hidden" id="registerRole" value="student">
+
+                <!-- Invite Code (required for students) -->
+                <div class="form-group invite-code-group">
+                    <label>
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                        橋樑通行碼
+                    </label>
+                    <input type="text" id="registerInviteCode" placeholder="ABC123" maxlength="6" class="invite-code-input">
+                </div>
+
                 <div class="form-group">
                     <label>姓名</label>
-                    <input type="text" id="registerName" placeholder="您的姓名" required>
+                    <input type="text" id="registerName" placeholder="請輸入您的姓名" required>
                 </div>
                 <div class="form-group">
                     <label>電子郵件</label>
@@ -2548,45 +3345,38 @@
                 </div>
                 <div class="form-group">
                     <label>密碼</label>
-                    <input type="password" id="registerPassword" placeholder="請設定密碼（至少 8 字元）" required minlength="8">
+                    <input type="password" id="registerPassword" placeholder="至少6個字元" required minlength="6">
                 </div>
-                <div class="form-group">
-                    <label>身份</label>
-                    <select id="registerRole" required>
-                        <option value="educator">教育工作者</option>
-                        <option value="trainer">企業培訓主管</option>
-                        <option value="creator">內容創作者</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>學校/機構（選填）</label>
-                    <input type="text" id="registerOrg" placeholder="您的學校或公司名稱">
-                </div>
-                <button type="submit" class="login-btn">註冊</button>
-            </form>
 
-            <div class="login-footer">
-                <p>測試帳號：demo@beyondbridge.com / Demo@2025</p>
-            </div>
+                <button type="submit" class="login-btn">開始探索</button>
+            </form>
+        </div>
+
+        <!-- Footer -->
+        <div class="login-footer">
+            <p>&copy; 2025 BeyondBridge</p>
         </div>
     </div>
 
     <script>
         // Page titles mapping
         const pageTitles = {
-            'dashboard': '儀表板 <span>Dashboard</span>',
-            'library': '教材資源庫 <span>Resource Library</span>',
-            'courses': '我的課程 <span>My Courses</span>',
-            'licenses': '授權管理 <span>License Management</span>',
-            'videos': '影音教材 <span>Video Materials</span>',
-            'quizzes': '測驗題庫 <span>Quiz Bank</span>',
-            'discussions': '互動討論 <span>Discussions</span>',
-            'settings': '系統設定 <span>Settings</span>'
+            'dashboard': '建橋總覽 <span>Bridge Overview</span>',
+            'library': '知識建材庫 <span>Knowledge Materials</span>',
+            'courses': '我的橋樑 <span>My Bridges</span>',
+            'licenses': '建材授權 <span>Material Licenses</span>',
+            'videos': '影音橋段 <span>Video Segments</span>',
+            'quizzes': '橋樑驗收 <span>Bridge Inspection</span>',
+            'discussions': '共建論壇 <span>Co-Build Forum</span>',
+            'classes': '共建團隊 <span>Build Teams</span>',
+            'studentClasses': '我的橋隊 <span>My Bridge Team</span>',
+            'classDetail': '團隊詳情 <span>Team Detail</span>',
+            'settings': '橋樑設定 <span>Bridge Settings</span>'
         };
 
         // Resources data
         const resources = [
-            { id: 1, title: '國中數學 - 一元二次方程式完整教學', type: '影音', author: 'Benjamin', views: '1.2k', rating: '4.8', desc: '從基礎概念到進階應用，包含豐富例題與解題技巧，適合國中學生自主學習或教師課堂使用。', tags: ['國中', '數學', '代數'] },
+            { id: 1, title: '國中數學 - 一元二次方程式完整教學', type: '影音', author: 'Benjamin', views: '1.2k', rating: '4.8', desc: '從基礎概念到進階應用，包含豐富例題與解題技巧，適合國中探橋者自主學習或建橋者課堂使用。', tags: ['國中', '數學', '代數'] },
             { id: 2, title: '英文文法互動練習 - 時態大全', type: '互動', author: 'Mina', views: '856', rating: '4.9', desc: '透過遊戲化互動練習，輕鬆掌握 12 種英文時態，含即時回饋與錯題分析。', tags: ['高中', '英文', '文法'] },
             { id: 3, title: '企業簡報設計實戰手冊', type: '講義', author: 'Justin', views: '2.3k', rating: '4.7', desc: '職場必備簡報技巧，從架構規劃到視覺呈現完整攻略，附贈模板下載。', tags: ['企業培訓', '簡報', '設計'] }
         ];
@@ -2600,6 +3390,12 @@
                 'library': 'libraryView',
                 'courses': 'coursesView',
                 'licenses': 'licensesView',
+                'videos': 'videosView',
+                'quizzes': 'quizzesView',
+                'discussions': 'discussionsView',
+                'classes': 'classesView',
+                'studentClasses': 'studentClassesView',
+                'classDetail': 'classDetailView',
                 'settings': 'settingsView'
             };
 
@@ -2618,7 +3414,7 @@
                 if (typeof App !== 'undefined') {
                     App.logout();
                 } else {
-                    showToast('已登出系統');
+                    showToast('已離開橋樑');
                     localStorage.clear();
                     setTimeout(() => window.location.href = '../website/index.html', 1500);
                 }
@@ -2628,17 +3424,16 @@
             document.getElementById('pageTitle').innerHTML = pageTitles[viewName] || pageTitles['dashboard'];
         }
 
-        // Navigation click handlers
-        document.querySelectorAll('.nav-item').forEach((item, index) => {
-            item.addEventListener('click', function(e) {
-                e.preventDefault();
-                document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-                this.classList.add('active');
-
-                const views = ['dashboard', 'library', 'courses', 'licenses', 'videos', 'quizzes', 'discussions', 'settings', 'logout'];
-                showView(views[index] || 'dashboard');
-            });
-        });
+        // 導航到指定頁面並更新 active 狀態
+        function navigateTo(element, viewName) {
+            event.preventDefault();
+            // 移除所有 nav-item 的 active 狀態
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            // 設定當前項目為 active
+            element.classList.add('active');
+            // 顯示對應視圖
+            showView(viewName);
+        }
 
         // Modal functions
         function openResourceModal(resourceId) {
@@ -2656,9 +3451,9 @@
                     <div><strong>評分：</strong>${resource.rating}</div>
                 </div>
                 <div style="background: var(--gray-100); padding: 1rem; border-radius: 8px;">
-                    <h4 style="margin-bottom: 0.5rem;">教材內容</h4>
+                    <h4 style="margin-bottom: 0.5rem;">建材內容</h4>
                     <ul style="margin-left: 1.5rem; color: var(--gray-500);">
-                        <li>12 個教學單元</li>
+                        <li>12 個築橋單元</li>
                         <li>含練習題與解答</li>
                         <li>可下載 PDF 講義</li>
                         <li>附互動測驗</li>
@@ -2703,6 +3498,965 @@
             toast.classList.add('active');
             setTimeout(() => toast.classList.remove('active'), 3000);
         }
+
+        // ========== 影音橋段功能 ==========
+        function openVideoPlayer(videoId) {
+            // 創建影片播放 Modal
+            const modal = document.createElement('div');
+            modal.id = 'videoPlayerModal';
+            modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:10000;display:flex;align-items:center;justify-content:center;';
+            modal.innerHTML = `
+                <div style="width:90%;max-width:1000px;background:#000;border-radius:12px;overflow:hidden;">
+                    <div style="aspect-ratio:16/9;background:#1a1a2e;display:flex;align-items:center;justify-content:center;position:relative;">
+                        <div style="text-align:center;color:var(--cream);">
+                            <svg viewBox="0 0 24 24" width="80" height="80" fill="none" stroke="currentColor" stroke-width="1"><circle cx="12" cy="12" r="10"/><polygon points="10,8 16,12 10,16" fill="currentColor"/></svg>
+                            <p style="margin-top:1rem;font-size:1.2rem;">影片播放區域</p>
+                            <p style="font-size:0.9rem;opacity:0.7;">實際整合時將嵌入影片播放器</p>
+                        </div>
+                    </div>
+                    <div style="padding:1.5rem;background:var(--charcoal);color:var(--cream);">
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                            <div>
+                                <h3 style="font-size:1.25rem;margin-bottom:0.5rem;">一元二次方程式完整教學</h3>
+                                <p style="font-size:0.9rem;opacity:0.7;">Benjamin · 45:30 · 1.2k 觀看</p>
+                            </div>
+                            <button onclick="closeVideoPlayer()" style="padding:0.75rem 1.5rem;background:var(--olive);color:var(--cream);border:none;border-radius:8px;cursor:pointer;">關閉</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            modal.onclick = (e) => { if (e.target === modal) closeVideoPlayer(); };
+        }
+
+        function closeVideoPlayer() {
+            const modal = document.getElementById('videoPlayerModal');
+            if (modal) modal.remove();
+        }
+
+        function filterVideos() {
+            const search = document.getElementById('videoSearch').value.toLowerCase();
+            const category = document.getElementById('videoCategory').value;
+            const cards = document.querySelectorAll('#videoGrid .video-card');
+            cards.forEach(card => {
+                const title = card.querySelector('h3').textContent.toLowerCase();
+                const matchesSearch = title.includes(search);
+                card.style.display = matchesSearch ? 'block' : 'none';
+            });
+            showToast('已篩選影片');
+        }
+
+        // ========== 測驗題庫功能 ==========
+        function switchQuizTab(btn, tabName) {
+            document.querySelectorAll('.quiz-tab').forEach(t => {
+                t.style.background = 'var(--gray-100)';
+                t.style.color = 'var(--gray-600)';
+            });
+            btn.style.background = 'var(--olive)';
+            btn.style.color = 'var(--cream)';
+            showToast(`顯示${btn.textContent}測驗`);
+        }
+
+        function startQuiz(quizId) {
+            // 創建測驗 Modal
+            const modal = document.createElement('div');
+            modal.id = 'quizModal';
+            modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:10000;display:flex;align-items:center;justify-content:center;';
+            modal.innerHTML = `
+                <div style="width:90%;max-width:700px;background:var(--cream);border-radius:16px;overflow:hidden;">
+                    <div style="padding:2rem;background:var(--olive);color:var(--cream);">
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                            <h2>一元二次方程式測驗</h2>
+                            <span style="font-size:1.5rem;font-weight:700;">第 1/20 題</span>
+                        </div>
+                        <div style="margin-top:1rem;height:6px;background:rgba(255,255,255,0.2);border-radius:3px;">
+                            <div style="width:5%;height:100%;background:var(--cream);border-radius:3px;"></div>
+                        </div>
+                    </div>
+                    <div style="padding:2rem;">
+                        <h3 style="font-size:1.2rem;margin-bottom:1.5rem;line-height:1.6;">請問下列哪個方程式的解為 x = 2 或 x = 3？</h3>
+                        <div style="display:flex;flex-direction:column;gap:0.75rem;">
+                            <label style="display:flex;align-items:center;padding:1rem;background:var(--white);border:2px solid var(--gray-200);border-radius:8px;cursor:pointer;transition:all 0.2s;">
+                                <input type="radio" name="answer" style="margin-right:1rem;width:20px;height:20px;">
+                                <span>A. x² - 5x + 6 = 0</span>
+                            </label>
+                            <label style="display:flex;align-items:center;padding:1rem;background:var(--white);border:2px solid var(--gray-200);border-radius:8px;cursor:pointer;transition:all 0.2s;">
+                                <input type="radio" name="answer" style="margin-right:1rem;width:20px;height:20px;">
+                                <span>B. x² + 5x + 6 = 0</span>
+                            </label>
+                            <label style="display:flex;align-items:center;padding:1rem;background:var(--white);border:2px solid var(--gray-200);border-radius:8px;cursor:pointer;transition:all 0.2s;">
+                                <input type="radio" name="answer" style="margin-right:1rem;width:20px;height:20px;">
+                                <span>C. x² - 5x - 6 = 0</span>
+                            </label>
+                            <label style="display:flex;align-items:center;padding:1rem;background:var(--white);border:2px solid var(--gray-200);border-radius:8px;cursor:pointer;transition:all 0.2s;">
+                                <input type="radio" name="answer" style="margin-right:1rem;width:20px;height:20px;">
+                                <span>D. x² + 5x - 6 = 0</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div style="padding:1.5rem 2rem;border-top:1px solid var(--gray-200);display:flex;justify-content:space-between;">
+                        <button onclick="closeQuiz()" style="padding:0.75rem 1.5rem;background:var(--gray-200);border:none;border-radius:8px;cursor:pointer;">離開測驗</button>
+                        <button onclick="submitAnswer()" style="padding:0.75rem 2rem;background:var(--olive);color:var(--cream);border:none;border-radius:8px;cursor:pointer;font-weight:500;">下一題 →</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        function closeQuiz() {
+            const modal = document.getElementById('quizModal');
+            if (modal) modal.remove();
+        }
+
+        function submitAnswer() {
+            showToast('答案已提交！');
+            closeQuiz();
+        }
+
+        function viewQuizResult(quizId) {
+            showToast('正在載入測驗結果...');
+        }
+
+        // ========== 互動討論功能 ==========
+        function switchDiscTab(btn, tabName) {
+            document.querySelectorAll('.disc-tab').forEach(t => {
+                t.style.background = 'var(--gray-100)';
+                t.style.color = 'var(--gray-600)';
+            });
+            btn.style.background = 'var(--olive)';
+            btn.style.color = 'var(--cream)';
+            showToast(`顯示${btn.textContent}`);
+        }
+
+        function openNewPostModal() {
+            const modal = document.createElement('div');
+            modal.id = 'newPostModal';
+            modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;';
+            modal.innerHTML = `
+                <div style="width:90%;max-width:600px;background:var(--cream);border-radius:16px;overflow:hidden;">
+                    <div style="padding:1.5rem 2rem;border-bottom:1px solid var(--gray-200);display:flex;justify-content:space-between;align-items:center;">
+                        <h2 style="font-size:1.25rem;">發起新討論</h2>
+                        <button onclick="closeNewPostModal()" style="background:none;border:none;cursor:pointer;font-size:1.5rem;color:var(--gray-400);">×</button>
+                    </div>
+                    <div style="padding:2rem;">
+                        <div style="margin-bottom:1.5rem;">
+                            <label style="display:block;margin-bottom:0.5rem;font-weight:500;color:var(--charcoal);">標題</label>
+                            <input type="text" placeholder="請輸入討論標題..." style="width:100%;padding:0.75rem 1rem;border:1px solid var(--gray-200);border-radius:8px;font-size:1rem;">
+                        </div>
+                        <div style="margin-bottom:1.5rem;">
+                            <label style="display:block;margin-bottom:0.5rem;font-weight:500;color:var(--charcoal);">分類</label>
+                            <select style="width:100%;padding:0.75rem 1rem;border:1px solid var(--gray-200);border-radius:8px;font-size:1rem;">
+                                <option>教學心得</option>
+                                <option>教學工具</option>
+                                <option>課程設計</option>
+                                <option>企業培訓</option>
+                                <option>其他</option>
+                            </select>
+                        </div>
+                        <div style="margin-bottom:1.5rem;">
+                            <label style="display:block;margin-bottom:0.5rem;font-weight:500;color:var(--charcoal);">內容</label>
+                            <textarea rows="6" placeholder="請輸入討論內容..." style="width:100%;padding:0.75rem 1rem;border:1px solid var(--gray-200);border-radius:8px;font-size:1rem;resize:vertical;"></textarea>
+                        </div>
+                    </div>
+                    <div style="padding:1rem 2rem;border-top:1px solid var(--gray-200);display:flex;justify-content:flex-end;gap:0.75rem;">
+                        <button onclick="closeNewPostModal()" style="padding:0.75rem 1.5rem;background:var(--gray-200);border:none;border-radius:8px;cursor:pointer;">取消</button>
+                        <button onclick="submitNewPost()" style="padding:0.75rem 1.5rem;background:var(--olive);color:var(--cream);border:none;border-radius:8px;cursor:pointer;font-weight:500;">發布討論</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            modal.onclick = (e) => { if (e.target === modal) closeNewPostModal(); };
+        }
+
+        function closeNewPostModal() {
+            const modal = document.getElementById('newPostModal');
+            if (modal) modal.remove();
+        }
+
+        function submitNewPost() {
+            showToast('討論已發布！');
+            closeNewPostModal();
+        }
+
+        function likePost(postId) {
+            showToast('已按讚！');
+        }
+
+        function toggleReplies(postId) {
+            showToast('正在載入回覆...');
+        }
+
+        function openReplyModal(postId) {
+            const modal = document.createElement('div');
+            modal.id = 'replyModal';
+            modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;';
+            modal.innerHTML = `
+                <div style="width:90%;max-width:500px;background:var(--cream);border-radius:16px;overflow:hidden;">
+                    <div style="padding:1.5rem 2rem;border-bottom:1px solid var(--gray-200);">
+                        <h3>回覆討論</h3>
+                    </div>
+                    <div style="padding:2rem;">
+                        <textarea rows="4" placeholder="輸入您的回覆..." style="width:100%;padding:0.75rem 1rem;border:1px solid var(--gray-200);border-radius:8px;font-size:1rem;resize:vertical;"></textarea>
+                    </div>
+                    <div style="padding:1rem 2rem;border-top:1px solid var(--gray-200);display:flex;justify-content:flex-end;gap:0.75rem;">
+                        <button onclick="closeReplyModal()" style="padding:0.75rem 1.5rem;background:var(--gray-200);border:none;border-radius:8px;cursor:pointer;">取消</button>
+                        <button onclick="submitReply()" style="padding:0.75rem 1.5rem;background:var(--olive);color:var(--cream);border:none;border-radius:8px;cursor:pointer;font-weight:500;">送出回覆</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            modal.onclick = (e) => { if (e.target === modal) closeReplyModal(); };
+        }
+
+        function closeReplyModal() {
+            const modal = document.getElementById('replyModal');
+            if (modal) modal.remove();
+        }
+
+        function submitReply() {
+            showToast('回覆已送出！');
+            closeReplyModal();
+        }
+
+        // ===== 橋隊管理功能（建橋者用）=====
+        let classesCache = [];
+
+        // 載入橋隊列表
+        async function loadClasses() {
+            try {
+                const result = await API.classes.list();
+                if (result.success) {
+                    classesCache = result.data || [];
+                    renderClassesList();
+                }
+            } catch (error) {
+                console.error('Load classes error:', error);
+                showToast('載入橋隊失敗');
+            }
+        }
+
+        // 渲染橋隊列表
+        function renderClassesList() {
+            const container = document.getElementById('classesListContainer');
+            const user = API.getCurrentUser();
+            const userId = user?.userId;
+
+            // 只顯示建橋者自己創建的橋隊
+            const filtered = classesCache.filter(c => c.teacherId === userId);
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 4rem 2rem; color: var(--gray-400);">
+                        <svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="currentColor" stroke-width="1" style="margin-bottom: 1rem; opacity: 0.5;">
+                            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="M23 21v-2a4 4 0 00-3-3.87"/>
+                            <path d="M16 3.13a4 4 0 010 7.75"/>
+                        </svg>
+                        <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">
+                            您尚未搭建任何橋
+                        </p>
+                        <p style="font-size: 0.9rem;">
+                            點擊「搭建新橋」開始管理您的探橋者
+                        </p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem;">
+                    ${filtered.map(cls => `
+                        <div class="class-card" onclick="openClassDetail('${cls.classId}')" style="background: var(--white); border-radius: 16px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); cursor: pointer; transition: all 0.2s;">
+                            <div style="height: 8px; background: ${getClassColor(cls.subject)};"></div>
+                            <div style="padding: 1.5rem;">
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+                                    <div>
+                                        <h3 style="font-size: 1.2rem; font-weight: 600; margin-bottom: 0.25rem;">${cls.name}</h3>
+                                        <p style="font-size: 0.85rem; color: var(--gray-500);">${cls.subject || '一般課程'}</p>
+                                    </div>
+                                    ${cls.isEnrolled ? '<span style="background: var(--olive); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem;">已加入</span>' : ''}
+                                </div>
+                                <p style="font-size: 0.9rem; color: var(--gray-600); margin-bottom: 1rem; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${cls.description || '尚無說明'}</p>
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 1rem; border-top: 1px solid var(--gray-100);">
+                                    <div style="display: flex; gap: 1.5rem; font-size: 0.85rem; color: var(--gray-500);">
+                                        <span style="display: flex; align-items: center; gap: 0.25rem;">
+                                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                                            ${cls.memberCount || 0} 位探橋者
+                                        </span>
+                                        <span style="display: flex; align-items: center; gap: 0.25rem;">
+                                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+                                            ${cls.assignmentCount || 0} 項作業
+                                        </span>
+                                    </div>
+                                    <span style="font-size: 0.8rem; color: var(--gray-400);">${cls.teacherName || '建橋者'}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        // 橋隊顏色
+        function getClassColor(subject) {
+            const colors = {
+                '數學': 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                '英文': 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                '國文': 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                '自然': 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                '社會': 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+                '程式': 'linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)'
+            };
+            return colors[subject] || 'linear-gradient(135deg, var(--olive) 0%, var(--olive-deep) 100%)';
+        }
+
+        // 開啟搭建新橋 Modal
+        function openCreateClassModal() {
+            const modal = document.createElement('div');
+            modal.id = 'createClassModal';
+            modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;';
+            modal.innerHTML = `
+                <div style="width:90%;max-width:500px;background:var(--cream);border-radius:16px;overflow:hidden;">
+                    <div style="padding:1.5rem 2rem;border-bottom:1px solid var(--gray-200);display:flex;justify-content:space-between;align-items:center;">
+                        <h3 style="font-size:1.2rem;font-weight:600;">搭建新橋</h3>
+                        <button onclick="closeCreateClassModal()" style="background:none;border:none;cursor:pointer;padding:0.5rem;">
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                    </div>
+                    <div style="padding:2rem;">
+                        <div style="margin-bottom:1.25rem;">
+                            <label style="display:block;margin-bottom:0.5rem;font-weight:500;">橋樑名稱 *</label>
+                            <input type="text" id="newClassName" placeholder="例如：九年級數學橋" style="width:100%;padding:0.75rem 1rem;border:1px solid var(--gray-200);border-radius:8px;font-size:1rem;">
+                        </div>
+                        <div style="margin-bottom:1.25rem;">
+                            <label style="display:block;margin-bottom:0.5rem;font-weight:500;">科目</label>
+                            <input type="text" id="newClassSubject" placeholder="例如：數學、英文、程式設計" style="width:100%;padding:0.75rem 1rem;border:1px solid var(--gray-200);border-radius:8px;font-size:1rem;">
+                        </div>
+                        <div style="margin-bottom:1.25rem;">
+                            <label style="display:block;margin-bottom:0.5rem;font-weight:500;">橋樑說明</label>
+                            <textarea id="newClassDesc" rows="3" placeholder="輸入橋樑說明（選填）" style="width:100%;padding:0.75rem 1rem;border:1px solid var(--gray-200);border-radius:8px;font-size:1rem;resize:vertical;"></textarea>
+                        </div>
+                    </div>
+                    <div style="padding:1rem 2rem;border-top:1px solid var(--gray-200);display:flex;justify-content:flex-end;gap:0.75rem;">
+                        <button onclick="closeCreateClassModal()" style="padding:0.75rem 1.5rem;background:var(--gray-200);border:none;border-radius:8px;cursor:pointer;">取消</button>
+                        <button onclick="submitCreateClass()" style="padding:0.75rem 1.5rem;background:var(--olive);color:var(--cream);border:none;border-radius:8px;cursor:pointer;font-weight:500;">搭建橋樑</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            modal.onclick = (e) => { if (e.target === modal) closeCreateClassModal(); };
+        }
+
+        function closeCreateClassModal() {
+            const modal = document.getElementById('createClassModal');
+            if (modal) modal.remove();
+        }
+
+        async function submitCreateClass() {
+            const name = document.getElementById('newClassName').value.trim();
+            const subject = document.getElementById('newClassSubject').value;
+            const description = document.getElementById('newClassDesc').value.trim();
+
+            if (!name) {
+                showToast('請輸入橋樑名稱');
+                return;
+            }
+
+            try {
+                const result = await API.classes.create({ name, subject, description });
+                if (result.success) {
+                    showToast('橋樑已搭建！通行碼：' + result.data.inviteCode);
+                    closeCreateClassModal();
+                    loadClasses();
+                } else {
+                    showToast(result.message || '搭建橋樑失敗');
+                }
+            } catch (error) {
+                console.error('Create class error:', error);
+                showToast('搭建橋樑失敗');
+            }
+        }
+
+        // 開啟橋隊詳情
+        async function openClassDetail(classId) {
+            try {
+                const result = await API.classes.get(classId);
+                if (!result.success) {
+                    showToast('載入橋隊詳情失敗');
+                    return;
+                }
+
+                const cls = result.data;
+                const user = API.getCurrentUser();
+                const isTeacher = cls.teacherId === user?.userId;
+
+                const detailContent = document.getElementById('classDetailContent');
+                detailContent.innerHTML = `
+                    <!-- 橋隊標題 -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <button onclick="showView('classes')" style="background: var(--gray-100); border: none; padding: 0.5rem; border-radius: 8px; cursor: pointer; display: flex; align-items: center;">
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
+                            </button>
+                            <div>
+                                <h2 style="font-size: 1.5rem; font-weight: 600;">${cls.name}</h2>
+                                <p style="color: var(--gray-500);">${cls.subject || '一般課程'} · ${cls.teacherName || '建橋者'}</p>
+                            </div>
+                        </div>
+                        ${isTeacher ? `
+                            <div style="display: flex; gap: 0.75rem;">
+                                <div style="background: var(--gray-100); padding: 0.75rem 1.25rem; border-radius: 8px;">
+                                    <span style="color: var(--gray-500); font-size: 0.85rem;">通行碼：</span>
+                                    <strong style="font-size: 1.1rem; letter-spacing: 0.1rem;">${cls.inviteCode}</strong>
+                                    <button onclick="copyInviteCode('${cls.inviteCode}')" style="background: none; border: none; cursor: pointer; margin-left: 0.5rem;">
+                                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                                    </button>
+                                </div>
+                                <button onclick="openAddAssignmentModal('${classId}')" style="padding: 0.75rem 1.5rem; background: var(--olive); color: var(--cream); border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 0.5rem;">
+                                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                    新增作業
+                                </button>
+                            </div>
+                        ` : ''}
+                    </div>
+
+                    <!-- 橋隊統計 -->
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem;">
+                        <div style="background: var(--white); padding: 1.25rem; border-radius: 12px; text-align: center;">
+                            <div style="font-size: 1.75rem; font-weight: 700; color: var(--olive);">${cls.memberCount || 0}</div>
+                            <div style="font-size: 0.85rem; color: var(--gray-500);">橋隊成員</div>
+                        </div>
+                        <div style="background: var(--white); padding: 1.25rem; border-radius: 12px; text-align: center;">
+                            <div style="font-size: 1.75rem; font-weight: 700; color: var(--terracotta);">${(cls.assignments || []).filter(a => a.type === 'material').length}</div>
+                            <div style="font-size: 0.85rem; color: var(--gray-500);">建材</div>
+                        </div>
+                        <div style="background: var(--white); padding: 1.25rem; border-radius: 12px; text-align: center;">
+                            <div style="font-size: 1.75rem; font-weight: 700; color: #6366f1;">${(cls.assignments || []).filter(a => a.type === 'quiz' || a.type === 'practice').length}</div>
+                            <div style="font-size: 0.85rem; color: var(--gray-500);">測驗/練習</div>
+                        </div>
+                        <div style="background: var(--white); padding: 1.25rem; border-radius: 12px; text-align: center;">
+                            <div style="font-size: 1.75rem; font-weight: 700; color: #10b981;">${(cls.assignments || []).filter(a => a.type === 'exam').length}</div>
+                            <div style="font-size: 0.85rem; color: var(--gray-500);">考試</div>
+                        </div>
+                    </div>
+
+                    <!-- 分頁標籤 -->
+                    <div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--gray-200); padding-bottom: 0.5rem;">
+                        <button class="detail-tab active" onclick="switchDetailTab(this, 'assignments')" style="padding: 0.75rem 1.5rem; border: none; background: var(--olive); color: var(--cream); border-radius: 8px 8px 0 0; cursor: pointer; font-weight: 500;">作業與建材</button>
+                        ${isTeacher ? `<button class="detail-tab" onclick="switchDetailTab(this, 'members')" style="padding: 0.75rem 1.5rem; border: none; background: var(--gray-100); color: var(--gray-600); border-radius: 8px 8px 0 0; cursor: pointer;">橋隊成員</button>` : ''}
+                    </div>
+
+                    <!-- 作業列表 -->
+                    <div id="assignmentsPanel">
+                        ${renderAssignmentsList(cls.assignments || [], isTeacher, classId)}
+                    </div>
+
+                    <!-- 成員列表（建橋者可見）-->
+                    <div id="membersPanel" style="display: none;">
+                        ${isTeacher ? renderMembersList(cls.members || [], classId) : ''}
+                    </div>
+                `;
+
+                showView('classDetail');
+
+            } catch (error) {
+                console.error('Open class detail error:', error);
+                showToast('載入橋隊詳情失敗');
+            }
+        }
+
+        // 渲染作業列表
+        function renderAssignmentsList(assignments, isTeacher, classId) {
+            if (assignments.length === 0) {
+                return `
+                    <div style="text-align: center; padding: 3rem; color: var(--gray-400);">
+                        <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1" style="margin-bottom: 1rem; opacity: 0.5;">
+                            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/>
+                        </svg>
+                        <p>尚無作業或建材</p>
+                        ${isTeacher ? '<p style="font-size: 0.85rem; margin-top: 0.5rem;">點擊「新增作業」開始指派</p>' : ''}
+                    </div>
+                `;
+            }
+
+            const typeLabels = { 'material': '建材', 'quiz': '測驗', 'practice': '練習', 'exam': '考試' };
+            const typeColors = { 'material': 'var(--olive)', 'quiz': '#6366f1', 'practice': '#10b981', 'exam': 'var(--terracotta)' };
+
+            return `
+                <div style="display: flex; flex-direction: column; gap: 1rem;">
+                    ${assignments.map(a => `
+                        <div style="background: var(--white); border-radius: 12px; padding: 1.25rem; display: flex; justify-content: space-between; align-items: center;">
+                            <div style="display: flex; align-items: center; gap: 1rem;">
+                                <div style="width: 48px; height: 48px; background: ${typeColors[a.type]}20; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="${typeColors[a.type]}" stroke-width="2">
+                                        ${a.type === 'material' ? '<path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>' : ''}
+                                        ${a.type === 'quiz' || a.type === 'practice' ? '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>' : ''}
+                                        ${a.type === 'exam' ? '<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>' : ''}
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                                        <span style="background: ${typeColors[a.type]}; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem;">${typeLabels[a.type]}</span>
+                                        <h4 style="font-weight: 600;">${a.title}</h4>
+                                    </div>
+                                    <p style="font-size: 0.85rem; color: var(--gray-500);">
+                                        ${a.description || '無說明'}
+                                        ${a.dueDate ? ` · 截止：${new Date(a.dueDate).toLocaleDateString('zh-TW')}` : ''}
+                                        ${a.points ? ` · ${a.points} 分` : ''}
+                                    </p>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <button onclick="viewAssignment('${a.assignmentId}')" style="padding: 0.5rem 1rem; background: var(--gray-100); border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">查看</button>
+                                ${isTeacher ? `<button onclick="deleteAssignment('${classId}', '${a.assignmentId}')" style="padding: 0.5rem; background: none; border: none; cursor: pointer; color: var(--gray-400);"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button>` : ''}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        // 渲染成員列表
+        function renderMembersList(members, classId) {
+            if (members.length === 0) {
+                return `
+                    <div style="text-align: center; padding: 3rem; color: var(--gray-400);">
+                        <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1" style="margin-bottom: 1rem; opacity: 0.5;">
+                            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                        </svg>
+                        <p>尚無探橋者加入</p>
+                        <p style="font-size: 0.85rem; margin-top: 0.5rem;">分享通行碼讓探橋者加入橋隊</p>
+                    </div>
+                `;
+            }
+
+            return `
+                <div style="background: var(--white); border-radius: 12px; overflow: hidden;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead style="background: var(--gray-50);">
+                            <tr>
+                                <th style="padding: 1rem; text-align: left; font-weight: 600;">探橋者</th>
+                                <th style="padding: 1rem; text-align: left; font-weight: 600;">電子郵件</th>
+                                <th style="padding: 1rem; text-align: left; font-weight: 600;">加入日期</th>
+                                <th style="padding: 1rem; text-align: center; font-weight: 600;">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${members.map(m => `
+                                <tr style="border-top: 1px solid var(--gray-100);">
+                                    <td style="padding: 1rem;">
+                                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                            <div style="width: 36px; height: 36px; background: var(--olive); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--cream); font-weight: 600;">${(m.userName || '學')[0]}</div>
+                                            <span>${m.userName || '探橋者'}</span>
+                                        </div>
+                                    </td>
+                                    <td style="padding: 1rem; color: var(--gray-500);">${m.userEmail || '-'}</td>
+                                    <td style="padding: 1rem; color: var(--gray-500);">${m.joinedAt ? new Date(m.joinedAt).toLocaleDateString('zh-TW') : '-'}</td>
+                                    <td style="padding: 1rem; text-align: center;">
+                                        <button onclick="removeMember('${classId}', '${m.userId}')" style="padding: 0.25rem 0.75rem; background: var(--gray-100); border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem; color: var(--terracotta);">移除</button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        // 切換詳情頁標籤
+        function switchDetailTab(btn, panel) {
+            document.querySelectorAll('.detail-tab').forEach(t => {
+                t.style.background = 'var(--gray-100)';
+                t.style.color = 'var(--gray-600)';
+                t.classList.remove('active');
+            });
+            btn.style.background = 'var(--olive)';
+            btn.style.color = 'var(--cream)';
+            btn.classList.add('active');
+
+            document.getElementById('assignmentsPanel').style.display = panel === 'assignments' ? 'block' : 'none';
+            document.getElementById('membersPanel').style.display = panel === 'members' ? 'block' : 'none';
+        }
+
+        // 複製邀請碼
+        function copyInviteCode(code) {
+            navigator.clipboard.writeText(code).then(() => {
+                showToast('邀請碼已複製');
+            });
+        }
+
+        // 新增作業 Modal
+        function openAddAssignmentModal(classId) {
+            const modal = document.createElement('div');
+            modal.id = 'addAssignmentModal';
+            modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;';
+            modal.innerHTML = `
+                <div style="width:90%;max-width:550px;background:var(--cream);border-radius:16px;overflow:hidden;">
+                    <div style="padding:1.5rem 2rem;border-bottom:1px solid var(--gray-200);display:flex;justify-content:space-between;align-items:center;">
+                        <h3 style="font-size:1.2rem;font-weight:600;">新增作業/建材</h3>
+                        <button onclick="closeAddAssignmentModal()" style="background:none;border:none;cursor:pointer;padding:0.5rem;">
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                    </div>
+                    <div style="padding:2rem;">
+                        <div style="margin-bottom:1.25rem;">
+                            <label style="display:block;margin-bottom:0.5rem;font-weight:500;">類型 *</label>
+                            <select id="assignmentType" style="width:100%;padding:0.75rem 1rem;border:1px solid var(--gray-200);border-radius:8px;font-size:1rem;background:white;">
+                                <option value="material">建材</option>
+                                <option value="quiz">測驗</option>
+                                <option value="practice">練習</option>
+                                <option value="exam">考試</option>
+                            </select>
+                        </div>
+                        <div style="margin-bottom:1.25rem;">
+                            <label style="display:block;margin-bottom:0.5rem;font-weight:500;">標題 *</label>
+                            <input type="text" id="assignmentTitle" placeholder="例如：第一章講義" style="width:100%;padding:0.75rem 1rem;border:1px solid var(--gray-200);border-radius:8px;font-size:1rem;">
+                        </div>
+                        <div style="margin-bottom:1.25rem;">
+                            <label style="display:block;margin-bottom:0.5rem;font-weight:500;">說明</label>
+                            <textarea id="assignmentDesc" rows="2" placeholder="輸入說明（選填）" style="width:100%;padding:0.75rem 1rem;border:1px solid var(--gray-200);border-radius:8px;font-size:1rem;resize:vertical;"></textarea>
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+                            <div>
+                                <label style="display:block;margin-bottom:0.5rem;font-weight:500;">截止日期</label>
+                                <input type="date" id="assignmentDue" style="width:100%;padding:0.75rem 1rem;border:1px solid var(--gray-200);border-radius:8px;font-size:1rem;">
+                            </div>
+                            <div>
+                                <label style="display:block;margin-bottom:0.5rem;font-weight:500;">分數</label>
+                                <input type="number" id="assignmentPoints" placeholder="0" min="0" style="width:100%;padding:0.75rem 1rem;border:1px solid var(--gray-200);border-radius:8px;font-size:1rem;">
+                            </div>
+                        </div>
+                    </div>
+                    <div style="padding:1rem 2rem;border-top:1px solid var(--gray-200);display:flex;justify-content:flex-end;gap:0.75rem;">
+                        <button onclick="closeAddAssignmentModal()" style="padding:0.75rem 1.5rem;background:var(--gray-200);border:none;border-radius:8px;cursor:pointer;">取消</button>
+                        <button onclick="submitAddAssignment('${classId}')" style="padding:0.75rem 1.5rem;background:var(--olive);color:var(--cream);border:none;border-radius:8px;cursor:pointer;font-weight:500;">新增</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            modal.onclick = (e) => { if (e.target === modal) closeAddAssignmentModal(); };
+        }
+
+        function closeAddAssignmentModal() {
+            const modal = document.getElementById('addAssignmentModal');
+            if (modal) modal.remove();
+        }
+
+        async function submitAddAssignment(classId) {
+            const type = document.getElementById('assignmentType').value;
+            const title = document.getElementById('assignmentTitle').value.trim();
+            const description = document.getElementById('assignmentDesc').value.trim();
+            const dueDate = document.getElementById('assignmentDue').value || null;
+            const points = parseInt(document.getElementById('assignmentPoints').value) || 0;
+
+            if (!title) {
+                showToast('請輸入標題');
+                return;
+            }
+
+            try {
+                const result = await API.classes.createAssignment(classId, { type, title, description, dueDate, points });
+                if (result.success) {
+                    showToast('作業已新增');
+                    closeAddAssignmentModal();
+                    openClassDetail(classId);
+                } else {
+                    showToast(result.message || '新增作業失敗');
+                }
+            } catch (error) {
+                console.error('Add assignment error:', error);
+                showToast('新增作業失敗');
+            }
+        }
+
+        // 刪除作業
+        async function deleteAssignment(classId, assignmentId) {
+            if (!confirm('確定要刪除此作業嗎？')) return;
+
+            try {
+                const result = await API.classes.deleteAssignment(classId, assignmentId);
+                if (result.success) {
+                    showToast('作業已刪除');
+                    openClassDetail(classId);
+                } else {
+                    showToast(result.message || '刪除作業失敗');
+                }
+            } catch (error) {
+                console.error('Delete assignment error:', error);
+                showToast('刪除作業失敗');
+            }
+        }
+
+        // 移除成員
+        async function removeMember(classId, userId) {
+            if (!confirm('確定要移除此成員嗎？')) return;
+
+            try {
+                const result = await API.classes.removeMember(classId, userId);
+                if (result.success) {
+                    showToast('成員已移除');
+                    openClassDetail(classId);
+                } else {
+                    showToast(result.message || '移除成員失敗');
+                }
+            } catch (error) {
+                console.error('Remove member error:', error);
+                showToast('移除成員失敗');
+            }
+        }
+
+        // 查看作業
+        function viewAssignment(assignmentId) {
+            showToast('正在載入作業內容...');
+            // 這裡可以擴展為打開作業詳情
+        }
+
+        // ===== 探橋者橋隊功能 =====
+
+        // 開啟探橋者加入橋隊 Modal
+        function openStudentJoinClassModal() {
+            document.getElementById('studentJoinClassModal').style.display = 'flex';
+            document.getElementById('studentInviteCodeInput').value = '';
+            document.getElementById('studentInviteCodeInput').focus();
+        }
+
+        // 關閉探橋者加入橋隊 Modal
+        function closeStudentJoinClassModal() {
+            document.getElementById('studentJoinClassModal').style.display = 'none';
+        }
+
+        // 提交加入橋隊
+        async function submitStudentJoinClass() {
+            const code = document.getElementById('studentInviteCodeInput').value.trim().toUpperCase();
+            if (!code || code.length < 6) {
+                showToast('請輸入有效的邀請碼');
+                return;
+            }
+
+            try {
+                const result = await API.classes.joinByCode(code);
+                if (result.success) {
+                    showToast('成功加入橋隊：' + result.data.className);
+                    closeStudentJoinClassModal();
+                    loadStudentClasses();
+                } else {
+                    showToast(result.message || '加入橋隊失敗');
+                }
+            } catch (error) {
+                console.error('Join class error:', error);
+                showToast('加入橋隊失敗');
+            }
+        }
+
+        // 載入探橋者已加入的橋隊
+        async function loadStudentClasses() {
+            const container = document.getElementById('studentClassesList');
+            if (!container) return;
+
+            try {
+                const result = await API.classes.list('enrolled');
+                if (!result.success) {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 4rem 2rem; color: var(--gray-400);">
+                            <p>載入橋隊失敗，請重試</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const classes = result.data || [];
+
+                if (classes.length === 0) {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 4rem 2rem; color: var(--gray-400);">
+                            <svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="currentColor" stroke-width="1" style="margin-bottom: 1rem; opacity: 0.5;">
+                                <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                                <circle cx="9" cy="7" r="4"/>
+                                <path d="M23 21v-2a4 4 0 00-3-3.87"/>
+                                <path d="M16 3.13a4 4 0 010 7.75"/>
+                            </svg>
+                            <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">尚未加入任何橋隊</p>
+                            <p style="font-size: 0.9rem; color: var(--gray-400);">請點擊上方「加入新橋隊」輸入建橋者提供的通行碼</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = `
+                    <div style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));">
+                        ${classes.map(cls => `
+                            <div onclick="openStudentClassDetail('${cls.classId}')" style="background: var(--white); border-radius: 12px; padding: 1.5rem; cursor: pointer; transition: all 0.2s; border: 1px solid var(--gray-100);" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow='none'">
+                                <div style="display: flex; align-items: flex-start; gap: 1rem;">
+                                    <div style="width: 48px; height: 48px; background: linear-gradient(135deg, var(--olive) 0%, var(--olive-light) 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--cream)" stroke-width="2">
+                                            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                                            <circle cx="9" cy="7" r="4"/>
+                                            <path d="M23 21v-2a4 4 0 00-3-3.87"/>
+                                            <path d="M16 3.13a4 4 0 010 7.75"/>
+                                        </svg>
+                                    </div>
+                                    <div style="flex: 1;">
+                                        <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.25rem;">${cls.name}</h3>
+                                        <p style="color: var(--gray-500); font-size: 0.85rem; margin-bottom: 0.5rem;">${cls.subject || '一般課程'}</p>
+                                        <p style="color: var(--gray-400); font-size: 0.8rem;">
+                                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; vertical-align: middle; margin-right: 0.25rem;"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                            ${cls.teacherName || '建橋者'}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--gray-100); display: flex; justify-content: space-between; align-items: center;">
+                                    <span style="font-size: 0.8rem; color: var(--gray-400);">
+                                        加入時間：${cls.joinedAt ? new Date(cls.joinedAt).toLocaleDateString('zh-TW') : '-'}
+                                    </span>
+                                    <span style="font-size: 0.8rem; color: var(--olive); font-weight: 500;">
+                                        查看詳情 →
+                                    </span>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+
+            } catch (error) {
+                console.error('Load student classes error:', error);
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 4rem 2rem; color: var(--gray-400);">
+                        <p>載入橋隊失敗，請重試</p>
+                    </div>
+                `;
+            }
+        }
+
+        // 開啟探橋者橋隊詳情（顯示作業列表）
+        async function openStudentClassDetail(classId) {
+            try {
+                const result = await API.classes.get(classId);
+                if (!result.success) {
+                    showToast('載入橋隊詳情失敗');
+                    return;
+                }
+
+                const cls = result.data;
+
+                const detailContent = document.getElementById('classDetailContent');
+                detailContent.innerHTML = `
+                    <!-- 橋隊標題 -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <button onclick="showView('studentClasses')" style="background: var(--gray-100); border: none; padding: 0.5rem; border-radius: 8px; cursor: pointer; display: flex; align-items: center;">
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
+                            </button>
+                            <div>
+                                <h2 style="font-size: 1.5rem; font-weight: 600;">${cls.name}</h2>
+                                <p style="color: var(--gray-500);">${cls.subject || '一般課程'} · ${cls.teacherName || '建橋者'}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 作業列表 -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">橋隊作業</h2>
+                        </div>
+                        <div class="card-body">
+                            ${renderStudentAssignmentsList(cls.assignments || [])}
+                        </div>
+                    </div>
+                `;
+
+                showView('classDetail');
+
+            } catch (error) {
+                console.error('Load student class detail error:', error);
+                showToast('載入橋隊詳情失敗');
+            }
+        }
+
+        // 渲染探橋者作業列表
+        function renderStudentAssignmentsList(assignments) {
+            if (assignments.length === 0) {
+                return `
+                    <div style="text-align: center; padding: 3rem; color: var(--gray-400);">
+                        <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1" style="margin-bottom: 1rem; opacity: 0.5;">
+                            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                            <polyline points="14,2 14,8 20,8"/>
+                            <line x1="16" y1="13" x2="8" y2="13"/>
+                            <line x1="16" y1="17" x2="8" y2="17"/>
+                        </svg>
+                        <p>目前沒有作業</p>
+                    </div>
+                `;
+            }
+
+            const typeIcons = {
+                'video': '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23,7 16,12 23,17"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>',
+                'quiz': '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+                'practice': '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>',
+                'exam': '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M9 15l2 2 4-4"/></svg>'
+            };
+
+            const typeLabels = { 'video': '影片', 'quiz': '測驗', 'practice': '練習', 'exam': '考試' };
+            const typeColors = { 'video': '#4A7C59', 'quiz': '#C17A5E', 'practice': '#6B7F3A', 'exam': '#8B5A2B' };
+
+            return `
+                <div style="display: flex; flex-direction: column; gap: 1rem;">
+                    ${assignments.map(a => `
+                        <div onclick="startAssignment('${a.assignmentId}', '${a.type}')" style="display: flex; align-items: center; gap: 1rem; padding: 1rem 1.25rem; background: var(--gray-50); border-radius: 8px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='var(--gray-100)'" onmouseout="this.style.background='var(--gray-50)'">
+                            <div style="width: 40px; height: 40px; background: ${typeColors[a.type] || 'var(--olive)'}20; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: ${typeColors[a.type] || 'var(--olive)'};">
+                                ${typeIcons[a.type] || typeIcons['video']}
+                            </div>
+                            <div style="flex: 1;">
+                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                                    <span style="font-size: 0.75rem; padding: 0.15rem 0.5rem; background: ${typeColors[a.type] || 'var(--olive)'}; color: white; border-radius: 4px;">${typeLabels[a.type] || '作業'}</span>
+                                    <span style="font-weight: 600;">${a.title}</span>
+                                </div>
+                                <div style="display: flex; gap: 1rem; font-size: 0.8rem; color: var(--gray-500);">
+                                    ${a.dueDate ? `<span>截止：${new Date(a.dueDate).toLocaleDateString('zh-TW')}</span>` : ''}
+                                    ${a.points ? `<span>分數：${a.points} 分</span>` : ''}
+                                </div>
+                            </div>
+                            <div style="color: var(--olive);">
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9,18 15,12 9,6"/></svg>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        // 開始作業
+        function startAssignment(assignmentId, type) {
+            // 根據類型跳轉到不同視圖
+            switch (type) {
+                case 'video':
+                    showView('videos');
+                    showToast('正在載入影片...');
+                    break;
+                case 'quiz':
+                case 'practice':
+                    showView('quizzes');
+                    showToast('正在載入測驗...');
+                    break;
+                case 'exam':
+                    showView('quizzes');
+                    showToast('正在載入考試...');
+                    break;
+                default:
+                    showToast('正在載入作業內容...');
+            }
+        }
+
+        // 當切換到橋隊視圖時載入資料
+        const originalShowView = showView;
+        showView = function(viewName) {
+            originalShowView(viewName);
+            if (viewName === 'classes') {
+                loadClasses();
+            } else if (viewName === 'studentClasses') {
+                loadStudentClasses();
+            }
+        };
 
         // Search functionality
         const searchInput = document.querySelector('.search-box input');
@@ -2820,15 +4574,11 @@
         userMenu.innerHTML = `
             <a class="user-menu-item" onclick="showView('settings')">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                個人資料
-            </a>
-            <a class="user-menu-item" onclick="showView('settings')">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4"/></svg>
-                帳戶設定
+                建橋者檔案
             </a>
             <a class="user-menu-item" onclick="showView('logout')">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                登出
+                離開橋樑
             </a>
         `;
         sidebarFooter.style.position = 'relative';
@@ -2905,7 +4655,7 @@
             row.style.cursor = 'pointer';
             row.addEventListener('click', function(e) {
                 if (e.target.closest('.btn-icon')) return;
-                const name = this.querySelector('strong')?.textContent || '教材';
+                const name = this.querySelector('strong')?.textContent || '建材';
                 showToast(`查看「${name}」授權詳情`);
             });
         });
@@ -3022,6 +4772,29 @@
             }
         }
 
+        // ===== 登入/註冊切換 =====
+        function switchAuthTab(tab) {
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            const tabs = document.querySelectorAll('.auth-tab');
+            const errorDiv = document.getElementById('loginError');
+
+            errorDiv.classList.remove('show');
+            errorDiv.textContent = '';
+
+            if (tab === 'login') {
+                loginForm.style.display = 'block';
+                registerForm.style.display = 'none';
+                tabs[0].classList.add('active');
+                tabs[1].classList.remove('active');
+            } else {
+                loginForm.style.display = 'none';
+                registerForm.style.display = 'block';
+                tabs[0].classList.remove('active');
+                tabs[1].classList.add('active');
+            }
+        }
+
         async function handleLogin(e) {
             e.preventDefault();
             const email = document.getElementById('loginEmail').value;
@@ -3030,22 +4803,22 @@
             const btn = e.target.querySelector('button');
 
             btn.disabled = true;
-            btn.textContent = '登入中...';
+            btn.textContent = '正在踏上橋樑...';
             errorDiv.classList.remove('show');
 
             try {
                 const success = await App.login(email, password);
                 if (!success) {
-                    errorDiv.textContent = '登入失敗，請檢查帳號密碼';
+                    errorDiv.textContent = '無法踏上橋樑，請確認帳號與密碼';
                     errorDiv.classList.add('show');
                 }
             } catch (error) {
-                errorDiv.textContent = '登入失敗，請稍後再試';
+                errorDiv.textContent = '橋樑暫時關閉，請稍後再試';
                 errorDiv.classList.add('show');
             }
 
             btn.disabled = false;
-            btn.textContent = '登入';
+            btn.textContent = '踏上橋樑';
         }
 
         async function handleRegister(e) {
@@ -3053,31 +4826,39 @@
             const errorDiv = document.getElementById('loginError');
             const btn = e.target.querySelector('button');
 
+            // 探橋者需要通行碼
+            const inviteCode = document.getElementById('registerInviteCode').value.trim().toUpperCase();
+            if (!inviteCode || inviteCode.length < 6) {
+                errorDiv.textContent = '請輸入有效的橋樑通行碼';
+                errorDiv.classList.add('show');
+                return;
+            }
+
             const userData = {
                 displayName: document.getElementById('registerName').value,
                 email: document.getElementById('registerEmail').value,
                 password: document.getElementById('registerPassword').value,
-                role: document.getElementById('registerRole').value,
-                organization: document.getElementById('registerOrg').value
+                role: 'student',
+                inviteCode: inviteCode
             };
 
             btn.disabled = true;
-            btn.textContent = '註冊中...';
+            btn.textContent = '正在建立探橋者身份...';
             errorDiv.classList.remove('show');
 
             try {
                 const success = await App.register(userData);
                 if (!success) {
-                    errorDiv.textContent = '註冊失敗，該郵箱可能已被使用';
+                    errorDiv.textContent = '無法成為探橋者，該郵箱可能已被使用或通行碼無效';
                     errorDiv.classList.add('show');
                 }
             } catch (error) {
-                errorDiv.textContent = '註冊失敗，請稍後再試';
+                errorDiv.textContent = '橋樑暫時關閉，請稍後再試';
                 errorDiv.classList.add('show');
             }
 
             btn.disabled = false;
-            btn.textContent = '註冊';
+            btn.textContent = '開始探索';
         }
     </script>
 

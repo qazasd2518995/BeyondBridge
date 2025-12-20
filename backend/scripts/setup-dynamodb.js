@@ -10,6 +10,7 @@ require('dotenv').config();
 const {
   DynamoDBClient,
   CreateTableCommand,
+  DeleteTableCommand,
   DescribeTableCommand,
   UpdateTableCommand,
   ListTablesCommand
@@ -174,6 +175,51 @@ async function displayTableInfo() {
   console.log('\n================================\n');
 }
 
+async function deleteTable() {
+  console.log(`\n正在刪除表格: ${TABLE_NAME}...`);
+
+  try {
+    const command = new DeleteTableCommand({ TableName: TABLE_NAME });
+    await client.send(command);
+
+    console.log('表格刪除指令已送出，等待刪除完成...');
+
+    // 等待表格刪除完成
+    let tableDeleted = false;
+    let attempts = 0;
+    const maxAttempts = 30;
+
+    while (!tableDeleted && attempts < maxAttempts) {
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      const exists = await checkTableExists();
+
+      if (!exists) {
+        tableDeleted = true;
+        console.log('\n表格已刪除！');
+      } else {
+        process.stdout.write('.');
+        attempts++;
+      }
+    }
+
+    return tableDeleted;
+  } catch (error) {
+    console.error('刪除表格失敗:', error.message);
+    return false;
+  }
+}
+
+async function checkTableSchema() {
+  const table = await describeTable();
+  if (!table) return false;
+
+  // 檢查是否有正確的 PK 和 SK
+  const hasPK = table.KeySchema.some(k => k.AttributeName === 'PK' && k.KeyType === 'HASH');
+  const hasSK = table.KeySchema.some(k => k.AttributeName === 'SK' && k.KeyType === 'RANGE');
+
+  return hasPK && hasSK;
+}
+
 async function main() {
   console.log('╔════════════════════════════════════════╗');
   console.log('║   BeyondBridge DynamoDB 設定工具       ║');
@@ -185,8 +231,24 @@ async function main() {
   const exists = await checkTableExists();
 
   if (exists) {
-    console.log('\n表格已存在，顯示現有結構...');
-    await displayTableInfo();
+    console.log('\n表格已存在，檢查結構...');
+    const schemaCorrect = await checkTableSchema();
+
+    if (schemaCorrect) {
+      console.log('表格結構正確！');
+      await displayTableInfo();
+    } else {
+      console.log('表格結構不正確（缺少 PK/SK），需要重建...');
+      const deleted = await deleteTable();
+
+      if (deleted) {
+        console.log('\n開始建立新表格...');
+        const success = await createTable();
+        if (success) {
+          await displayTableInfo();
+        }
+      }
+    }
   } else {
     console.log('\n表格不存在，開始建立...');
     const success = await createTable();

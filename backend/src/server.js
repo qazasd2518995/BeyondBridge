@@ -16,13 +16,14 @@ const courseRoutes = require('./handlers/courses');
 const licenseRoutes = require('./handlers/licenses');
 const adminRoutes = require('./handlers/admin');
 const announcementRoutes = require('./handlers/announcements');
+const classRoutes = require('./handlers/classes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// 中間件設定
+// 中間件設定 - CORS 允許所有來源（開發模式）
 app.use(cors({
-  origin: ['http://localhost:5500', 'http://127.0.0.1:5500', 'http://localhost:3000'],
+  origin: true,  // 允許所有來源，包括 file:// 和 null origin
   credentials: true
 }));
 app.use(express.json());
@@ -32,6 +33,25 @@ app.use(express.urlencoded({ extended: true }));
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
   next();
+});
+
+// 根路徑
+app.get('/', (req, res) => {
+  res.json({
+    success: true,
+    message: 'BeyondBridge API Server',
+    version: '1.0.0',
+    documentation: {
+      auth: '/api/auth - 認證相關',
+      users: '/api/users - 用戶管理',
+      resources: '/api/resources - 教材資源',
+      courses: '/api/courses - 課程管理',
+      licenses: '/api/licenses - 授權管理',
+      announcements: '/api/announcements - 公告系統',
+      classes: '/api/classes - 班級管理',
+      admin: '/api/admin - 管理員後台'
+    }
+  });
 });
 
 // 健康檢查
@@ -51,6 +71,7 @@ app.use('/api/courses', courseRoutes);
 app.use('/api/licenses', licenseRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/announcements', announcementRoutes);
+app.use('/api/classes', classRoutes);
 
 // 404 處理
 app.use((req, res) => {

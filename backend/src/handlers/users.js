@@ -215,7 +215,7 @@ router.get('/:id/activities', authMiddleware, async (req, res) => {
 
 /**
  * GET /api/users/:id/stats
- * 取得用戶統計數據
+ * 取得用戶/管理員統計數據
  */
 router.get('/:id/stats', authMiddleware, async (req, res) => {
   try {
@@ -229,7 +229,15 @@ router.get('/:id/stats', authMiddleware, async (req, res) => {
       });
     }
 
-    const user = await db.getUser(id);
+    // 嘗試取得用戶，如果是管理員則取得管理員資料
+    let user = await db.getUser(id);
+    let isAdmin = false;
+
+    if (!user) {
+      user = await db.getAdmin(id);
+      isAdmin = true;
+    }
+
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -238,6 +246,23 @@ router.get('/:id/stats', authMiddleware, async (req, res) => {
       });
     }
 
+    // 管理員統計數據
+    if (isAdmin) {
+      const allUsers = await db.getAllUsers();
+      const allResources = await db.getAllResources();
+
+      return res.json({
+        success: true,
+        data: {
+          totalUsers: allUsers.length,
+          totalResources: allResources.length,
+          isAdmin: true,
+          role: 'admin'
+        }
+      });
+    }
+
+    // 一般用戶統計數據
     const licenses = await db.getUserLicenses(id);
     const progress = await db.getUserCourseProgress(id);
 

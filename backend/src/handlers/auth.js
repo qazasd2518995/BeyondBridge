@@ -102,11 +102,11 @@ router.post('/login', async (req, res) => {
 
 /**
  * POST /api/auth/register
- * 用戶註冊
+ * 用戶註冊（教師/學生）
  */
 router.post('/register', async (req, res) => {
   try {
-    const { email, password, displayName, organization, role = 'educator' } = req.body;
+    const { email, password, displayName, organization, role = 'educator', inviteCode } = req.body;
 
     // 驗證必填欄位
     if (!email || !password || !displayName) {
@@ -127,13 +127,45 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    // 驗證密碼強度
-    if (password.length < 8) {
+    // 驗證密碼強度（學生可以較短，教師需8字元）
+    const minLength = role === 'student' ? 6 : 8;
+    if (password.length < minLength) {
       return res.status(400).json({
         success: false,
         error: 'WEAK_PASSWORD',
-        message: '密碼長度至少需要 8 個字元'
+        message: `密碼長度至少需要 ${minLength} 個字元`
       });
+    }
+
+    // 學生必須提供有效的邀請碼
+    let classData = null;
+    if (role === 'student') {
+      if (!inviteCode || inviteCode.length < 6) {
+        return res.status(400).json({
+          success: false,
+          error: 'MISSING_INVITE_CODE',
+          message: '學生註冊需要提供班級邀請碼'
+        });
+      }
+
+      // 驗證邀請碼
+      const classes = await db.scan({
+        filter: {
+          expression: 'entityType = :type AND inviteCode = :code AND #status = :status',
+          values: { ':type': 'CLASS', ':code': inviteCode.toUpperCase(), ':status': 'active' },
+          names: { '#status': 'status' }
+        }
+      });
+
+      if (classes.length === 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'INVALID_INVITE_CODE',
+          message: '無效的班級邀請碼'
+        });
+      }
+
+      classData = classes[0];
     }
 
     // 檢查 Email 是否已存在
@@ -170,9 +202,9 @@ router.post('/register', async (req, res) => {
       organizationType: null,
       avatarUrl: null,
 
-      subscriptionTier: 'free',
+      subscriptionTier: role === 'student' ? 'student' : 'free',
       subscriptionExpiry: null,
-      licenseQuota: 10,
+      licenseQuota: role === 'student' ? 0 : 10,
       licenseUsed: 0,
 
       preferences: {
@@ -199,12 +231,55 @@ router.post('/register', async (req, res) => {
 
     await db.putItem(newUser);
 
+    // 學生自動加入班級
+    if (role === 'student' && classData) {
+      // 建立班級成員關係
+      const memberItem = {
+        PK: `CLASS#${classData.classId}`,
+        SK: `MEMBER#${userId}`,
+        entityType: 'CLASS_MEMBER',
+        createdAt: now,
+
+        classId: classData.classId,
+        userId,
+        userName: displayName,
+        userEmail: email,
+        role: 'student',
+        joinedAt: now,
+        status: 'active'
+      };
+
+      await db.putItem(memberItem);
+
+      // 建立用戶的 enrollment 記錄
+      const enrollmentItem = {
+        PK: `USER#${userId}`,
+        SK: `ENROLLMENT#${classData.classId}`,
+        entityType: 'ENROLLMENT',
+        createdAt: now,
+
+        userId,
+        classId: classData.classId,
+        className: classData.name,
+        teacherName: classData.teacherName,
+        enrolledAt: now
+      };
+
+      await db.putItem(enrollmentItem);
+
+      // 更新班級成員數
+      await db.updateItem(`CLASS#${classData.classId}`, 'META', {
+        memberCount: (classData.memberCount || 0) + 1,
+        updatedAt: now
+      });
+    }
+
     // 產生 Token
     const tokens = auth.generateTokens(newUser);
 
     res.status(201).json({
       success: true,
-      message: '註冊成功',
+      message: role === 'student' ? '註冊成功，已加入班級' : '註冊成功',
       data: {
         user: {
           userId,
@@ -213,7 +288,8 @@ router.post('/register', async (req, res) => {
           role,
           isAdmin: false,
           organization,
-          subscriptionTier: 'free'
+          subscriptionTier: role === 'student' ? 'student' : 'free',
+          enrolledClass: classData ? { classId: classData.classId, className: classData.name } : null
         },
         ...tokens
       }

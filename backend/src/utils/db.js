@@ -246,7 +246,9 @@ async function batchWrite(items) {
  */
 async function getUserByEmail(email) {
   const items = await queryByIndex('GSI4', email, 'email');
-  return items[0] || null;
+  // 過濾只取 USER 類型
+  const user = items.find(item => item.entityType === 'USER');
+  return user || null;
 }
 
 /**
@@ -264,16 +266,13 @@ async function getAdmin(adminId) {
 }
 
 /**
- * 透過 Email 查詢管理員
+ * 透過 Email 查詢管理員（使用 GSI4）
  */
 async function getAdminByEmail(email) {
-  const items = await scan({
-    filter: {
-      expression: 'email = :email AND entityType = :type',
-      values: { ':email': email, ':type': 'ADMIN' }
-    }
-  });
-  return items[0] || null;
+  const items = await queryByIndex('GSI4', email, 'email');
+  // 過濾只取 ADMIN 類型
+  const admin = items.find(item => item.entityType === 'ADMIN');
+  return admin || null;
 }
 
 /**
