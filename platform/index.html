@@ -2827,206 +2827,278 @@
         @keyframes spin { to { transform: rotate(360deg); } }
 
         /* ═══════════════════════════════════════════════════════════
-           LOGIN VIEW - ARCHITECTURAL MINIMALISM × ZEN
-           Full-screen centered design with dramatic typography
+           LOGIN VIEW - OLIVE GROVE GATEWAY
+           Editorial split-screen with warm earthy sophistication
            ═══════════════════════════════════════════════════════════ */
 
         .login-view {
             display: none;
             min-height: 100vh;
-            background: #FAFAF8;
+            background: var(--cream);
+            grid-template-columns: 1fr 1fr;
+        }
+
+        /* ─── Left Panel: Visual Gateway ─── */
+        .login-visual {
+            background: linear-gradient(165deg, var(--olive-deep) 0%, #2D3A1F 50%, #1F2816 100%);
             position: relative;
-            overflow: hidden;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 2rem;
-        }
-
-        .login-view.active {
             display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 4rem;
+            overflow: hidden;
         }
 
-        /* Giant watermark text */
-        .login-view::before {
-            content: '超越';
+        /* Grain texture overlay */
+        .login-visual::before {
+            content: '';
             position: absolute;
-            top: 50%;
-            left: -5%;
-            transform: translateY(-50%);
-            font-family: 'Noto Sans TC', sans-serif;
-            font-size: clamp(20rem, 35vw, 45rem);
-            font-weight: 300;
-            color: rgba(0, 0, 0, 0.018);
-            letter-spacing: -0.05em;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+            opacity: 0.03;
             pointer-events: none;
-            z-index: 0;
-            line-height: 1;
-            white-space: nowrap;
         }
 
-        /* Geometric accent lines */
-        .login-view .geo-line {
+        /* Abstract bridge pathway graphic */
+        .login-visual::after {
+            content: '';
             position: absolute;
-            background: #1a1a1a;
-            z-index: 1;
+            width: 300%;
+            height: 2px;
+            background: linear-gradient(90deg,
+                transparent 0%,
+                var(--sage) 20%,
+                var(--terracotta) 50%,
+                var(--sage) 80%,
+                transparent 100%);
+            top: 50%;
+            left: -100%;
+            transform: rotate(-12deg);
+            opacity: 0.4;
+            animation: bridgeLine 20s linear infinite;
         }
 
-        .login-view .geo-line-1 {
+        @keyframes bridgeLine {
+            from { transform: translateX(-20%) rotate(-12deg); }
+            to { transform: translateX(20%) rotate(-12deg); }
+        }
+
+        /* Floating orbs */
+        .login-orb {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0;
+            animation: orbFloat 8s ease-in-out infinite, orbFadeIn 1.5s ease forwards;
+        }
+
+        .login-orb-1 {
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, var(--olive-light) 0%, transparent 70%);
+            top: 10%;
+            left: -10%;
+            animation-delay: 0s, 0.2s;
+        }
+
+        .login-orb-2 {
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, var(--terracotta) 0%, transparent 70%);
+            bottom: 20%;
+            right: 10%;
+            animation-delay: 2s, 0.4s;
+        }
+
+        .login-orb-3 {
+            width: 150px;
+            height: 150px;
+            background: radial-gradient(circle, var(--sage) 0%, transparent 70%);
+            top: 60%;
+            left: 20%;
+            animation-delay: 4s, 0.6s;
+        }
+
+        @keyframes orbFloat {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(20px, -30px) scale(1.05); }
+            66% { transform: translate(-10px, 20px) scale(0.95); }
+        }
+
+        @keyframes orbFadeIn {
+            to { opacity: 0.3; }
+        }
+
+        /* Brand content on visual side */
+        .login-visual-content {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            opacity: 0;
+            animation: slideUp 1s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards;
+        }
+
+        .login-visual-logo {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 3.5rem;
+            font-weight: 600;
+            color: var(--cream);
+            letter-spacing: -0.02em;
+            margin-bottom: 1rem;
+        }
+
+        .login-visual-tagline {
+            font-family: 'Noto Sans TC', sans-serif;
+            font-size: 0.75rem;
+            font-weight: 400;
+            letter-spacing: 0.4em;
+            text-transform: uppercase;
+            color: var(--sage);
+            margin-bottom: 3rem;
+        }
+
+        .login-visual-quote {
+            font-family: 'Noto Sans TC', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 300;
+            color: var(--cream);
+            line-height: 1.8;
+            max-width: 280px;
+            margin: 0 auto;
+        }
+
+        .login-visual-quote span {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--sage);
+            margin-top: 1rem;
+            font-weight: 400;
+        }
+
+        /* Decorative vertical line */
+        .login-visual-line {
+            position: absolute;
             width: 1px;
             height: 120px;
-            top: 0;
-            left: 15%;
-            animation: lineDown 1.5s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards;
-            transform: scaleY(0);
-            transform-origin: top;
+            background: linear-gradient(to bottom, transparent, var(--sage), transparent);
+            bottom: 3rem;
+            left: 50%;
+            opacity: 0;
+            animation: lineReveal 1s ease 0.8s forwards;
         }
 
-        .login-view .geo-line-2 {
-            width: 80px;
-            height: 1px;
-            bottom: 20%;
-            right: 0;
-            animation: lineLeft 1.5s cubic-bezier(0.16, 1, 0.3, 1) 0.5s forwards;
-            transform: scaleX(0);
-            transform-origin: right;
+        @keyframes lineReveal {
+            to { opacity: 0.5; }
         }
 
-        .login-view .geo-line-3 {
-            width: 1px;
-            height: 200px;
-            bottom: 0;
-            right: 25%;
-            animation: lineUp 1.5s cubic-bezier(0.16, 1, 0.3, 1) 0.7s forwards;
-            transform: scaleY(0);
-            transform-origin: bottom;
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(40px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
-        @keyframes lineDown { to { transform: scaleY(1); } }
-        @keyframes lineUp { to { transform: scaleY(1); } }
-        @keyframes lineLeft { to { transform: scaleX(1); } }
+        /* ─── Right Panel: Form Area ─── */
+        .login-form-panel {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 4rem;
+            position: relative;
+            background: var(--cream);
+        }
 
-        /* Floating dot accent */
-        .login-view .float-dot {
+        /* Subtle pattern background */
+        .login-form-panel::before {
+            content: '';
             position: absolute;
-            width: 8px;
-            height: 8px;
-            background: var(--terracotta);
-            border-radius: 50%;
-            z-index: 1;
+            inset: 0;
+            background-image: radial-gradient(var(--sand) 1px, transparent 1px);
+            background-size: 24px 24px;
+            opacity: 0.3;
+            pointer-events: none;
         }
 
-        .login-view .float-dot-1 {
-            top: 18%;
-            right: 20%;
-            animation: dotPulse 4s ease-in-out infinite, fadeIn 1s ease 0.8s forwards;
-            opacity: 0;
-        }
-
-        .login-view .float-dot-2 {
-            bottom: 25%;
-            left: 12%;
-            animation: dotPulse 4s ease-in-out 1s infinite, fadeIn 1s ease 1s forwards;
-            opacity: 0;
-        }
-
-        @keyframes dotPulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.3); }
-        }
-
-        @keyframes fadeIn {
-            to { opacity: 1; }
-        }
-
-        /* Watermark text element (hidden - using ::before instead) */
-        .login-watermark {
-            display: none;
-        }
-
-        /* Brand header */
+        /* Hide unused elements */
+        .login-watermark,
+        .geo-line,
+        .float-dot,
         .login-brand {
-            text-align: center;
-            margin-bottom: 3rem;
-            opacity: 0;
-            animation: revealUp 1s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards;
-        }
-
-        .login-brand h1 {
-            font-family: 'Playfair Display', serif;
-            font-size: 2.5rem;
-            font-weight: 500;
-            color: #1a1a1a;
-            letter-spacing: -0.03em;
-            margin-bottom: 0.5rem;
-        }
-
-        .login-brand p {
-            font-family: 'Outfit', sans-serif;
-            font-size: 0.7rem;
-            font-weight: 400;
-            letter-spacing: 0.35em;
-            text-transform: uppercase;
-            color: #999;
+            display: none;
         }
 
         /* Login card */
         .login-card {
-            background: #fff;
-            padding: 2.5rem;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 20px 60px rgba(0,0,0,0.06);
+            width: 100%;
+            max-width: 400px;
+            background: var(--white);
+            padding: 3rem;
+            border-radius: 2px;
+            box-shadow:
+                0 1px 1px rgba(0,0,0,0.02),
+                0 4px 8px rgba(0,0,0,0.04),
+                0 16px 32px rgba(0,0,0,0.04);
+            position: relative;
+            z-index: 1;
             opacity: 0;
-            animation: cardFloat 1s cubic-bezier(0.16, 1, 0.3, 1) 0.4s forwards;
+            animation: cardReveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.5s forwards;
         }
 
-        @keyframes cardFloat {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
+        @keyframes cardReveal {
+            from { opacity: 0; transform: translateY(30px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
         }
 
-        @keyframes revealUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+        /* Terracotta accent line on card */
+        .login-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 3rem;
+            right: 3rem;
+            height: 3px;
+            background: linear-gradient(90deg, var(--terracotta), var(--terracotta-light));
+            border-radius: 0 0 2px 2px;
         }
 
         /* Auth tabs */
         .auth-tabs {
             display: flex;
-            gap: 0;
-            margin-bottom: 2rem;
-            border-bottom: 1px solid #eee;
+            gap: 2rem;
+            margin-bottom: 2.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--gray-200);
         }
 
         .auth-tab {
-            flex: 1;
-            padding: 1rem 0;
+            flex: none;
+            padding: 0;
             border: none;
             background: none;
             cursor: pointer;
-            font-family: 'Outfit', sans-serif;
-            font-size: 0.75rem;
+            font-family: 'Noto Sans TC', sans-serif;
+            font-size: 1.1rem;
             font-weight: 500;
-            letter-spacing: 0.2em;
-            text-transform: uppercase;
-            color: #bbb;
-            transition: all 0.4s ease;
+            color: var(--gray-500);
+            transition: all 0.3s ease;
             position: relative;
         }
 
         .auth-tab.active {
-            color: #1a1a1a;
+            color: var(--olive-deep);
         }
 
         .auth-tab::after {
             content: '';
             position: absolute;
-            bottom: -1px;
+            bottom: -1rem;
             left: 0;
             right: 0;
-            height: 2px;
-            background: #1a1a1a;
+            height: 3px;
+            background: var(--olive);
             transform: scaleX(0);
+            transform-origin: left;
             transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            border-radius: 2px;
         }
 
         .auth-tab.active::after {
@@ -3034,10 +3106,10 @@
         }
 
         .auth-tab:hover:not(.active) {
-            color: #666;
+            color: var(--olive-light);
         }
 
-        /* Welcome text - hidden in new design, info in tabs */
+        /* Welcome text - hidden */
         .login-welcome {
             display: none;
         }
@@ -3047,75 +3119,58 @@
         .login-form.hidden { display: none; }
 
         .login-form .form-group {
-            margin-bottom: 1.5rem;
+            margin-bottom: 1.75rem;
             position: relative;
         }
 
         .login-form label {
             display: block;
-            font-family: 'Outfit', sans-serif;
-            font-size: 0.65rem;
+            font-family: 'Noto Sans TC', sans-serif;
+            font-size: 0.8rem;
             font-weight: 500;
-            letter-spacing: 0.2em;
-            text-transform: uppercase;
-            color: #1a1a1a;
-            margin-bottom: 0.75rem;
+            color: var(--olive-deep);
+            margin-bottom: 0.6rem;
         }
 
         .login-form input {
             width: 100%;
-            padding: 0.875rem 0;
-            border: none;
-            border-bottom: 1px solid #e5e5e5;
-            background: transparent;
+            padding: 0.9rem 1rem;
+            border: 1px solid var(--gray-200);
+            border-radius: 4px;
+            background: var(--cream);
             font-family: 'Noto Sans TC', sans-serif;
-            font-size: 1rem;
+            font-size: 0.95rem;
             font-weight: 400;
-            color: #1a1a1a;
+            color: var(--charcoal);
             transition: all 0.3s ease;
         }
 
         .login-form input::placeholder {
-            color: #ccc;
+            color: var(--gray-500);
             font-weight: 300;
         }
 
         .login-form input:focus {
             outline: none;
-            border-bottom-color: #1a1a1a;
-        }
-
-        .login-form input:focus + .input-line {
-            transform: scaleX(1);
-        }
-
-        .input-line {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 2px;
-            background: var(--terracotta);
-            transform: scaleX(0);
-            transform-origin: left;
-            transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            border-color: var(--olive);
+            background: var(--white);
+            box-shadow: 0 0 0 3px rgba(74, 93, 35, 0.1);
         }
 
         /* Submit button */
         .login-btn {
             width: 100%;
             padding: 1rem 2rem;
-            background: #1a1a1a;
-            color: #fff;
+            background: var(--olive);
+            color: var(--cream);
             border: none;
-            font-family: 'Outfit', sans-serif;
-            font-size: 0.75rem;
-            font-weight: 500;
-            letter-spacing: 0.25em;
-            text-transform: uppercase;
+            border-radius: 4px;
+            font-family: 'Noto Sans TC', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 600;
             cursor: pointer;
-            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-            margin-top: 1.5rem;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            margin-top: 1rem;
             position: relative;
             overflow: hidden;
         }
@@ -3127,14 +3182,14 @@
             left: -100%;
             width: 100%;
             height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-            transition: left 0.5s ease;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+            transition: left 0.6s ease;
         }
 
         .login-btn:hover {
-            background: var(--terracotta);
+            background: var(--olive-deep);
             transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(193, 122, 94, 0.3);
+            box-shadow: 0 8px 24px rgba(61, 74, 45, 0.25);
         }
 
         .login-btn:hover::before {
@@ -3146,8 +3201,8 @@
         }
 
         .login-btn:disabled {
-            background: #ddd;
-            color: #999;
+            background: var(--gray-300);
+            color: var(--gray-500);
             cursor: not-allowed;
             transform: none;
             box-shadow: none;
@@ -3155,12 +3210,14 @@
 
         /* Error message */
         .login-error {
-            background: #FEF2F2;
+            background: rgba(239, 68, 68, 0.08);
+            border: 1px solid rgba(239, 68, 68, 0.2);
             border-left: 3px solid #EF4444;
+            border-radius: 4px;
             color: #DC2626;
             padding: 0.875rem 1rem;
-            font-family: 'Outfit', sans-serif;
-            font-size: 0.8rem;
+            font-family: 'Noto Sans TC', sans-serif;
+            font-size: 0.85rem;
             margin-bottom: 1.5rem;
             display: none;
             animation: shake 0.5s ease;
@@ -3176,67 +3233,164 @@
 
         /* Footer */
         .login-footer {
+            position: absolute;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
             text-align: center;
-            margin-top: 2.5rem;
             opacity: 0;
-            animation: fadeIn 1s ease 1s forwards;
+            animation: fadeIn 1s ease 1.2s forwards;
         }
 
         .login-footer p {
-            font-family: 'Outfit', sans-serif;
-            font-size: 0.7rem;
+            font-family: 'Noto Sans TC', sans-serif;
+            font-size: 0.75rem;
             font-weight: 400;
-            color: #bbb;
-            letter-spacing: 0.1em;
+            color: var(--gray-500);
+            letter-spacing: 0.05em;
         }
 
-        /* Invite code section styling for register form */
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+
+        /* ─── Register Form Compact Layout ─── */
+        #registerForm .form-group {
+            margin-bottom: 1rem;
+        }
+
+        #registerForm label {
+            font-size: 0.75rem;
+            margin-bottom: 0.4rem;
+        }
+
+        #registerForm input {
+            padding: 0.7rem 0.875rem;
+            font-size: 0.9rem;
+        }
+
+        #registerForm .login-btn {
+            margin-top: 0.75rem;
+            padding: 0.875rem 1.5rem;
+        }
+
+        /* Two-column row for name + email */
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+
+        .form-row .form-group {
+            margin-bottom: 1rem;
+        }
+
+        /* Compact invite code section */
         .invite-code-group {
-            background: #F8F8F6;
-            padding: 1rem;
-            margin-bottom: 1.5rem;
+            background: rgba(193, 122, 94, 0.06);
+            padding: 0.75rem 1rem;
+            border-radius: 4px;
+            border: 1px solid rgba(193, 122, 94, 0.15);
             border-left: 3px solid var(--terracotta);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
         }
 
         .invite-code-group label {
             color: var(--terracotta) !important;
-            font-size: 0.65rem !important;
+            font-size: 0.7rem !important;
+            font-weight: 600 !important;
             display: flex;
             align-items: center;
             gap: 0.4rem;
+            white-space: nowrap;
+            margin-bottom: 0 !important;
+            min-width: fit-content;
         }
 
-        .invite-code-input {
-            font-size: 1.1rem !important;
+        .invite-code-group label svg {
+            stroke: var(--terracotta);
+            width: 14px;
+            height: 14px;
+        }
+
+        .invite-code-group input.invite-code-input {
+            flex: 1;
+            font-size: 1rem !important;
             letter-spacing: 0.3em !important;
-            font-weight: 500 !important;
+            font-weight: 600 !important;
             text-transform: uppercase;
             text-align: center;
+            background: var(--white) !important;
+            padding: 0.6rem 0.5rem !important;
+            margin: 0;
         }
 
-        /* Hide old logo element */
-        .login-logo { display: none; }
+        /* Hide old unused elements */
+        .login-logo, .input-line { display: none; }
 
-        /* Responsive */
-        @media (max-width: 600px) {
-            .login-view::before {
-                font-size: 15rem;
-                left: -15%;
+        /* ─── Responsive Design ─── */
+        @media (max-width: 900px) {
+            .login-view.active {
+                grid-template-columns: 1fr;
+            }
+
+            .login-visual {
+                display: none;
+            }
+
+            .login-form-panel {
+                min-height: 100vh;
+                padding: 2rem;
             }
 
             .login-card {
-                padding: 2rem 1.5rem;
+                padding: 2rem;
             }
 
-            .login-brand h1 {
-                font-size: 2rem;
+            /* Show a simple header on mobile */
+            .login-form-panel::after {
+                content: 'BeyondBridge';
+                position: absolute;
+                top: 2rem;
+                left: 50%;
+                transform: translateX(-50%);
+                font-family: 'Cormorant Garamond', serif;
+                font-size: 1.5rem;
+                font-weight: 600;
+                color: var(--olive-deep);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .login-card {
+                padding: 1.5rem;
             }
 
-            .login-view .geo-line-1,
-            .login-view .geo-line-2,
-            .login-view .geo-line-3,
-            .login-view .float-dot {
-                display: none;
+            .auth-tabs {
+                gap: 1.5rem;
+            }
+
+            .auth-tab {
+                font-size: 1rem;
+            }
+
+            /* Stack form-row on mobile */
+            .form-row {
+                grid-template-columns: 1fr;
+                gap: 0;
+            }
+
+            .invite-code-group {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.5rem;
+            }
+
+            .invite-code-group label {
+                justify-content: center;
             }
         }
 
@@ -3280,81 +3434,91 @@
 
     <!-- Login View -->
     <div id="loginView" class="login-view">
-        <!-- Watermark -->
-        <div class="login-watermark">超越</div>
+        <!-- Left Panel: Visual Gateway -->
+        <div class="login-visual">
+            <!-- Floating Orbs -->
+            <div class="login-orb login-orb-1"></div>
+            <div class="login-orb login-orb-2"></div>
+            <div class="login-orb login-orb-3"></div>
 
-        <!-- Geometric Accent Lines -->
-        <div class="geo-line geo-line-1"></div>
-        <div class="geo-line geo-line-2"></div>
-        <div class="geo-line geo-line-3"></div>
-
-        <!-- Floating Dots -->
-        <div class="float-dot float-dot-1"></div>
-        <div class="float-dot float-dot-2"></div>
-
-        <!-- Brand Header -->
-        <div class="login-brand">
-            <h1>BeyondBridge</h1>
-            <p>Build the bridge. Go beyond.</p>
-        </div>
-
-        <!-- Login Card -->
-        <div class="login-card">
-            <!-- Tab Switcher -->
-            <div class="auth-tabs">
-                <button type="button" class="auth-tab active" onclick="switchAuthTab('login')">登入</button>
-                <button type="button" class="auth-tab" onclick="switchAuthTab('register')">註冊</button>
+            <!-- Brand Content -->
+            <div class="login-visual-content">
+                <div class="login-visual-logo">BeyondBridge</div>
+                <div class="login-visual-tagline">Build the Bridge. Go Beyond.</div>
+                <div class="login-visual-quote">
+                    先築橋，再超越
+                    <span>— 超越之橋計畫</span>
+                </div>
             </div>
 
-            <div id="loginError" class="login-error"></div>
-
-            <!-- Login Form -->
-            <form id="loginForm" class="login-form" onsubmit="handleLogin(event)">
-                <div class="form-group">
-                    <label>電子郵件</label>
-                    <input type="email" id="loginEmail" placeholder="your@email.com" required>
-                </div>
-                <div class="form-group">
-                    <label>密碼</label>
-                    <input type="password" id="loginPassword" placeholder="請輸入密碼" required>
-                </div>
-                <button type="submit" class="login-btn">踏上橋樑</button>
-            </form>
-
-            <!-- Register Form (Student Only) -->
-            <form id="registerForm" class="login-form" onsubmit="handleRegister(event)" style="display: none;">
-                <!-- Hidden role field (always student) -->
-                <input type="hidden" id="registerRole" value="student">
-
-                <!-- Invite Code (required for students) -->
-                <div class="form-group invite-code-group">
-                    <label>
-                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-                        橋樑通行碼
-                    </label>
-                    <input type="text" id="registerInviteCode" placeholder="ABC123" maxlength="6" class="invite-code-input">
-                </div>
-
-                <div class="form-group">
-                    <label>姓名</label>
-                    <input type="text" id="registerName" placeholder="請輸入您的姓名" required>
-                </div>
-                <div class="form-group">
-                    <label>電子郵件</label>
-                    <input type="email" id="registerEmail" placeholder="your@email.com" required>
-                </div>
-                <div class="form-group">
-                    <label>密碼</label>
-                    <input type="password" id="registerPassword" placeholder="至少6個字元" required minlength="6">
-                </div>
-
-                <button type="submit" class="login-btn">開始探索</button>
-            </form>
+            <!-- Decorative Line -->
+            <div class="login-visual-line"></div>
         </div>
 
-        <!-- Footer -->
-        <div class="login-footer">
-            <p>&copy; 2025 BeyondBridge</p>
+        <!-- Right Panel: Form Area -->
+        <div class="login-form-panel">
+            <!-- Login Card -->
+            <div class="login-card">
+                <!-- Tab Switcher -->
+                <div class="auth-tabs">
+                    <button type="button" class="auth-tab active" onclick="switchAuthTab('login')">登入</button>
+                    <button type="button" class="auth-tab" onclick="switchAuthTab('register')">註冊</button>
+                </div>
+
+                <div id="loginError" class="login-error"></div>
+
+                <!-- Login Form -->
+                <form id="loginForm" class="login-form" onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label>電子郵件</label>
+                        <input type="email" id="loginEmail" placeholder="your@email.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label>密碼</label>
+                        <input type="password" id="loginPassword" placeholder="請輸入密碼" required>
+                    </div>
+                    <button type="submit" class="login-btn">踏上橋樑</button>
+                </form>
+
+                <!-- Register Form (Student Only) -->
+                <form id="registerForm" class="login-form" onsubmit="handleRegister(event)" style="display: none;">
+                    <!-- Hidden role field (always student) -->
+                    <input type="hidden" id="registerRole" value="student">
+
+                    <!-- Invite Code - Inline compact style -->
+                    <div class="invite-code-group">
+                        <label>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                            通行碼
+                        </label>
+                        <input type="text" id="registerInviteCode" placeholder="ABC123" maxlength="6" class="invite-code-input">
+                    </div>
+
+                    <!-- Name + Email in 2 columns -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>姓名</label>
+                            <input type="text" id="registerName" placeholder="您的姓名" required>
+                        </div>
+                        <div class="form-group">
+                            <label>電子郵件</label>
+                            <input type="email" id="registerEmail" placeholder="email@example.com" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>密碼</label>
+                        <input type="password" id="registerPassword" placeholder="至少6個字元" required minlength="6">
+                    </div>
+
+                    <button type="submit" class="login-btn">開始探索</button>
+                </form>
+            </div>
+
+            <!-- Footer -->
+            <div class="login-footer">
+                <p>&copy; 2025 BeyondBridge Education Co. All Rights Reserved.</p>
+            </div>
         </div>
     </div>
 

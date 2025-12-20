@@ -43,7 +43,7 @@ const App = {
    * 顯示登入頁面
    */
   showLogin() {
-    document.getElementById('loginView').style.display = 'flex';
+    document.getElementById('loginView').style.display = 'grid';
     document.getElementById('appContainer').style.display = 'none';
   },
 
