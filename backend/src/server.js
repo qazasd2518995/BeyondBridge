@@ -1,12 +1,14 @@
 /**
  * BeyondBridge API Server
  * Express 後端伺服器主程式
+ * 同時服務 API + 官網 + 平台
  */
 
 require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 
 // 載入路由處理器
 const authRoutes = require('./handlers/auth');
@@ -29,29 +31,12 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// 請求日誌
+// 請求日誌（只記錄 API 請求）
 app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  if (req.path.startsWith('/api')) {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  }
   next();
-});
-
-// 根路徑
-app.get('/', (req, res) => {
-  res.json({
-    success: true,
-    message: 'BeyondBridge API Server',
-    version: '1.0.0',
-    documentation: {
-      auth: '/api/auth - 認證相關',
-      users: '/api/users - 用戶管理',
-      resources: '/api/resources - 教材資源',
-      courses: '/api/courses - 課程管理',
-      licenses: '/api/licenses - 授權管理',
-      announcements: '/api/announcements - 公告系統',
-      classes: '/api/classes - 班級管理',
-      admin: '/api/admin - 管理員後台'
-    }
-  });
 });
 
 // 健康檢查
@@ -63,7 +48,7 @@ app.get('/health', (req, res) => {
   });
 });
 
-// API 路由
+// API 路由（優先處理）
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/resources', resourceRoutes);
@@ -73,13 +58,36 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/announcements', announcementRoutes);
 app.use('/api/classes', classRoutes);
 
-// 404 處理
+// 靜態檔案服務
+const publicPath = path.join(__dirname, '../public');
+app.use(express.static(publicPath));
+
+// 平台路由 - SPA 支援
+app.get('/platform', (req, res) => {
+  res.sendFile(path.join(publicPath, 'platform', 'index.html'));
+});
+
+app.get('/platform/*', (req, res) => {
+  res.sendFile(path.join(publicPath, 'platform', 'index.html'));
+});
+
+// 官網首頁
+app.get('/', (req, res) => {
+  res.sendFile(path.join(publicPath, 'index.html'));
+});
+
+// 404 處理 - API 請求回傳 JSON，其他回傳官網
 app.use((req, res) => {
-  res.status(404).json({
-    success: false,
-    error: 'NOT_FOUND',
-    message: '請求的資源不存在'
-  });
+  if (req.path.startsWith('/api')) {
+    res.status(404).json({
+      success: false,
+      error: 'NOT_FOUND',
+      message: '請求的 API 資源不存在'
+    });
+  } else {
+    // 非 API 請求，回傳官網首頁
+    res.sendFile(path.join(publicPath, 'index.html'));
+  }
 });
 
 // 錯誤處理
@@ -95,18 +103,15 @@ app.use((err, req, res, next) => {
 // 啟動伺服器
 app.listen(PORT, () => {
   console.log('╔════════════════════════════════════════╗');
-  console.log('║     BeyondBridge API Server            ║');
+  console.log('║     BeyondBridge Full Stack Server     ║');
   console.log('╚════════════════════════════════════════╝');
   console.log(`\nServer running on http://localhost:${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`\nAvailable endpoints:`);
-  console.log('  POST /api/auth/login');
-  console.log('  POST /api/auth/register');
-  console.log('  GET  /api/users/:id');
-  console.log('  GET  /api/resources');
-  console.log('  GET  /api/courses');
-  console.log('  GET  /api/admin/dashboard');
-  console.log('  ...');
+  console.log(`\nRoutes:`);
+  console.log('  /          → 官方網站');
+  console.log('  /platform  → 教育平台');
+  console.log('  /api/*     → API 端點');
+  console.log('  /health    → 健康檢查');
 });
 
 module.exports = app;

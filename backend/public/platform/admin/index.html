@@ -1,0 +1,1386 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BeyondBridge Admin | 管理後台</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --olive-deep: #3D4A2D;
+            --olive: #4A5D23;
+            --olive-light: #6B7F3A;
+            --cream: #F7F3EB;
+            --cream-dark: #EDE6D6;
+            --terracotta: #C17A5E;
+            --charcoal: #2C2C2C;
+            --sage: #A8B89A;
+            --gray-100: #f8f9fa;
+            --gray-200: #e9ecef;
+            --gray-300: #dee2e6;
+            --gray-500: #6c757d;
+            --success: #28a745;
+            --warning: #ffc107;
+            --danger: #dc3545;
+            --info: #17a2b8;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background: var(--gray-100);
+            color: var(--charcoal);
+            min-height: 100vh;
+        }
+
+        /* Layout */
+        .admin-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .admin-sidebar {
+            width: 260px;
+            background: var(--olive-deep);
+            color: white;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .admin-logo {
+            padding: 1.5rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .admin-logo h1 {
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+
+        .admin-logo span {
+            font-size: 0.75rem;
+            opacity: 0.7;
+            display: block;
+            margin-top: 0.25rem;
+        }
+
+        .admin-nav {
+            padding: 1rem 0;
+        }
+
+        .nav-section {
+            padding: 0.5rem 1.5rem;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            opacity: 0.5;
+            margin-top: 1rem;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1.5rem;
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        .nav-item.active {
+            border-left: 3px solid var(--terracotta);
+        }
+
+        .nav-item svg {
+            width: 20px;
+            height: 20px;
+            opacity: 0.8;
+        }
+
+        .nav-badge {
+            margin-left: auto;
+            background: var(--terracotta);
+            color: white;
+            font-size: 0.7rem;
+            padding: 0.15rem 0.5rem;
+            border-radius: 10px;
+        }
+
+        /* Main Content */
+        .admin-main {
+            flex: 1;
+            margin-left: 260px;
+            padding: 2rem;
+        }
+
+        /* Header */
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .admin-header h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--olive-deep);
+        }
+
+        .admin-header-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        /* Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .stat-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .stat-icon.users { background: rgba(74, 93, 35, 0.1); color: var(--olive); }
+        .stat-icon.resources { background: rgba(193, 122, 94, 0.1); color: var(--terracotta); }
+        .stat-icon.licenses { background: rgba(23, 162, 184, 0.1); color: var(--info); }
+        .stat-icon.pending { background: rgba(255, 193, 7, 0.1); color: var(--warning); }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--charcoal);
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--gray-500);
+            margin-top: 0.25rem;
+        }
+
+        .stat-trend {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        .stat-trend.up { background: rgba(40, 167, 69, 0.1); color: var(--success); }
+        .stat-trend.down { background: rgba(220, 53, 69, 0.1); color: var(--danger); }
+
+        /* Content Grid */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .card-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-header h3 {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        /* Table */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th, .data-table td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .data-table th {
+            font-weight: 500;
+            color: var(--gray-500);
+            font-size: 0.85rem;
+        }
+
+        .data-table tr:hover {
+            background: var(--gray-100);
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--olive);
+            color: white;
+        }
+
+        .btn-primary:hover { background: var(--olive-deep); }
+
+        .btn-secondary {
+            background: var(--gray-200);
+            color: var(--charcoal);
+        }
+
+        .btn-sm { padding: 0.35rem 0.75rem; font-size: 0.8rem; }
+
+        /* Status Badge */
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .status-badge.active { background: rgba(40,167,69,0.1); color: var(--success); }
+        .status-badge.pending { background: rgba(255,193,7,0.1); color: #856404; }
+        .status-badge.expired { background: rgba(220,53,69,0.1); color: var(--danger); }
+
+        /* User Avatar */
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--sage);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--olive-deep);
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .user-name { font-weight: 500; }
+        .user-email { font-size: 0.8rem; color: var(--gray-500); }
+
+        /* Activity List */
+        .activity-list { list-style: none; }
+
+        .activity-item {
+            display: flex;
+            gap: 1rem;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .activity-item:last-child { border-bottom: none; }
+
+        .activity-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .activity-icon.new-user { background: rgba(40,167,69,0.1); color: var(--success); }
+        .activity-icon.license { background: rgba(23,162,184,0.1); color: var(--info); }
+        .activity-icon.resource { background: rgba(193,122,94,0.1); color: var(--terracotta); }
+
+        .activity-content { flex: 1; }
+        .activity-text { font-size: 0.9rem; }
+        .activity-time { font-size: 0.75rem; color: var(--gray-500); margin-top: 0.25rem; }
+
+        /* Views */
+        .admin-view { display: none; }
+        .admin-view.active { display: block; }
+
+        /* Loading */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem;
+            color: var(--gray-500);
+        }
+
+        /* Login */
+        .login-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--cream);
+        }
+
+        .login-box {
+            background: white;
+            padding: 3rem;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .login-box h2 {
+            text-align: center;
+            margin-bottom: 0.5rem;
+            color: var(--olive-deep);
+        }
+
+        .login-box p {
+            text-align: center;
+            color: var(--gray-500);
+            margin-bottom: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--gray-300);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--olive);
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 0.875rem;
+            background: var(--olive);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .login-btn:hover { background: var(--olive-deep); }
+
+        .error-message {
+            background: rgba(220,53,69,0.1);
+            color: var(--danger);
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        .quick-action-btn {
+            padding: 1rem;
+            background: var(--gray-100);
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .quick-action-btn:hover {
+            background: var(--cream);
+            border-color: var(--olive);
+        }
+
+        .quick-action-btn svg {
+            width: 24px;
+            height: 24px;
+            margin-bottom: 0.5rem;
+            color: var(--olive);
+        }
+
+        .quick-action-btn span {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.active { display: flex; }
+
+        .modal {
+            background: white;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 { font-size: 1.1rem; font-weight: 600; }
+
+        .modal-close {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0.5rem;
+        }
+
+        .modal-body { padding: 1.5rem; }
+        .modal-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Login View -->
+    <div id="loginView" class="login-container">
+        <div class="login-box">
+            <h2>BeyondBridge</h2>
+            <p>管理員後台登入</p>
+            <div id="loginError" class="error-message"></div>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="loginEmail" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label>密碼</label>
+                    <input type="password" id="loginPassword" class="form-input" required>
+                </div>
+                <button type="submit" class="login-btn">登入</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Admin Panel -->
+    <div id="adminPanel" class="admin-container" style="display: none;">
+        <!-- Sidebar -->
+        <aside class="admin-sidebar">
+            <div class="admin-logo">
+                <h1>BeyondBridge</h1>
+                <span>管理後台 Admin Panel</span>
+            </div>
+            <nav class="admin-nav">
+                <div class="nav-section">主要功能</div>
+                <a class="nav-item active" data-view="dashboard">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                        <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+                    </svg>
+                    儀表板
+                </a>
+                <a class="nav-item" data-view="users">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                    用戶管理
+                </a>
+                <a class="nav-item" data-view="resources">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+                    </svg>
+                    教材管理
+                </a>
+                <a class="nav-item" data-view="licenses">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                    授權管理
+                    <span class="nav-badge" id="pendingLicensesBadge">0</span>
+                </a>
+                <a class="nav-item" data-view="announcements">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                    </svg>
+                    公告管理
+                </a>
+
+                <div class="nav-section">分析</div>
+                <a class="nav-item" data-view="analytics">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
+                        <line x1="6" y1="20" x2="6" y2="14"/>
+                    </svg>
+                    數據分析
+                </a>
+
+                <div class="nav-section">帳戶</div>
+                <a class="nav-item" id="logoutBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                        <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+                    </svg>
+                    登出
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="admin-main">
+            <!-- Dashboard View -->
+            <div id="dashboardView" class="admin-view active">
+                <div class="admin-header">
+                    <h2>儀表板</h2>
+                    <div class="admin-header-actions">
+                        <span id="adminName">管理員</span>
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <div class="stat-icon users">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="9" cy="7" r="4"/>
+                                </svg>
+                            </div>
+                            <span class="stat-trend up" id="userTrend">+0%</span>
+                        </div>
+                        <div class="stat-value" id="totalUsers">0</div>
+                        <div class="stat-label">總用戶數</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <div class="stat-icon resources">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                    <polyline points="14 2 14 8 20 8"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="stat-value" id="totalResources">0</div>
+                        <div class="stat-label">教材資源</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <div class="stat-icon licenses">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="stat-value" id="activeLicenses">0</div>
+                        <div class="stat-label">有效授權</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <div class="stat-icon pending">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <polyline points="12 6 12 12 16 14"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="stat-value" id="pendingRequests">0</div>
+                        <div class="stat-label">待處理請求</div>
+                    </div>
+                </div>
+
+                <div class="content-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>最近註冊用戶</h3>
+                            <button class="btn btn-sm btn-secondary" onclick="showView('users')">查看全部</button>
+                        </div>
+                        <div class="card-body">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>用戶</th>
+                                        <th>角色</th>
+                                        <th>註冊時間</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recentUsersTable">
+                                    <tr><td colspan="3" class="loading">載入中...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>快速操作</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="quick-actions">
+                                <div class="quick-action-btn" onclick="showView('resources'); openCreateResourceModal()">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                                    </svg>
+                                    <span>新增教材</span>
+                                </div>
+                                <div class="quick-action-btn" onclick="showView('announcements'); openCreateAnnouncementModal()">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                                    </svg>
+                                    <span>發布公告</span>
+                                </div>
+                                <div class="quick-action-btn" onclick="showView('licenses')">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="9 11 12 14 22 4"/>
+                                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                                    </svg>
+                                    <span>審核授權</span>
+                                </div>
+                                <div class="quick-action-btn" onclick="showView('analytics')">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <line x1="18" y1="20" x2="18" y2="10"/>
+                                        <line x1="12" y1="20" x2="12" y2="4"/>
+                                        <line x1="6" y1="20" x2="6" y2="14"/>
+                                    </svg>
+                                    <span>查看報表</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Users View -->
+            <div id="usersView" class="admin-view">
+                <div class="admin-header">
+                    <h2>用戶管理</h2>
+                    <button class="btn btn-primary" onclick="openCreateUserModal()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        新增用戶
+                    </button>
+                </div>
+                <div class="card">
+                    <div class="card-body">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>用戶</th>
+                                    <th>角色</th>
+                                    <th>訂閱方案</th>
+                                    <th>狀態</th>
+                                    <th>註冊時間</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTableBody">
+                                <tr><td colspan="6" class="loading">載入中...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resources View -->
+            <div id="resourcesView" class="admin-view">
+                <div class="admin-header">
+                    <h2>教材管理</h2>
+                    <button class="btn btn-primary" onclick="openCreateResourceModal()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        新增教材
+                    </button>
+                </div>
+                <div class="card">
+                    <div class="card-body">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>標題</th>
+                                    <th>類型</th>
+                                    <th>分類</th>
+                                    <th>狀態</th>
+                                    <th>瀏覽次數</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="resourcesTableBody">
+                                <tr><td colspan="6" class="loading">載入中...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Licenses View -->
+            <div id="licensesView" class="admin-view">
+                <div class="admin-header">
+                    <h2>授權管理</h2>
+                </div>
+                <div class="card">
+                    <div class="card-body">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>資源</th>
+                                    <th>用戶</th>
+                                    <th>類型</th>
+                                    <th>狀態</th>
+                                    <th>到期日</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="licensesTableBody">
+                                <tr><td colspan="6" class="loading">載入中...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Announcements View -->
+            <div id="announcementsView" class="admin-view">
+                <div class="admin-header">
+                    <h2>公告管理</h2>
+                    <button class="btn btn-primary" onclick="openCreateAnnouncementModal()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        新增公告
+                    </button>
+                </div>
+                <div class="card">
+                    <div class="card-body">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>標題</th>
+                                    <th>優先級</th>
+                                    <th>狀態</th>
+                                    <th>發布時間</th>
+                                    <th>瀏覽次數</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="announcementsTableBody">
+                                <tr><td colspan="6" class="loading">載入中...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analytics View -->
+            <div id="analyticsView" class="admin-view">
+                <div class="admin-header">
+                    <h2>數據分析</h2>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalViews">0</div>
+                        <div class="stat-label">總瀏覽次數</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="avgRating">0</div>
+                        <div class="stat-label">平均評分</div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h3>用戶角色分布</h3></div>
+                    <div class="card-body" id="roleDistribution">載入中...</div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal-overlay" id="createResourceModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>新增教材</h3>
+                <button class="modal-close" onclick="closeModal('createResourceModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="createResourceForm">
+                    <div class="form-group">
+                        <label>標題 *</label>
+                        <input type="text" name="title" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label>描述</label>
+                        <textarea name="description" class="form-input" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>類型 *</label>
+                        <select name="type" class="form-input" required>
+                            <option value="video">影音教材</option>
+                            <option value="interactive">互動教材</option>
+                            <option value="document">文件講義</option>
+                            <option value="quiz">測驗題庫</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>分類 *</label>
+                        <select name="category" class="form-input" required>
+                            <option value="math">數學</option>
+                            <option value="chinese">國文</option>
+                            <option value="english">英文</option>
+                            <option value="science">自然科學</option>
+                            <option value="social">社會科學</option>
+                            <option value="business">商業管理</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>適用年級 *</label>
+                        <select name="gradeLevel" class="form-input" required>
+                            <option value="elementary">國小</option>
+                            <option value="junior">國中</option>
+                            <option value="senior">高中</option>
+                            <option value="university">大學</option>
+                            <option value="corporate">企業培訓</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('createResourceModal')">取消</button>
+                <button class="btn btn-primary" onclick="submitCreateResource()">建立</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="createAnnouncementModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>新增公告</h3>
+                <button class="modal-close" onclick="closeModal('createAnnouncementModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="createAnnouncementForm">
+                    <div class="form-group">
+                        <label>標題 *</label>
+                        <input type="text" name="title" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label>內容 *</label>
+                        <textarea name="content" class="form-input" rows="4" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>優先級</label>
+                        <select name="priority" class="form-input">
+                            <option value="normal">一般</option>
+                            <option value="high">重要</option>
+                            <option value="urgent">緊急</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('createAnnouncementModal')">取消</button>
+                <button class="btn btn-primary" onclick="submitCreateAnnouncement()">發布</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create User Modal -->
+    <div class="modal-overlay" id="createUserModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>新增用戶</h3>
+                <button class="modal-close" onclick="closeModal('createUserModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="createUserForm">
+                    <div class="form-group">
+                        <label>姓名 *</label>
+                        <input type="text" name="displayName" class="form-input" required placeholder="用戶姓名">
+                    </div>
+                    <div class="form-group">
+                        <label>電子郵件 *</label>
+                        <input type="email" name="email" class="form-input" required placeholder="user@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label>密碼 *</label>
+                        <input type="password" name="password" class="form-input" required placeholder="至少 6 個字元" minlength="6">
+                    </div>
+                    <div class="form-group">
+                        <label>角色 *</label>
+                        <select name="role" class="form-input" required>
+                            <option value="educator">教育工作者</option>
+                            <option value="trainer">企業培訓主管</option>
+                            <option value="creator">內容創作者</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>學校/機構</label>
+                        <input type="text" name="organization" class="form-input" placeholder="選填">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('createUserModal')">取消</button>
+                <button class="btn btn-primary" onclick="submitCreateUser()">建立用戶</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/api.js"></script>
+    <script>
+        // View Management
+        function showView(viewName) {
+            document.querySelectorAll('.admin-view').forEach(v => v.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+            document.getElementById(`${viewName}View`).classList.add('active');
+            document.querySelector(`.nav-item[data-view="${viewName}"]`)?.classList.add('active');
+
+            // Load data for the view
+            switch(viewName) {
+                case 'dashboard': loadDashboard(); break;
+                case 'users': loadUsers(); break;
+                case 'resources': loadResources(); break;
+                case 'licenses': loadLicenses(); break;
+                case 'announcements': loadAnnouncements(); break;
+                case 'analytics': loadAnalytics(); break;
+            }
+        }
+
+        // Auth
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const errorDiv = document.getElementById('loginError');
+
+            try {
+                const result = await API.auth.login(email, password);
+                if (result.success && result.data.user.isAdmin) {
+                    document.getElementById('loginView').style.display = 'none';
+                    document.getElementById('adminPanel').style.display = 'flex';
+                    document.getElementById('adminName').textContent = result.data.user.displayName;
+                    loadDashboard();
+                } else if (result.success && !result.data.user.isAdmin) {
+                    errorDiv.textContent = '此帳號不是管理員';
+                    errorDiv.style.display = 'block';
+                    API.clearTokens();
+                } else {
+                    errorDiv.textContent = result.message || '登入失敗';
+                    errorDiv.style.display = 'block';
+                }
+            } catch (error) {
+                errorDiv.textContent = '登入失敗，請檢查網路連線';
+                errorDiv.style.display = 'block';
+            }
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            await API.auth.logout();
+            document.getElementById('adminPanel').style.display = 'none';
+            document.getElementById('loginView').style.display = 'flex';
+        });
+
+        // Load Dashboard
+        async function loadDashboard() {
+            try {
+                const result = await API.admin.getDashboard();
+                if (result.success) {
+                    const { stats, recentUsers } = result.data;
+                    document.getElementById('totalUsers').textContent = stats.totalUsers;
+                    document.getElementById('totalResources').textContent = stats.publishedResources;
+                    document.getElementById('activeLicenses').textContent = stats.activeLicenses;
+                    document.getElementById('pendingRequests').textContent = stats.pendingLicenses;
+                    document.getElementById('pendingLicensesBadge').textContent = stats.pendingLicenses;
+
+                    // Recent users table
+                    const tbody = document.getElementById('recentUsersTable');
+                    if (recentUsers.length > 0) {
+                        tbody.innerHTML = recentUsers.map(u => `
+                            <tr>
+                                <td>
+                                    <div class="user-info">
+                                        <div class="user-avatar">${(u.displayName || 'U')[0]}</div>
+                                        <div>
+                                            <div class="user-name">${u.displayName || 'Unknown'}</div>
+                                            <div class="user-email">${u.email}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>${u.role || 'educator'}</td>
+                                <td>${formatDate(u.createdAt)}</td>
+                            </tr>
+                        `).join('');
+                    } else {
+                        tbody.innerHTML = '<tr><td colspan="3">尚無用戶</td></tr>';
+                    }
+                }
+            } catch (error) {
+                console.error('Load dashboard error:', error);
+            }
+        }
+
+        // Load Users
+        async function loadUsers() {
+            try {
+                const result = await API.admin.getUsers();
+                const tbody = document.getElementById('usersTableBody');
+                if (result.success && result.data.length > 0) {
+                    tbody.innerHTML = result.data.map(u => `
+                        <tr>
+                            <td>
+                                <div class="user-info">
+                                    <div class="user-avatar">${(u.displayName || 'U')[0]}</div>
+                                    <div>
+                                        <div class="user-name">${u.displayName || 'Unknown'}</div>
+                                        <div class="user-email">${u.email}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>${u.role || 'educator'}</td>
+                            <td>${u.subscriptionTier || 'free'}</td>
+                            <td><span class="status-badge ${u.status}">${u.status}</span></td>
+                            <td>${formatDate(u.createdAt)}</td>
+                            <td>
+                                <button class="btn btn-sm btn-secondary" onclick="toggleUserStatus('${u.userId}', '${u.status}')">
+                                    ${u.status === 'active' ? '停用' : '啟用'}
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="6">尚無用戶</td></tr>';
+                }
+            } catch (error) {
+                console.error('Load users error:', error);
+            }
+        }
+
+        // Load Resources
+        async function loadResources() {
+            try {
+                const result = await API.resources.list({ limit: 100 });
+                const tbody = document.getElementById('resourcesTableBody');
+                if (result.success && result.data.length > 0) {
+                    tbody.innerHTML = result.data.map(r => `
+                        <tr>
+                            <td>${r.title}</td>
+                            <td>${r.type}</td>
+                            <td>${r.category}</td>
+                            <td><span class="status-badge ${r.status}">${r.status}</span></td>
+                            <td>${r.viewCount || 0}</td>
+                            <td>
+                                ${r.status === 'draft' ? `<button class="btn btn-sm btn-primary" onclick="publishResource('${r.resourceId}')">發布</button>` : ''}
+                                <button class="btn btn-sm btn-secondary" onclick="deleteResource('${r.resourceId}')">下架</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="6">尚無教材</td></tr>';
+                }
+            } catch (error) {
+                console.error('Load resources error:', error);
+            }
+        }
+
+        // Load Licenses
+        async function loadLicenses() {
+            try {
+                const result = await API.admin.getLicenses();
+                const tbody = document.getElementById('licensesTableBody');
+                if (result.success && result.data.length > 0) {
+                    tbody.innerHTML = result.data.map(l => `
+                        <tr>
+                            <td>${l.resourceTitle}</td>
+                            <td>${l.userId}</td>
+                            <td>${l.licenseType}</td>
+                            <td><span class="status-badge ${l.status}">${l.status}</span></td>
+                            <td>${l.expiryDate ? formatDate(l.expiryDate) : '-'}</td>
+                            <td>
+                                ${l.status === 'pending' ? `
+                                    <button class="btn btn-sm btn-primary" onclick="approveLicense('${l.licenseId}', true)">核准</button>
+                                    <button class="btn btn-sm btn-secondary" onclick="approveLicense('${l.licenseId}', false)">拒絕</button>
+                                ` : '-'}
+                            </td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="6">尚無授權記錄</td></tr>';
+                }
+            } catch (error) {
+                console.error('Load licenses error:', error);
+            }
+        }
+
+        // Load Announcements
+        async function loadAnnouncements() {
+            try {
+                const result = await API.admin.getAllAnnouncements();
+                const tbody = document.getElementById('announcementsTableBody');
+                if (result.success && result.data.length > 0) {
+                    tbody.innerHTML = result.data.map(a => `
+                        <tr>
+                            <td>${a.title}</td>
+                            <td>${a.priority}</td>
+                            <td><span class="status-badge ${a.status}">${a.status}</span></td>
+                            <td>${formatDate(a.publishAt)}</td>
+                            <td>${a.viewCount || 0}</td>
+                            <td>
+                                <button class="btn btn-sm btn-secondary" onclick="deleteAnnouncement('${a.announcementId}')">刪除</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="6">尚無公告</td></tr>';
+                }
+            } catch (error) {
+                console.error('Load announcements error:', error);
+            }
+        }
+
+        // Load Analytics
+        async function loadAnalytics() {
+            try {
+                const result = await API.admin.getAnalytics();
+                if (result.success) {
+                    document.getElementById('totalViews').textContent = result.data.totalViews || 0;
+                    document.getElementById('avgRating').textContent = (result.data.averageRating || 0).toFixed(1);
+
+                    const roles = result.data.userRoles || {};
+                    document.getElementById('roleDistribution').innerHTML = Object.entries(roles)
+                        .map(([role, count]) => `<div>${role}: ${count} 人</div>`).join('');
+                }
+            } catch (error) {
+                console.error('Load analytics error:', error);
+            }
+        }
+
+        // Actions
+        async function toggleUserStatus(userId, currentStatus) {
+            const newStatus = currentStatus === 'active' ? 'suspended' : 'active';
+            const result = await API.admin.updateUserStatus(userId, newStatus);
+            if (result.success) loadUsers();
+        }
+
+        async function publishResource(resourceId) {
+            const result = await API.admin.publishResource(resourceId);
+            if (result.success) loadResources();
+        }
+
+        async function deleteResource(resourceId) {
+            if (confirm('確定要下架此教材嗎？')) {
+                const result = await API.admin.deleteResource(resourceId);
+                if (result.success) loadResources();
+            }
+        }
+
+        async function approveLicense(licenseId, approved) {
+            const result = await API.admin.approveLicense(licenseId, approved);
+            if (result.success) {
+                loadLicenses();
+                loadDashboard();
+            }
+        }
+
+        async function deleteAnnouncement(announcementId) {
+            if (confirm('確定要刪除此公告嗎？')) {
+                const result = await API.admin.deleteAnnouncement(announcementId);
+                if (result.success) loadAnnouncements();
+            }
+        }
+
+        // Modals
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.add('active');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        function openCreateResourceModal() {
+            document.getElementById('createResourceForm').reset();
+            openModal('createResourceModal');
+        }
+
+        function openCreateAnnouncementModal() {
+            document.getElementById('createAnnouncementForm').reset();
+            openModal('createAnnouncementModal');
+        }
+
+        async function submitCreateResource() {
+            const form = document.getElementById('createResourceForm');
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            const result = await API.admin.createResource(data);
+            if (result.success) {
+                closeModal('createResourceModal');
+                loadResources();
+            } else {
+                alert(result.message || '建立失敗');
+            }
+        }
+
+        async function submitCreateAnnouncement() {
+            const form = document.getElementById('createAnnouncementForm');
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            const result = await API.admin.createAnnouncement(data);
+            if (result.success) {
+                closeModal('createAnnouncementModal');
+                loadAnnouncements();
+            } else {
+                alert(result.message || '發布失敗');
+            }
+        }
+
+        function openCreateUserModal() {
+            document.getElementById('createUserForm').reset();
+            openModal('createUserModal');
+        }
+
+        async function submitCreateUser() {
+            const form = document.getElementById('createUserForm');
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            // Validate
+            if (!data.displayName || !data.email || !data.password) {
+                alert('請填寫所有必填欄位');
+                return;
+            }
+
+            if (data.password.length < 6) {
+                alert('密碼至少需要 6 個字元');
+                return;
+            }
+
+            try {
+                const result = await API.admin.createUser(data);
+                if (result.success) {
+                    closeModal('createUserModal');
+                    loadUsers();
+                    alert('用戶已成功建立！');
+                } else {
+                    alert(result.message || '建立用戶失敗');
+                }
+            } catch (error) {
+                console.error('Create user error:', error);
+                alert('建立用戶失敗，請稍後再試');
+            }
+        }
+
+        // Helpers
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('zh-TW');
+        }
+
+        // Navigation
+        document.querySelectorAll('.nav-item[data-view]').forEach(item => {
+            item.addEventListener('click', () => showView(item.dataset.view));
+        });
+
+        // Check auth on load
+        if (API.isLoggedIn() && API.isAdmin()) {
+            document.getElementById('loginView').style.display = 'none';
+            document.getElementById('adminPanel').style.display = 'flex';
+            const user = API.getCurrentUser();
+            if (user) document.getElementById('adminName').textContent = user.displayName;
+            loadDashboard();
+        }
+    </script>
+</body>
+</html>

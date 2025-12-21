@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BeyondBridge 系統架構圖</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --olive-deep: #3D4A2D;
+            --olive: #4A5D23;
+            --olive-light: #6B7F3A;
+            --cream: #F7F3EB;
+            --cream-dark: #EDE6D6;
+            --terracotta: #C17A5E;
+            --terracotta-light: #D4967D;
+            --charcoal: #2C2C2C;
+            --sage: #A8B89A;
+            --sand: #D4C5A9;
+            --white: #FFFFFF;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            min-height: 100vh;
+            padding: 60px 40px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--olive-deep);
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        .header .subtitle {
+            font-size: 1rem;
+            color: var(--charcoal);
+            opacity: 0.7;
+        }
+
+        .header .brand {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--olive) 0%, var(--olive-deep) 100%);
+            color: var(--cream);
+            padding: 0.5rem 1.5rem;
+            border-radius: 30px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-top: 1rem;
+            letter-spacing: 0.1em;
+        }
+
+        /* Architecture Layout */
+        .architecture {
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+        }
+
+        /* Top Level - Brand */
+        .brand-level {
+            display: flex;
+            justify-content: center;
+        }
+
+        .brand-box {
+            background: linear-gradient(135deg, var(--olive-deep) 0%, #2D3A1F 100%);
+            color: var(--cream);
+            padding: 2rem 4rem;
+            border-radius: 16px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(61, 74, 45, 0.3);
+            position: relative;
+        }
+
+        .brand-box::after {
+            content: '';
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 3px;
+            height: 30px;
+            background: linear-gradient(to bottom, var(--olive-deep), var(--sage));
+        }
+
+        .brand-box h2 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .brand-box p {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        /* Split Connector */
+        .connector-split {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 60px;
+            position: relative;
+        }
+
+        .connector-split::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 3px;
+            height: 30px;
+            background: var(--sage);
+        }
+
+        .connector-split::after {
+            content: '';
+            position: absolute;
+            top: 30px;
+            left: calc(25% + 60px);
+            right: calc(25% + 60px);
+            height: 3px;
+            background: var(--sage);
+        }
+
+        .connector-split .dot {
+            width: 12px;
+            height: 12px;
+            background: var(--terracotta);
+            border-radius: 50%;
+            position: absolute;
+            top: 24px;
+        }
+
+        .connector-split .dot-left {
+            left: calc(25% + 60px);
+        }
+
+        .connector-split .dot-right {
+            right: calc(25% + 60px);
+        }
+
+        /* Second Level - Website & Platform */
+        .second-level {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 40px;
+            position: relative;
+        }
+
+        .second-level::before {
+            content: '';
+            position: absolute;
+            top: -30px;
+            left: calc(25% + 60px);
+            width: 3px;
+            height: 30px;
+            background: var(--sage);
+        }
+
+        .second-level::after {
+            content: '';
+            position: absolute;
+            top: -30px;
+            right: calc(37.5% - 20px);
+            width: 3px;
+            height: 30px;
+            background: var(--sage);
+        }
+
+        /* Section Card */
+        .section-card {
+            background: var(--white);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .section-header {
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .section-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .section-icon svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .section-title h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--charcoal);
+        }
+
+        .section-title p {
+            font-size: 0.8rem;
+            color: #888;
+        }
+
+        /* Website Styles */
+        .website-card .section-header {
+            background: linear-gradient(135deg, var(--terracotta) 0%, var(--terracotta-light) 100%);
+        }
+
+        .website-card .section-icon {
+            background: rgba(255,255,255,0.2);
+            color: var(--white);
+        }
+
+        .website-card .section-title h3,
+        .website-card .section-title p {
+            color: var(--white);
+        }
+
+        .website-card .section-title p {
+            opacity: 0.85;
+        }
+
+        /* Platform Styles */
+        .platform-card .section-header {
+            background: linear-gradient(135deg, var(--olive) 0%, var(--olive-deep) 100%);
+        }
+
+        .platform-card .section-icon {
+            background: rgba(255,255,255,0.2);
+            color: var(--white);
+        }
+
+        .platform-card .section-title h3,
+        .platform-card .section-title p {
+            color: var(--white);
+        }
+
+        .platform-card .section-title p {
+            opacity: 0.85;
+        }
+
+        /* Feature List */
+        .feature-list {
+            padding: 1.5rem;
+        }
+
+        .feature-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .feature-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .feature-group-title {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--olive);
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem 0;
+            font-size: 0.9rem;
+            color: var(--charcoal);
+        }
+
+        .feature-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--sage);
+            flex-shrink: 0;
+        }
+
+        .feature-dot.primary {
+            background: var(--olive);
+        }
+
+        .feature-dot.accent {
+            background: var(--terracotta);
+        }
+
+        /* Platform Systems Grid */
+        .systems-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            padding: 1.5rem;
+            background: #f8f9fa;
+        }
+
+        .system-card {
+            background: var(--white);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        }
+
+        .system-header {
+            padding: 1rem 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .system-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .system-icon svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .system-name {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--white);
+        }
+
+        .system-role {
+            font-size: 0.7rem;
+            color: rgba(255,255,255,0.8);
+        }
+
+        /* Educator System */
+        .educator-system .system-header {
+            background: linear-gradient(135deg, #5B8C5A 0%, #3D6B3D 100%);
+        }
+
+        .educator-system .system-icon {
+            background: rgba(255,255,255,0.2);
+            color: var(--white);
+        }
+
+        /* Student System */
+        .student-system .system-header {
+            background: linear-gradient(135deg, #6B98B8 0%, #4A7A9C 100%);
+        }
+
+        .student-system .system-icon {
+            background: rgba(255,255,255,0.2);
+            color: var(--white);
+        }
+
+        /* Admin System */
+        .admin-system .system-header {
+            background: linear-gradient(135deg, var(--terracotta) 0%, #A85D45 100%);
+        }
+
+        .admin-system .system-icon {
+            background: rgba(255,255,255,0.2);
+            color: var(--white);
+        }
+
+        .system-features {
+            padding: 1rem 1.25rem;
+        }
+
+        .system-feature {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.4rem 0;
+            font-size: 0.8rem;
+            color: var(--charcoal);
+        }
+
+        .system-feature-dot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .educator-system .system-feature-dot { background: #5B8C5A; }
+        .student-system .system-feature-dot { background: #6B98B8; }
+        .admin-system .system-feature-dot { background: var(--terracotta); }
+
+        /* Backend Section */
+        .backend-section {
+            margin-top: 20px;
+        }
+
+        .backend-card {
+            background: linear-gradient(135deg, #2C2C2C 0%, #1a1a1a 100%);
+            border-radius: 16px;
+            padding: 2rem;
+            color: var(--white);
+        }
+
+        .backend-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .backend-icon {
+            width: 48px;
+            height: 48px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .backend-icon svg {
+            width: 24px;
+            height: 24px;
+            color: var(--sage);
+        }
+
+        .backend-title h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .backend-title p {
+            font-size: 0.8rem;
+            opacity: 0.7;
+        }
+
+        .backend-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+        }
+
+        .backend-item {
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            padding: 1rem;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .backend-item-icon {
+            width: 40px;
+            height: 40px;
+            margin: 0 auto 0.75rem;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .backend-item-icon svg {
+            width: 20px;
+            height: 20px;
+            color: var(--sage);
+        }
+
+        .backend-item h4 {
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .backend-item p {
+            font-size: 0.7rem;
+            opacity: 0.6;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            margin-top: 60px;
+            padding-top: 30px;
+            border-top: 1px solid #ddd;
+        }
+
+        .footer p {
+            font-size: 0.85rem;
+            color: #888;
+        }
+
+        .footer .version {
+            display: inline-block;
+            background: var(--cream);
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            color: var(--olive);
+            margin-top: 0.5rem;
+        }
+
+        /* Connector Lines */
+        .connector-vertical {
+            display: flex;
+            justify-content: center;
+            height: 40px;
+        }
+
+        .connector-vertical::before {
+            content: '';
+            width: 3px;
+            height: 100%;
+            background: linear-gradient(to bottom, var(--sage), #2C2C2C);
+        }
+
+        /* Print Styles */
+        @media print {
+            body {
+                background: white;
+                padding: 20px;
+            }
+
+            .section-card,
+            .system-card,
+            .backend-card {
+                box-shadow: none;
+                border: 1px solid #ddd;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>BeyondBridge 系統架構圖</h1>
+            <p class="subtitle">超越之橋計畫 - 完整平台架構總覽</p>
+            <span class="brand">BUILD THE BRIDGE. GO BEYOND.</span>
+        </div>
+
+        <!-- Architecture -->
+        <div class="architecture">
+            <!-- Brand Level -->
+            <div class="brand-level">
+                <div class="brand-box">
+                    <h2>BeyondBridge</h2>
+                    <p>超越之橋教育平台</p>
+                </div>
+            </div>
+
+            <!-- Connector -->
+            <div class="connector-split">
+                <div class="dot dot-left"></div>
+                <div class="dot dot-right"></div>
+            </div>
+
+            <!-- Second Level -->
+            <div class="second-level">
+                <!-- Website -->
+                <div class="section-card website-card">
+                    <div class="section-header">
+                        <div class="section-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="2" y1="12" x2="22" y2="12"/>
+                                <path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
+                            </svg>
+                        </div>
+                        <div class="section-title">
+                            <h3>官方網站</h3>
+                            <p>Website</p>
+                        </div>
+                    </div>
+                    <div class="feature-list">
+                        <div class="feature-group">
+                            <div class="feature-group-title">品牌展示</div>
+                            <div class="feature-item">
+                                <span class="feature-dot accent"></span>
+                                Hero 主視覺區
+                            </div>
+                            <div class="feature-item">
+                                <span class="feature-dot accent"></span>
+                                市場痛點分析
+                            </div>
+                            <div class="feature-item">
+                                <span class="feature-dot accent"></span>
+                                解決方案介紹
+                            </div>
+                        </div>
+                        <div class="feature-group">
+                            <div class="feature-group-title">核心內容</div>
+                            <div class="feature-item">
+                                <span class="feature-dot"></span>
+                                服務項目展示
+                            </div>
+                            <div class="feature-item">
+                                <span class="feature-dot"></span>
+                                目標客群說明
+                            </div>
+                            <div class="feature-item">
+                                <span class="feature-dot"></span>
+                                核心團隊介紹
+                            </div>
+                        </div>
+                        <div class="feature-group">
+                            <div class="feature-group-title">轉換入口</div>
+                            <div class="feature-item">
+                                <span class="feature-dot primary"></span>
+                                CTA 行動呼籲
+                            </div>
+                            <div class="feature-item">
+                                <span class="feature-dot primary"></span>
+                                聯絡諮詢入口
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Platform -->
+                <div class="section-card platform-card">
+                    <div class="section-header">
+                        <div class="section-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="2" y="3" width="20" height="14" rx="2"/>
+                                <line x1="8" y1="21" x2="16" y2="21"/>
+                                <line x1="12" y1="17" x2="12" y2="21"/>
+                            </svg>
+                        </div>
+                        <div class="section-title">
+                            <h3>教育平台</h3>
+                            <p>Platform - 三大系統</p>
+                        </div>
+                    </div>
+
+                    <!-- Systems Grid -->
+                    <div class="systems-grid">
+                        <!-- Educator System -->
+                        <div class="system-card educator-system">
+                            <div class="system-header">
+                                <div class="system-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                                        <circle cx="9" cy="7" r="4"/>
+                                        <path d="M23 21v-2a4 4 0 00-3-3.87"/>
+                                        <path d="M16 3.13a4 4 0 010 7.75"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div class="system-name">教育者系統</div>
+                                    <div class="system-role">建橋者 Educator</div>
+                                </div>
+                            </div>
+                            <div class="system-features">
+                                <div class="system-feature">
+                                    <span class="system-feature-dot"></span>
+                                    建橋總覽 Dashboard
+                                </div>
+                                <div class="system-feature">
+                                    <span class="system-feature-dot"></span>
+                                    知識建材庫
+                                </div>
+                                <div class="system-feature">
+                                    <span class="system-feature-dot"></span>
+                                    我的橋樑（課程）
+                                </div>
+                                <div class="system-feature">
+                                    <span class="system-feature-dot"></span>
+                                    共建團隊管理
+                                </div>
+                                <div class="system-feature">
+                                    <span class="system-feature-dot"></span>
+                                    建材授權管理
+                                </div>
+                                <div class="system-feature">
+                                    <span class="system-feature-dot"></span>
+                                    橋樑設定
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Student System -->
+                        <div class="system-card student-system">
+                            <div class="system-header">
+                                <div class="system-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                                        <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div class="system-name">學生系統</div>
+                                    <div class="system-role">探橋者 Student</div>
+                                </div>
+                            </div>
+                            <div class="system-features">
+                                <div class="system-feature">
+                                    <span class="system-feature-dot"></span>
+                                    探索總覽 Dashboard
+                                </div>
+                                <div class="system-feature">
+                                    <span class="system-feature-dot"></span>
+                                    我的橋隊（班級）
+                                </div>
+                                <div class="system-feature">
+                                    <span class="system-feature-dot"></span>
+                                    影音橋段
+                                </div>
+                                <div class="system-feature">
+                                    <span class="system-feature-dot"></span>
+                                    橋樑驗收（測驗）
+                                </div>
+                                <div class="system-feature">
+                                    <span class="system-feature-dot"></span>
+                                    共建論壇
+                                </div>
+                                <div class="system-feature">
+                                    <span class="system-feature-dot"></span>
+                                    個人設定
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Admin System -->
+                        <div class="system-card admin-system">
+                            <div class="system-header">
+                                <div class="system-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/>
+                                        <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div class="system-name">管理員系統</div>
+                                    <div class="system-role">Administrator</div>
+                                </div>
+                            </div>
+                            <div class="system-features">
+                                <div class="system-feature">
+                                    <span class="system-feature-dot"></span>
+                                    管理儀表板
+                                </div>
+                                <div class="system-feature">
+                                    <span class="system-feature-dot"></span>
+                                    用戶管理
+                                </div>
+                                <div class="system-feature">
+                                    <span class="system-feature-dot"></span>
+                                    教材管理
+                                </div>
+                                <div class="system-feature">
+                                    <span class="system-feature-dot"></span>
+                                    授權管理
+                                </div>
+                                <div class="system-feature">
+                                    <span class="system-feature-dot"></span>
+                                    公告管理
+                                </div>
+                                <div class="system-feature">
+                                    <span class="system-feature-dot"></span>
+                                    數據分析
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Connector to Backend -->
+            <div class="connector-vertical"></div>
+
+            <!-- Backend Section -->
+            <div class="backend-section">
+                <div class="backend-card">
+                    <div class="backend-header">
+                        <div class="backend-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="2" y="2" width="20" height="8" rx="2"/>
+                                <rect x="2" y="14" width="20" height="8" rx="2"/>
+                                <line x1="6" y1="6" x2="6.01" y2="6"/>
+                                <line x1="6" y1="18" x2="6.01" y2="18"/>
+                            </svg>
+                        </div>
+                        <div class="backend-title">
+                            <h3>後端架構</h3>
+                            <p>Backend Infrastructure</p>
+                        </div>
+                    </div>
+                    <div class="backend-grid">
+                        <div class="backend-item">
+                            <div class="backend-item-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+                                </svg>
+                            </div>
+                            <h4>Node.js</h4>
+                            <p>Express API Server</p>
+                        </div>
+                        <div class="backend-item">
+                            <div class="backend-item-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                                    <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+                                    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+                                </svg>
+                            </div>
+                            <h4>DynamoDB</h4>
+                            <p>AWS 資料庫</p>
+                        </div>
+                        <div class="backend-item">
+                            <div class="backend-item-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="11" width="18" height="11" rx="2"/>
+                                    <path d="M7 11V7a5 5 0 0110 0v4"/>
+                                </svg>
+                            </div>
+                            <h4>JWT Auth</h4>
+                            <p>身份驗證</p>
+                        </div>
+                        <div class="backend-item">
+                            <div class="backend-item-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+                                    <polyline points="22,4 12,14.01 9,11.01"/>
+                                </svg>
+                            </div>
+                            <h4>Render</h4>
+                            <p>雲端部署</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>&copy; 2025 BeyondBridge Education Co. All Rights Reserved.</p>
+            <span class="version">Architecture v1.0</span>
+        </div>
+    </div>
+</body>
+</html>
