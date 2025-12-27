@@ -1066,8 +1066,8 @@
 
         document.getElementById('logoutBtn').addEventListener('click', async () => {
             await API.auth.logout();
-            document.getElementById('adminPanel').style.display = 'none';
-            document.getElementById('loginView').style.display = 'flex';
+            // 跳轉回主平台登入頁面
+            window.location.href = '/platform/';
         });
 
         // Load Dashboard
@@ -1373,13 +1373,16 @@
             item.addEventListener('click', () => showView(item.dataset.view));
         });
 
-        // Check auth on load
+        // Check auth on load - 如果未登入或非管理員，跳轉到主平台
         if (API.isLoggedIn() && API.isAdmin()) {
             document.getElementById('loginView').style.display = 'none';
             document.getElementById('adminPanel').style.display = 'flex';
             const user = API.getCurrentUser();
             if (user) document.getElementById('adminName').textContent = user.displayName;
             loadDashboard();
+        } else {
+            // 未登入或非管理員，跳轉到主平台登入頁面
+            window.location.href = '/platform/';
         }
     </script>
 </body>
