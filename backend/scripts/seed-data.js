@@ -424,10 +424,135 @@ async function createSampleUser() {
       TableName: TABLE_NAME,
       Item: user
     }));
-    console.log(`  ✓ 已建立範例用戶: ${user.email}`);
-    console.log(`  密碼: Demo@2025`);
+    console.log(`  ✓ 已建立範例教師: ${user.email}`);
+    console.log(`    密碼: Demo@2025`);
   } catch (error) {
     console.error(`  ✗ 建立用戶失敗:`, error.message);
+  }
+}
+
+async function createSampleClass() {
+  console.log('\n建立範例班級...');
+
+  const now = new Date().toISOString();
+
+  const sampleClass = {
+    PK: 'CLASS#cls_demo001',
+    SK: 'META',
+    GSI1PK: 'USER#usr_demo001',
+    GSI1SK: 'CLASS#cls_demo001',
+    entityType: 'CLASS',
+    createdAt: now,
+
+    classId: 'cls_demo001',
+    name: '數學進階班',
+    description: '國中數學進階課程，適合對數學有興趣的同學',
+    inviteCode: 'DEMO01',
+    teacherId: 'usr_demo001',
+    teacherName: '林老師',
+    memberCount: 1,
+    maxMembers: 50,
+    status: 'active',
+    updatedAt: now
+  };
+
+  try {
+    await docClient.send(new PutCommand({
+      TableName: TABLE_NAME,
+      Item: sampleClass
+    }));
+    console.log(`  ✓ 已建立範例班級: ${sampleClass.name}`);
+    console.log(`    通行碼: ${sampleClass.inviteCode}`);
+  } catch (error) {
+    console.error(`  ✗ 建立班級失敗:`, error.message);
+  }
+}
+
+async function createSampleStudent() {
+  console.log('\n建立範例學生...');
+
+  const now = new Date().toISOString();
+  const hashedPassword = await hashPassword('Student@2025');
+
+  // 建立學生帳號
+  const student = {
+    PK: 'USER#usr_student001',
+    SK: 'PROFILE',
+    GSI1PK: 'ROLE#student',
+    GSI1SK: 'USER#usr_student001',
+    GSI4PK: 'student@beyondbridge.com',
+    email: 'student@beyondbridge.com',
+    entityType: 'USER',
+    createdAt: now,
+
+    userId: 'usr_student001',
+    displayName: '王小明',
+    displayNameEn: 'Xiao Ming Wang',
+    avatarUrl: null,
+    passwordHash: hashedPassword,
+    role: 'student',
+    organization: '台北市立第一中學',
+    organizationType: 'school',
+
+    subscriptionTier: 'student',
+    subscriptionExpiry: null,
+    licenseQuota: 0,
+    licenseUsed: 0,
+
+    preferences: {
+      language: 'zh-TW',
+      darkMode: false,
+      notifications: {
+        newMaterial: true,
+        progress: true,
+        expiry: true,
+        email: false
+      }
+    },
+
+    stats: {
+      totalHours: 5,
+      coursesCompleted: 1,
+      coursesInProgress: 2
+    },
+
+    status: 'active',
+    lastLoginAt: now,
+    updatedAt: now
+  };
+
+  // 建立學生的班級成員關係
+  const membership = {
+    PK: 'CLASS#cls_demo001',
+    SK: 'MEMBER#usr_student001',
+    GSI1PK: 'USER#usr_student001',
+    GSI1SK: 'CLASS#cls_demo001',
+    entityType: 'CLASS_MEMBER',
+    createdAt: now,
+
+    classId: 'cls_demo001',
+    userId: 'usr_student001',
+    displayName: '王小明',
+    email: 'student@beyondbridge.com',
+    role: 'student',
+    joinedAt: now
+  };
+
+  try {
+    await docClient.send(new PutCommand({
+      TableName: TABLE_NAME,
+      Item: student
+    }));
+    console.log(`  ✓ 已建立範例學生: ${student.email}`);
+    console.log(`    密碼: Student@2025`);
+
+    await docClient.send(new PutCommand({
+      TableName: TABLE_NAME,
+      Item: membership
+    }));
+    console.log(`    已加入班級: 數學進階班`);
+  } catch (error) {
+    console.error(`  ✗ 建立學生失敗:`, error.message);
   }
 }
 
@@ -444,22 +569,30 @@ async function main() {
     await createCourses();
     await createAnnouncements();
     await createSampleUser();
+    await createSampleClass();
+    await createSampleStudent();
 
     console.log('\n========================================');
     console.log('初始資料建立完成！');
     console.log('========================================');
     console.log('\n帳號摘要：');
-    console.log('┌─────────────────────────────────────────┐');
-    console.log('│ 管理員帳號（3組）：                      │');
+    console.log('┌──────────────────────────────────────────────┐');
+    console.log('│ 管理員帳號（3組）：                           │');
     admins.forEach(a => {
-      console.log(`│   ${a.email.padEnd(32)} │`);
+      console.log(`│   ${a.email.padEnd(37)} │`);
     });
-    console.log('│   密碼: BeyondBridge@2025               │');
-    console.log('├─────────────────────────────────────────┤');
-    console.log('│ 範例用戶：                               │');
-    console.log('│   demo@beyondbridge.com                 │');
-    console.log('│   密碼: Demo@2025                       │');
-    console.log('└─────────────────────────────────────────┘');
+    console.log('│   密碼: BeyondBridge@2025                    │');
+    console.log('├──────────────────────────────────────────────┤');
+    console.log('│ 教師帳號：                                    │');
+    console.log('│   demo@beyondbridge.com                      │');
+    console.log('│   密碼: Demo@2025                            │');
+    console.log('├──────────────────────────────────────────────┤');
+    console.log('│ 學生帳號：                                    │');
+    console.log('│   student@beyondbridge.com                   │');
+    console.log('│   密碼: Student@2025                         │');
+    console.log('├──────────────────────────────────────────────┤');
+    console.log('│ 範例班級通行碼：DEMO01                        │');
+    console.log('└──────────────────────────────────────────────┘');
 
   } catch (error) {
     console.error('\n初始化失敗:', error.message);
