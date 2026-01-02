@@ -532,6 +532,208 @@ const API = {
         method: 'DELETE'
       });
     }
+  },
+
+  // ===== 諮詢服務 API =====
+  consultations: {
+    async list() {
+      return API.request('/consultations');
+    },
+
+    async get(consultationId) {
+      return API.request(`/consultations/${consultationId}`);
+    },
+
+    async create(data) {
+      return API.request('/consultations', {
+        method: 'POST',
+        body: data
+      });
+    },
+
+    async update(consultationId, data) {
+      return API.request(`/consultations/${consultationId}`, {
+        method: 'PUT',
+        body: data
+      });
+    },
+
+    async cancel(consultationId) {
+      return API.request(`/consultations/${consultationId}`, {
+        method: 'DELETE'
+      });
+    },
+
+    async acceptQuote(consultationId) {
+      return API.request(`/consultations/${consultationId}/accept`, {
+        method: 'POST'
+      });
+    },
+
+    async rejectQuote(consultationId) {
+      return API.request(`/consultations/${consultationId}/reject`, {
+        method: 'POST'
+      });
+    },
+
+    // 管理員專用
+    async adminList(filters = {}) {
+      const params = new URLSearchParams(filters).toString();
+      return API.request(`/consultations/admin/all?${params}`);
+    },
+
+    async adminUpdate(consultationId, data) {
+      return API.request(`/consultations/admin/${consultationId}`, {
+        method: 'PUT',
+        body: data
+      });
+    },
+
+    async submitQuote(consultationId, quoteData) {
+      return API.request(`/consultations/admin/${consultationId}/quote`, {
+        method: 'POST',
+        body: quoteData
+      });
+    }
+  },
+
+  // ===== 討論區 API =====
+  discussions: {
+    async list(filters = {}) {
+      const params = new URLSearchParams(filters).toString();
+      return API.request(`/discussions?${params}`);
+    },
+
+    async get(postId) {
+      return API.request(`/discussions/${postId}`);
+    },
+
+    async create(data) {
+      return API.request('/discussions', {
+        method: 'POST',
+        body: data
+      });
+    },
+
+    async update(postId, data) {
+      return API.request(`/discussions/${postId}`, {
+        method: 'PUT',
+        body: data
+      });
+    },
+
+    async delete(postId) {
+      return API.request(`/discussions/${postId}`, {
+        method: 'DELETE'
+      });
+    },
+
+    async reply(postId, content) {
+      return API.request(`/discussions/${postId}/reply`, {
+        method: 'POST',
+        body: { content }
+      });
+    },
+
+    async deleteReply(postId, replyId) {
+      return API.request(`/discussions/${postId}/reply/${replyId}`, {
+        method: 'DELETE'
+      });
+    },
+
+    async like(postId) {
+      return API.request(`/discussions/${postId}/like`, {
+        method: 'POST'
+      });
+    },
+
+    async unlike(postId) {
+      return API.request(`/discussions/${postId}/like`, {
+        method: 'DELETE'
+      });
+    },
+
+    async getTags() {
+      return API.request('/discussions/meta/tags');
+    },
+
+    async search(query, filters = {}) {
+      const params = new URLSearchParams({ q: query, ...filters }).toString();
+      return API.request(`/discussions/search?${params}`);
+    },
+
+    // 管理員專用
+    async adminList(filters = {}) {
+      const params = new URLSearchParams(filters).toString();
+      return API.request(`/discussions/admin/all?${params}`);
+    },
+
+    async adminDelete(postId) {
+      return API.request(`/discussions/admin/${postId}`, {
+        method: 'DELETE'
+      });
+    },
+
+    async adminPin(postId, pinned = true) {
+      return API.request(`/discussions/admin/${postId}/pin`, {
+        method: 'PUT',
+        body: { pinned }
+      });
+    }
+  },
+
+  // ===== 測驗 API =====
+  quizzes: {
+    async list(filters = {}) {
+      const params = new URLSearchParams(filters).toString();
+      return API.request(`/quizzes?${params}`);
+    },
+
+    async get(quizId) {
+      return API.request(`/quizzes/${quizId}`);
+    },
+
+    async submit(quizId, answers, timeSpent = 0) {
+      return API.request(`/quizzes/${quizId}/submit`, {
+        method: 'POST',
+        body: { answers, timeSpent }
+      });
+    },
+
+    async getResult(quizId) {
+      return API.request(`/quizzes/${quizId}/result`);
+    },
+
+    async getStats() {
+      return API.request('/quizzes/stats/summary');
+    },
+
+    // 管理員/教師專用
+    async create(data) {
+      return API.request('/quizzes', {
+        method: 'POST',
+        body: data
+      });
+    },
+
+    async update(quizId, data) {
+      return API.request(`/quizzes/${quizId}`, {
+        method: 'PUT',
+        body: data
+      });
+    },
+
+    async publish(quizId) {
+      return API.request(`/quizzes/${quizId}/publish`, {
+        method: 'PUT'
+      });
+    },
+
+    async delete(quizId) {
+      return API.request(`/quizzes/${quizId}`, {
+        method: 'DELETE'
+      });
+    }
   }
 };
 

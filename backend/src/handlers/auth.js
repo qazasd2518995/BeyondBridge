@@ -63,8 +63,15 @@ router.post('/login', async (req, res) => {
 
     // 更新最後登入時間
     const now = new Date().toISOString();
-    const pk = isAdmin ? `ADMIN#${user.adminId}` : `USER#${user.userId}`;
+    const userId = user.userId || user.adminId;
+    const pk = isAdmin ? `ADMIN#${userId}` : `USER#${userId}`;
     await db.updateItem(pk, 'PROFILE', { lastLoginAt: now });
+
+    // 記錄登入活動
+    await db.logActivity(userId, 'login', 'auth', userId, {
+      isAdmin,
+      ip: req.ip || req.headers['x-forwarded-for'] || 'unknown'
+    });
 
     // 產生 Token
     const tokens = auth.generateTokens(user);

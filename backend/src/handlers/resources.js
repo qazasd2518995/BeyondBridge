@@ -149,6 +149,14 @@ router.get('/:id', optionalAuthMiddleware, async (req, res) => {
       viewCount: (resource.viewCount || 0) + 1
     });
 
+    // 記錄活動日誌（若已登入）
+    if (req.user) {
+      await db.logActivity(req.user.userId, 'resource_viewed', 'resource', id, {
+        resourceTitle: resource.title,
+        resourceType: resource.type
+      });
+    }
+
     // 清理資料
     delete resource.PK;
     delete resource.SK;

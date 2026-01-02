@@ -1,12 +1,13 @@
 /**
  * BeyondBridge API Server
  * Express 後端伺服器主程式
- * 同時服務 API + 官網 + 平台
+ * 同時服務 API + 官網 + 平台 + WebSocket 即時通訊
  */
 
 require('dotenv').config();
 
 const express = require('express');
+const http = require('http');
 const cors = require('cors');
 const path = require('path');
 
@@ -19,6 +20,13 @@ const licenseRoutes = require('./handlers/licenses');
 const adminRoutes = require('./handlers/admin');
 const announcementRoutes = require('./handlers/announcements');
 const classRoutes = require('./handlers/classes');
+const consultationRoutes = require('./handlers/consultations');
+const discussionRoutes = require('./handlers/discussions');
+const quizRoutes = require('./handlers/quizzes');
+const chatRoutes = require('./handlers/chat');
+
+// 載入 WebSocket 伺服器
+const { initSocketServer } = require('./realtime/socketServer');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -57,6 +65,10 @@ app.use('/api/licenses', licenseRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/announcements', announcementRoutes);
 app.use('/api/classes', classRoutes);
+app.use('/api/consultations', consultationRoutes);
+app.use('/api/discussions', discussionRoutes);
+app.use('/api/quizzes', quizRoutes);
+app.use('/api/chat', chatRoutes);
 
 // 靜態檔案服務
 const publicPath = path.join(__dirname, '../public');
@@ -100,18 +112,38 @@ app.use((err, req, res, next) => {
   });
 });
 
+// 建立 HTTP 伺服器並整合 Socket.io
+const httpServer = http.createServer(app);
+const io = initSocketServer(httpServer);
+
+// 將 io 實例掛載到 app 上，方便其他模組使用
+app.set('io', io);
+
 // 啟動伺服器
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
   console.log('╔════════════════════════════════════════╗');
   console.log('║     BeyondBridge Full Stack Server     ║');
   console.log('╚════════════════════════════════════════╝');
   console.log(`\nServer running on http://localhost:${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`\nRoutes:`);
-  console.log('  /          → 官方網站');
-  console.log('  /platform  → 教育平台');
-  console.log('  /api/*     → API 端點');
-  console.log('  /health    → 健康檢查');
+  console.log('  /              → 官方網站');
+  console.log('  /platform      → 教育平台');
+  console.log('  /api/*         → API 端點');
+  console.log('  /health        → 健康檢查');
+  console.log('  ws://          → WebSocket 即時通訊');
+  console.log(`\nAPI Endpoints:`);
+  console.log('  /api/auth          → 認證');
+  console.log('  /api/users         → 用戶');
+  console.log('  /api/resources     → 教材資源');
+  console.log('  /api/courses       → 課程');
+  console.log('  /api/licenses      → 授權');
+  console.log('  /api/classes       → 班級');
+  console.log('  /api/announcements → 公告');
+  console.log('  /api/consultations → 諮詢服務');
+  console.log('  /api/discussions   → 討論區');
+  console.log('  /api/chat          → 即時客服');
+  console.log('  /api/admin         → 管理員');
 });
 
-module.exports = app;
+module.exports = { app, httpServer, io };

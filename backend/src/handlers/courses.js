@@ -150,6 +150,11 @@ router.post('/:id/enroll', authMiddleware, async (req, res) => {
       enrollmentCount: (course.enrollmentCount || 0) + 1
     });
 
+    // 記錄活動日誌
+    await db.logActivity(userId, 'course_enrolled', 'course', id, {
+      courseTitle: course.title
+    });
+
     res.status(201).json({
       success: true,
       message: '報名成功',
@@ -261,6 +266,13 @@ router.put('/:id/progress', authMiddleware, async (req, res) => {
     }
 
     const updatedProgress = await db.updateItem(`USER#${userId}`, `PROG#COURSE#${id}`, updates);
+
+    // 記錄活動日誌
+    await db.logActivity(userId, 'course_progress', 'course', id, {
+      unitId: updates.currentUnit,
+      progressPercentage: updates.progressPercentage,
+      timeSpent: timeSpent || 0
+    });
 
     delete updatedProgress.PK;
     delete updatedProgress.SK;

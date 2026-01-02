@@ -341,6 +341,37 @@ async function getUserActivities(userId, limit = 50) {
 }
 
 /**
+ * 記錄用戶活動日誌
+ * @param {string} userId - 用戶 ID
+ * @param {string} action - 動作類型 (login, course_progress, resource_view, etc.)
+ * @param {string} targetType - 目標類型 (course, resource, discussion, etc.)
+ * @param {string} targetId - 目標 ID
+ * @param {object} details - 額外詳情
+ */
+async function logActivity(userId, action, targetType, targetId, details = {}) {
+  const now = new Date().toISOString();
+  const activityId = generateId('act');
+
+  const activity = {
+    PK: `USER#${userId}`,
+    SK: `ACT#${now}#${activityId}`,
+    GSI1PK: `ACTION#${action}`,
+    GSI1SK: now,
+    entityType: 'ACTIVITY',
+    activityId,
+    userId,
+    action,
+    targetType,
+    targetId,
+    details,
+    createdAt: now
+  };
+
+  await putItem(activity);
+  return activity;
+}
+
+/**
  * 取得所有公告
  */
 async function getActiveAnnouncements() {
@@ -393,6 +424,7 @@ module.exports = {
   getUserCourseProgress,
   getUserLicenses,
   getUserActivities,
+  logActivity,
   getActiveAnnouncements,
   getCourseUnits,
   generateId
