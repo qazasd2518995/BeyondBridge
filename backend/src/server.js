@@ -134,21 +134,37 @@ app.use('/api/teachers', teacherAlertsRoutes);
 const publicPath = path.join(__dirname, '../public');
 app.use(express.static(publicPath));
 
-// 平台路由 - SPA 支援
+// 平台靜態資源 - 確保 /platform/css 和 /platform/js 優先處理
+app.use('/platform', express.static(path.join(publicPath, 'platform')));
+
+// 平台路由 - SPA 支援 (只處理非靜態資源的路徑)
 app.get('/platform', (req, res) => {
   res.sendFile(path.join(publicPath, 'platform', 'index.html'));
 });
 
-app.get('/platform/*', (req, res) => {
+app.get('/platform/*', (req, res, next) => {
+  // 如果是靜態資源請求，跳過此處理器
+  const staticExtensions = ['.js', '.css', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.woff', '.woff2', '.ttf', '.eot'];
+  if (staticExtensions.some(ext => req.path.endsWith(ext))) {
+    return next();
+  }
   res.sendFile(path.join(publicPath, 'platform', 'index.html'));
 });
+
+// 管理後台靜態資源
+app.use('/admin', express.static(path.join(publicPath, 'platform', 'admin')));
 
 // 管理後台路由
 app.get('/admin', (req, res) => {
   res.sendFile(path.join(publicPath, 'platform', 'admin', 'index.html'));
 });
 
-app.get('/admin/*', (req, res) => {
+app.get('/admin/*', (req, res, next) => {
+  // 如果是靜態資源請求，跳過此處理器
+  const staticExtensions = ['.js', '.css', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.woff', '.woff2', '.ttf', '.eot'];
+  if (staticExtensions.some(ext => req.path.endsWith(ext))) {
+    return next();
+  }
   res.sendFile(path.join(publicPath, 'platform', 'admin', 'index.html'));
 });
 
