@@ -11,12 +11,15 @@
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.0.0",
+    "@aws-sdk/client-ses": "^3.966.0",
     "@aws-sdk/lib-dynamodb": "^3.0.0",
+    "archiver": "^7.0.1",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.0.0",
     "express": "^4.18.0",
     "jsonwebtoken": "^9.0.0",
+    "nodemailer": "^6.9.0",
     "socket.io": "^4.8.3",
     "uuid": "^9.0.0"
   },

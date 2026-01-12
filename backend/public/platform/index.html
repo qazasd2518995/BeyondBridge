@@ -7,6 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600;700&family=Noto+Serif+TC:wght@400;500;600;700&family=DM+Sans:wght@400;500;600&family=Noto+Sans+TC:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/moodle-ui.css?v=2">
     <style>
         :root {
             /* 品牌主色 - 橄欖綠系列 */
@@ -1262,6 +1263,176 @@
                 </div>
 
                 <div class="nav-section">
+                    <div class="nav-section-title">課程學習</div>
+                    <a href="#" class="nav-item" onclick="showView('moodleCourses'); MoodleUI.loadCourses();">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/>
+                            <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>
+                        </svg>
+                        課程中心
+                    </a>
+                    <a href="#" class="nav-item" onclick="showView('moodleAssignments'); MoodleUI.loadAssignments();">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                            <polyline points="14,2 14,8 20,8"/>
+                            <line x1="12" y1="18" x2="12" y2="12"/>
+                            <line x1="9" y1="15" x2="15" y2="15"/>
+                        </svg>
+                        我的作業
+                    </a>
+                    <a href="#" class="nav-item" onclick="showView('moodleQuizzes'); MoodleUI.loadQuizzes();">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/>
+                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                        測驗中心
+                    </a>
+                    <a href="#" class="nav-item" onclick="showView('moodleForums'); MoodleUI.loadForums();">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+                        </svg>
+                        討論區
+                    </a>
+                    <a href="#" class="nav-item" onclick="showView('moodleGradebook'); MoodleUI.loadGradebook();">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+                            <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+                        </svg>
+                        成績簿
+                    </a>
+                    <a href="#" class="nav-item" onclick="showView('moodleCalendar'); MoodleUI.loadCalendar();">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                            <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                        </svg>
+                        行事曆
+                    </a>
+                    <a href="#" class="nav-item" onclick="showView('moodleNotifications'); MoodleUI.loadNotifications();">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                            <path d="M13.73 21a2 2 0 01-3.46 0"/>
+                        </svg>
+                        通知中心
+                    </a>
+                    <a href="#" class="nav-item" onclick="showView('learningPaths'); MoodleUI.openLearningPaths();">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                        </svg>
+                        學習路徑
+                    </a>
+                    <a href="#" class="nav-item" onclick="showView('badges'); MoodleUI.openBadges();">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="8" r="6"/>
+                            <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/>
+                        </svg>
+                        成就徽章
+                    </a>
+                </div>
+
+                <!-- 教師專用功能區 -->
+                <div class="nav-section teacher-only-nav" id="teacherNavSection" style="display: none;">
+                    <div class="nav-section-title">教學管理</div>
+                    <a href="#" class="nav-item" onclick="showView('questionBank'); MoodleUI.openQuestionBank();">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M4 4h16a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2z"/>
+                            <path d="M9 9h6M9 13h3"/>
+                            <circle cx="16" cy="13" r="1"/>
+                        </svg>
+                        題庫管理
+                    </a>
+                    <a href="#" class="nav-item" onclick="showView('gradebookManagement'); MoodleUI.openGradebookManagement();">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                            <line x1="3" y1="9" x2="21" y2="9"/>
+                            <line x1="3" y1="15" x2="21" y2="15"/>
+                            <line x1="9" y1="3" x2="9" y2="21"/>
+                            <line x1="15" y1="3" x2="15" y2="21"/>
+                        </svg>
+                        成績簿管理
+                    </a>
+                    <a href="#" class="nav-item" onclick="showView('rubrics'); MoodleUI.openRubricsManager();">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2"/>
+                            <path d="M3 9h18M9 3v18"/>
+                            <path d="M13 13l2 2 4-4"/>
+                        </svg>
+                        評分標準
+                    </a>
+                    <a href="#" class="nav-item" onclick="showView('courseCompletionSettings'); MoodleUI.openCourseCompletionSettings();">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+                            <polyline points="22,4 12,14.01 9,11.01"/>
+                        </svg>
+                        課程完成設定
+                        <span class="nav-badge" id="notificationBadge" style="display: none;">0</span>
+                    </a>
+                </div>
+
+                <!-- 管理員專用功能區 -->
+                <div class="nav-section admin-only-nav" id="adminNavSection" style="display: none;">
+                    <div class="nav-section-title">系統管理</div>
+                    <a href="#" class="nav-item" onclick="showView('rolesManagement'); MoodleUI.openRolesManagement();">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/>
+                            <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
+                        </svg>
+                        角色權限
+                    </a>
+                    <a href="#" class="nav-item" onclick="showView('courseCategories'); MoodleUI.openCourseCategories();">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>
+                            <path d="M12 11v6M9 14h6"/>
+                        </svg>
+                        課程類別
+                    </a>
+                    <a href="#" class="nav-item" onclick="showView('auditLogs'); MoodleUI.openAuditLogs();">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                            <path d="M14 2v6h6"/>
+                            <path d="M16 13H8M16 17H8M10 9H8"/>
+                        </svg>
+                        審計日誌
+                    </a>
+                    <a href="#" class="nav-item" onclick="showView('scormManager'); MoodleUI.openScormManager();">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+                            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                            <line x1="12" y1="22.08" x2="12" y2="12"/>
+                        </svg>
+                        SCORM 管理
+                    </a>
+                    <a href="#" class="nav-item" onclick="showView('ltiManager'); MoodleUI.openLtiManager();">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="18" cy="5" r="3"/>
+                            <circle cx="6" cy="12" r="3"/>
+                            <circle cx="18" cy="19" r="3"/>
+                            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                        </svg>
+                        LTI 外部工具
+                    </a>
+                    <a href="#" class="nav-item" onclick="showView('h5pManager'); MoodleUI.openH5pManager();">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                            <line x1="8" y1="21" x2="16" y2="21"/>
+                            <line x1="12" y1="17" x2="12" y2="21"/>
+                            <path d="M7 8h2v6H7zM11 8h2v6h-2zM15 8h2v6h-2"/>
+                        </svg>
+                        H5P 內容
+                    </a>
+                    <a href="#" class="nav-item" onclick="window.location.href='/admin';">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="7" height="9"/>
+                            <rect x="14" y="3" width="7" height="5"/>
+                            <rect x="14" y="12" width="7" height="9"/>
+                            <rect x="3" y="16" width="7" height="5"/>
+                        </svg>
+                        管理後台
+                    </a>
+                </div>
+
+                <div class="nav-section">
                     <div class="nav-section-title">建橋者檔案</div>
                     <a href="#" class="nav-item">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1317,21 +1488,36 @@
 
             <!-- Dashboard View -->
             <div class="dashboard" id="dashboardView">
+                <!-- Urgent Deadlines Section - Only for Students -->
+                <div class="urgent-deadlines-section" id="urgentDeadlinesSection" style="margin-bottom: 1.5rem;">
+                    <div class="card" style="border-left: 4px solid var(--terracotta);">
+                        <div class="card-header">
+                            <h2 class="card-title" style="display: flex; align-items: center; gap: 0.5rem;">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="var(--terracotta)" stroke-width="2" style="width: 20px; height: 20px;">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <line x1="12" y1="8" x2="12" y2="12"/>
+                                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                                </svg>
+                                即將截止
+                            </h2>
+                            <span class="deadline-count" style="background: var(--terracotta); color: white; padding: 2px 10px; border-radius: 12px; font-size: 0.75rem;">0 項</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="deadline-list" id="deadlineList">
+                                <div class="empty-state" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width: 48px; height: 48px; margin-bottom: 0.5rem; opacity: 0.5;">
+                                        <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+                                        <polyline points="22,4 12,14.01 9,11.01"/>
+                                    </svg>
+                                    <p>太棒了！近期沒有待完成的任務</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Stats Grid -->
                 <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-header">
-                            <div class="stat-icon green">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M4 19.5A2.5 2.5 0 016.5 17H20"/>
-                                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>
-                                </svg>
-                            </div>
-                            <span class="stat-trend up">+12%</span>
-                        </div>
-                        <div class="stat-value">24</div>
-                        <div class="stat-label">已授權建材</div>
-                    </div>
                     <div class="stat-card">
                         <div class="stat-header">
                             <div class="stat-icon orange">
@@ -1341,9 +1527,9 @@
                                     <polyline points="2,12 12,17 22,12"/>
                                 </svg>
                             </div>
-                            <span class="stat-trend up">+8%</span>
+                            <span class="stat-trend up" id="courseTrend">+0%</span>
                         </div>
-                        <div class="stat-value">6</div>
+                        <div class="stat-value" id="statCourseCount">0</div>
                         <div class="stat-label">進行中課程</div>
                     </div>
                     <div class="stat-card">
@@ -1355,7 +1541,7 @@
                                 </svg>
                             </div>
                         </div>
-                        <div class="stat-value">85%</div>
+                        <div class="stat-value" id="statCompletionRate">0%</div>
                         <div class="stat-label">平均完成率</div>
                     </div>
                     <div class="stat-card">
@@ -1367,73 +1553,72 @@
                                 </svg>
                             </div>
                         </div>
-                        <div class="stat-value">42h</div>
-                        <div class="stat-label">本月學習時數</div>
+                        <div class="stat-value" id="statStudyHours">0h</div>
+                        <div class="stat-label">本週學習時數</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon green">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="8" r="6"/>
+                                    <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="stat-value" id="statBadgeCount">0</div>
+                        <div class="stat-label">獲得徽章</div>
                     </div>
                 </div>
 
                 <!-- Content Grid -->
                 <div class="content-grid">
                     <!-- Left Column -->
-                    <div class="card">
-                        <div class="card-header">
-                            <h2 class="card-title">進行中的課程</h2>
-                            <a href="#" class="card-action">查看全部</a>
+                    <div>
+                        <!-- Continue Learning Section -->
+                        <div class="card" style="margin-bottom: 1.5rem;">
+                            <div class="card-header">
+                                <h2 class="card-title" style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="var(--olive)" stroke-width="2" style="width: 20px; height: 20px;">
+                                        <polygon points="5,3 19,12 5,21"/>
+                                    </svg>
+                                    繼續學習
+                                </h2>
+                                <a href="#" class="card-action" onclick="showView('moodleCourses'); MoodleUI.loadCourses();">查看全部</a>
+                            </div>
+                            <div class="card-body">
+                                <div class="course-list">
+                                    <div class="empty-state" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width: 48px; height: 48px; margin-bottom: 0.5rem; opacity: 0.5;">
+                                            <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/>
+                                            <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>
+                                        </svg>
+                                        <p>尚無進行中的課程</p>
+                                        <a href="#" onclick="showView('moodleCourses'); MoodleUI.loadCourses();" style="color: var(--olive); text-decoration: underline;">瀏覽課程</a>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="card-body">
-                            <div class="course-list">
-                                <div class="course-item">
-                                    <div class="course-thumbnail">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <polygon points="23,7 16,12 23,17"/>
-                                            <rect x="1" y="5" width="15" height="14" rx="2"/>
+
+                        <!-- Recent Achievements Section -->
+                        <div class="card" id="recentAchievementsCard">
+                            <div class="card-header">
+                                <h2 class="card-title" style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" style="width: 20px; height: 20px;">
+                                        <circle cx="12" cy="8" r="6"/>
+                                        <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/>
+                                    </svg>
+                                    最近成就
+                                </h2>
+                                <a href="#" class="card-action" onclick="showView('myBadges'); MoodleUI.openBadges();">查看全部</a>
+                            </div>
+                            <div class="card-body">
+                                <div class="badges-grid" id="recentBadgesList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 1rem;">
+                                    <div class="empty-state" style="text-align: center; padding: 2rem; color: var(--text-secondary); grid-column: 1/-1;">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width: 48px; height: 48px; margin-bottom: 0.5rem; opacity: 0.5;">
+                                            <circle cx="12" cy="8" r="6"/>
+                                            <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/>
                                         </svg>
-                                    </div>
-                                    <div class="course-info">
-                                        <h3 class="course-title">知識建材設計基礎</h3>
-                                        <p class="course-meta">12 個單元 ・ 共 8 小時</p>
-                                        <div class="course-progress">
-                                            <div class="progress-bar">
-                                                <div class="progress-fill" style="width: 75%"></div>
-                                            </div>
-                                            <span class="progress-text">75%</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="course-item">
-                                    <div class="course-thumbnail" style="background: linear-gradient(135deg, var(--terracotta) 0%, var(--terracotta-light) 100%);">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
-                                        </svg>
-                                    </div>
-                                    <div class="course-info">
-                                        <h3 class="course-title">互動式簡報製作技巧</h3>
-                                        <p class="course-meta">8 個單元 ・ 共 5 小時</p>
-                                        <div class="course-progress">
-                                            <div class="progress-bar">
-                                                <div class="progress-fill" style="width: 40%"></div>
-                                            </div>
-                                            <span class="progress-text">40%</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="course-item">
-                                    <div class="course-thumbnail" style="background: linear-gradient(135deg, var(--success) 0%, var(--sage) 100%);">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <circle cx="12" cy="12" r="10"/>
-                                            <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/>
-                                            <line x1="12" y1="17" x2="12.01" y2="17"/>
-                                        </svg>
-                                    </div>
-                                    <div class="course-info">
-                                        <h3 class="course-title">遊戲化學習設計原理</h3>
-                                        <p class="course-meta">15 個單元 ・ 共 12 小時</p>
-                                        <div class="course-progress">
-                                            <div class="progress-bar">
-                                                <div class="progress-fill" style="width: 20%"></div>
-                                            </div>
-                                            <span class="progress-text">20%</span>
-                                        </div>
+                                        <p>完成課程和作業來獲得徽章！</p>
                                     </div>
                                 </div>
                             </div>
@@ -1442,119 +1627,315 @@
 
                     <!-- Right Column -->
                     <div>
+                        <!-- Learning Stats This Week -->
+                        <div class="card" style="margin-bottom: 1.5rem;">
+                            <div class="card-header">
+                                <h2 class="card-title" style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" style="width: 20px; height: 20px;">
+                                        <line x1="18" y1="20" x2="18" y2="10"/>
+                                        <line x1="12" y1="20" x2="12" y2="4"/>
+                                        <line x1="6" y1="20" x2="6" y2="14"/>
+                                    </svg>
+                                    學習統計
+                                </h2>
+                            </div>
+                            <div class="card-body">
+                                <div class="weekly-stats" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                                    <div class="weekly-stat-item" style="background: var(--surface-light); padding: 1rem; border-radius: 8px; text-align: center;">
+                                        <div class="weekly-stat-value" style="font-size: 1.5rem; font-weight: 600; color: var(--olive);" id="weeklyCompletedItems">0</div>
+                                        <div class="weekly-stat-label" style="font-size: 0.75rem; color: var(--text-secondary);">本週完成項目</div>
+                                    </div>
+                                    <div class="weekly-stat-item" style="background: var(--surface-light); padding: 1rem; border-radius: 8px; text-align: center;">
+                                        <div class="weekly-stat-value" style="font-size: 1.5rem; font-weight: 600; color: var(--terracotta);" id="weeklyStudyMinutes">0</div>
+                                        <div class="weekly-stat-label" style="font-size: 0.75rem; color: var(--text-secondary);">學習分鐘數</div>
+                                    </div>
+                                    <div class="weekly-stat-item" style="background: var(--surface-light); padding: 1rem; border-radius: 8px; text-align: center;">
+                                        <div class="weekly-stat-value" style="font-size: 1.5rem; font-weight: 600; color: var(--blue);" id="weeklyLoginDays">0</div>
+                                        <div class="weekly-stat-label" style="font-size: 0.75rem; color: var(--text-secondary);">連續登入天數</div>
+                                    </div>
+                                    <div class="weekly-stat-item" style="background: var(--surface-light); padding: 1rem; border-radius: 8px; text-align: center;">
+                                        <div class="weekly-stat-value" style="font-size: 1.5rem; font-weight: 600; color: var(--success);" id="weeklyQuizScore">-</div>
+                                        <div class="weekly-stat-label" style="font-size: 0.75rem; color: var(--text-secondary);">平均測驗分數</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recent Activity -->
                         <div class="card" style="margin-bottom: 1.5rem;">
                             <div class="card-header">
                                 <h2 class="card-title">最近活動</h2>
                             </div>
                             <div class="card-body">
                                 <div class="activity-list">
-                                    <div class="activity-item">
-                                        <div class="activity-icon complete">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <polyline points="20,6 9,17 4,12"/>
-                                            </svg>
-                                        </div>
-                                        <div class="activity-content">
-                                            <p class="activity-text">完成了 <strong>知識建材設計基礎</strong> 第 9 單元</p>
-                                            <span class="activity-time">2 小時前</span>
-                                        </div>
-                                    </div>
-                                    <div class="activity-item">
-                                        <div class="activity-icon new">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-                                                <polyline points="14,2 14,8 20,8"/>
-                                            </svg>
-                                        </div>
-                                        <div class="activity-content">
-                                            <p class="activity-text">新增授權：<strong>國中數學建材包</strong></p>
-                                            <span class="activity-time">昨天</span>
-                                        </div>
-                                    </div>
-                                    <div class="activity-item">
-                                        <div class="activity-icon update">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
-                                            </svg>
-                                        </div>
-                                        <div class="activity-content">
-                                            <p class="activity-text">收到 <strong>Benjamin</strong> 的課程回饋</p>
-                                            <span class="activity-time">2 天前</span>
-                                        </div>
+                                    <div class="empty-state" style="text-align: center; padding: 1.5rem; color: var(--text-secondary);">
+                                        <p>尚無活動記錄</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
+                        <!-- Quick Actions -->
                         <div class="card">
                             <div class="card-header">
-                                <h2 class="card-title">2025 年 11 月</h2>
+                                <h2 class="card-title">快速操作</h2>
                             </div>
                             <div class="card-body">
-                                <div class="calendar-grid">
-                                    <div class="calendar-day-header">日</div>
-                                    <div class="calendar-day-header">一</div>
-                                    <div class="calendar-day-header">二</div>
-                                    <div class="calendar-day-header">三</div>
-                                    <div class="calendar-day-header">四</div>
-                                    <div class="calendar-day-header">五</div>
-                                    <div class="calendar-day-header">六</div>
-
-                                    <div class="calendar-day other-month">27</div>
-                                    <div class="calendar-day other-month">28</div>
-                                    <div class="calendar-day other-month">29</div>
-                                    <div class="calendar-day other-month">30</div>
-                                    <div class="calendar-day other-month">31</div>
-                                    <div class="calendar-day">1</div>
-                                    <div class="calendar-day">2</div>
-
-                                    <div class="calendar-day">3</div>
-                                    <div class="calendar-day">4</div>
-                                    <div class="calendar-day has-event">5</div>
-                                    <div class="calendar-day">6</div>
-                                    <div class="calendar-day">7</div>
-                                    <div class="calendar-day">8</div>
-                                    <div class="calendar-day">9</div>
-
-                                    <div class="calendar-day">10</div>
-                                    <div class="calendar-day">11</div>
-                                    <div class="calendar-day has-event">12</div>
-                                    <div class="calendar-day">13</div>
-                                    <div class="calendar-day">14</div>
-                                    <div class="calendar-day">15</div>
-                                    <div class="calendar-day">16</div>
-
-                                    <div class="calendar-day">17</div>
-                                    <div class="calendar-day">18</div>
-                                    <div class="calendar-day">19</div>
-                                    <div class="calendar-day">20</div>
-                                    <div class="calendar-day">21</div>
-                                    <div class="calendar-day">22</div>
-                                    <div class="calendar-day">23</div>
-
-                                    <div class="calendar-day">24</div>
-                                    <div class="calendar-day">25</div>
-                                    <div class="calendar-day">26</div>
-                                    <div class="calendar-day">27</div>
-                                    <div class="calendar-day">28</div>
-                                    <div class="calendar-day">29</div>
-                                    <div class="calendar-day today">30</div>
+                                <div class="quick-actions" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                                    <a href="#" class="quick-action-btn" onclick="showView('moodleCourses'); MoodleUI.loadCourses();" style="display: flex; flex-direction: column; align-items: center; padding: 1rem; background: var(--surface-light); border-radius: 8px; text-decoration: none; color: var(--text-primary); transition: all 0.2s;">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--olive)" stroke-width="2" style="width: 24px; height: 24px; margin-bottom: 0.5rem;">
+                                            <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/>
+                                            <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>
+                                        </svg>
+                                        <span style="font-size: 0.8rem;">我的課程</span>
+                                    </a>
+                                    <a href="#" class="quick-action-btn" onclick="showView('moodleAssignments'); MoodleUI.loadAssignments();" style="display: flex; flex-direction: column; align-items: center; padding: 1rem; background: var(--surface-light); border-radius: 8px; text-decoration: none; color: var(--text-primary); transition: all 0.2s;">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--terracotta)" stroke-width="2" style="width: 24px; height: 24px; margin-bottom: 0.5rem;">
+                                            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                                            <polyline points="14,2 14,8 20,8"/>
+                                            <line x1="12" y1="18" x2="12" y2="12"/>
+                                            <line x1="9" y1="15" x2="15" y2="15"/>
+                                        </svg>
+                                        <span style="font-size: 0.8rem;">待交作業</span>
+                                    </a>
+                                    <a href="#" class="quick-action-btn" onclick="showView('moodleQuizzes'); MoodleUI.loadQuizzes();" style="display: flex; flex-direction: column; align-items: center; padding: 1rem; background: var(--surface-light); border-radius: 8px; text-decoration: none; color: var(--text-primary); transition: all 0.2s;">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" style="width: 24px; height: 24px; margin-bottom: 0.5rem;">
+                                            <circle cx="12" cy="12" r="10"/>
+                                            <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/>
+                                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                                        </svg>
+                                        <span style="font-size: 0.8rem;">待考測驗</span>
+                                    </a>
+                                    <a href="#" class="quick-action-btn" onclick="showView('moodleGradebook'); MoodleUI.loadGradebook();" style="display: flex; flex-direction: column; align-items: center; padding: 1rem; background: var(--surface-light); border-radius: 8px; text-decoration: none; color: var(--text-primary); transition: all 0.2s;">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" style="width: 24px; height: 24px; margin-bottom: 0.5rem;">
+                                            <line x1="8" y1="6" x2="21" y2="6"/>
+                                            <line x1="8" y1="12" x2="21" y2="12"/>
+                                            <line x1="8" y1="18" x2="21" y2="18"/>
+                                            <line x1="3" y1="6" x2="3.01" y2="6"/>
+                                            <line x1="3" y1="12" x2="3.01" y2="12"/>
+                                            <line x1="3" y1="18" x2="3.01" y2="18"/>
+                                        </svg>
+                                        <span style="font-size: 0.8rem;">我的成績</span>
+                                    </a>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-                                <div class="quick-actions">
-                                    <a href="#" class="quick-action-btn">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <circle cx="11" cy="11" r="8"/>
-                                            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            <!-- Teacher Dashboard View -->
+            <div class="dashboard" id="teacherDashboardView" style="display: none;">
+                <!-- Pending Tasks Section -->
+                <div class="pending-tasks-section" style="margin-bottom: 1.5rem;">
+                    <div class="card" style="border-left: 4px solid var(--olive);">
+                        <div class="card-header">
+                            <h2 class="card-title" style="display: flex; align-items: center; gap: 0.5rem;">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="var(--olive)" stroke-width="2" style="width: 20px; height: 20px;">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <polyline points="12,6 12,12 16,14"/>
+                                </svg>
+                                待處理事項
+                            </h2>
+                        </div>
+                        <div class="card-body">
+                            <div class="pending-tasks-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem;">
+                                <div class="pending-task-item" style="background: var(--terracotta-light); padding: 1.25rem; border-radius: 12px; text-align: center; cursor: pointer;" onclick="showView('moodleAssignments'); MoodleUI.loadAssignments();">
+                                    <div class="pending-task-count" id="pendingAssignments" style="font-size: 2rem; font-weight: 700; color: var(--terracotta);">0</div>
+                                    <div class="pending-task-label" style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.25rem;">待批改作業</div>
+                                </div>
+                                <div class="pending-task-item" style="background: var(--blue-light, #E3F2FD); padding: 1.25rem; border-radius: 12px; text-align: center; cursor: pointer;" onclick="showView('moodleQuizzes'); MoodleUI.loadQuizzes();">
+                                    <div class="pending-task-count" id="pendingQuizzes" style="font-size: 2rem; font-weight: 700; color: var(--blue, #1976D2);">0</div>
+                                    <div class="pending-task-label" style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.25rem;">待審核測驗</div>
+                                </div>
+                                <div class="pending-task-item" style="background: var(--sand-light); padding: 1.25rem; border-radius: 12px; text-align: center; cursor: pointer;" onclick="showView('moodleForums'); MoodleUI.loadForums();">
+                                    <div class="pending-task-count" id="pendingForums" style="font-size: 2rem; font-weight: 700; color: var(--sand);">0</div>
+                                    <div class="pending-task-label" style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.25rem;">待回覆討論</div>
+                                </div>
+                                <div class="pending-task-item" style="background: var(--olive-light); padding: 1.25rem; border-radius: 12px; text-align: center; cursor: pointer;" onclick="showView('moodleNotifications'); MoodleUI.loadNotifications();">
+                                    <div class="pending-task-count" id="pendingNotifications" style="font-size: 2rem; font-weight: 700; color: var(--olive);">0</div>
+                                    <div class="pending-task-label" style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.25rem;">新通知</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stats Grid for Teachers -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon orange">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                                    <circle cx="9" cy="7" r="4"/>
+                                    <path d="M23 21v-2a4 4 0 00-3-3.87"/>
+                                    <path d="M16 3.13a4 4 0 010 7.75"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="stat-value" id="teacherTotalStudents">0</div>
+                        <div class="stat-label">總學生數</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon blue">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polygon points="12,2 2,7 12,12 22,7"/>
+                                    <polyline points="2,17 12,22 22,17"/>
+                                    <polyline points="2,12 12,17 22,12"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="stat-value" id="teacherActiveCourses">0</div>
+                        <div class="stat-label">開設課程</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon green">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+                                    <polyline points="22,4 12,14.01 9,11.01"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="stat-value" id="teacherAvgProgress">0%</div>
+                        <div class="stat-label">平均進度</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon sand">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="12" y1="20" x2="12" y2="10"/>
+                                    <line x1="18" y1="20" x2="18" y2="4"/>
+                                    <line x1="6" y1="20" x2="6" y2="14"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="stat-value" id="teacherWeeklySubmissions">0</div>
+                        <div class="stat-label">本週新提交</div>
+                    </div>
+                </div>
+
+                <!-- Content Grid -->
+                <div class="content-grid">
+                    <!-- Left Column: My Courses -->
+                    <div>
+                        <div class="card" style="margin-bottom: 1.5rem;">
+                            <div class="card-header">
+                                <h2 class="card-title" style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="var(--olive)" stroke-width="2" style="width: 20px; height: 20px;">
+                                        <polygon points="12,2 2,7 12,12 22,7"/>
+                                        <polyline points="2,17 12,22 22,17"/>
+                                        <polyline points="2,12 12,17 22,12"/>
+                                    </svg>
+                                    我的課程
+                                </h2>
+                                <a href="#" class="card-action" onclick="showView('moodleCourses'); MoodleUI.loadCourses();">管理課程</a>
+                            </div>
+                            <div class="card-body">
+                                <div class="teacher-course-list" id="teacherCourseList">
+                                    <div class="empty-state" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width: 48px; height: 48px; margin-bottom: 0.5rem; opacity: 0.5;">
+                                            <polygon points="12,2 2,7 12,12 22,7"/>
+                                            <polyline points="2,17 12,22 22,17"/>
+                                            <polyline points="2,12 12,17 22,12"/>
                                         </svg>
-                                        <span>瀏覽建材</span>
-                                    </a>
-                                    <a href="#" class="quick-action-btn">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+                                        <p>尚未建立任何課程</p>
+                                        <a href="#" onclick="MoodleUI.showCreateCourseModal();" style="color: var(--olive); text-decoration: underline;">建立第一個課程</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quick Actions for Teachers -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h2 class="card-title">快捷操作</h2>
+                            </div>
+                            <div class="card-body">
+                                <div class="teacher-quick-actions" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem;">
+                                    <button class="teacher-action-btn" onclick="MoodleUI.showCreateCourseModal();" style="display: flex; align-items: center; gap: 0.75rem; padding: 1rem; background: var(--olive-light); border: none; border-radius: 8px; cursor: pointer; text-align: left;">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--olive)" stroke-width="2" style="width: 24px; height: 24px; flex-shrink: 0;">
+                                            <polygon points="12,2 2,7 12,12 22,7"/>
+                                            <line x1="12" y1="12" x2="12" y2="22"/>
+                                            <line x1="7" y1="17" x2="17" y2="17"/>
                                         </svg>
-                                        <span>聯絡顧問</span>
-                                    </a>
+                                        <span style="font-size: 0.9rem; font-weight: 500;">新增課程</span>
+                                    </button>
+                                    <button class="teacher-action-btn" onclick="MoodleUI.showCreateAssignmentModal();" style="display: flex; align-items: center; gap: 0.75rem; padding: 1rem; background: var(--terracotta-light); border: none; border-radius: 8px; cursor: pointer; text-align: left;">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--terracotta)" stroke-width="2" style="width: 24px; height: 24px; flex-shrink: 0;">
+                                            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                                            <polyline points="14,2 14,8 20,8"/>
+                                            <line x1="12" y1="18" x2="12" y2="12"/>
+                                            <line x1="9" y1="15" x2="15" y2="15"/>
+                                        </svg>
+                                        <span style="font-size: 0.9rem; font-weight: 500;">新增作業</span>
+                                    </button>
+                                    <button class="teacher-action-btn" onclick="MoodleUI.showCreateQuizModal();" style="display: flex; align-items: center; gap: 0.75rem; padding: 1rem; background: var(--blue-light, #E3F2FD); border: none; border-radius: 8px; cursor: pointer; text-align: left;">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--blue, #1976D2)" stroke-width="2" style="width: 24px; height: 24px; flex-shrink: 0;">
+                                            <circle cx="12" cy="12" r="10"/>
+                                            <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/>
+                                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                                        </svg>
+                                        <span style="font-size: 0.9rem; font-weight: 500;">新增測驗</span>
+                                    </button>
+                                    <button class="teacher-action-btn" onclick="MoodleUI.showCreateAnnouncementModal();" style="display: flex; align-items: center; gap: 0.75rem; padding: 1rem; background: var(--sand-light); border: none; border-radius: 8px; cursor: pointer; text-align: left;">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--sand)" stroke-width="2" style="width: 24px; height: 24px; flex-shrink: 0;">
+                                            <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                                        </svg>
+                                        <span style="font-size: 0.9rem; font-weight: 500;">發布公告</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Student Alerts & Activity -->
+                    <div>
+                        <!-- Student Alerts -->
+                        <div class="card" style="margin-bottom: 1.5rem;">
+                            <div class="card-header">
+                                <h2 class="card-title" style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="var(--terracotta)" stroke-width="2" style="width: 20px; height: 20px;">
+                                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                                        <line x1="12" y1="9" x2="12" y2="13"/>
+                                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                                    </svg>
+                                    學生狀態警示
+                                </h2>
+                                <span class="alert-count" id="studentAlertCount" style="background: var(--terracotta); color: white; padding: 2px 10px; border-radius: 12px; font-size: 0.75rem;">0 項</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="student-alerts-list" id="studentAlertsList">
+                                    <div class="empty-state" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width: 48px; height: 48px; margin-bottom: 0.5rem; opacity: 0.5;">
+                                            <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+                                            <polyline points="22,4 12,14.01 9,11.01"/>
+                                        </svg>
+                                        <p>太好了！目前沒有需要關注的學生</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recent Submissions -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h2 class="card-title" style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="var(--blue, #1976D2)" stroke-width="2" style="width: 20px; height: 20px;">
+                                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                                        <polyline points="14,2 14,8 20,8"/>
+                                    </svg>
+                                    最近提交
+                                </h2>
+                                <a href="#" class="card-action" onclick="showView('moodleAssignments'); MoodleUI.loadAssignments();">查看全部</a>
+                            </div>
+                            <div class="card-body">
+                                <div class="recent-submissions-list" id="recentSubmissionsList">
+                                    <div class="empty-state" style="text-align: center; padding: 1.5rem; color: var(--text-secondary);">
+                                        <p>尚無新的提交記錄</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -2452,6 +2833,163 @@
                     </div>
                 </div>
             </div>
+
+            <!-- ==================== Moodle 風格視圖 ==================== -->
+
+            <!-- 課程中心視圖 -->
+            <div class="dashboard" id="moodleCoursesView" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <input type="text" placeholder="搜尋課程..." id="courseSearch" class="form-input" style="width: 300px;" onkeyup="MoodleUI.loadCourses({search: this.value})">
+                        <select class="form-input" onchange="MoodleUI.loadCourses({category: this.value})" style="width: 180px;">
+                            <option value="">全部分類</option>
+                            <option value="programming">程式設計</option>
+                            <option value="math">數學</option>
+                            <option value="language">語言學習</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="moodleCourseGrid" class="moodle-course-grid"></div>
+            </div>
+
+            <!-- 課程詳情視圖 -->
+            <div class="dashboard" id="courseDetailView" style="display: none;">
+                <div id="courseDetailContent"></div>
+            </div>
+
+            <!-- 作業管理視圖 -->
+            <div class="dashboard" id="moodleAssignmentsView" style="display: none;">
+                <div id="assignmentsList"></div>
+            </div>
+
+            <!-- 作業詳情視圖 -->
+            <div class="dashboard" id="assignmentDetailView" style="display: none;">
+                <div id="assignmentDetailContent"></div>
+            </div>
+
+            <!-- 測驗中心視圖 -->
+            <div class="dashboard" id="moodleQuizzesView" style="display: none;">
+                <div id="quizzesList"></div>
+            </div>
+
+            <!-- 測驗作答視圖 -->
+            <div class="dashboard" id="quizAttemptView" style="display: none;">
+                <div id="quizAttemptContent"></div>
+            </div>
+
+            <!-- 討論區視圖 -->
+            <div class="dashboard" id="moodleForumsView" style="display: none;">
+                <div id="forumsList"></div>
+            </div>
+
+            <!-- 討論詳情視圖 -->
+            <div class="dashboard" id="forumDetailView" style="display: none;">
+                <div id="forumDetailContent"></div>
+            </div>
+
+            <!-- 成績簿視圖 -->
+            <div class="dashboard" id="moodleGradebookView" style="display: none;">
+                <div style="margin-bottom: 1.5rem;">
+                    <select id="gradebookCourseSelect" class="form-input" style="width: 300px;" onchange="MoodleUI.loadGradebookForCourse(this.value)">
+                        <option value="">選擇課程查看成績...</option>
+                    </select>
+                </div>
+                <div id="gradebookContent"></div>
+            </div>
+
+            <!-- 行事曆視圖 -->
+            <div class="dashboard" id="moodleCalendarView" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <button onclick="MoodleUI.prevMonth()" class="btn-secondary" style="padding: 0.5rem 1rem;">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
+                    </button>
+                    <h2 id="calendarTitle" style="font-size: 1.25rem; font-weight: 600; margin: 0;"></h2>
+                    <button onclick="MoodleUI.nextMonth()" class="btn-secondary" style="padding: 0.5rem 1rem;">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9,6 15,12 9,18"/></svg>
+                    </button>
+                </div>
+                <div id="calendarGrid" class="calendar-grid"></div>
+                <div style="margin-top: 2rem;">
+                    <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem;">即將到來的事件</h3>
+                    <div id="upcomingEventsList"></div>
+                </div>
+            </div>
+
+            <!-- 通知中心視圖 -->
+            <div class="dashboard" id="moodleNotificationsView" style="display: none;">
+                <div id="notificationsList"></div>
+            </div>
+
+            <!-- 檔案管理視圖 -->
+            <div class="dashboard" id="moodleFilesView" style="display: none;">
+                <div id="filesContent"></div>
+            </div>
+
+            <!-- 成績簿管理視圖（教師專用） -->
+            <div class="dashboard" id="gradebookManagementView" style="display: none;">
+                <div id="gradebookManagementContent"></div>
+            </div>
+
+            <!-- 題庫管理視圖 -->
+            <div class="dashboard" id="questionBankView" style="display: none;">
+                <div id="questionBankContent"></div>
+            </div>
+
+            <!-- 角色權限管理視圖 -->
+            <div class="dashboard" id="rolesManagementView" style="display: none;">
+                <div id="rolesManagementContent"></div>
+            </div>
+
+            <!-- 課程類別管理視圖 -->
+            <div class="dashboard" id="courseCategoriesView" style="display: none;">
+                <div id="courseCategoriesContent"></div>
+            </div>
+
+            <!-- 審計日誌視圖 -->
+            <div class="dashboard" id="auditLogsView" style="display: none;">
+                <div id="auditLogsContent"></div>
+            </div>
+
+            <!-- 學習路徑視圖 -->
+            <div class="dashboard" id="learningPathsView" style="display: none;">
+                <div id="learningPathsContent"></div>
+            </div>
+
+            <!-- 徽章視圖 -->
+            <div class="dashboard" id="badgesView" style="display: none;">
+                <div id="badgesContent"></div>
+            </div>
+
+            <!-- SCORM 管理視圖 -->
+            <div class="dashboard" id="scormManagerView" style="display: none;">
+                <div id="scormManagerContent"></div>
+            </div>
+
+            <!-- LTI 外部工具視圖 -->
+            <div class="dashboard" id="ltiManagerView" style="display: none;">
+                <div id="ltiManagerContent"></div>
+            </div>
+
+            <!-- H5P 內容視圖 -->
+            <div class="dashboard" id="h5pManagerView" style="display: none;">
+                <div id="h5pManagerContent"></div>
+            </div>
+
+            <!-- 評分標準視圖 -->
+            <div class="dashboard" id="rubricsView" style="display: none;">
+                <div id="rubricsContent"></div>
+            </div>
+
+            <!-- 群組管理視圖 -->
+            <div class="dashboard" id="groupsManagerView" style="display: none;">
+                <div id="groupsManagerContent"></div>
+            </div>
+
+            <!-- 課程完成設定視圖 -->
+            <div class="dashboard" id="courseCompletionSettingsView" style="display: none;">
+                <div id="courseCompletionSettingsContent"></div>
+            </div>
+
         </main>
     </div>
 
@@ -3931,7 +4469,32 @@
             'classes': '共建團隊 <span>Build Teams</span>',
             'studentClasses': '我的橋隊 <span>My Bridge Team</span>',
             'classDetail': '團隊詳情 <span>Team Detail</span>',
-            'settings': '橋樑設定 <span>Bridge Settings</span>'
+            'settings': '橋樑設定 <span>Bridge Settings</span>',
+            'moodleCourses': '課程中心 <span>Course Center</span>',
+            'courseDetail': '課程內容 <span>Course Content</span>',
+            'moodleAssignments': '作業管理 <span>Assignments</span>',
+            'assignmentDetail': '作業詳情 <span>Assignment Detail</span>',
+            'moodleQuizzes': '測驗中心 <span>Quiz Center</span>',
+            'quizAttempt': '測驗作答 <span>Quiz Attempt</span>',
+            'moodleForums': '討論區 <span>Forums</span>',
+            'forumDetail': '討論詳情 <span>Forum Detail</span>',
+            'moodleGradebook': '成績簿 <span>Gradebook</span>',
+            'moodleCalendar': '行事曆 <span>Calendar</span>',
+            'moodleNotifications': '通知中心 <span>Notifications</span>',
+            'moodleFiles': '檔案管理 <span>Files</span>',
+            'questionBank': '題庫管理 <span>Question Bank</span>',
+            'gradebookManagement': '成績簿管理 <span>Gradebook Management</span>',
+            'rolesManagement': '角色權限 <span>Role Management</span>',
+            'courseCategories': '課程類別 <span>Course Categories</span>',
+            'auditLogs': '審計日誌 <span>Audit Logs</span>',
+            'learningPaths': '學習路徑 <span>Learning Paths</span>',
+            'badges': '成就徽章 <span>Badges</span>',
+            'scormManager': 'SCORM 管理 <span>SCORM Packages</span>',
+            'ltiManager': 'LTI 外部工具 <span>External Tools</span>',
+            'h5pManager': 'H5P 內容 <span>Interactive Content</span>',
+            'rubrics': '評分標準 <span>Rubrics</span>',
+            'groupsManager': '群組管理 <span>Groups</span>',
+            'courseCompletionSettings': '課程完成設定 <span>Course Completion</span>'
         };
 
         // Resources data - 動態從 API 載入
@@ -4136,7 +4699,32 @@
                 'classes': 'classesView',
                 'studentClasses': 'studentClassesView',
                 'classDetail': 'classDetailView',
-                'settings': 'settingsView'
+                'settings': 'settingsView',
+                'moodleCourses': 'moodleCoursesView',
+                'courseDetail': 'courseDetailView',
+                'moodleAssignments': 'moodleAssignmentsView',
+                'assignmentDetail': 'assignmentDetailView',
+                'moodleQuizzes': 'moodleQuizzesView',
+                'quizAttempt': 'quizAttemptView',
+                'moodleForums': 'moodleForumsView',
+                'forumDetail': 'forumDetailView',
+                'moodleGradebook': 'moodleGradebookView',
+                'moodleCalendar': 'moodleCalendarView',
+                'moodleNotifications': 'moodleNotificationsView',
+                'moodleFiles': 'moodleFilesView',
+                'gradebookManagement': 'gradebookManagementView',
+                'questionBank': 'questionBankView',
+                'rolesManagement': 'rolesManagementView',
+                'courseCategories': 'courseCategoriesView',
+                'auditLogs': 'auditLogsView',
+                'learningPaths': 'learningPathsView',
+                'badges': 'badgesView',
+                'scormManager': 'scormManagerView',
+                'ltiManager': 'ltiManagerView',
+                'h5pManager': 'h5pManagerView',
+                'rubrics': 'rubricsView',
+                'groupsManager': 'groupsManagerView',
+                'courseCompletionSettings': 'courseCompletionSettingsView'
             };
 
             const viewId = viewMap[viewName] || 'dashboardView';
@@ -4651,17 +5239,106 @@
             if (modal) modal.remove();
         }
 
-        function submitNewPost() {
-            showToast('討論已發布！');
-            closeNewPostModal();
+        async function submitNewPost() {
+            const modal = document.getElementById('newPostModal');
+            if (!modal) return;
+
+            const titleInput = modal.querySelector('input[type="text"]');
+            const categorySelect = modal.querySelector('select');
+            const contentTextarea = modal.querySelector('textarea');
+
+            const title = titleInput?.value?.trim();
+            const category = categorySelect?.value;
+            const content = contentTextarea?.value?.trim();
+
+            if (!title || !content) {
+                showToast('請填寫標題和內容');
+                return;
+            }
+
+            try {
+                const result = await API.discussions.create({
+                    title,
+                    category,
+                    content
+                });
+
+                if (result.success) {
+                    showToast('討論已發布！');
+                    closeNewPostModal();
+                    loadDiscussions();
+                } else {
+                    showToast(result.message || '發布失敗');
+                }
+            } catch (error) {
+                console.error('Submit post error:', error);
+                showToast('發布失敗');
+            }
         }
 
-        function likePost(postId) {
-            showToast('已按讚！');
+        async function likePost(postId) {
+            try {
+                const result = await API.discussions.like(postId);
+                if (result.success) {
+                    showToast('已按讚！');
+                } else {
+                    showToast(result.message || '操作失敗');
+                }
+            } catch (error) {
+                console.error('Like post error:', error);
+                showToast('操作失敗');
+            }
         }
 
         function toggleReplies(postId) {
             showToast('正在載入回覆...');
+        }
+
+        async function loadDiscussions(filter = 'all') {
+            const container = document.getElementById('discussionList');
+            if (!container) return;
+
+            try {
+                const result = await API.discussions.list({ filter });
+                if (result.success && result.data) {
+                    // 渲染討論列表
+                    const discussions = result.data || [];
+                    if (discussions.length === 0) {
+                        container.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--gray-400);">尚無討論</div>';
+                    } else {
+                        container.innerHTML = discussions.map(d => `
+                            <div class="discussion-post" style="background: var(--white); border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+                                <div style="display: flex; gap: 1rem;">
+                                    <div style="width: 48px; height: 48px; background: var(--olive); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--cream); font-weight: 600; flex-shrink: 0;">${(d.authorName || 'U')[0]}</div>
+                                    <div style="flex: 1;">
+                                        <div style="margin-bottom: 0.5rem;">
+                                            <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.25rem;">${d.title}</h3>
+                                            <div style="font-size: 0.8rem; color: var(--gray-400);">
+                                                <span>${d.authorName || '匿名'}</span> · <span>${MoodleUI.formatDate(d.createdAt, 'datetime')}</span>
+                                                ${d.category ? `· <span class="tag" style="font-size: 0.7rem;">${d.category}</span>` : ''}
+                                            </div>
+                                        </div>
+                                        <p style="color: var(--gray-600); margin-bottom: 1rem; line-height: 1.6;">${d.content?.substring(0, 200) || ''}...</p>
+                                        <div style="display: flex; gap: 1rem; font-size: 0.85rem; color: var(--gray-400);">
+                                            <button onclick="likePost('${d.discussionId}')" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:0.25rem;color:var(--gray-400);">
+                                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
+                                                ${d.likeCount || 0}
+                                            </button>
+                                            <span style="display:flex;align-items:center;gap:0.25rem;">
+                                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                                                ${d.replyCount || 0} 回覆
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('');
+                    }
+                }
+            } catch (error) {
+                console.error('Load discussions error:', error);
+                container.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--terracotta);">載入失敗</div>';
+            }
         }
 
         // ========== 諮詢服務功能 ==========
@@ -5841,8 +6518,7 @@
         // Initialize - show dashboard
         showView('dashboard');
 
-        // 載入教材資源（在知識建材庫使用）
-        loadResources();
+        // 注意：loadResources() 已移至外部腳本載入後執行
 
         // ===== Login/Register Functions =====
 
@@ -5957,11 +6633,28 @@
         }
     </script>
 
-    <!-- API & App Scripts -->
-    <script src="js/api.js"></script>
-    <script src="js/app.js"></script>
-    <!-- Socket.io Client -->
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="js/chat.js"></script>
+    <!-- API & App Scripts (v7 - cache bust) -->
+    <script src="js/api.js?v=7"></script>
+    <script src="js/app.js?v=7"></script>
+    <script src="js/moodle-ui.js?v=7"></script>
+    <!-- Socket.io Client (optional - may not be available) -->
+    <script src="/socket.io/socket.io.js" onerror="console.log('[Socket.io] Not available, chat disabled')"></script>
+    <script src="js/chat.js?v=2"></script>
+
+    <!-- 初始化腳本 - 必須在所有外部腳本載入後執行 -->
+    <script>
+        // 在 DOM 準備好且所有腳本載入後初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 載入教材資源（在知識建材庫使用）
+            if (typeof API !== 'undefined' && typeof loadResources === 'function') {
+                loadResources();
+            }
+
+            // 初始化 App（處理已登入用戶的自動重新連線）
+            if (typeof App !== 'undefined' && typeof App.init === 'function') {
+                App.init();
+            }
+        });
+    </script>
 </body>
 </html>

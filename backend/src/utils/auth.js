@@ -157,6 +157,40 @@ function optionalAuthMiddleware(req, res, next) {
   next();
 }
 
+/**
+ * Express 中間件：角色授權檢查
+ * @param {string[]} allowedRoles - 允許的角色列表
+ */
+function authorize(allowedRoles) {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: 'UNAUTHORIZED',
+        message: '需要先進行身份認證'
+      });
+    }
+
+    const userRole = req.user.role;
+
+    // 管理員擁有所有權限
+    if (req.user.isAdmin) {
+      return next();
+    }
+
+    // 檢查用戶角色是否在允許列表中
+    if (allowedRoles.includes(userRole)) {
+      return next();
+    }
+
+    return res.status(403).json({
+      success: false,
+      error: 'FORBIDDEN',
+      message: '權限不足，無法執行此操作'
+    });
+  };
+}
+
 module.exports = {
   hashPassword,
   verifyPassword,
@@ -167,5 +201,8 @@ module.exports = {
   extractToken,
   authMiddleware,
   adminMiddleware,
-  optionalAuthMiddleware
+  optionalAuthMiddleware,
+  authorize,
+  // 別名，讓其他模組可以用 authenticate 導入
+  authenticate: authMiddleware
 };

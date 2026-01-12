@@ -6,26 +6,69 @@
     <title>BeyondBridge Platform | 教育資源平台</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600;700&family=DM+Sans:wght@400;500;600&family=Noto+Sans+TC:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600&family=Playfair+Display:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600;700&family=Noto+Serif+TC:wght@400;500;600;700&family=DM+Sans:wght@400;500;600&family=Noto+Sans+TC:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/moodle-ui.css?v=2">
     <style>
         :root {
+            /* 品牌主色 - 橄欖綠系列 */
             --olive-deep: #3D4A2D;
             --olive: #4A5D23;
             --olive-light: #6B7F3A;
-            --cream: #F7F3EB;
-            --cream-dark: #EDE6D6;
+            --olive-muted: rgba(74, 93, 35, 0.1);
+
+            /* 輔助色 - 赤土系列 */
             --terracotta: #C17A5E;
             --terracotta-light: #D4967D;
-            --charcoal: #2C2C2C;
-            --sage: #A8B89A;
+            --terracotta-muted: rgba(193, 122, 94, 0.1);
+
+            /* 中性色 - 奶油/沙色系列 */
+            --cream: #F7F3EB;
+            --cream-dark: #EDE6D6;
             --sand: #D4C5A9;
+            --sage: #A8B89A;
+
+            /* 文字色 */
+            --charcoal: #2C2C2C;
             --white: #FFFFFF;
-            --gray-100: #F8F9FA;
-            --gray-200: #E9ECEF;
-            --gray-300: #DEE2E6;
-            --gray-500: #6C757D;
-            --success: #4A7C59;
-            --warning: #D4A574;
+            --gray-50: #fafafa;
+            --gray-100: #f8f9fa;
+            --gray-200: #e9ecef;
+            --gray-300: #dee2e6;
+            --gray-400: #ced4da;
+            --gray-500: #6c757d;
+            --gray-600: #4A5568;
+            --gray-800: #343a40;
+
+            /* 語義色 */
+            --success: #48BB78;
+            --warning: #ECC94B;
+            --danger: #F56565;
+            --info: #4299E1;
+
+            /* 圓角規範 */
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --radius-xl: 16px;
+            --radius-2xl: 20px;
+
+            /* 陰影規範 */
+            --shadow-sm: 0 2px 8px rgba(61, 74, 45, 0.06);
+            --shadow-md: 0 8px 25px rgba(61, 74, 45, 0.08);
+            --shadow-lg: 0 16px 40px rgba(61, 74, 45, 0.12);
+            --shadow-hover: 0 12px 30px rgba(74, 93, 35, 0.15);
+            --shadow-card: 0 4px 20px rgba(61, 74, 45, 0.08);
+
+            /* 動畫規範 */
+            --transition-fast: 0.15s ease;
+            --transition-base: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+
+            /* 字體規範 */
+            --font-display: 'Cormorant Garamond', 'Noto Serif TC', serif;
+            --font-heading: 'Noto Serif TC', serif;
+            --font-body: 'Noto Sans TC', sans-serif;
+
             --sidebar-width: 280px;
         }
 
@@ -36,8 +79,8 @@
         }
 
         body {
-            font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
-            background-color: var(--gray-100);
+            font-family: var(--font-body);
+            background: linear-gradient(135deg, var(--cream) 0%, var(--cream-dark) 100%);
             color: var(--charcoal);
             line-height: 1.6;
         }
@@ -48,10 +91,10 @@
             min-height: 100vh;
         }
 
-        /* Sidebar */
+        /* Sidebar - 精緻漸層設計 */
         .sidebar {
             width: var(--sidebar-width);
-            background: linear-gradient(180deg, var(--olive-deep) 0%, #2D3A1F 100%);
+            background: linear-gradient(180deg, var(--olive-deep) 0%, #2D3A1F 50%, #1F2815 100%);
             color: var(--cream);
             position: fixed;
             top: 0;
@@ -61,79 +104,128 @@
             z-index: 100;
             display: flex;
             flex-direction: column;
+            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .sidebar::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.02'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            pointer-events: none;
         }
 
         .sidebar-header {
-            padding: 1.5rem;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding: 1.75rem 1.5rem;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            position: relative;
+            background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, transparent 100%);
         }
 
         .sidebar-logo {
-            font-family: 'Cormorant Garamond', serif;
-            font-size: 1.4rem;
-            font-weight: 700;
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            font-weight: 600;
             color: var(--cream);
             text-decoration: none;
             display: block;
+            letter-spacing: 0.02em;
+            background: linear-gradient(135deg, #fff 0%, var(--sage) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
         .sidebar-logo span {
             display: block;
-            font-family: 'Noto Sans TC', sans-serif;
-            font-size: 0.7rem;
+            font-family: var(--font-body);
+            font-size: 0.75rem;
             font-weight: 400;
             color: var(--sage);
-            margin-top: 2px;
+            margin-top: 0.35rem;
             letter-spacing: 0.05em;
+            background: none;
+            -webkit-text-fill-color: var(--sage);
         }
 
         .sidebar-nav {
-            padding: 1.5rem 0;
+            padding: 1.25rem 0;
             flex: 1;
+            position: relative;
         }
 
         .nav-section {
-            margin-bottom: 2rem;
+            margin-bottom: 1.5rem;
         }
 
         .nav-section-title {
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 0.1em;
-            color: var(--sage);
-            padding: 0 1.5rem;
-            margin-bottom: 0.75rem;
+            letter-spacing: 0.15em;
+            color: rgba(168, 184, 154, 0.6);
+            padding: 0.75rem 1.5rem 0.5rem;
+            margin-bottom: 0.25rem;
         }
 
         .nav-item {
             display: flex;
             align-items: center;
-            gap: 0.75rem;
+            gap: 0.875rem;
             padding: 0.875rem 1.5rem;
-            color: rgba(247, 243, 235, 0.8);
+            color: rgba(247, 243, 235, 0.75);
             text-decoration: none;
             font-size: 0.9rem;
             font-weight: 500;
-            transition: all 0.2s ease;
+            transition: var(--transition-base);
             border-left: 3px solid transparent;
+            position: relative;
+            margin: 0.125rem 0.75rem;
+            border-radius: var(--radius-md);
+            border-left: none;
+        }
+
+        .nav-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%) scaleY(0);
+            width: 3px;
+            height: 60%;
+            background: linear-gradient(180deg, var(--terracotta) 0%, var(--terracotta-light) 100%);
+            border-radius: 0 2px 2px 0;
+            transition: var(--transition-base);
         }
 
         .nav-item:hover {
-            background: rgba(255,255,255,0.05);
-            color: var(--cream);
+            background: rgba(255,255,255,0.08);
+            color: white;
+            transform: translateX(4px);
         }
 
         .nav-item.active {
-            background: rgba(255,255,255,0.1);
-            color: var(--cream);
-            border-left-color: var(--terracotta);
+            background: linear-gradient(135deg, rgba(193, 122, 94, 0.2) 0%, rgba(193, 122, 94, 0.1) 100%);
+            color: white;
+        }
+
+        .nav-item.active::before {
+            transform: translateY(-50%) scaleY(1);
         }
 
         .nav-item svg {
             width: 20px;
             height: 20px;
-            opacity: 0.7;
+            opacity: 0.85;
+            transition: var(--transition-fast);
+        }
+
+        .nav-item:hover svg {
+            opacity: 1;
+            transform: scale(1.1);
         }
 
         .nav-item.active svg {
@@ -142,12 +234,13 @@
 
         .nav-badge {
             margin-left: auto;
-            background: var(--terracotta);
+            background: linear-gradient(135deg, var(--terracotta) 0%, var(--terracotta-light) 100%);
             color: var(--cream);
             font-size: 0.7rem;
             font-weight: 600;
-            padding: 0.2rem 0.5rem;
-            border-radius: 10px;
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(193, 122, 94, 0.4);
         }
 
         .sidebar-footer {
@@ -298,7 +391,7 @@
             padding: 2rem;
         }
 
-        /* Stats Cards */
+        /* Stats Cards - Enhanced with animations */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -308,15 +401,43 @@
 
         .stat-card {
             background: var(--white);
-            border-radius: 12px;
+            border-radius: var(--radius-lg);
             padding: 1.5rem;
-            border: 1px solid var(--gray-200);
-            transition: all 0.3s ease;
+            border: 1px solid var(--sand);
+            transition: var(--transition-base);
+            box-shadow: var(--shadow-card);
+            position: relative;
+            overflow: hidden;
+            opacity: 0;
+            animation: fadeSlideUp 0.5s ease forwards;
         }
 
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--olive), var(--terracotta));
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.4s ease;
+        }
+
+        .stat-card:nth-child(1) { animation-delay: 0.1s; }
+        .stat-card:nth-child(2) { animation-delay: 0.15s; }
+        .stat-card:nth-child(3) { animation-delay: 0.2s; }
+        .stat-card:nth-child(4) { animation-delay: 0.25s; }
+
         .stat-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-hover);
+            border-color: var(--olive-light);
+        }
+
+        .stat-card:hover::before {
+            transform: scaleX(1);
         }
 
         .stat-header {
@@ -327,31 +448,36 @@
         }
 
         .stat-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: 10px;
+            width: 52px;
+            height: 52px;
+            border-radius: var(--radius-md);
             display: flex;
             align-items: center;
             justify-content: center;
+            transition: var(--transition-base);
+        }
+
+        .stat-card:hover .stat-icon {
+            transform: scale(1.1);
         }
 
         .stat-icon.green {
-            background: rgba(74, 93, 35, 0.1);
+            background: linear-gradient(135deg, rgba(74, 93, 35, 0.15) 0%, rgba(74, 93, 35, 0.05) 100%);
             color: var(--olive);
         }
 
         .stat-icon.orange {
-            background: rgba(193, 122, 94, 0.1);
+            background: linear-gradient(135deg, rgba(193, 122, 94, 0.15) 0%, rgba(193, 122, 94, 0.05) 100%);
             color: var(--terracotta);
         }
 
         .stat-icon.blue {
-            background: rgba(74, 124, 89, 0.1);
+            background: linear-gradient(135deg, rgba(74, 124, 89, 0.15) 0%, rgba(74, 124, 89, 0.05) 100%);
             color: var(--success);
         }
 
         .stat-icon.sand {
-            background: rgba(212, 197, 169, 0.3);
+            background: linear-gradient(135deg, rgba(212, 197, 169, 0.4) 0%, rgba(212, 197, 169, 0.1) 100%);
             color: var(--olive-deep);
         }
 
@@ -363,25 +489,28 @@
         .stat-trend {
             font-size: 0.75rem;
             font-weight: 600;
-            padding: 0.25rem 0.5rem;
+            padding: 0.25rem 0.6rem;
             border-radius: 20px;
+            transition: var(--transition-fast);
         }
 
         .stat-trend.up {
-            background: rgba(74, 124, 89, 0.1);
+            background: linear-gradient(135deg, rgba(74, 124, 89, 0.15) 0%, rgba(74, 124, 89, 0.05) 100%);
             color: var(--success);
         }
 
         .stat-trend.down {
-            background: rgba(193, 122, 94, 0.1);
+            background: linear-gradient(135deg, rgba(193, 122, 94, 0.15) 0%, rgba(193, 122, 94, 0.05) 100%);
             color: var(--terracotta);
         }
 
         .stat-value {
-            font-size: 2rem;
+            font-family: var(--font-heading);
+            font-size: 2.25rem;
             font-weight: 700;
-            color: var(--charcoal);
+            color: var(--olive-deep);
             margin-bottom: 0.25rem;
+            animation: countUp 0.6s ease forwards;
         }
 
         .stat-label {
@@ -398,21 +527,34 @@
 
         .card {
             background: var(--white);
-            border-radius: 12px;
-            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--sand);
             overflow: hidden;
+            box-shadow: var(--shadow-card);
+            transition: var(--transition-base);
+            opacity: 0;
+            animation: fadeSlideUp 0.5s ease forwards;
+        }
+
+        .card:nth-child(1) { animation-delay: 0.1s; }
+        .card:nth-child(2) { animation-delay: 0.15s; }
+
+        .card:hover {
+            box-shadow: var(--shadow-md);
         }
 
         .card-header {
             padding: 1.25rem 1.5rem;
-            border-bottom: 1px solid var(--gray-200);
+            border-bottom: 1px solid var(--sand);
             display: flex;
             align-items: center;
             justify-content: space-between;
+            background: linear-gradient(180deg, var(--cream) 0%, var(--white) 100%);
         }
 
         .card-title {
-            font-size: 1rem;
+            font-family: var(--font-heading);
+            font-size: 1.05rem;
             font-weight: 600;
             color: var(--olive-deep);
         }
@@ -421,12 +563,16 @@
             font-size: 0.85rem;
             color: var(--olive);
             text-decoration: none;
-            font-weight: 500;
-            transition: color 0.2s ease;
+            font-weight: 600;
+            transition: var(--transition-fast);
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
         }
 
         .card-action:hover {
-            color: var(--olive-deep);
+            color: var(--terracotta);
+            transform: translateX(3px);
         }
 
         .card-body {
@@ -444,26 +590,34 @@
             display: flex;
             gap: 1rem;
             padding: 1rem;
-            border-radius: 8px;
-            border: 1px solid var(--gray-200);
-            transition: all 0.2s ease;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--sand);
+            transition: var(--transition-base);
+            background: linear-gradient(135deg, var(--white) 0%, var(--cream) 100%);
             cursor: pointer;
         }
 
         .course-item:hover {
-            border-color: var(--olive);
-            background: rgba(74, 93, 35, 0.02);
+            border-color: var(--olive-light);
+            background: linear-gradient(135deg, var(--olive-muted) 0%, var(--cream) 100%);
+            transform: translateX(6px);
+            box-shadow: var(--shadow-sm);
         }
 
         .course-thumbnail {
             width: 100px;
             height: 70px;
-            border-radius: 6px;
-            background: linear-gradient(135deg, var(--olive) 0%, var(--olive-light) 100%);
+            border-radius: var(--radius-md);
+            background: linear-gradient(135deg, var(--olive) 0%, var(--olive-deep) 100%);
             display: flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
+            transition: var(--transition-base);
+        }
+
+        .course-item:hover .course-thumbnail {
+            transform: scale(1.05);
         }
 
         .course-thumbnail svg {
@@ -595,30 +749,55 @@
             display: flex;
             align-items: center;
             gap: 0.75rem;
-            padding: 1rem;
-            background: var(--gray-100);
-            border: 1px solid var(--gray-200);
-            border-radius: 8px;
+            padding: 1rem 1.25rem;
+            background: linear-gradient(135deg, var(--cream) 0%, var(--white) 100%);
+            border: 2px solid var(--sand);
+            border-radius: var(--radius-md);
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: var(--transition-base);
             text-decoration: none;
             color: var(--charcoal);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .quick-action-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(180deg, var(--olive), var(--terracotta));
+            transform: scaleY(0);
+            transition: transform 0.3s ease;
         }
 
         .quick-action-btn:hover {
-            background: var(--olive);
+            background: linear-gradient(135deg, var(--olive) 0%, var(--olive-deep) 100%);
             color: var(--cream);
             border-color: var(--olive);
+            transform: translateX(4px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .quick-action-btn:hover::before {
+            transform: scaleY(1);
         }
 
         .quick-action-btn svg {
             width: 20px;
             height: 20px;
+            transition: transform 0.3s ease;
+        }
+
+        .quick-action-btn:hover svg {
+            transform: scale(1.15);
         }
 
         .quick-action-btn span {
             font-size: 0.9rem;
-            font-weight: 500;
+            font-weight: 600;
         }
 
         /* Calendar Widget */
@@ -756,41 +935,86 @@
 
         .resource-card {
             background: var(--white);
-            border-radius: 12px;
-            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--sand);
             overflow: hidden;
-            transition: all 0.3s ease;
+            transition: var(--transition-base);
             cursor: pointer;
+            box-shadow: var(--shadow-card);
+            opacity: 0;
+            animation: cardReveal 0.5s var(--transition-base) forwards;
+            position: relative;
+        }
+
+        .resource-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--olive), var(--terracotta));
+            opacity: 0;
+            transition: var(--transition-base);
         }
 
         .resource-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 30px rgba(0,0,0,0.1);
-            border-color: var(--olive);
+            transform: translateY(-6px);
+            box-shadow: var(--shadow-hover);
+            border-color: var(--olive-light);
         }
 
+        .resource-card:hover::before {
+            opacity: 1;
+        }
+
+        /* Staggered animation for cards */
+        .resource-card:nth-child(1) { animation-delay: 0.1s; }
+        .resource-card:nth-child(2) { animation-delay: 0.15s; }
+        .resource-card:nth-child(3) { animation-delay: 0.2s; }
+        .resource-card:nth-child(4) { animation-delay: 0.25s; }
+        .resource-card:nth-child(5) { animation-delay: 0.3s; }
+        .resource-card:nth-child(6) { animation-delay: 0.35s; }
+        .resource-card:nth-child(7) { animation-delay: 0.4s; }
+        .resource-card:nth-child(8) { animation-delay: 0.45s; }
+        .resource-card:nth-child(9) { animation-delay: 0.5s; }
+
         .resource-cover {
-            height: 140px;
-            background: linear-gradient(135deg, var(--olive) 0%, var(--sage) 100%);
+            height: 150px;
+            background: linear-gradient(135deg, var(--olive) 0%, var(--olive-deep) 50%, var(--sage) 100%);
             display: flex;
             align-items: center;
             justify-content: center;
             position: relative;
+            overflow: hidden;
+        }
+
+        .resource-cover::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
         }
 
         .resource-cover svg {
-            width: 48px;
-            height: 48px;
+            width: 52px;
+            height: 52px;
             color: var(--cream);
             opacity: 0.9;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+            transition: var(--transition-base);
+        }
+
+        .resource-card:hover .resource-cover svg {
+            transform: scale(1.1);
         }
 
         .resource-type-badge {
             position: absolute;
             top: 0.75rem;
             left: 0.75rem;
-            padding: 0.25rem 0.75rem;
-            background: rgba(0,0,0,0.3);
+            padding: 0.3rem 0.85rem;
+            background: linear-gradient(135deg, var(--terracotta) 0%, var(--terracotta-light) 100%);
             backdrop-filter: blur(4px);
             border-radius: 20px;
             font-size: 0.7rem;
@@ -798,25 +1022,33 @@
             color: var(--cream);
             text-transform: uppercase;
             letter-spacing: 0.05em;
+            box-shadow: 0 2px 8px rgba(193, 122, 94, 0.3);
         }
 
         .resource-content {
             padding: 1.25rem;
+            background: linear-gradient(180deg, var(--white) 0%, var(--cream) 100%);
         }
 
         .resource-title {
-            font-size: 1rem;
+            font-family: var(--font-heading);
+            font-size: 1.05rem;
             font-weight: 600;
             color: var(--charcoal);
             margin-bottom: 0.5rem;
             line-height: 1.4;
+            transition: var(--transition-fast);
+        }
+
+        .resource-card:hover .resource-title {
+            color: var(--olive);
         }
 
         .resource-desc {
             font-size: 0.85rem;
-            color: var(--gray-500);
+            color: var(--gray-600);
             margin-bottom: 1rem;
-            line-height: 1.5;
+            line-height: 1.6;
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
@@ -832,10 +1064,18 @@
 
         .tag {
             font-size: 0.7rem;
-            padding: 0.25rem 0.5rem;
-            background: var(--gray-100);
-            border-radius: 4px;
-            color: var(--gray-500);
+            padding: 0.3rem 0.6rem;
+            background: linear-gradient(135deg, var(--olive-muted) 0%, rgba(168, 184, 154, 0.2) 100%);
+            border-radius: var(--radius-sm);
+            color: var(--olive-deep);
+            font-weight: 500;
+            border: 1px solid rgba(74, 93, 35, 0.1);
+            transition: var(--transition-fast);
+        }
+
+        .tag:hover {
+            background: var(--olive);
+            color: var(--cream);
         }
 
         .resource-footer {
@@ -843,7 +1083,7 @@
             align-items: center;
             justify-content: space-between;
             padding-top: 1rem;
-            border-top: 1px solid var(--gray-200);
+            border-top: 1px solid var(--sand);
         }
 
         .resource-author {
@@ -853,27 +1093,29 @@
         }
 
         .resource-author-avatar {
-            width: 24px;
-            height: 24px;
+            width: 28px;
+            height: 28px;
             border-radius: 50%;
-            background: var(--olive-light);
+            background: linear-gradient(135deg, var(--olive) 0%, var(--olive-light) 100%);
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 0.65rem;
             font-weight: 600;
             color: var(--cream);
+            box-shadow: 0 2px 6px rgba(74, 93, 35, 0.2);
         }
 
         .resource-author-name {
             font-size: 0.8rem;
-            color: var(--gray-500);
+            color: var(--gray-600);
+            font-weight: 500;
         }
 
         .resource-stats {
             display: flex;
             align-items: center;
-            gap: 0.75rem;
+            gap: 0.85rem;
             font-size: 0.75rem;
             color: var(--gray-500);
         }
@@ -881,7 +1123,12 @@
         .resource-stats span {
             display: flex;
             align-items: center;
-            gap: 0.25rem;
+            gap: 0.3rem;
+            transition: var(--transition-fast);
+        }
+
+        .resource-stats span:hover {
+            color: var(--olive);
         }
 
         .resource-stats svg {
@@ -1012,6 +1259,120 @@
                             <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
                         </svg>
                         互動討論
+                    </a>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">課程學習</div>
+                    <a href="#" class="nav-item" onclick="showView('moodleCourses'); MoodleUI.loadCourses();">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/>
+                            <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>
+                        </svg>
+                        課程中心
+                    </a>
+                    <a href="#" class="nav-item" onclick="showView('moodleAssignments'); MoodleUI.loadAssignments();">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                            <polyline points="14,2 14,8 20,8"/>
+                            <line x1="12" y1="18" x2="12" y2="12"/>
+                            <line x1="9" y1="15" x2="15" y2="15"/>
+                        </svg>
+                        我的作業
+                    </a>
+                    <a href="#" class="nav-item" onclick="showView('moodleQuizzes'); MoodleUI.loadQuizzes();">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/>
+                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                        測驗中心
+                    </a>
+                    <a href="#" class="nav-item" onclick="showView('moodleForums'); MoodleUI.loadForums();">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+                        </svg>
+                        討論區
+                    </a>
+                    <a href="#" class="nav-item" onclick="showView('moodleGradebook'); MoodleUI.loadGradebook();">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+                            <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+                        </svg>
+                        成績簿
+                    </a>
+                    <a href="#" class="nav-item" onclick="showView('moodleCalendar'); MoodleUI.loadCalendar();">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                            <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                        </svg>
+                        行事曆
+                    </a>
+                    <a href="#" class="nav-item" onclick="showView('moodleNotifications'); MoodleUI.loadNotifications();">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                            <path d="M13.73 21a2 2 0 01-3.46 0"/>
+                        </svg>
+                        通知中心
+                    </a>
+                </div>
+
+                <!-- 教師專用功能區 -->
+                <div class="nav-section teacher-only-nav" id="teacherNavSection" style="display: none;">
+                    <div class="nav-section-title">教學管理</div>
+                    <a href="#" class="nav-item" onclick="showView('questionBank'); MoodleUI.openQuestionBank();">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M4 4h16a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2z"/>
+                            <path d="M9 9h6M9 13h3"/>
+                            <circle cx="16" cy="13" r="1"/>
+                        </svg>
+                        題庫管理
+                    </a>
+                    <a href="#" class="nav-item" onclick="showView('gradebookManagement'); MoodleUI.openGradebookManagement();">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                            <line x1="3" y1="9" x2="21" y2="9"/>
+                            <line x1="3" y1="15" x2="21" y2="15"/>
+                            <line x1="9" y1="3" x2="9" y2="21"/>
+                            <line x1="15" y1="3" x2="15" y2="21"/>
+                        </svg>
+                        成績簿管理
+                    </a>
+                    <a href="#" class="nav-item" onclick="showView('courseCompletionSettings'); MoodleUI.openCourseCompletionSettings();">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+                            <polyline points="22,4 12,14.01 9,11.01"/>
+                        </svg>
+                        課程完成設定
+                        <span class="nav-badge" id="notificationBadge" style="display: none;">0</span>
+                    </a>
+                </div>
+
+                <!-- 管理員專用功能區 -->
+                <div class="nav-section admin-only-nav" id="adminNavSection" style="display: none;">
+                    <div class="nav-section-title">系統管理</div>
+                    <a href="#" class="nav-item" onclick="showView('rolesManagement'); MoodleUI.openRolesManagement();">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/>
+                            <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
+                        </svg>
+                        角色權限
+                    </a>
+                    <a href="#" class="nav-item" onclick="showView('courseCategories'); MoodleUI.openCourseCategories();">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>
+                            <path d="M12 11v6M9 14h6"/>
+                        </svg>
+                        課程類別
+                    </a>
+                    <a href="#" class="nav-item" onclick="window.location.href='/admin';">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="7" height="9"/>
+                            <rect x="14" y="3" width="7" height="5"/>
+                            <rect x="14" y="12" width="7" height="9"/>
+                            <rect x="3" y="16" width="7" height="5"/>
+                        </svg>
+                        管理後台
                     </a>
                 </div>
 
@@ -1919,6 +2280,124 @@
                 </div>
             </div>
 
+            <!-- Live Support View - 即時客服 -->
+            <div class="dashboard" id="consultationsView" style="display: none;">
+                <!-- Chat Header -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <p style="color: var(--gray-500); font-size: 0.9rem;">即時線上客服，專人為您解答問題</p>
+                        <div id="chatAdminStatus" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.25rem 0.75rem; background: var(--gray-100); border-radius: 20px; font-size: 0.85rem;">
+                            <span id="chatStatusDot" style="width: 8px; height: 8px; border-radius: 50%; background: var(--gray-400);"></span>
+                            <span id="chatStatusText">檢查中...</span>
+                        </div>
+                    </div>
+                    <button onclick="startNewChat()" id="newChatBtn" style="padding: 0.75rem 1.5rem; background: var(--olive); color: var(--cream); border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 0.5rem;">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                        開始對話
+                    </button>
+                </div>
+
+                <!-- Chat Container -->
+                <div style="display: grid; grid-template-columns: 280px 1fr; gap: 1rem; height: calc(100vh - 220px); min-height: 500px;">
+                    <!-- Chat List -->
+                    <div class="card" style="overflow: hidden; display: flex; flex-direction: column;">
+                        <div class="card-header" style="padding: 1rem; border-bottom: 1px solid var(--gray-200);">
+                            <h3 style="font-size: 0.95rem; font-weight: 600;">對話記錄</h3>
+                        </div>
+                        <div id="chatRoomList" style="flex: 1; overflow-y: auto; padding: 0.5rem;">
+                            <div style="text-align: center; padding: 2rem 1rem; color: var(--gray-400);">
+                                <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1" style="margin-bottom: 0.5rem; opacity: 0.5;">
+                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                                </svg>
+                                <p style="font-size: 0.85rem;">尚無對話記錄</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chat Window -->
+                    <div class="card" style="overflow: hidden; display: flex; flex-direction: column;">
+                        <!-- Chat Window Header -->
+                        <div id="chatWindowHeader" style="padding: 1rem; border-bottom: 1px solid var(--gray-200); display: none;">
+                            <div style="display: flex; align-items: center; justify-content: space-between;">
+                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                    <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--olive); display: flex; align-items: center; justify-content: center;">
+                                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--cream)" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                    </div>
+                                    <div>
+                                        <h4 id="chatWindowTitle" style="font-size: 0.95rem; font-weight: 600;">客服對話</h4>
+                                        <p id="chatWindowStatus" style="font-size: 0.8rem; color: var(--gray-500);">等待客服連線...</p>
+                                    </div>
+                                </div>
+                                <div style="display: flex; gap: 0.5rem;">
+                                    <button onclick="closeChatRoom()" style="padding: 0.5rem 1rem; background: var(--gray-100); border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">結束對話</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Chat Messages -->
+                        <div id="chatMessages" style="flex: 1; overflow-y: auto; padding: 1rem; background: var(--gray-50);">
+                            <div id="chatWelcome" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; color: var(--gray-400);">
+                                <svg viewBox="0 0 24 24" width="80" height="80" fill="none" stroke="currentColor" stroke-width="1" style="margin-bottom: 1rem; opacity: 0.3;">
+                                    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                                </svg>
+                                <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem; color: var(--gray-600);">歡迎使用即時客服</h3>
+                                <p style="font-size: 0.9rem; max-width: 300px;">點擊「開始對話」與我們的客服人員即時交流，或選擇左側的歷史對話繼續</p>
+                            </div>
+                        </div>
+
+                        <!-- Typing Indicator -->
+                        <div id="typingIndicator" style="display: none; padding: 0.5rem 1rem; background: var(--gray-50); border-top: 1px solid var(--gray-100);">
+                            <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--gray-500); font-size: 0.85rem;">
+                                <div style="display: flex; gap: 3px;">
+                                    <span style="width: 6px; height: 6px; background: var(--gray-400); border-radius: 50%; animation: typing 1s infinite;"></span>
+                                    <span style="width: 6px; height: 6px; background: var(--gray-400); border-radius: 50%; animation: typing 1s infinite 0.2s;"></span>
+                                    <span style="width: 6px; height: 6px; background: var(--gray-400); border-radius: 50%; animation: typing 1s infinite 0.4s;"></span>
+                                </div>
+                                <span id="typingUser">客服正在輸入...</span>
+                            </div>
+                        </div>
+
+                        <!-- Chat Input -->
+                        <div id="chatInputArea" style="display: none; padding: 1rem; border-top: 1px solid var(--gray-200); background: white;">
+                            <div style="display: flex; gap: 0.75rem; align-items: flex-end;">
+                                <div style="flex: 1; position: relative;">
+                                    <textarea id="chatMessageInput" placeholder="輸入訊息..." rows="1" style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--gray-300); border-radius: 20px; font-size: 0.95rem; resize: none; max-height: 120px; line-height: 1.4;" onkeydown="handleChatKeyDown(event)" oninput="handleChatInput(this)"></textarea>
+                                </div>
+                                <button onclick="sendChatMessage()" id="sendMessageBtn" style="padding: 0.75rem 1.25rem; background: var(--olive); color: var(--cream); border: none; border-radius: 20px; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-weight: 500;">
+                                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                                    發送
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Rating Modal -->
+            <div id="chatRatingModal" class="modal-overlay" style="display: none;" onclick="if(event.target === this) closeChatRatingModal()">
+                <div class="modal" style="max-width: 400px;">
+                    <div class="modal-header">
+                        <h2 class="modal-title">為本次服務評分</h2>
+                        <button class="modal-close" onclick="closeChatRatingModal()">&times;</button>
+                    </div>
+                    <div class="modal-body" style="text-align: center;">
+                        <p style="margin-bottom: 1.5rem; color: var(--gray-600);">感謝您使用客服服務！請為本次服務評分：</p>
+                        <div id="ratingStars" style="display: flex; justify-content: center; gap: 0.5rem; margin-bottom: 1.5rem;">
+                            <button onclick="setRating(1)" class="rating-star" data-rating="1" style="background: none; border: none; cursor: pointer; font-size: 2rem; color: var(--gray-300); transition: color 0.2s;">★</button>
+                            <button onclick="setRating(2)" class="rating-star" data-rating="2" style="background: none; border: none; cursor: pointer; font-size: 2rem; color: var(--gray-300); transition: color 0.2s;">★</button>
+                            <button onclick="setRating(3)" class="rating-star" data-rating="3" style="background: none; border: none; cursor: pointer; font-size: 2rem; color: var(--gray-300); transition: color 0.2s;">★</button>
+                            <button onclick="setRating(4)" class="rating-star" data-rating="4" style="background: none; border: none; cursor: pointer; font-size: 2rem; color: var(--gray-300); transition: color 0.2s;">★</button>
+                            <button onclick="setRating(5)" class="rating-star" data-rating="5" style="background: none; border: none; cursor: pointer; font-size: 2rem; color: var(--gray-300); transition: color 0.2s;">★</button>
+                        </div>
+                        <textarea id="ratingComment" placeholder="留下您的建議（選填）" rows="3" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 8px; font-size: 0.95rem; resize: none; margin-bottom: 1rem;"></textarea>
+                    </div>
+                    <div style="padding: 1rem 2rem; border-top: 1px solid var(--gray-200); display: flex; justify-content: flex-end; gap: 0.75rem;">
+                        <button onclick="closeChatRatingModal()" style="padding: 0.75rem 1.5rem; background: var(--gray-200); border: none; border-radius: 8px; cursor: pointer;">略過</button>
+                        <button onclick="submitRating()" style="padding: 0.75rem 1.5rem; background: var(--olive); color: var(--cream); border: none; border-radius: 8px; cursor: pointer; font-weight: 500;">提交評分</button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Settings View -->
             <div class="dashboard" id="settingsView" style="display: none;">
                 <!-- Profile Banner -->
@@ -1943,38 +2422,44 @@
                         <div class="card-body">
                             <div class="form-group">
                                 <label>姓名</label>
-                                <input type="text" class="form-input" value="林建橋者">
+                                <input type="text" class="form-input" id="settingsName" value="">
                             </div>
                             <div class="form-group">
                                 <label>電子郵件</label>
-                                <input type="email" class="form-input" value="teacher.lin@school.edu.tw">
+                                <input type="email" class="form-input" id="settingsEmail" value="" disabled>
                             </div>
                             <div class="form-group">
                                 <label>學校/機構</label>
-                                <input type="text" class="form-input" value="台北市立第一中學">
+                                <input type="text" class="form-input" id="settingsOrganization" value="">
                             </div>
                             <div class="form-group">
                                 <label>角色</label>
-                                <select class="form-input"><option>建橋者</option><option>橋樑工匠</option><option>知識建築師</option></select>
+                                <select class="form-input" id="settingsRole" disabled>
+                                    <option value="educator">建橋者</option>
+                                    <option value="trainer">橋樑工匠</option>
+                                    <option value="creator">知識建築師</option>
+                                    <option value="student">探橋者</option>
+                                </select>
                             </div>
-                            <button class="btn-primary" onclick="showToast('資料已儲存！')">儲存變更</button>
+                            <button class="btn-primary" onclick="saveProfile()">儲存變更</button>
                         </div>
                     </div>
                     <div class="card">
                         <div class="card-header"><h2 class="card-title">通知設定</h2></div>
                         <div class="card-body">
                             <div class="toggle-group">
-                                <label><span>新建材上架通知</span><input type="checkbox" checked><span class="toggle"></span></label>
+                                <label><span>新建材上架通知</span><input type="checkbox" id="notifyNewMaterial" checked><span class="toggle"></span></label>
                             </div>
                             <div class="toggle-group">
-                                <label><span>課程進度提醒</span><input type="checkbox" checked><span class="toggle"></span></label>
+                                <label><span>課程進度提醒</span><input type="checkbox" id="notifyProgress" checked><span class="toggle"></span></label>
                             </div>
                             <div class="toggle-group">
-                                <label><span>授權到期提醒</span><input type="checkbox" checked><span class="toggle"></span></label>
+                                <label><span>授權到期提醒</span><input type="checkbox" id="notifyExpiry" checked><span class="toggle"></span></label>
                             </div>
                             <div class="toggle-group">
-                                <label><span>電子郵件通知</span><input type="checkbox"><span class="toggle"></span></label>
+                                <label><span>電子郵件通知</span><input type="checkbox" id="notifyEmail"><span class="toggle"></span></label>
                             </div>
+                            <button class="btn-primary" onclick="saveNotificationSettings()">儲存通知設定</button>
                         </div>
                     </div>
                     <div class="card">
@@ -1982,17 +2467,17 @@
                         <div class="card-body">
                             <div class="form-group">
                                 <label>目前密碼</label>
-                                <input type="password" class="form-input" placeholder="輸入目前密碼">
+                                <input type="password" class="form-input" id="currentPassword" placeholder="輸入目前密碼">
                             </div>
                             <div class="form-group">
                                 <label>新密碼</label>
-                                <input type="password" class="form-input" placeholder="輸入新密碼">
+                                <input type="password" class="form-input" id="newPassword" placeholder="輸入新密碼">
                             </div>
                             <div class="form-group">
                                 <label>確認新密碼</label>
-                                <input type="password" class="form-input" placeholder="再次輸入新密碼">
+                                <input type="password" class="form-input" id="confirmPassword" placeholder="再次輸入新密碼">
                             </div>
-                            <button class="btn-primary" onclick="showToast('密碼已更新！')">更新密碼</button>
+                            <button class="btn-primary" onclick="changePassword()">更新密碼</button>
                         </div>
                     </div>
                     <div class="card">
@@ -2037,18 +2522,21 @@
                 <div class="library-filters">
                     <div class="filter-group">
                         <span class="filter-label">科目領域</span>
-                        <select class="filter-select">
+                        <select class="filter-select" id="filterCategory" onchange="filterResources()">
                             <option value="">全部科目</option>
                             <option value="math">數學</option>
                             <option value="chinese">國文</option>
                             <option value="english">英文</option>
                             <option value="science">自然科學</option>
-                            <option value="social">社會</option>
+                            <option value="social">社會科學</option>
+                            <option value="business">商業管理</option>
+                            <option value="technology">資訊科技</option>
+                            <option value="arts">藝術人文</option>
                         </select>
                     </div>
                     <div class="filter-group">
                         <span class="filter-label">適用年級</span>
-                        <select class="filter-select">
+                        <select class="filter-select" id="filterGradeLevel" onchange="filterResources()">
                             <option value="">全部年級</option>
                             <option value="elementary">國小</option>
                             <option value="junior">國中</option>
@@ -2059,7 +2547,7 @@
                     </div>
                     <div class="filter-group">
                         <span class="filter-label">建材類型</span>
-                        <select class="filter-select">
+                        <select class="filter-select" id="filterType" onchange="filterResources()">
                             <option value="">全部類型</option>
                             <option value="video">影音建材</option>
                             <option value="interactive">互動模組</option>
@@ -2069,259 +2557,128 @@
                     </div>
                 </div>
 
-                <div class="resource-grid">
-                    <!-- Resource Card 1 -->
-                    <div class="resource-card">
-                        <div class="resource-cover">
-                            <span class="resource-type-badge">影音</span>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polygon points="23,7 16,12 23,17"/>
-                                <rect x="1" y="5" width="15" height="14" rx="2"/>
-                            </svg>
-                        </div>
-                        <div class="resource-content">
-                            <h3 class="resource-title">國中數學 - 一元二次方程式完整教學</h3>
-                            <p class="resource-desc">從基礎概念到進階應用，包含豐富例題與解題技巧</p>
-                            <div class="resource-tags">
-                                <span class="tag">國中</span>
-                                <span class="tag">數學</span>
-                                <span class="tag">代數</span>
-                            </div>
-                            <div class="resource-footer">
-                                <div class="resource-author">
-                                    <div class="resource-author-avatar">B</div>
-                                    <span class="resource-author-name">Benjamin</span>
-                                </div>
-                                <div class="resource-stats">
-                                    <span>
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                                            <circle cx="12" cy="12" r="3"/>
-                                        </svg>
-                                        1.2k
-                                    </span>
-                                    <span>
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                                        </svg>
-                                        4.8
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Resource Card 2 -->
-                    <div class="resource-card">
-                        <div class="resource-cover" style="background: linear-gradient(135deg, var(--terracotta) 0%, var(--terracotta-light) 100%);">
-                            <span class="resource-type-badge">互動</span>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
-                                <line x1="8" y1="21" x2="16" y2="21"/>
-                                <line x1="12" y1="17" x2="12" y2="21"/>
-                            </svg>
-                        </div>
-                        <div class="resource-content">
-                            <h3 class="resource-title">英文文法互動練習 - 時態大全</h3>
-                            <p class="resource-desc">透過遊戲化互動練習，輕鬆掌握 12 種英文時態</p>
-                            <div class="resource-tags">
-                                <span class="tag">高中</span>
-                                <span class="tag">英文</span>
-                                <span class="tag">文法</span>
-                            </div>
-                            <div class="resource-footer">
-                                <div class="resource-author">
-                                    <div class="resource-author-avatar">M</div>
-                                    <span class="resource-author-name">Mina</span>
-                                </div>
-                                <div class="resource-stats">
-                                    <span>
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                                            <circle cx="12" cy="12" r="3"/>
-                                        </svg>
-                                        856
-                                    </span>
-                                    <span>
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                                        </svg>
-                                        4.9
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Resource Card 3 -->
-                    <div class="resource-card">
-                        <div class="resource-cover" style="background: linear-gradient(135deg, var(--success) 0%, var(--sage) 100%);">
-                            <span class="resource-type-badge">講義</span>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-                                <polyline points="14,2 14,8 20,8"/>
-                                <line x1="16" y1="13" x2="8" y2="13"/>
-                                <line x1="16" y1="17" x2="8" y2="17"/>
-                            </svg>
-                        </div>
-                        <div class="resource-content">
-                            <h3 class="resource-title">企業簡報設計實戰手冊</h3>
-                            <p class="resource-desc">職場必備簡報技巧，從架構規劃到視覺呈現完整攻略</p>
-                            <div class="resource-tags">
-                                <span class="tag">企業培訓</span>
-                                <span class="tag">簡報</span>
-                                <span class="tag">設計</span>
-                            </div>
-                            <div class="resource-footer">
-                                <div class="resource-author">
-                                    <div class="resource-author-avatar">J</div>
-                                    <span class="resource-author-name">Justin</span>
-                                </div>
-                                <div class="resource-stats">
-                                    <span>
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                                            <circle cx="12" cy="12" r="3"/>
-                                        </svg>
-                                        2.3k
-                                    </span>
-                                    <span>
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                                        </svg>
-                                        4.7
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Resource Card 4 -->
-                    <div class="resource-card">
-                        <div class="resource-cover" style="background: linear-gradient(135deg, #5C6BC0 0%, #7986CB 100%);">
-                            <span class="resource-type-badge">題庫</span>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="10"/>
-                                <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/>
-                                <line x1="12" y1="17" x2="12.01" y2="17"/>
-                            </svg>
-                        </div>
-                        <div class="resource-content">
-                            <h3 class="resource-title">自然科學實驗測驗集</h3>
-                            <p class="resource-desc">200+ 道精選試題，涵蓋物理、化學、生物三大領域</p>
-                            <div class="resource-tags">
-                                <span class="tag">國中</span>
-                                <span class="tag">自然</span>
-                                <span class="tag">實驗</span>
-                            </div>
-                            <div class="resource-footer">
-                                <div class="resource-author">
-                                    <div class="resource-author-avatar">B</div>
-                                    <span class="resource-author-name">Benjamin</span>
-                                </div>
-                                <div class="resource-stats">
-                                    <span>
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                                            <circle cx="12" cy="12" r="3"/>
-                                        </svg>
-                                        678
-                                    </span>
-                                    <span>
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                                        </svg>
-                                        4.6
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Resource Card 5 -->
-                    <div class="resource-card">
-                        <div class="resource-cover" style="background: linear-gradient(135deg, #FF7043 0%, #FFAB91 100%);">
-                            <span class="resource-type-badge">影音</span>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
-                            </svg>
-                        </div>
-                        <div class="resource-content">
-                            <h3 class="resource-title">國文閱讀理解訓練營</h3>
-                            <p class="resource-desc">從文言文到白話文，全面提升閱讀理解與分析能力</p>
-                            <div class="resource-tags">
-                                <span class="tag">高中</span>
-                                <span class="tag">國文</span>
-                                <span class="tag">閱讀</span>
-                            </div>
-                            <div class="resource-footer">
-                                <div class="resource-author">
-                                    <div class="resource-author-avatar">M</div>
-                                    <span class="resource-author-name">Mina</span>
-                                </div>
-                                <div class="resource-stats">
-                                    <span>
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                                            <circle cx="12" cy="12" r="3"/>
-                                        </svg>
-                                        945
-                                    </span>
-                                    <span>
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                                        </svg>
-                                        4.8
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Resource Card 6 -->
-                    <div class="resource-card">
-                        <div class="resource-cover" style="background: linear-gradient(135deg, var(--olive-deep) 0%, var(--olive) 100%);">
-                            <span class="resource-type-badge">互動</span>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
-                                <circle cx="9" cy="7" r="4"/>
-                                <path d="M23 21v-2a4 4 0 00-3-3.87"/>
-                                <path d="M16 3.13a4 4 0 010 7.75"/>
-                            </svg>
-                        </div>
-                        <div class="resource-content">
-                            <h3 class="resource-title">新進員工培訓互動課程</h3>
-                            <p class="resource-desc">企業文化、工作流程、團隊協作一站式學習方案</p>
-                            <div class="resource-tags">
-                                <span class="tag">企業培訓</span>
-                                <span class="tag">新人</span>
-                                <span class="tag">入職</span>
-                            </div>
-                            <div class="resource-footer">
-                                <div class="resource-author">
-                                    <div class="resource-author-avatar">J</div>
-                                    <span class="resource-author-name">Justin</span>
-                                </div>
-                                <div class="resource-stats">
-                                    <span>
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                                            <circle cx="12" cy="12" r="3"/>
-                                        </svg>
-                                        1.5k
-                                    </span>
-                                    <span>
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                                        </svg>
-                                        4.9
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
+                <div class="resource-grid" id="resourceGrid">
+                    <!-- 教材將由 JavaScript 動態載入 -->
+                    <div class="loading-placeholder" style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: var(--olive-deep);">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite;">
+                            <path d="M12 2v4m0 12v4m10-10h-4M6 12H2m15.5-7.5L15 7m-6 10l-2.5 2.5m13-2.5L17 17M7 7L4.5 4.5"/>
+                        </svg>
+                        <p style="margin-top: 16px;">載入教材中...</p>
                     </div>
                 </div>
             </div>
+
+            <!-- ==================== Moodle 風格視圖 ==================== -->
+
+            <!-- 課程中心視圖 -->
+            <div class="dashboard" id="moodleCoursesView" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <input type="text" placeholder="搜尋課程..." id="courseSearch" class="form-input" style="width: 300px;" onkeyup="MoodleUI.loadCourses({search: this.value})">
+                        <select class="form-input" onchange="MoodleUI.loadCourses({category: this.value})" style="width: 180px;">
+                            <option value="">全部分類</option>
+                            <option value="programming">程式設計</option>
+                            <option value="math">數學</option>
+                            <option value="language">語言學習</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="moodleCourseGrid" class="moodle-course-grid"></div>
+            </div>
+
+            <!-- 課程詳情視圖 -->
+            <div class="dashboard" id="courseDetailView" style="display: none;">
+                <div id="courseDetailContent"></div>
+            </div>
+
+            <!-- 作業管理視圖 -->
+            <div class="dashboard" id="moodleAssignmentsView" style="display: none;">
+                <div id="assignmentsList"></div>
+            </div>
+
+            <!-- 作業詳情視圖 -->
+            <div class="dashboard" id="assignmentDetailView" style="display: none;">
+                <div id="assignmentDetailContent"></div>
+            </div>
+
+            <!-- 測驗中心視圖 -->
+            <div class="dashboard" id="moodleQuizzesView" style="display: none;">
+                <div id="quizzesList"></div>
+            </div>
+
+            <!-- 測驗作答視圖 -->
+            <div class="dashboard" id="quizAttemptView" style="display: none;">
+                <div id="quizAttemptContent"></div>
+            </div>
+
+            <!-- 討論區視圖 -->
+            <div class="dashboard" id="moodleForumsView" style="display: none;">
+                <div id="forumsList"></div>
+            </div>
+
+            <!-- 討論詳情視圖 -->
+            <div class="dashboard" id="forumDetailView" style="display: none;">
+                <div id="forumDetailContent"></div>
+            </div>
+
+            <!-- 成績簿視圖 -->
+            <div class="dashboard" id="moodleGradebookView" style="display: none;">
+                <div style="margin-bottom: 1.5rem;">
+                    <select id="gradebookCourseSelect" class="form-input" style="width: 300px;" onchange="MoodleUI.loadGradebookForCourse(this.value)">
+                        <option value="">選擇課程查看成績...</option>
+                    </select>
+                </div>
+                <div id="gradebookContent"></div>
+            </div>
+
+            <!-- 行事曆視圖 -->
+            <div class="dashboard" id="moodleCalendarView" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <button onclick="MoodleUI.prevMonth()" class="btn-secondary" style="padding: 0.5rem 1rem;">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
+                    </button>
+                    <h2 id="calendarTitle" style="font-size: 1.25rem; font-weight: 600; margin: 0;"></h2>
+                    <button onclick="MoodleUI.nextMonth()" class="btn-secondary" style="padding: 0.5rem 1rem;">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9,6 15,12 9,18"/></svg>
+                    </button>
+                </div>
+                <div id="calendarGrid" class="calendar-grid"></div>
+                <div style="margin-top: 2rem;">
+                    <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem;">即將到來的事件</h3>
+                    <div id="upcomingEventsList"></div>
+                </div>
+            </div>
+
+            <!-- 通知中心視圖 -->
+            <div class="dashboard" id="moodleNotificationsView" style="display: none;">
+                <div id="notificationsList"></div>
+            </div>
+
+            <!-- 檔案管理視圖 -->
+            <div class="dashboard" id="moodleFilesView" style="display: none;">
+                <div id="filesContent"></div>
+            </div>
+
+            <!-- 成績簿管理視圖（教師專用） -->
+            <div class="dashboard" id="gradebookManagementView" style="display: none;">
+                <div id="gradebookManagementContent"></div>
+            </div>
+
+            <!-- 題庫管理視圖 -->
+            <div class="dashboard" id="questionBankView" style="display: none;">
+                <div id="questionBankContent"></div>
+            </div>
+
+            <!-- 角色權限管理視圖 -->
+            <div class="dashboard" id="rolesManagementView" style="display: none;">
+                <div id="rolesManagementContent"></div>
+            </div>
+
+            <!-- 課程類別管理視圖 -->
+            <div class="dashboard" id="courseCategoriesView" style="display: none;">
+                <div id="courseCategoriesContent"></div>
+            </div>
+
         </main>
     </div>
 
@@ -2398,7 +2755,7 @@
     </div>
 
     <style>
-        /* Modal Styles */
+        /* Modal Styles - Enhanced with animations */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -2406,58 +2763,122 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0,0,0,0.5);
+            background: rgba(44, 44, 44, 0.6);
+            backdrop-filter: blur(4px);
             z-index: 200;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
         }
-        .modal-overlay.active { display: block; }
+        .modal-overlay.active {
+            display: flex;
+            opacity: 1;
+        }
         .modal {
             display: none;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
+            position: relative;
             background: var(--white);
-            border-radius: 12px;
+            border-radius: var(--radius-xl);
             width: 90%;
             max-width: 600px;
             max-height: 80vh;
             overflow: hidden;
             z-index: 201;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            box-shadow: 0 24px 64px rgba(44, 44, 44, 0.25);
+            transform: scale(0.9) translateY(20px);
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        .modal.active { display: block; }
+        .modal.active,
+        .modal-overlay.active .modal,
+        .modal-overlay[style*="flex"] .modal {
+            display: block;
+            transform: scale(1) translateY(0);
+            opacity: 1;
+        }
+        /* Modal accent top bar */
+        .modal::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--olive), var(--olive-light), var(--terracotta));
+        }
         .modal-header {
-            padding: 1.5rem;
-            border-bottom: 1px solid var(--gray-200);
+            padding: 1.75rem 1.5rem 1.25rem;
+            border-bottom: 1px solid var(--sand);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            background: linear-gradient(180deg, var(--cream) 0%, var(--white) 100%);
         }
-        .modal-header h2 { font-size: 1.25rem; color: var(--olive-deep); }
+        .modal-header h2 {
+            font-family: var(--font-heading);
+            font-size: 1.3rem;
+            color: var(--olive-deep);
+            font-weight: 600;
+        }
         .modal-close {
             background: none;
             border: none;
             font-size: 1.5rem;
             cursor: pointer;
-            color: var(--gray-500);
+            color: var(--gray-400);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition-fast);
         }
-        .modal-body { padding: 1.5rem; overflow-y: auto; max-height: 50vh; }
+        .modal-close:hover {
+            background: var(--cream);
+            color: var(--olive-deep);
+            transform: rotate(90deg);
+        }
+        .modal-body {
+            padding: 1.5rem;
+            overflow-y: auto;
+            max-height: 50vh;
+        }
         .modal-footer {
-            padding: 1rem 1.5rem;
-            border-top: 1px solid var(--gray-200);
+            padding: 1.25rem 1.5rem;
+            border-top: 1px solid var(--sand);
             display: flex;
             justify-content: flex-end;
             gap: 1rem;
+            background: var(--cream);
         }
         .modal-footer .btn-primary, .modal-footer .btn-secondary {
-            padding: 0.75rem 1.5rem;
-            border-radius: 6px;
-            font-weight: 500;
+            padding: 0.85rem 1.75rem;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            transition: var(--transition-base);
             cursor: pointer;
             border: none;
         }
-        .modal-footer .btn-primary { background: var(--olive); color: var(--cream); }
-        .modal-footer .btn-secondary { background: var(--gray-100); color: var(--charcoal); }
+        .modal-footer .btn-primary {
+            background: linear-gradient(135deg, var(--olive) 0%, var(--olive-deep) 100%);
+            color: var(--cream);
+            box-shadow: 0 2px 8px rgba(74, 93, 35, 0.2);
+        }
+        .modal-footer .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(74, 93, 35, 0.3);
+        }
+        .modal-footer .btn-secondary {
+            background: var(--white);
+            color: var(--charcoal);
+            border: 2px solid var(--sand);
+        }
+        .modal-footer .btn-secondary:hover {
+            border-color: var(--olive-light);
+            background: var(--cream);
+        }
 
         /* Notification Panel */
         .notification-panel {
@@ -2576,31 +2997,138 @@
         .toast.active { display: flex; align-items: center; gap: 0.75rem; }
         @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
+        /* ═══════════════════════════════════════════════════════════
+           豐富動畫效果庫
+           ═══════════════════════════════════════════════════════════ */
+
+        /* 浮動效果 */
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+        }
+
+        /* 脈搏效果 */
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+        }
+
+        /* 閃爍效果 */
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        /* 彈入效果 */
+        @keyframes bounceIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            50% { transform: scale(1.05); }
+            70% { transform: scale(0.9); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* 淡入向上滑動 */
+        @keyframes fadeSlideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 淡入向下滑動 */
+        @keyframes fadeSlideDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 旋轉進入 */
+        @keyframes rotateIn {
+            from { transform: rotate(-180deg) scale(0); opacity: 0; }
+            to { transform: rotate(0) scale(1); opacity: 1; }
+        }
+
+        /* 數字計數動畫 */
+        @keyframes countUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 邊框漸變動畫 */
+        @keyframes borderGlow {
+            0%, 100% { border-color: var(--olive); box-shadow: 0 0 5px rgba(74, 93, 35, 0.2); }
+            50% { border-color: var(--terracotta); box-shadow: 0 0 15px rgba(193, 122, 94, 0.3); }
+        }
+
+        /* 背景漸變動畫 */
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
         /* Page Tabs */
-        .page-tabs { display: flex; gap: 0.5rem; margin-bottom: 2rem; }
+        .page-tabs {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 2rem;
+            animation: fadeSlideDown 0.5s ease;
+        }
         .tab-btn {
             padding: 0.75rem 1.5rem;
-            border: 1px solid var(--gray-200);
+            border: 2px solid var(--sand);
             background: var(--white);
-            border-radius: 8px;
+            border-radius: var(--radius-md);
             cursor: pointer;
             font-weight: 500;
-            transition: all 0.2s;
+            transition: var(--transition-base);
+            position: relative;
+            overflow: hidden;
         }
-        .tab-btn:hover { border-color: var(--olive); }
-        .tab-btn.active { background: var(--olive); color: var(--cream); border-color: var(--olive); }
+        .tab-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(74, 93, 35, 0.05), transparent);
+            transition: left 0.5s ease;
+        }
+        .tab-btn:hover {
+            border-color: var(--olive);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-sm);
+        }
+        .tab-btn:hover::before { left: 100%; }
+        .tab-btn.active {
+            background: linear-gradient(135deg, var(--olive) 0%, var(--olive-deep) 100%);
+            color: var(--cream);
+            border-color: var(--olive);
+            box-shadow: 0 4px 12px rgba(74, 93, 35, 0.25);
+        }
 
         /* Course Cards Grid */
         .courses-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
         .course-card {
             background: var(--white);
-            border-radius: 12px;
-            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--sand);
             overflow: hidden;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: var(--transition-base);
+            box-shadow: var(--shadow-card);
+            opacity: 0;
+            animation: fadeSlideUp 0.5s ease forwards;
         }
-        .course-card:hover { transform: translateY(-4px); box-shadow: 0 12px 30px rgba(0,0,0,0.1); }
+        .course-card:nth-child(1) { animation-delay: 0.1s; }
+        .course-card:nth-child(2) { animation-delay: 0.15s; }
+        .course-card:nth-child(3) { animation-delay: 0.2s; }
+        .course-card:nth-child(4) { animation-delay: 0.25s; }
+        .course-card:nth-child(5) { animation-delay: 0.3s; }
+        .course-card:nth-child(6) { animation-delay: 0.35s; }
+        .course-card:hover {
+            transform: translateY(-6px);
+            box-shadow: var(--shadow-hover);
+            border-color: var(--olive-light);
+        }
         .course-card-cover {
             height: 160px;
             display: flex;
@@ -2734,15 +3262,36 @@
         .toggle-group input:checked + .toggle::after { left: 24px; }
         .btn-primary {
             padding: 0.75rem 1.5rem;
-            background: var(--olive);
+            background: linear-gradient(135deg, var(--olive) 0%, var(--olive-deep) 100%);
             color: var(--cream);
             border: none;
-            border-radius: 8px;
+            border-radius: var(--radius-md);
             cursor: pointer;
-            font-weight: 500;
-            transition: all 0.2s;
+            font-weight: 600;
+            transition: var(--transition-base);
+            box-shadow: 0 2px 8px rgba(74, 93, 35, 0.2);
+            position: relative;
+            overflow: hidden;
         }
-        .btn-primary:hover { background: var(--olive-deep); }
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+            transition: left 0.5s ease;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, var(--olive-deep) 0%, #2D3A1F 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(74, 93, 35, 0.3);
+        }
+        .btn-primary:hover::before { left: 100%; }
+        .btn-primary:active {
+            transform: translateY(0);
+        }
 
         /* User Menu */
         .user-menu {
@@ -2825,6 +3374,32 @@
             margin-right: 0.75rem;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes typing { 0%, 100% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1); } }
+
+        /* Chat Message Styles */
+        .chat-message { display: flex; margin-bottom: 1rem; animation: slideIn 0.2s ease; }
+        .chat-message.user { justify-content: flex-end; }
+        .chat-message.admin, .chat-message.system { justify-content: flex-start; }
+        .chat-message > div { max-width: 70%; display: inline-block; }
+        .chat-bubble { display: inline-block; padding: 0.75rem 1rem; border-radius: 16px; font-size: 0.95rem; line-height: 1.5; word-break: break-word; white-space: pre-wrap; }
+        .chat-message.user .chat-bubble { background: var(--olive); color: var(--cream); border-bottom-right-radius: 4px; }
+        .chat-message.admin .chat-bubble { background: white; color: var(--gray-800); border: 1px solid var(--gray-200); border-bottom-left-radius: 4px; }
+        .chat-message.system .chat-bubble { background: var(--gray-100); color: var(--gray-500); font-size: 0.85rem; text-align: center; margin: 0 auto; }
+        .chat-time { font-size: 0.75rem; color: var(--gray-400); margin-top: 0.25rem; }
+        .chat-message.user .chat-time { text-align: right; }
+        .chat-sender { font-size: 0.8rem; color: var(--gray-500); margin-bottom: 0.25rem; font-weight: 500; }
+
+        /* Chat Room List Item */
+        .chat-room-item { padding: 0.75rem; border-radius: 8px; cursor: pointer; transition: background 0.2s; border-bottom: 1px solid var(--gray-100); }
+        .chat-room-item:hover { background: var(--gray-50); }
+        .chat-room-item.active { background: var(--olive-light); border-left: 3px solid var(--olive); }
+        .chat-room-item .room-title { font-weight: 500; font-size: 0.9rem; margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.5rem; }
+        .chat-room-item .room-preview { font-size: 0.8rem; color: var(--gray-500); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .chat-room-item .room-time { font-size: 0.75rem; color: var(--gray-400); }
+        .chat-room-item .status-dot { width: 8px; height: 8px; border-radius: 50%; }
+        .chat-room-item .status-dot.waiting { background: var(--warning); }
+        .chat-room-item .status-dot.active { background: var(--success); }
+        .chat-room-item .status-dot.closed { background: var(--gray-400); }
 
         /* ═══════════════════════════════════════════════════════════
            LOGIN VIEW - OLIVE GROVE GATEWAY
@@ -3029,22 +3604,26 @@
         /* Login card */
         .login-card {
             width: 100%;
-            max-width: 400px;
+            max-width: 420px;
             background: var(--white);
             padding: 3rem;
-            border-radius: 2px;
-            box-shadow:
-                0 1px 1px rgba(0,0,0,0.02),
-                0 4px 8px rgba(0,0,0,0.04),
-                0 16px 32px rgba(0,0,0,0.04);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-lg);
             position: relative;
             z-index: 1;
             opacity: 0;
-            animation: cardReveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.5s forwards;
+            animation: loginCardReveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.5s forwards;
+            transition: var(--transition-base);
+            border: 1px solid rgba(212, 197, 169, 0.3);
         }
 
-        @keyframes cardReveal {
-            from { opacity: 0; transform: translateY(30px) scale(0.98); }
+        .login-card:hover {
+            box-shadow: 0 24px 48px rgba(61, 74, 45, 0.15);
+            transform: translateY(-4px);
+        }
+
+        @keyframes loginCardReveal {
+            from { opacity: 0; transform: translateY(40px) scale(0.95); }
             to { opacity: 1; transform: translateY(0) scale(1); }
         }
 
@@ -3053,20 +3632,34 @@
             content: '';
             position: absolute;
             top: 0;
-            left: 3rem;
-            right: 3rem;
-            height: 3px;
-            background: linear-gradient(90deg, var(--terracotta), var(--terracotta-light));
-            border-radius: 0 0 2px 2px;
+            left: 2rem;
+            right: 2rem;
+            height: 4px;
+            background: linear-gradient(90deg, var(--olive), var(--terracotta), var(--terracotta-light));
+            border-radius: 0 0 4px 4px;
+        }
+
+        /* Decorative corner accent */
+        .login-card::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            right: -1px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, transparent 50%, var(--cream-dark) 50%);
+            border-radius: 0 0 var(--radius-xl) 0;
+            opacity: 0.5;
         }
 
         /* Auth tabs */
         .auth-tabs {
             display: flex;
-            gap: 2rem;
+            gap: 2.5rem;
             margin-bottom: 2.5rem;
             padding-bottom: 1rem;
-            border-bottom: 1px solid var(--gray-200);
+            border-bottom: 2px solid var(--sand);
+            position: relative;
         }
 
         .auth-tab {
@@ -3075,10 +3668,10 @@
             border: none;
             background: none;
             cursor: pointer;
-            font-family: 'Noto Sans TC', sans-serif;
-            font-size: 1.1rem;
+            font-family: var(--font-heading);
+            font-size: 1.2rem;
             font-weight: 500;
-            color: var(--gray-500);
+            color: var(--gray-400);
             transition: all 0.3s ease;
             position: relative;
         }
@@ -3094,11 +3687,11 @@
             left: 0;
             right: 0;
             height: 3px;
-            background: var(--olive);
+            background: linear-gradient(90deg, var(--olive), var(--terracotta));
             transform: scaleX(0);
             transform-origin: left;
             transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-            border-radius: 2px;
+            border-radius: 3px;
         }
 
         .auth-tab.active::after {
@@ -3107,6 +3700,7 @@
 
         .auth-tab:hover:not(.active) {
             color: var(--olive-light);
+            transform: translateY(-1px);
         }
 
         /* Welcome text - hidden */
@@ -3134,9 +3728,9 @@
 
         .login-form input {
             width: 100%;
-            padding: 0.9rem 1rem;
-            border: 1px solid var(--gray-200);
-            border-radius: 4px;
+            padding: 1rem 1.1rem;
+            border: 2px solid var(--sand);
+            border-radius: var(--radius-md);
             background: var(--cream);
             font-family: 'Noto Sans TC', sans-serif;
             font-size: 0.95rem;
@@ -3146,7 +3740,7 @@
         }
 
         .login-form input::placeholder {
-            color: var(--gray-500);
+            color: var(--gray-400);
             font-weight: 300;
         }
 
@@ -3154,25 +3748,32 @@
             outline: none;
             border-color: var(--olive);
             background: var(--white);
-            box-shadow: 0 0 0 3px rgba(74, 93, 35, 0.1);
+            box-shadow: 0 0 0 4px rgba(74, 93, 35, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .login-form input:hover:not(:focus) {
+            border-color: var(--olive-light);
         }
 
         /* Submit button */
         .login-btn {
             width: 100%;
-            padding: 1rem 2rem;
-            background: var(--olive);
+            padding: 1.1rem 2rem;
+            background: linear-gradient(135deg, var(--olive) 0%, var(--olive-deep) 100%);
             color: var(--cream);
             border: none;
-            border-radius: 4px;
+            border-radius: var(--radius-md);
             font-family: 'Noto Sans TC', sans-serif;
-            font-size: 0.95rem;
+            font-size: 1rem;
             font-weight: 600;
+            letter-spacing: 0.05em;
             cursor: pointer;
             transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-            margin-top: 1rem;
+            margin-top: 1.5rem;
             position: relative;
             overflow: hidden;
+            box-shadow: 0 4px 12px rgba(61, 74, 45, 0.2);
         }
 
         .login-btn::before {
@@ -3182,30 +3783,51 @@
             left: -100%;
             width: 100%;
             height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
             transition: left 0.6s ease;
         }
 
+        .login-btn::after {
+            content: '→';
+            position: absolute;
+            right: 2rem;
+            top: 50%;
+            transform: translateY(-50%) translateX(-10px);
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
         .login-btn:hover {
-            background: var(--olive-deep);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(61, 74, 45, 0.25);
+            background: linear-gradient(135deg, var(--olive-deep) 0%, #2D3A1F 100%);
+            transform: translateY(-3px);
+            box-shadow: 0 12px 28px rgba(61, 74, 45, 0.3);
+            padding-right: 3rem;
         }
 
         .login-btn:hover::before {
             left: 100%;
         }
 
+        .login-btn:hover::after {
+            opacity: 1;
+            transform: translateY(-50%) translateX(0);
+        }
+
         .login-btn:active {
-            transform: translateY(0);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(61, 74, 45, 0.25);
         }
 
         .login-btn:disabled {
-            background: var(--gray-300);
+            background: linear-gradient(135deg, var(--gray-300) 0%, var(--gray-400) 100%);
             color: var(--gray-500);
             cursor: not-allowed;
             transform: none;
             box-shadow: none;
+        }
+
+        .login-btn:disabled::after {
+            display: none;
         }
 
         /* Error message */
@@ -3532,18 +4154,210 @@
             'videos': '影音橋段 <span>Video Segments</span>',
             'quizzes': '橋樑驗收 <span>Bridge Inspection</span>',
             'discussions': '共建論壇 <span>Co-Build Forum</span>',
+            'consultations': '即時客服 <span>Live Support</span>',
             'classes': '共建團隊 <span>Build Teams</span>',
             'studentClasses': '我的橋隊 <span>My Bridge Team</span>',
             'classDetail': '團隊詳情 <span>Team Detail</span>',
-            'settings': '橋樑設定 <span>Bridge Settings</span>'
+            'settings': '橋樑設定 <span>Bridge Settings</span>',
+            'moodleCourses': '課程中心 <span>Course Center</span>',
+            'courseDetail': '課程內容 <span>Course Content</span>',
+            'moodleAssignments': '作業管理 <span>Assignments</span>',
+            'assignmentDetail': '作業詳情 <span>Assignment Detail</span>',
+            'moodleQuizzes': '測驗中心 <span>Quiz Center</span>',
+            'quizAttempt': '測驗作答 <span>Quiz Attempt</span>',
+            'moodleForums': '討論區 <span>Forums</span>',
+            'forumDetail': '討論詳情 <span>Forum Detail</span>',
+            'moodleGradebook': '成績簿 <span>Gradebook</span>',
+            'moodleCalendar': '行事曆 <span>Calendar</span>',
+            'moodleNotifications': '通知中心 <span>Notifications</span>',
+            'moodleFiles': '檔案管理 <span>Files</span>'
         };
 
-        // Resources data
-        const resources = [
-            { id: 1, title: '國中數學 - 一元二次方程式完整教學', type: '影音', author: 'Benjamin', views: '1.2k', rating: '4.8', desc: '從基礎概念到進階應用，包含豐富例題與解題技巧，適合國中探橋者自主學習或建橋者課堂使用。', tags: ['國中', '數學', '代數'] },
-            { id: 2, title: '英文文法互動練習 - 時態大全', type: '互動', author: 'Mina', views: '856', rating: '4.9', desc: '透過遊戲化互動練習，輕鬆掌握 12 種英文時態，含即時回饋與錯題分析。', tags: ['高中', '英文', '文法'] },
-            { id: 3, title: '企業簡報設計實戰手冊', type: '講義', author: 'Justin', views: '2.3k', rating: '4.7', desc: '職場必備簡報技巧，從架構規劃到視覺呈現完整攻略，附贈模板下載。', tags: ['企業培訓', '簡報', '設計'] }
-        ];
+        // Resources data - 動態從 API 載入
+        let resources = [];
+
+        // 教材類型標籤
+        const typeLabels = {
+            video: '影音',
+            interactive: '互動',
+            document: '講義',
+            quiz: '題庫'
+        };
+
+        // 教材分類標籤
+        const categoryLabels = {
+            math: '數學',
+            chinese: '國文',
+            english: '英文',
+            science: '自然科學',
+            social: '社會科學',
+            business: '商業管理',
+            technology: '資訊科技',
+            arts: '藝術人文'
+        };
+
+        // 適用年級標籤
+        const gradeLevelLabels = {
+            elementary: '國小',
+            junior: '國中',
+            senior: '高中',
+            university: '大學',
+            corporate: '企業培訓'
+        };
+
+        // 類型對應背景色
+        const typeColors = {
+            video: 'linear-gradient(135deg, var(--olive) 0%, var(--olive-deep) 100%)',
+            interactive: 'linear-gradient(135deg, var(--terracotta) 0%, var(--terracotta-light) 100%)',
+            document: 'linear-gradient(135deg, var(--success) 0%, var(--sage) 100%)',
+            quiz: 'linear-gradient(135deg, #5C6BC0 0%, #7986CB 100%)'
+        };
+
+        // 類型對應圖示
+        const typeIcons = {
+            video: '<polygon points="23,7 16,12 23,17"/><rect x="1" y="5" width="15" height="14" rx="2"/>',
+            interactive: '<rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>',
+            document: '<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>',
+            quiz: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>'
+        };
+
+        // 格式化瀏覽數
+        function formatViewCount(count) {
+            if (!count) return '0';
+            if (count >= 1000) {
+                return (count / 1000).toFixed(1) + 'k';
+            }
+            return count.toString();
+        }
+
+        // 載入教材資源
+        async function loadResources() {
+            const grid = document.getElementById('resourceGrid');
+            try {
+                const result = await API.resources.list({ status: 'published', limit: 50 });
+                if (result.success && result.data.length > 0) {
+                    resources = result.data;
+                    renderResourceCards(result.data);
+                } else {
+                    grid.innerHTML = `
+                        <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: var(--olive-deep);">
+                            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity: 0.5;">
+                                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                                <polyline points="14,2 14,8 20,8"/>
+                            </svg>
+                            <p style="margin-top: 16px; font-size: 16px;">目前沒有已發布的教材</p>
+                            <p style="margin-top: 8px; color: var(--gray-500);">敬請期待更多優質內容</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Load resources error:', error);
+                grid.innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: var(--terracotta);">
+                        <p>載入教材時發生錯誤，請稍後再試</p>
+                    </div>
+                `;
+            }
+        }
+
+        // 渲染教材卡片
+        function renderResourceCards(resourceList) {
+            const grid = document.getElementById('resourceGrid');
+            if (!resourceList || resourceList.length === 0) {
+                grid.innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: var(--olive-deep);">
+                        <p>沒有找到符合條件的教材</p>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = resourceList.map(r => {
+                const typeLabel = typeLabels[r.type] || r.type;
+                const bgColor = typeColors[r.type] || typeColors.video;
+                const icon = typeIcons[r.type] || typeIcons.video;
+                const authorName = r.authorName || r.authorId || '未知作者';
+                const authorInitial = authorName.charAt(0).toUpperCase();
+
+                // 建立標籤（結合 tags、category、gradeLevel）
+                const tags = [];
+                if (r.gradeLevel && gradeLevelLabels[r.gradeLevel]) {
+                    tags.push(gradeLevelLabels[r.gradeLevel]);
+                }
+                if (r.category && categoryLabels[r.category]) {
+                    tags.push(categoryLabels[r.category]);
+                }
+                if (r.tags && Array.isArray(r.tags)) {
+                    tags.push(...r.tags.slice(0, 2)); // 最多加 2 個自訂標籤
+                }
+
+                return `
+                    <div class="resource-card" onclick="openResourceModal('${r.resourceId}')">
+                        <div class="resource-cover" style="background: ${bgColor};">
+                            <span class="resource-type-badge">${typeLabel}</span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                ${icon}
+                            </svg>
+                        </div>
+                        <div class="resource-content">
+                            <h3 class="resource-title">${r.title || '未命名教材'}</h3>
+                            <p class="resource-desc">${r.description || '暫無描述'}</p>
+                            <div class="resource-tags">
+                                ${tags.slice(0, 3).map(t => `<span class="tag">${t}</span>`).join('')}
+                            </div>
+                            <div class="resource-footer">
+                                <div class="resource-author">
+                                    <div class="resource-author-avatar">${authorInitial}</div>
+                                    <span class="resource-author-name">${authorName}</span>
+                                </div>
+                                <div class="resource-stats">
+                                    <span>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                            <circle cx="12" cy="12" r="3"/>
+                                        </svg>
+                                        ${formatViewCount(r.viewCount)}
+                                    </span>
+                                    <span>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                        </svg>
+                                        ${r.rating ? r.rating.toFixed(1) : '-'}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 篩選教材
+        function filterResources() {
+            const categoryFilter = document.getElementById('filterCategory')?.value || '';
+            const gradeLevelFilter = document.getElementById('filterGradeLevel')?.value || '';
+            const typeFilter = document.getElementById('filterType')?.value || '';
+
+            let filtered = resources;
+
+            if (categoryFilter) {
+                filtered = filtered.filter(r => r.category === categoryFilter);
+            }
+            if (gradeLevelFilter) {
+                filtered = filtered.filter(r => r.gradeLevel === gradeLevelFilter);
+            }
+            if (typeFilter) {
+                filtered = filtered.filter(r => r.type === typeFilter);
+            }
+
+            renderResourceCards(filtered);
+
+            // 顯示篩選結果訊息
+            const totalFilters = [categoryFilter, gradeLevelFilter, typeFilter].filter(f => f).length;
+            if (totalFilters > 0) {
+                showToast(`找到 ${filtered.length} 筆符合條件的教材`);
+            }
+        }
 
         // Show different views
         function showView(viewName) {
@@ -3557,10 +4371,27 @@
                 'videos': 'videosView',
                 'quizzes': 'quizzesView',
                 'discussions': 'discussionsView',
+                'consultations': 'consultationsView',
                 'classes': 'classesView',
                 'studentClasses': 'studentClassesView',
                 'classDetail': 'classDetailView',
-                'settings': 'settingsView'
+                'settings': 'settingsView',
+                'moodleCourses': 'moodleCoursesView',
+                'courseDetail': 'courseDetailView',
+                'moodleAssignments': 'moodleAssignmentsView',
+                'assignmentDetail': 'assignmentDetailView',
+                'moodleQuizzes': 'moodleQuizzesView',
+                'quizAttempt': 'quizAttemptView',
+                'moodleForums': 'moodleForumsView',
+                'forumDetail': 'forumDetailView',
+                'moodleGradebook': 'moodleGradebookView',
+                'moodleCalendar': 'moodleCalendarView',
+                'moodleNotifications': 'moodleNotificationsView',
+                'moodleFiles': 'moodleFilesView',
+                'gradebookManagement': 'gradebookManagementView',
+                'questionBank': 'questionBankView',
+                'rolesManagement': 'rolesManagementView',
+                'courseCategories': 'courseCategoriesView'
             };
 
             const viewId = viewMap[viewName] || 'dashboardView';
@@ -3600,27 +4431,50 @@
         }
 
         // Modal functions
+        let currentResourceId = null;
+
         function openResourceModal(resourceId) {
-            const resource = resources.find(r => r.id === resourceId) || resources[0];
-            document.getElementById('modalTitle').textContent = resource.title;
+            const resource = resources.find(r => r.resourceId === resourceId);
+            if (!resource) {
+                showToast('找不到該教材');
+                return;
+            }
+
+            currentResourceId = resourceId;
+            const typeLabel = typeLabels[resource.type] || resource.type;
+            const categoryLabel = categoryLabels[resource.category] || resource.category;
+            const gradeLevelLabel = gradeLevelLabels[resource.gradeLevel] || resource.gradeLevel;
+            const authorName = resource.authorName || resource.authorId || '未知作者';
+
+            // 建立標籤
+            const tags = [];
+            if (gradeLevelLabel) tags.push(gradeLevelLabel);
+            if (categoryLabel) tags.push(categoryLabel);
+            if (resource.tags && Array.isArray(resource.tags)) {
+                tags.push(...resource.tags);
+            }
+
+            document.getElementById('modalTitle').textContent = resource.title || '教材詳情';
             document.getElementById('modalBody').innerHTML = `
                 <div style="margin-bottom: 1rem;">
-                    <span class="tag" style="background: var(--olive); color: var(--cream);">${resource.type}</span>
-                    ${resource.tags.map(t => `<span class="tag">${t}</span>`).join(' ')}
+                    <span class="tag" style="background: var(--olive); color: var(--cream);">${typeLabel}</span>
+                    ${tags.map(t => `<span class="tag">${t}</span>`).join(' ')}
                 </div>
-                <p style="margin-bottom: 1rem; color: var(--gray-500);">${resource.desc}</p>
-                <div style="display: flex; gap: 2rem; margin-bottom: 1rem;">
-                    <div><strong>作者：</strong>${resource.author}</div>
-                    <div><strong>觀看：</strong>${resource.views}</div>
-                    <div><strong>評分：</strong>${resource.rating}</div>
+                <p style="margin-bottom: 1rem; color: var(--gray-500);">${resource.description || '暫無描述'}</p>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+                    <div><strong>作者：</strong>${authorName}</div>
+                    <div><strong>觀看：</strong>${formatViewCount(resource.viewCount)}</div>
+                    <div><strong>評分：</strong>${resource.rating ? resource.rating.toFixed(1) : '-'}</div>
+                    ${resource.duration ? `<div><strong>時長：</strong>${resource.duration} 分鐘</div>` : ''}
+                    ${resource.unitCount ? `<div><strong>單元數：</strong>${resource.unitCount} 個</div>` : ''}
                 </div>
                 <div style="background: var(--gray-100); padding: 1rem; border-radius: 8px;">
-                    <h4 style="margin-bottom: 0.5rem;">建材內容</h4>
+                    <h4 style="margin-bottom: 0.5rem;">教材資訊</h4>
                     <ul style="margin-left: 1.5rem; color: var(--gray-500);">
-                        <li>12 個築橋單元</li>
-                        <li>含練習題與解答</li>
-                        <li>可下載 PDF 講義</li>
-                        <li>附互動測驗</li>
+                        <li>類型：${typeLabel}</li>
+                        <li>分類：${categoryLabel}</li>
+                        <li>適用年級：${gradeLevelLabel}</li>
+                        ${resource.pricingModel === 'free' ? '<li>免費教材</li>' : '<li>需取得授權</li>'}
                     </ul>
                 </div>
             `;
@@ -3664,50 +4518,305 @@
         }
 
         // ========== 影音橋段功能 ==========
-        function openVideoPlayer(videoId) {
+
+        // 影片資料（實際上應從 API 載入）
+        const videoData = {
+            'vid001': {
+                title: '一元二次方程式完整教學',
+                author: 'Benjamin',
+                duration: '45:30',
+                views: '1.2k',
+                youtubeId: 'dQw4w9WgXcQ', // 示範用 YouTube ID
+                description: '從基礎概念到進階應用，完整講解一元二次方程式的解法與應用。',
+                progress: 65
+            },
+            'vid002': {
+                title: '英文時態大全：12種時態一次學會',
+                author: 'Mina',
+                duration: '32:15',
+                views: '856',
+                youtubeId: 'dQw4w9WgXcQ',
+                description: '系統性整理英文12種時態，搭配實例輕鬆理解。',
+                progress: 30
+            },
+            'vid003': {
+                title: '物理實驗技巧：力學篇',
+                author: 'Benjamin',
+                duration: '28:40',
+                views: '543',
+                youtubeId: 'dQw4w9WgXcQ',
+                description: '實驗操作技巧與數據分析方法詳解。',
+                progress: 0
+            },
+            'vid004': {
+                title: '程式設計入門：Python 基礎',
+                author: 'Justin',
+                duration: '52:00',
+                views: '2.1k',
+                youtubeId: 'dQw4w9WgXcQ',
+                description: 'Python 程式設計基礎，從零開始學習程式邏輯。',
+                progress: 100
+            }
+        };
+
+        let currentVideo = null;
+        let videoProgressInterval = null;
+
+        function openVideoPlayer(videoId, videoUrl) {
+            const video = videoData[videoId] || {
+                title: '未知影片',
+                author: '未知作者',
+                duration: '--:--',
+                views: '--',
+                youtubeId: null,
+                description: '',
+                progress: 0
+            };
+
+            currentVideo = { id: videoId, ...video };
+
             // 創建影片播放 Modal
             const modal = document.createElement('div');
             modal.id = 'videoPlayerModal';
-            modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:10000;display:flex;align-items:center;justify-content:center;';
-            modal.innerHTML = `
-                <div style="width:90%;max-width:1000px;background:#000;border-radius:12px;overflow:hidden;">
-                    <div style="aspect-ratio:16/9;background:#1a1a2e;display:flex;align-items:center;justify-content:center;position:relative;">
-                        <div style="text-align:center;color:var(--cream);">
-                            <svg viewBox="0 0 24 24" width="80" height="80" fill="none" stroke="currentColor" stroke-width="1"><circle cx="12" cy="12" r="10"/><polygon points="10,8 16,12 10,16" fill="currentColor"/></svg>
-                            <p style="margin-top:1rem;font-size:1.2rem;">影片播放區域</p>
-                            <p style="font-size:0.9rem;opacity:0.7;">實際整合時將嵌入影片播放器</p>
+            modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:10000;display:flex;flex-direction:column;';
+
+            // 判斷影片來源
+            let playerContent = '';
+            if (video.youtubeId) {
+                // YouTube 嵌入
+                playerContent = `
+                    <iframe
+                        id="videoFrame"
+                        src="https://www.youtube.com/embed/${video.youtubeId}?autoplay=1&enablejsapi=1&start=${Math.floor(video.progress * 27.3)}"
+                        style="width:100%;height:100%;border:none;"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowfullscreen>
+                    </iframe>
+                `;
+            } else if (videoUrl) {
+                // HTML5 Video
+                playerContent = `
+                    <video id="videoElement" controls autoplay style="width:100%;height:100%;">
+                        <source src="${videoUrl}" type="video/mp4">
+                        您的瀏覽器不支援 HTML5 影片播放。
+                    </video>
+                `;
+            } else {
+                // 佔位符
+                playerContent = `
+                    <div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;color:var(--cream);text-align:center;">
+                        <div>
+                            <svg viewBox="0 0 24 24" width="80" height="80" fill="none" stroke="currentColor" stroke-width="1">
+                                <circle cx="12" cy="12" r="10"/>
+                                <polygon points="10,8 16,12 10,16" fill="currentColor"/>
+                            </svg>
+                            <p style="margin-top:1rem;font-size:1.2rem;">影片載入中...</p>
+                            <p style="font-size:0.9rem;opacity:0.7;">請稍候或重新整理頁面</p>
                         </div>
                     </div>
-                    <div style="padding:1.5rem;background:var(--charcoal);color:var(--cream);">
-                        <div style="display:flex;justify-content:space-between;align-items:center;">
-                            <div>
-                                <h3 style="font-size:1.25rem;margin-bottom:0.5rem;">一元二次方程式完整教學</h3>
-                                <p style="font-size:0.9rem;opacity:0.7;">Benjamin · 45:30 · 1.2k 觀看</p>
+                `;
+            }
+
+            modal.innerHTML = `
+                <!-- 頂部工具列 -->
+                <div style="padding:1rem 1.5rem;display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,0.8);">
+                    <div style="display:flex;align-items:center;gap:1rem;">
+                        <button onclick="closeVideoPlayer()" style="background:none;border:none;color:var(--cream);cursor:pointer;display:flex;align-items:center;gap:0.5rem;padding:0.5rem;">
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                            返回
+                        </button>
+                        <span style="color:var(--cream);opacity:0.6;">|</span>
+                        <span style="color:var(--cream);font-weight:500;">${video.title}</span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:1rem;">
+                        <span style="color:var(--cream);opacity:0.7;font-size:0.9rem;">${video.author} · ${video.duration}</span>
+                        <button onclick="toggleVideoFullscreen()" style="background:none;border:none;color:var(--cream);cursor:pointer;padding:0.5rem;" title="全螢幕">
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/>
+                                <line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 影片播放區域 -->
+                <div id="videoContainer" style="flex:1;background:#000;display:flex;align-items:center;justify-content:center;">
+                    ${playerContent}
+                </div>
+
+                <!-- 底部資訊列 -->
+                <div style="padding:1.5rem;background:var(--charcoal);color:var(--cream);">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:2rem;">
+                        <div style="flex:1;">
+                            <h3 style="font-size:1.25rem;margin-bottom:0.5rem;">${video.title}</h3>
+                            <p style="font-size:0.9rem;opacity:0.7;margin-bottom:1rem;">${video.description}</p>
+                            <div style="display:flex;gap:1.5rem;font-size:0.85rem;">
+                                <span>
+                                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px;">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                                    </svg>
+                                    ${video.views} 觀看
+                                </span>
+                                <span>
+                                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px;">
+                                        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                                    </svg>
+                                    ${video.duration}
+                                </span>
+                                <span id="videoProgressText" style="color:var(--olive-light);">
+                                    進度: ${video.progress}%
+                                </span>
                             </div>
-                            <button onclick="closeVideoPlayer()" style="padding:0.75rem 1.5rem;background:var(--olive);color:var(--cream);border:none;border-radius:8px;cursor:pointer;">關閉</button>
+                        </div>
+                        <div style="display:flex;flex-direction:column;gap:0.5rem;">
+                            <button onclick="markVideoComplete('${videoId}')" style="padding:0.75rem 1.5rem;background:var(--olive);color:var(--cream);border:none;border-radius:8px;cursor:pointer;font-weight:500;white-space:nowrap;">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px;">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                                標記完成
+                            </button>
+                            <button onclick="addToPlaylist('${videoId}')" style="padding:0.75rem 1.5rem;background:var(--gray-600);color:var(--cream);border:none;border-radius:8px;cursor:pointer;white-space:nowrap;">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px;">
+                                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                                </svg>
+                                加入播放清單
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 進度條 -->
+                    <div style="margin-top:1rem;">
+                        <div style="height:4px;background:var(--gray-600);border-radius:2px;overflow:hidden;">
+                            <div id="videoProgressBar" style="height:100%;width:${video.progress}%;background:var(--olive);transition:width 0.3s;"></div>
                         </div>
                     </div>
                 </div>
             `;
+
             document.body.appendChild(modal);
-            modal.onclick = (e) => { if (e.target === modal) closeVideoPlayer(); };
+            document.body.style.overflow = 'hidden';
+
+            // 開始追蹤進度（模擬）
+            startProgressTracking();
+
+            // 鍵盤快捷鍵
+            modal.addEventListener('keydown', handleVideoKeyboard);
+            modal.setAttribute('tabindex', '0');
+            modal.focus();
         }
 
         function closeVideoPlayer() {
+            stopProgressTracking();
             const modal = document.getElementById('videoPlayerModal');
-            if (modal) modal.remove();
+            if (modal) {
+                modal.remove();
+                document.body.style.overflow = '';
+            }
+            currentVideo = null;
+        }
+
+        function startProgressTracking() {
+            if (!currentVideo) return;
+
+            // 模擬進度更新（實際上應該從影片播放器 API 取得）
+            videoProgressInterval = setInterval(() => {
+                if (currentVideo && currentVideo.progress < 100) {
+                    currentVideo.progress = Math.min(100, currentVideo.progress + 1);
+
+                    const progressBar = document.getElementById('videoProgressBar');
+                    const progressText = document.getElementById('videoProgressText');
+
+                    if (progressBar) progressBar.style.width = currentVideo.progress + '%';
+                    if (progressText) progressText.textContent = `進度: ${currentVideo.progress}%`;
+
+                    // 更新本地資料
+                    if (videoData[currentVideo.id]) {
+                        videoData[currentVideo.id].progress = currentVideo.progress;
+                    }
+                }
+            }, 3000); // 每 3 秒更新一次（模擬）
+        }
+
+        function stopProgressTracking() {
+            if (videoProgressInterval) {
+                clearInterval(videoProgressInterval);
+                videoProgressInterval = null;
+            }
+        }
+
+        function markVideoComplete(videoId) {
+            if (videoData[videoId]) {
+                videoData[videoId].progress = 100;
+            }
+            if (currentVideo && currentVideo.id === videoId) {
+                currentVideo.progress = 100;
+            }
+
+            const progressBar = document.getElementById('videoProgressBar');
+            const progressText = document.getElementById('videoProgressText');
+
+            if (progressBar) progressBar.style.width = '100%';
+            if (progressText) progressText.textContent = '進度: 100%';
+
+            showToast('已標記為完成！');
+
+            // 更新影片卡片的進度條
+            updateVideoCardProgress(videoId, 100);
+        }
+
+        function updateVideoCardProgress(videoId, progress) {
+            const cards = document.querySelectorAll('#videoGrid .video-card');
+            // 根據 onclick 屬性找到對應的卡片
+            cards.forEach(card => {
+                if (card.getAttribute('onclick')?.includes(videoId)) {
+                    const progressBar = card.querySelector('.video-progress > div');
+                    if (progressBar) {
+                        progressBar.style.width = progress + '%';
+                    }
+                }
+            });
+        }
+
+        function addToPlaylist(videoId) {
+            showToast('已加入播放清單！');
+        }
+
+        function toggleVideoFullscreen() {
+            const container = document.getElementById('videoContainer');
+            if (!container) return;
+
+            if (document.fullscreenElement) {
+                document.exitFullscreen();
+            } else {
+                container.requestFullscreen().catch(err => {
+                    showToast('無法進入全螢幕模式');
+                });
+            }
+        }
+
+        function handleVideoKeyboard(e) {
+            switch(e.key) {
+                case 'Escape':
+                    closeVideoPlayer();
+                    break;
+                case 'f':
+                case 'F':
+                    toggleVideoFullscreen();
+                    break;
+            }
         }
 
         function filterVideos() {
             const search = document.getElementById('videoSearch').value.toLowerCase();
             const category = document.getElementById('videoCategory').value;
+            const duration = document.getElementById('videoDuration').value;
+
             const cards = document.querySelectorAll('#videoGrid .video-card');
             cards.forEach(card => {
                 const title = card.querySelector('h3').textContent.toLowerCase();
-                const matchesSearch = title.includes(search);
+                const matchesSearch = !search || title.includes(search);
                 card.style.display = matchesSearch ? 'block' : 'none';
             });
-            showToast('已篩選影片');
         }
 
         // ========== 測驗題庫功能 ==========
@@ -3718,67 +4827,27 @@
             });
             btn.style.background = 'var(--olive)';
             btn.style.color = 'var(--cream)';
-            showToast(`顯示${btn.textContent}測驗`);
+
+            // 根據分頁篩選測驗
+            const filters = {};
+            if (tabName === 'progress') filters.status = 'in_progress';
+            else if (tabName === 'completed') filters.status = 'completed';
+            else if (tabName === 'not_started') filters.status = 'not_started';
+
+            App.loadQuizzes(filters);
         }
 
+        // 使用 App 的測驗功能
         function startQuiz(quizId) {
-            // 創建測驗 Modal
-            const modal = document.createElement('div');
-            modal.id = 'quizModal';
-            modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:10000;display:flex;align-items:center;justify-content:center;';
-            modal.innerHTML = `
-                <div style="width:90%;max-width:700px;background:var(--cream);border-radius:16px;overflow:hidden;">
-                    <div style="padding:2rem;background:var(--olive);color:var(--cream);">
-                        <div style="display:flex;justify-content:space-between;align-items:center;">
-                            <h2>一元二次方程式測驗</h2>
-                            <span style="font-size:1.5rem;font-weight:700;">第 1/20 題</span>
-                        </div>
-                        <div style="margin-top:1rem;height:6px;background:rgba(255,255,255,0.2);border-radius:3px;">
-                            <div style="width:5%;height:100%;background:var(--cream);border-radius:3px;"></div>
-                        </div>
-                    </div>
-                    <div style="padding:2rem;">
-                        <h3 style="font-size:1.2rem;margin-bottom:1.5rem;line-height:1.6;">請問下列哪個方程式的解為 x = 2 或 x = 3？</h3>
-                        <div style="display:flex;flex-direction:column;gap:0.75rem;">
-                            <label style="display:flex;align-items:center;padding:1rem;background:var(--white);border:2px solid var(--gray-200);border-radius:8px;cursor:pointer;transition:all 0.2s;">
-                                <input type="radio" name="answer" style="margin-right:1rem;width:20px;height:20px;">
-                                <span>A. x² - 5x + 6 = 0</span>
-                            </label>
-                            <label style="display:flex;align-items:center;padding:1rem;background:var(--white);border:2px solid var(--gray-200);border-radius:8px;cursor:pointer;transition:all 0.2s;">
-                                <input type="radio" name="answer" style="margin-right:1rem;width:20px;height:20px;">
-                                <span>B. x² + 5x + 6 = 0</span>
-                            </label>
-                            <label style="display:flex;align-items:center;padding:1rem;background:var(--white);border:2px solid var(--gray-200);border-radius:8px;cursor:pointer;transition:all 0.2s;">
-                                <input type="radio" name="answer" style="margin-right:1rem;width:20px;height:20px;">
-                                <span>C. x² - 5x - 6 = 0</span>
-                            </label>
-                            <label style="display:flex;align-items:center;padding:1rem;background:var(--white);border:2px solid var(--gray-200);border-radius:8px;cursor:pointer;transition:all 0.2s;">
-                                <input type="radio" name="answer" style="margin-right:1rem;width:20px;height:20px;">
-                                <span>D. x² + 5x - 6 = 0</span>
-                            </label>
-                        </div>
-                    </div>
-                    <div style="padding:1.5rem 2rem;border-top:1px solid var(--gray-200);display:flex;justify-content:space-between;">
-                        <button onclick="closeQuiz()" style="padding:0.75rem 1.5rem;background:var(--gray-200);border:none;border-radius:8px;cursor:pointer;">離開測驗</button>
-                        <button onclick="submitAnswer()" style="padding:0.75rem 2rem;background:var(--olive);color:var(--cream);border:none;border-radius:8px;cursor:pointer;font-weight:500;">下一題 →</button>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(modal);
-        }
-
-        function closeQuiz() {
-            const modal = document.getElementById('quizModal');
-            if (modal) modal.remove();
-        }
-
-        function submitAnswer() {
-            showToast('答案已提交！');
-            closeQuiz();
+            App.startQuiz(quizId);
         }
 
         function viewQuizResult(quizId) {
-            showToast('正在載入測驗結果...');
+            App.startQuiz(quizId);
+        }
+
+        function closeQuiz() {
+            App.closeQuiz();
         }
 
         // ========== 互動討論功能 ==========
@@ -3849,6 +4918,131 @@
         function toggleReplies(postId) {
             showToast('正在載入回覆...');
         }
+
+        // ========== 諮詢服務功能 ==========
+        function openNewConsultationModal() {
+            document.getElementById('newConsultationModal').style.display = 'flex';
+        }
+
+        function closeNewConsultationModal() {
+            document.getElementById('newConsultationModal').style.display = 'none';
+            document.getElementById('consultationForm').reset();
+        }
+
+        async function submitConsultation(event) {
+            if (event) event.preventDefault();
+
+            const data = {
+                requestType: document.getElementById('consultationType').value,
+                title: document.getElementById('consultationTitle').value,
+                description: document.getElementById('consultationDescription').value,
+                gradeLevel: document.getElementById('consultationGrade').value,
+                estimatedBudget: document.getElementById('consultationBudget').value
+            };
+
+            if (!data.requestType || !data.title || !data.description) {
+                showToast('請填寫必填欄位');
+                return;
+            }
+
+            const success = await App.createConsultation(data);
+            if (success) {
+                closeNewConsultationModal();
+            }
+        }
+
+        function switchConsultTab(btn, filter) {
+            document.querySelectorAll('.consult-tab').forEach(t => {
+                t.style.background = 'var(--gray-100)';
+                t.style.color = 'var(--gray-600)';
+            });
+            btn.style.background = 'var(--olive)';
+            btn.style.color = 'var(--cream)';
+
+            // 根據篩選條件載入諮詢
+            if (filter === 'all') {
+                App.loadConsultations();
+            } else {
+                App.loadConsultations({ status: filter });
+            }
+        }
+
+        // ========== 設定頁面功能 ==========
+        async function saveProfile() {
+            const data = {
+                displayName: document.getElementById('settingsName').value.trim(),
+                organization: document.getElementById('settingsOrganization').value.trim()
+            };
+
+            if (!data.displayName) {
+                showToast('請輸入姓名');
+                return;
+            }
+
+            await App.updateProfile(data);
+        }
+
+        async function saveNotificationSettings() {
+            const settings = {
+                newMaterial: document.getElementById('notifyNewMaterial').checked,
+                progress: document.getElementById('notifyProgress').checked,
+                expiry: document.getElementById('notifyExpiry').checked,
+                email: document.getElementById('notifyEmail').checked
+            };
+
+            await App.updateNotificationSettings(settings);
+        }
+
+        async function changePassword() {
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            if (!currentPassword || !newPassword || !confirmPassword) {
+                showToast('請填寫所有密碼欄位');
+                return;
+            }
+
+            if (newPassword.length < 6) {
+                showToast('新密碼至少需要 6 個字元');
+                return;
+            }
+
+            if (newPassword !== confirmPassword) {
+                showToast('新密碼與確認密碼不相符');
+                return;
+            }
+
+            const success = await App.changePassword(currentPassword, newPassword);
+            if (success) {
+                // 清空密碼欄位
+                document.getElementById('currentPassword').value = '';
+                document.getElementById('newPassword').value = '';
+                document.getElementById('confirmPassword').value = '';
+            }
+        }
+
+        // 頁面切換時載入對應資料
+        const originalShowView = showView;
+        showView = function(viewName) {
+            originalShowView(viewName);
+
+            // 根據視圖載入相應資料
+            // 注意：consultations 視圖現已由 chat.js 處理
+            if (viewName === 'discussions') {
+                App.loadDiscussions();
+            } else if (viewName === 'classes' || viewName === 'studentClasses') {
+                App.loadClasses();
+            } else if (viewName === 'quizzes') {
+                App.loadQuizzes();
+            } else if (viewName === 'settings') {
+                // 進入設定頁面時重新載入用戶資料
+                const user = API.getCurrentUser();
+                if (user) {
+                    App.updateSettingsUI(user);
+                }
+            }
+        };
 
         function openReplyModal(postId) {
             const modal = document.createElement('div');
@@ -4611,17 +5805,6 @@
             }
         }
 
-        // 當切換到橋隊視圖時載入資料
-        const originalShowView = showView;
-        showView = function(viewName) {
-            originalShowView(viewName);
-            if (viewName === 'classes') {
-                loadClasses();
-            } else if (viewName === 'studentClasses') {
-                loadStudentClasses();
-            }
-        };
-
         // Search functionality
         const searchInput = document.querySelector('.search-box input');
         const searchBox = document.querySelector('.search-box');
@@ -4913,6 +6096,8 @@
         // Initialize - show dashboard
         showView('dashboard');
 
+        // 注意：loadResources() 已移至外部腳本載入後執行
+
         // ===== Login/Register Functions =====
 
         function switchLoginTab(tab) {
@@ -5026,8 +6211,28 @@
         }
     </script>
 
-    <!-- API & App Scripts -->
-    <script src="js/api.js"></script>
-    <script src="js/app.js"></script>
+    <!-- API & App Scripts (v7 - cache bust) -->
+    <script src="js/api.js?v=7"></script>
+    <script src="js/app.js?v=7"></script>
+    <script src="js/moodle-ui.js?v=7"></script>
+    <!-- Socket.io Client (optional - may not be available) -->
+    <script src="/socket.io/socket.io.js" onerror="console.log('[Socket.io] Not available, chat disabled')"></script>
+    <script src="js/chat.js?v=2"></script>
+
+    <!-- 初始化腳本 - 必須在所有外部腳本載入後執行 -->
+    <script>
+        // 在 DOM 準備好且所有腳本載入後初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 載入教材資源（在知識建材庫使用）
+            if (typeof API !== 'undefined' && typeof loadResources === 'function') {
+                loadResources();
+            }
+
+            // 初始化 App（處理已登入用戶的自動重新連線）
+            if (typeof App !== 'undefined' && typeof App.init === 'function') {
+                App.init();
+            }
+        });
+    </script>
 </body>
 </html>

@@ -389,6 +389,310 @@ async function sendClassJoinNotification(teacher, student, classInfo) {
 }
 
 /**
+ * 發送作業截止提醒
+ */
+async function sendAssignmentReminder(user, assignment, course) {
+  const dueDate = new Date(assignment.dueDate);
+  const now = new Date();
+  const hoursRemaining = Math.ceil((dueDate - now) / (1000 * 60 * 60));
+
+  let timeRemaining;
+  let urgencyColor = '#f59e0b'; // 黃色
+  if (hoursRemaining < 24) {
+    timeRemaining = `${hoursRemaining} 小時`;
+    urgencyColor = '#ef4444'; // 紅色
+  } else {
+    timeRemaining = `${Math.ceil(hoursRemaining / 24)} 天`;
+  }
+
+  const content = `
+    <h2 style="margin: 0 0 20px; color: ${urgencyColor}; font-size: 20px;">
+      作業即將截止
+    </h2>
+    <p style="margin: 0 0 15px; color: #4a4a4a; line-height: 1.6;">
+      親愛的 ${user.displayName || user.email}，
+    </p>
+    <p style="margin: 0 0 15px; color: #4a4a4a; line-height: 1.6;">
+      您的作業即將到期，請記得在截止日期前完成提交！
+    </p>
+    <div style="background-color: #fff7ed; padding: 20px; border-radius: 6px; margin: 20px 0; border-left: 4px solid ${urgencyColor};">
+      <p style="margin: 0 0 10px; color: #9a3412;">
+        <strong>作業資訊：</strong>
+      </p>
+      <ul style="margin: 0; padding-left: 20px; color: #9a3412;">
+        <li>作業名稱：${assignment.title}</li>
+        <li>所屬課程：${course.title}</li>
+        <li>截止時間：${dueDate.toLocaleString('zh-TW')}</li>
+        <li>剩餘時間：<strong>${timeRemaining}</strong></li>
+      </ul>
+    </div>
+    <div style="text-align: center; margin: 30px 0;">
+      ${buttonStyle('前往作業', `${PLATFORM_URL}/platform/assignment/${assignment.assignmentId}`, urgencyColor)}
+    </div>
+  `;
+
+  return sendEmail(
+    user.email,
+    `[作業提醒] ${assignment.title} - 剩餘 ${timeRemaining}`,
+    emailTemplate('作業截止提醒', content)
+  );
+}
+
+/**
+ * 發送成績通知
+ */
+async function sendGradeNotification(user, gradeData) {
+  const percentage = Math.round((gradeData.grade / gradeData.maxGrade) * 100);
+  const passed = percentage >= (gradeData.gradeToPass || 60);
+  const statusColor = passed ? '#10b981' : '#ef4444';
+  const statusText = passed ? '恭喜通過！' : '未達及格標準';
+
+  const content = `
+    <h2 style="margin: 0 0 20px; color: ${statusColor}; font-size: 20px;">
+      ${gradeData.type === 'assignment' ? '作業' : '測驗'}成績通知
+    </h2>
+    <p style="margin: 0 0 15px; color: #4a4a4a; line-height: 1.6;">
+      親愛的 ${user.displayName || user.email}，
+    </p>
+    <p style="margin: 0 0 15px; color: #4a4a4a; line-height: 1.6;">
+      您的${gradeData.type === 'assignment' ? '作業' : '測驗'}「${gradeData.title}」已經批改完成。
+    </p>
+    <div style="background-color: ${passed ? '#d1fae5' : '#fee2e2'}; padding: 30px; border-radius: 8px; margin: 20px 0; text-align: center;">
+      <div style="font-size: 48px; font-weight: bold; color: ${statusColor};">
+        ${gradeData.grade}/${gradeData.maxGrade}
+      </div>
+      <div style="font-size: 24px; color: #666; margin-top: 10px;">
+        ${percentage}%
+      </div>
+      <div style="font-size: 18px; color: ${statusColor}; margin-top: 10px; font-weight: 500;">
+        ${statusText}
+      </div>
+    </div>
+    ${gradeData.feedback ? `
+    <div style="background-color: #f8f9fa; padding: 20px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #4F46E5;">
+      <p style="margin: 0 0 10px; color: #4a4a4a;">
+        <strong>教師回饋：</strong>
+      </p>
+      <p style="margin: 0; color: #4a4a4a; line-height: 1.6;">
+        ${gradeData.feedback}
+      </p>
+    </div>
+    ` : ''}
+    <div style="text-align: center; margin: 30px 0;">
+      ${buttonStyle('查看詳情', `${PLATFORM_URL}/platform/grades`)}
+    </div>
+  `;
+
+  return sendEmail(
+    user.email,
+    `[成績通知] ${gradeData.title} - ${percentage}%`,
+    emailTemplate('成績通知', content)
+  );
+}
+
+/**
+ * 發送課程公告通知
+ */
+async function sendCourseAnnouncement(users, announcement, course) {
+  const results = [];
+
+  for (const user of users) {
+    const content = `
+      <h2 style="margin: 0 0 20px; color: #4F46E5; font-size: 20px;">
+        ${course.title} - 新公告
+      </h2>
+      <p style="margin: 0 0 15px; color: #4a4a4a; line-height: 1.6;">
+        親愛的 ${user.displayName || user.email}，
+      </p>
+      <p style="margin: 0 0 15px; color: #4a4a4a; line-height: 1.6;">
+        您報名的課程「${course.title}」發布了新公告：
+      </p>
+      <div style="background-color: #f8f9fa; padding: 20px; border-radius: 6px; margin: 20px 0;">
+        <h3 style="margin: 0 0 10px; color: #1a1a1a;">
+          ${announcement.title}
+        </h3>
+        <div style="color: #4a4a4a; line-height: 1.6;">
+          ${announcement.contentHtml || announcement.content}
+        </div>
+        <p style="margin: 15px 0 0; color: #6c757d; font-size: 12px;">
+          發布者：${announcement.authorName} | ${new Date(announcement.createdAt).toLocaleString('zh-TW')}
+        </p>
+      </div>
+      <div style="text-align: center; margin: 30px 0;">
+        ${buttonStyle('前往課程', `${PLATFORM_URL}/platform/course/${course.courseId}`)}
+      </div>
+    `;
+
+    const result = await sendEmail(
+      user.email,
+      `[${course.title}] ${announcement.title}`,
+      emailTemplate('課程公告', content)
+    );
+    results.push(result);
+  }
+
+  return results;
+}
+
+/**
+ * 發送測驗提醒
+ */
+async function sendQuizReminder(user, quiz, course) {
+  const openDate = new Date(quiz.openDate);
+  const closeDate = new Date(quiz.closeDate);
+  const now = new Date();
+
+  let statusText, urgencyColor;
+  if (now < openDate) {
+    statusText = `將於 ${openDate.toLocaleString('zh-TW')} 開放`;
+    urgencyColor = '#3b82f6';
+  } else {
+    const hoursRemaining = Math.ceil((closeDate - now) / (1000 * 60 * 60));
+    if (hoursRemaining < 24) {
+      statusText = `剩餘 ${hoursRemaining} 小時截止`;
+      urgencyColor = '#ef4444';
+    } else {
+      statusText = `剩餘 ${Math.ceil(hoursRemaining / 24)} 天截止`;
+      urgencyColor = '#f59e0b';
+    }
+  }
+
+  const content = `
+    <h2 style="margin: 0 0 20px; color: ${urgencyColor}; font-size: 20px;">
+      測驗提醒
+    </h2>
+    <p style="margin: 0 0 15px; color: #4a4a4a; line-height: 1.6;">
+      親愛的 ${user.displayName || user.email}，
+    </p>
+    <p style="margin: 0 0 15px; color: #4a4a4a; line-height: 1.6;">
+      提醒您有測驗需要完成！
+    </p>
+    <div style="background-color: #f8f9fa; padding: 20px; border-radius: 6px; margin: 20px 0; border-left: 4px solid ${urgencyColor};">
+      <ul style="margin: 0; padding-left: 20px; color: #4a4a4a;">
+        <li>測驗名稱：${quiz.title}</li>
+        <li>所屬課程：${course.title}</li>
+        <li>時間限制：${quiz.timeLimit ? `${quiz.timeLimit} 分鐘` : '無限制'}</li>
+        <li>最多嘗試：${quiz.maxAttempts || '無限制'} 次</li>
+        <li>及格分數：${quiz.passingGrade || 60}%</li>
+        <li>狀態：<strong style="color: ${urgencyColor};">${statusText}</strong></li>
+      </ul>
+    </div>
+    <div style="text-align: center; margin: 30px 0;">
+      ${buttonStyle('開始測驗', `${PLATFORM_URL}/platform/quiz/${quiz.quizId}`, urgencyColor)}
+    </div>
+  `;
+
+  return sendEmail(
+    user.email,
+    `[測驗提醒] ${quiz.title} - ${statusText}`,
+    emailTemplate('測驗提醒', content)
+  );
+}
+
+/**
+ * 發送學習進度摘要（每日/每週）
+ */
+async function sendLearningSummary(user, summaryData) {
+  const periodText = summaryData.period === 'weekly' ? '每週' : '每日';
+
+  const content = `
+    <h2 style="margin: 0 0 20px; color: #4F46E5; font-size: 20px;">
+      您的${periodText}學習報告
+    </h2>
+    <p style="margin: 0 0 15px; color: #4a4a4a; line-height: 1.6;">
+      親愛的 ${user.displayName || user.email}，
+    </p>
+    <p style="margin: 0 0 15px; color: #4a4a4a; line-height: 1.6;">
+      以下是您${summaryData.period === 'weekly' ? '這週' : '今天'}的學習概況：
+    </p>
+
+    <div style="display: flex; justify-content: space-around; margin: 20px 0; text-align: center;">
+      <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; flex: 1; margin: 0 5px;">
+        <div style="font-size: 32px; font-weight: bold; color: #4F46E5;">${summaryData.studyHours || 0}</div>
+        <div style="color: #666; font-size: 14px;">學習時數</div>
+      </div>
+      <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; flex: 1; margin: 0 5px;">
+        <div style="font-size: 32px; font-weight: bold; color: #10b981;">${summaryData.completedActivities || 0}</div>
+        <div style="color: #666; font-size: 14px;">完成活動</div>
+      </div>
+      <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; flex: 1; margin: 0 5px;">
+        <div style="font-size: 32px; font-weight: bold; color: #f59e0b;">${summaryData.assignmentsSubmitted || 0}</div>
+        <div style="color: #666; font-size: 14px;">提交作業</div>
+      </div>
+    </div>
+
+    ${summaryData.courses && summaryData.courses.length > 0 ? `
+    <h3 style="margin: 25px 0 15px; color: #1a1a1a;">課程進度</h3>
+    <div style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
+      ${summaryData.courses.map(c => `
+        <div style="margin-bottom: 15px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+            <span>${c.title}</span>
+            <span style="font-weight: bold;">${c.progress}%</span>
+          </div>
+          <div style="background: #e5e7eb; height: 8px; border-radius: 4px;">
+            <div style="background: #4F46E5; height: 100%; border-radius: 4px; width: ${c.progress}%;"></div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+    ` : ''}
+
+    ${summaryData.upcomingDeadlines && summaryData.upcomingDeadlines.length > 0 ? `
+    <h3 style="margin: 25px 0 15px; color: #ef4444;">即將到期</h3>
+    <ul style="color: #4a4a4a; padding-left: 20px;">
+      ${summaryData.upcomingDeadlines.map(d => `
+        <li><strong>${d.title}</strong> - ${new Date(d.dueDate).toLocaleDateString('zh-TW')}</li>
+      `).join('')}
+    </ul>
+    ` : ''}
+
+    <div style="text-align: center; margin: 30px 0;">
+      ${buttonStyle('查看完整報告', `${PLATFORM_URL}/platform/dashboard`)}
+    </div>
+  `;
+
+  return sendEmail(
+    user.email,
+    `[BeyondBridge] 您的${periodText}學習報告`,
+    emailTemplate(`${periodText}學習報告`, content)
+  );
+}
+
+/**
+ * 批量發送郵件
+ */
+async function sendBulkEmails(emails, options = {}) {
+  const { batchSize = 10, delay = 1000 } = options;
+  const results = [];
+
+  for (let i = 0; i < emails.length; i += batchSize) {
+    const batch = emails.slice(i, i + batchSize);
+
+    const batchResults = await Promise.all(
+      batch.map(email => sendEmail(email.to, email.subject, email.html, email.text))
+    );
+
+    results.push(...batchResults);
+
+    // 避免速率限制
+    if (i + batchSize < emails.length) {
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+
+  const successCount = results.filter(r => r.success).length;
+  console.log(`[Email] 批量發送完成: ${successCount}/${emails.length} 成功`);
+
+  return {
+    total: emails.length,
+    success: successCount,
+    failed: emails.length - successCount,
+    results
+  };
+}
+
+/**
  * 發送密碼重設 Email
  */
 async function sendPasswordResetEmail(user, resetToken) {
@@ -451,16 +755,35 @@ function getConsultationStatusName(status) {
 }
 
 module.exports = {
+  // 核心函數
   sendEmail,
+  sendBulkEmails,
   emailTemplate,
   buttonStyle,
+
+  // 用戶通知
   sendWelcomeEmail,
+  sendPasswordResetEmail,
+
+  // 授權相關
   sendLicenseExpiryReminder,
   sendLicenseApproved,
+
+  // 諮詢相關
   sendConsultationUpdate,
+
+  // 學習相關 (Moodle-style)
+  sendAssignmentReminder,
+  sendGradeNotification,
+  sendCourseAnnouncement,
+  sendQuizReminder,
+  sendLearningSummary,
+
+  // 社群相關
   sendDiscussionReplyNotification,
   sendClassJoinNotification,
-  sendPasswordResetEmail,
+
+  // 輔助函數
   getConsultationTypeName,
   getConsultationStatusName
 };

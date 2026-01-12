@@ -784,160 +784,130 @@ router.put('/licenses/:id/approve', async (req, res) => {
 
 /**
  * GET /api/admin/analytics/overview
- * 平台分析概覽 - 完整儀表板數據
+ * 平台分析概覽
  */
 router.get('/analytics/overview', async (req, res) => {
   try {
-    // 並行查詢所有數據
-    const [users, resources, licenses, chatRooms] = await Promise.all([
+    const [users, resources, licenses] = await Promise.all([
       db.scan({ filter: { expression: 'entityType = :type', values: { ':type': 'USER' } } }),
       db.scan({ filter: { expression: 'entityType = :type', values: { ':type': 'RESOURCE' } } }),
-      db.scan({ filter: { expression: 'entityType = :type', values: { ':type': 'LICENSE' } } }),
-      db.scan({ filter: { expression: 'entityType = :type', values: { ':type': 'CHAT_ROOM' } } })
+      db.scan({ filter: { expression: 'entityType = :type', values: { ':type': 'LICENSE' } } })
     ]);
 
     const now = new Date();
-    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+    const thisMonth = now.toISOString().substring(0, 7);
+    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().substring(0, 7);
 
-    // ========== 關鍵指標 ==========
-    const totalUsers = users.length;
-    const newUsersThisMonth = users.filter(u =>
-      u.createdAt && new Date(u.createdAt) >= thisMonthStart
-    ).length;
-    const newUsersLastMonth = users.filter(u =>
-      u.createdAt && new Date(u.createdAt) >= lastMonthStart && new Date(u.createdAt) <= lastMonthEnd
-    ).length;
+    // 按月統計用戶增長
+    const usersByMonth = {};
+    let newUsersThisMonth = 0;
+    let newUsersLastMonth = 0;
+    users.forEach(u => {
+      const month = u.createdAt?.substring(0, 7) || 'unknown';
+      usersByMonth[month] = (usersByMonth[month] || 0) + 1;
+      if (month === thisMonth) newUsersThisMonth++;
+      if (month === lastMonth) newUsersLastMonth++;
+    });
 
-    const publishedResources = resources.filter(r => r.status === 'published');
-    const totalResources = publishedResources.length;
-    const resourcesLastMonth = publishedResources.filter(r =>
-      r.publishedAt && new Date(r.publishedAt) <= lastMonthEnd
-    ).length;
-
-    const activeLicenses = licenses.filter(l => l.status === 'active').length;
-    const licensesLastMonth = licenses.filter(l =>
-      l.status === 'active' && l.approvedAt && new Date(l.approvedAt) <= lastMonthEnd
-    ).length;
-
-    // 客服評分
-    const ratedChats = chatRooms.filter(c => c.rating && c.rating.score);
-    const avgCustomerRating = ratedChats.length > 0
-      ? ratedChats.reduce((sum, c) => sum + c.rating.score, 0) / ratedChats.length
-      : 0;
-
-    // ========== 用戶成長趨勢（過去6個月）==========
+    // 生成用戶增長趨勢（最近6個月）
     const userGrowthTrend = [];
-    for (let i = 5; i >= 0; i--) {
-      const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const monthKey = monthDate.toISOString().substring(0, 7);
-      const monthLabel = `${monthDate.getMonth() + 1}月`;
-
-      const usersUpToMonth = users.filter(u =>
-        u.createdAt && new Date(u.createdAt) <= new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0)
-      ).length;
-
-      const newUsersInMonth = users.filter(u => {
-        if (!u.createdAt) return false;
-        const created = new Date(u.createdAt);
-        return created.getFullYear() === monthDate.getFullYear() &&
-               created.getMonth() === monthDate.getMonth();
-      }).length;
-
+    let cumulativeTotal = 0;
+    const sortedMonths = Object.keys(usersByMonth).sort();
+    for (let i = 0; i < 6; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+      const monthKey = d.toISOString().substring(0, 7);
+      const monthLabel = `${d.getMonth() + 1}月`;
+      const newUsers = usersByMonth[monthKey] || 0;
+      cumulativeTotal += newUsers;
       userGrowthTrend.push({
-        month: monthKey,
         label: monthLabel,
-        total: usersUpToMonth,
-        newUsers: newUsersInMonth
+        total: users.filter(u => u.createdAt && u.createdAt.substring(0, 7) <= monthKey).length,
+        newUsers: newUsers
       });
     }
 
-    // ========== 用戶角色分布 ==========
-    const userRoles = { educator: 0, student: 0, trainer: 0, admin: 0 };
+    // 資源分類統計
+    const resourcesByCategory = {};
+    resources.forEach(r => {
+      const cat = r.category || 'other';
+      resourcesByCategory[cat] = (resourcesByCategory[cat] || 0) + 1;
+    });
+    const resourceCategories = Object.entries(resourcesByCategory).map(([name, count]) => ({
+      name,
+      count
+    }));
+
+    // 用戶角色分布
+    const userRoleCount = {};
     users.forEach(u => {
       const role = u.role || 'student';
-      if (userRoles.hasOwnProperty(role)) {
-        userRoles[role]++;
-      }
+      userRoleCount[role] = (userRoleCount[role] || 0) + 1;
     });
+    const userRoles = Object.entries(userRoleCount).map(([role, count]) => ({
+      role,
+      count
+    }));
 
-    // ========== 教材分類分布 ==========
-    const categoryLabels = {
-      math: '數學',
-      chinese: '國文',
-      english: '英文',
-      science: '自然科學',
-      social: '社會科學',
-      business: '商業管理',
-      technology: '資訊科技',
-      arts: '藝術人文',
-      other: '其他'
-    };
-    const resourceCategories = {};
-    publishedResources.forEach(r => {
-      const cat = r.category || 'other';
-      resourceCategories[cat] = (resourceCategories[cat] || 0) + 1;
-    });
-
-    // ========== 授權狀態分布 ==========
-    const licenseStatus = { pending: 0, active: 0, expired: 0, rejected: 0 };
+    // 授權狀態統計
+    const licenseStatusCount = { active: 0, pending: 0, expired: 0 };
     licenses.forEach(l => {
       const status = l.status || 'pending';
-      if (licenseStatus.hasOwnProperty(status)) {
-        licenseStatus[status]++;
+      if (licenseStatusCount[status] !== undefined) {
+        licenseStatusCount[status]++;
       }
     });
+    const licenseStatus = Object.entries(licenseStatusCount).map(([status, count]) => ({
+      status,
+      count
+    }));
 
-    // ========== 熱門教材 Top 5 ==========
-    const topResources = publishedResources
+    // 熱門資源
+    const topResources = resources
       .sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
       .slice(0, 5)
       .map(r => ({
-        resourceId: r.resourceId,
         title: r.title,
-        category: r.category,
-        viewCount: r.viewCount || 0,
-        rating: r.averageRating || 0,
-        licensedCount: r.licensedCount || 0
+        views: r.viewCount || 0,
+        rating: r.averageRating || 0
       }));
 
-    // ========== 客服統計 ==========
-    const closedChats = chatRooms.filter(c => c.status === 'closed');
-    const satisfiedChats = ratedChats.filter(c => c.rating.score >= 4);
-    const supportStats = {
-      totalChats: chatRooms.length,
-      closedChats: closedChats.length,
-      avgRating: avgCustomerRating.toFixed(1),
-      totalRatings: ratedChats.length,
-      satisfactionRate: ratedChats.length > 0
-        ? Math.round((satisfiedChats.length / ratedChats.length) * 100)
-        : 0
-    };
+    // 計算資源數量變化
+    const resourcesThisMonth = resources.filter(r => r.createdAt?.substring(0, 7) === thisMonth).length;
+    const resourcesLastMonth = resources.filter(r => r.createdAt?.substring(0, 7) === lastMonth).length;
 
-    // ========== 總瀏覽次數 ==========
-    const totalViews = resources.reduce((sum, r) => sum + (r.viewCount || 0), 0);
+    // 計算授權數量變化
+    const activeLicenses = licenses.filter(l => l.status === 'active').length;
+    const licensesLastMonth = licenses.filter(l => l.createdAt?.substring(0, 7) === lastMonth && l.status === 'active').length;
+
+    // 平均評分
+    const avgRating = resources.length > 0
+      ? resources.reduce((sum, r) => sum + (r.averageRating || 0), 0) / resources.length
+      : 0;
 
     res.json({
       success: true,
       data: {
         metrics: {
-          totalUsers,
+          totalUsers: users.length,
           newUsersThisMonth,
           newUsersLastMonth,
-          totalResources,
-          resourcesLastMonth: resourcesLastMonth || totalResources,
+          totalResources: resources.length,
+          resourcesLastMonth,
           activeLicenses,
-          licensesLastMonth: licensesLastMonth || activeLicenses,
-          avgCustomerRating: parseFloat(avgCustomerRating.toFixed(1)),
-          totalViews
+          licensesLastMonth,
+          avgCustomerRating: Math.round(avgRating * 10) / 10
         },
         userGrowthTrend,
         userRoles,
         resourceCategories,
         licenseStatus,
         topResources,
-        supportStats
+        supportStats: {
+          totalChats: 0,
+          closedChats: 0,
+          avgRating: 0,
+          satisfactionRate: 0
+        }
       }
     });
 
