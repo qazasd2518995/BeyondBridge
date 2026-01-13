@@ -699,15 +699,15 @@ const API = {
       });
     },
 
-    async answer(quizId, attemptId, questionId, answer) {
+    async answer(quizId, attemptId, data) {
       return API.request(`/quizzes/${quizId}/attempts/${attemptId}/answer`, {
-        method: 'POST',
-        body: { questionId, answer }
+        method: 'PUT',
+        body: data
       });
     },
 
-    async submit(quizId, answers, timeSpent = 0) {
-      return API.request(`/quizzes/${quizId}/submit`, {
+    async submit(quizId, attemptId, answers, timeSpent = 0) {
+      return API.request(`/quizzes/${quizId}/attempts/${attemptId}/submit`, {
         method: 'POST',
         body: { answers, timeSpent }
       });
