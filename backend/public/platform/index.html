@@ -1193,7 +1193,7 @@
             <nav class="sidebar-nav">
                 <div class="nav-section">
                     <div class="nav-section-title">主要功能</div>
-                    <a href="#" class="nav-item active">
+                    <a href="#" class="nav-item active" onclick="showView('dashboard')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
                             <polyline points="9,22 9,12 15,12 15,22"/>
@@ -1208,7 +1208,7 @@
                         知識建材庫
                         <span class="nav-badge">128</span>
                     </a>
-                    <a href="#" class="nav-item">
+                    <a href="#" class="nav-item" onclick="showView('courses')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polygon points="12,2 2,7 12,12 22,7"/>
                             <polyline points="2,17 12,22 22,17"/>
@@ -1216,7 +1216,7 @@
                         </svg>
                         我的課程
                     </a>
-                    <a href="#" class="nav-item">
+                    <a href="#" class="nav-item" onclick="showView('licenses')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
                             <polyline points="14,2 14,8 20,8"/>
@@ -1239,14 +1239,14 @@
 
                 <div class="nav-section">
                     <div class="nav-section-title">學習工具</div>
-                    <a href="#" class="nav-item">
+                    <a href="#" class="nav-item" onclick="showView('videos')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polygon points="23,7 16,12 23,17"/>
                             <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
                         </svg>
                         影音橋段
                     </a>
-                    <a href="#" class="nav-item">
+                    <a href="#" class="nav-item" onclick="showView('quizzes')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <circle cx="12" cy="12" r="10"/>
                             <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/>
@@ -1254,7 +1254,7 @@
                         </svg>
                         測驗題庫
                     </a>
-                    <a href="#" class="nav-item">
+                    <a href="#" class="nav-item" onclick="showView('discussions')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
                         </svg>
@@ -1434,14 +1434,14 @@
 
                 <div class="nav-section">
                     <div class="nav-section-title">建橋者檔案</div>
-                    <a href="#" class="nav-item">
+                    <a href="#" class="nav-item" onclick="showView('settings')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <circle cx="12" cy="12" r="3"/>
                             <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
                         </svg>
                         橋樑設定
                     </a>
-                    <a href="#" class="nav-item">
+                    <a href="#" class="nav-item" onclick="showView('logout')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
                             <polyline points="16,17 21,12 16,7"/>
@@ -4750,6 +4750,40 @@
             }
 
             document.getElementById('pageTitle').innerHTML = pageTitles[viewName] || pageTitles['dashboard'];
+
+            // 自動更新側邊欄 nav-item 的 active 狀態
+            updateNavActiveState(viewName);
+        }
+
+        // 更新側邊欄導航的 active 狀態
+        function updateNavActiveState(viewName) {
+            // 移除所有 nav-item 的 active 狀態
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+
+            // 找到對應的 nav-item 並設為 active
+            // 通過檢查 onclick 屬性中是否包含 viewName
+            document.querySelectorAll('.nav-item').forEach(item => {
+                const onclick = item.getAttribute('onclick') || '';
+                // 檢查 onclick 是否包含 showView('viewName') 或 navigateTo(this, 'viewName')
+                if (onclick.includes(`showView('${viewName}')`) ||
+                    onclick.includes(`navigateTo(this, '${viewName}')`)) {
+                    item.classList.add('active');
+                }
+            });
+
+            // 特殊處理：dashboard 對應第一個 nav-item (我的學習)
+            if (viewName === 'dashboard') {
+                const dashboardNav = document.querySelector('.nav-item.active') ||
+                                     document.querySelector('.sidebar-nav .nav-item');
+                if (dashboardNav && !document.querySelector('.nav-item.active')) {
+                    // 找到「我的學習」按鈕
+                    document.querySelectorAll('.nav-item').forEach(item => {
+                        if (item.textContent.includes('我的學習')) {
+                            item.classList.add('active');
+                        }
+                    });
+                }
+            }
         }
 
         // 導航到指定頁面並更新 active 狀態
