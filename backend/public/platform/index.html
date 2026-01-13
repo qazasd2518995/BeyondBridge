@@ -8,6 +8,10 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600;700&family=Noto+Serif+TC:wght@400;500;600;700&family=DM+Sans:wght@400;500;600&family=Noto+Sans+TC:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/moodle-ui.css?v=2">
+    <!-- Quill.js 富文本編輯器 -->
+    <link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet">
+    <!-- Chart.js 圖表庫 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <style>
         :root {
             /* 品牌主色 - 橄欖綠系列 */
@@ -1154,7 +1158,8 @@
         @media (max-width: 768px) {
             .sidebar {
                 transform: translateX(-100%);
-                transition: transform 0.3s ease;
+                transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                z-index: 1001;
             }
 
             .sidebar.open {
@@ -1175,6 +1180,72 @@
 
             .search-box {
                 display: none;
+            }
+
+            /* 半透明遮罩層 */
+            .sidebar-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                z-index: 1000;
+                opacity: 0;
+                visibility: hidden;
+                transition: opacity 0.3s ease, visibility 0.3s ease;
+                -webkit-tap-highlight-color: transparent;
+            }
+
+            .sidebar-overlay.visible {
+                opacity: 1;
+                visibility: visible;
+            }
+
+            /* 觸控目標最小 44x44px */
+            .nav-item {
+                min-height: 44px;
+                padding: 0.875rem 1rem;
+            }
+
+            .nav-item svg {
+                width: 22px;
+                height: 22px;
+            }
+
+            /* 側邊欄內的觸控優化 */
+            .sidebar-header {
+                padding: 1.25rem 1rem;
+            }
+
+            .sidebar-logo {
+                min-height: 44px;
+                display: flex;
+                align-items: center;
+            }
+
+            .sidebar-footer {
+                padding: 1rem;
+            }
+
+            .user-profile {
+                min-height: 52px;
+                padding: 0.75rem;
+            }
+
+            /* 改善側邊欄滾動體驗 */
+            .sidebar-nav {
+                -webkit-overflow-scrolling: touch;
+                overscroll-behavior: contain;
+            }
+
+            /* 漢堡按鈕觸控目標 */
+            .mobile-menu-btn {
+                min-width: 44px;
+                min-height: 44px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
             }
         }
     </style>
@@ -1463,11 +1534,19 @@
             </div>
         </aside>
 
+        <!-- 行動端側邊欄遮罩層 -->
+        <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
         <!-- Main Content -->
         <main class="main-content">
             <!-- Top Bar -->
             <header class="top-bar">
-                <h1 class="page-title" id="pageTitle">儀表板 <span>Dashboard</span></h1>
+                <div class="page-header-wrapper">
+                    <nav id="breadcrumbNav" class="breadcrumb-nav" style="display: none;">
+                        <!-- 動態生成的麵包屑導航 -->
+                    </nav>
+                    <h1 class="page-title" id="pageTitle">儀表板 <span>Dashboard</span></h1>
+                </div>
                 <div class="top-bar-actions">
                     <div class="search-box">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1488,6 +1567,42 @@
 
             <!-- Dashboard View -->
             <div class="dashboard" id="dashboardView">
+                <!-- 個人化問候區域 -->
+                <div class="dashboard-greeting" id="dashboardGreeting">
+                    <div class="greeting-content">
+                        <div class="greeting-text">
+                            <h1 id="greetingMessage">你好！</h1>
+                            <p id="greetingSubtext">今天是學習的好日子</p>
+                        </div>
+                        <div class="greeting-stats">
+                            <div class="progress-ring-container">
+                                <div class="progress-ring" id="overallProgressRing">
+                                    <svg viewBox="0 0 36 36">
+                                        <circle class="progress-bg" cx="18" cy="18" r="15.915"/>
+                                        <circle class="progress-fill" cx="18" cy="18" r="15.915"
+                                                stroke-dasharray="100" stroke-dashoffset="100" id="progressCircle"/>
+                                    </svg>
+                                    <div class="progress-text">
+                                        <span class="progress-value" id="progressValue">0%</span>
+                                        <span class="progress-label">總完成率</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="greeting-stat-item">
+                                <div class="greeting-stat-value" id="greetingCourses">0</div>
+                                <div class="greeting-stat-label">進行中課程</div>
+                            </div>
+                            <div class="greeting-stat-item">
+                                <div class="greeting-stat-value" id="greetingHours">0h</div>
+                                <div class="greeting-stat-label">本週學習</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 緊急提醒區域 (48小時內到期) -->
+                <div id="urgentAlertContainer"></div>
+
                 <!-- Urgent Deadlines Section - Only for Students -->
                 <div class="urgent-deadlines-section" id="urgentDeadlinesSection" style="margin-bottom: 1.5rem;">
                     <div class="card" style="border-left: 4px solid var(--terracotta);">
@@ -1500,7 +1615,7 @@
                                 </svg>
                                 即將截止
                             </h2>
-                            <span class="deadline-count" style="background: var(--terracotta); color: white; padding: 2px 10px; border-radius: 12px; font-size: 0.75rem;">0 項</span>
+                            <span class="deadline-count" style="background: var(--terracotta); color: white; padding: 2px 10px; border-radius: 12px; font-size: 0.75rem;" id="deadlineCount">0 項</span>
                         </div>
                         <div class="card-body">
                             <div class="deadline-list" id="deadlineList">
@@ -1726,6 +1841,30 @@
 
             <!-- Teacher Dashboard View -->
             <div class="dashboard" id="teacherDashboardView" style="display: none;">
+                <!-- 教師概覽區域 -->
+                <div class="dashboard-greeting teacher-greeting" id="teacherDashboardGreeting">
+                    <div class="greeting-content">
+                        <div class="greeting-text">
+                            <h1 id="teacherGreetingMessage">歡迎回來！</h1>
+                            <p id="teacherGreetingSubtext">今日的教學任務概覽</p>
+                        </div>
+                        <div class="greeting-stats">
+                            <div class="greeting-stat-item">
+                                <div class="greeting-stat-value" id="teacherPendingGrading">0</div>
+                                <div class="greeting-stat-label">待評分</div>
+                            </div>
+                            <div class="greeting-stat-item">
+                                <div class="greeting-stat-value" id="teacherStudentCount">0</div>
+                                <div class="greeting-stat-label">學生數</div>
+                            </div>
+                            <div class="greeting-stat-item">
+                                <div class="greeting-stat-value" id="teacherCourseCount">0</div>
+                                <div class="greeting-stat-label">課程數</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Pending Tasks Section -->
                 <div class="pending-tasks-section" style="margin-bottom: 1.5rem;">
                     <div class="card" style="border-left: 4px solid var(--olive);">
@@ -1891,8 +2030,33 @@
                         </div>
                     </div>
 
-                    <!-- Right Column: Student Alerts & Activity -->
+                    <!-- Right Column: Grading Queue, Student Alerts & Activity -->
                     <div>
+                        <!-- Grading Queue -->
+                        <div class="card grading-queue" style="margin-bottom: 1.5rem;">
+                            <div class="card-header">
+                                <h2 class="card-title" style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="var(--olive)" stroke-width="2" style="width: 20px; height: 20px;">
+                                        <path d="M9 11l3 3L22 4"/>
+                                        <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+                                    </svg>
+                                    待評分佇列
+                                </h2>
+                                <a href="#" class="card-action" onclick="showView('moodleAssignments'); MoodleUI.loadAssignments();">查看全部</a>
+                            </div>
+                            <div class="card-body" style="padding: 0;">
+                                <div id="gradingQueueList">
+                                    <div class="empty-state" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width: 48px; height: 48px; margin-bottom: 0.5rem; opacity: 0.5;">
+                                            <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+                                            <polyline points="22,4 12,14.01 9,11.01"/>
+                                        </svg>
+                                        <p>目前沒有待評分的作業</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Student Alerts -->
                         <div class="card" style="margin-bottom: 1.5rem;">
                             <div class="card-header">
@@ -5483,9 +5647,19 @@
         showView = function(viewName) {
             originalShowView(viewName);
 
+            // 更新麵包屑導航
+            if (typeof MoodleUI !== 'undefined' && MoodleUI.updateBreadcrumb) {
+                MoodleUI.updateBreadcrumb(viewName);
+            }
+
             // 根據視圖載入相應資料
             // 注意：consultations 視圖現已由 chat.js 處理
-            if (viewName === 'discussions') {
+            if (viewName === 'dashboard') {
+                // 初始化學生儀表板
+                if (typeof MoodleUI !== 'undefined' && MoodleUI.initStudentDashboard) {
+                    MoodleUI.initStudentDashboard();
+                }
+            } else if (viewName === 'discussions') {
                 App.loadDiscussions();
             } else if (viewName === 'classes' || viewName === 'studentClasses') {
                 App.loadClasses();
@@ -5496,6 +5670,11 @@
                 const user = API.getCurrentUser();
                 if (user) {
                     App.updateSettingsUI(user);
+                }
+            } else if (viewName === 'teacherDashboard') {
+                // 初始化教師儀表板
+                if (typeof MoodleUI !== 'undefined' && MoodleUI.initTeacherDashboard) {
+                    MoodleUI.initTeacherDashboard();
                 }
             }
         };
@@ -6423,7 +6602,7 @@
             });
         });
 
-        // Mobile menu toggle
+        // Mobile menu toggle with overlay and gesture support
         const mobileMenuBtn = document.createElement('button');
         mobileMenuBtn.className = 'mobile-menu-btn';
         mobileMenuBtn.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>';
@@ -6431,17 +6610,112 @@
         const topBarActions = document.querySelector('.top-bar-actions');
         topBarActions.insertBefore(mobileMenuBtn, topBarActions.firstChild);
 
-        mobileMenuBtn.addEventListener('click', () => {
-            document.querySelector('.sidebar').classList.toggle('open');
-        });
+        const sidebar = document.querySelector('.sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+        // 開啟/關閉側邊欄的函數
+        function openSidebar() {
+            sidebar.classList.add('open');
+            sidebarOverlay.classList.add('visible');
+            document.body.style.overflow = 'hidden'; // 防止背景滾動
+        }
+
+        function closeSidebar() {
+            sidebar.classList.remove('open');
+            sidebarOverlay.classList.remove('visible');
+            document.body.style.overflow = '';
+        }
+
+        function toggleSidebar() {
+            if (sidebar.classList.contains('open')) {
+                closeSidebar();
+            } else {
+                openSidebar();
+            }
+        }
+
+        // 漢堡按鈕點擊
+        mobileMenuBtn.addEventListener('click', toggleSidebar);
+
+        // 遮罩層點擊關閉
+        sidebarOverlay.addEventListener('click', closeSidebar);
 
         // Close sidebar on mobile when nav item clicked
         document.querySelectorAll('.nav-item').forEach(item => {
             item.addEventListener('click', () => {
                 if (window.innerWidth <= 768) {
-                    document.querySelector('.sidebar').classList.remove('open');
+                    closeSidebar();
                 }
             });
+        });
+
+        // 滑動手勢支援
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let touchMoveX = 0;
+        let isSwiping = false;
+        const SWIPE_THRESHOLD = 50; // 滑動觸發閾值
+        const EDGE_THRESHOLD = 30; // 邊緣觸發區域
+
+        document.addEventListener('touchstart', (e) => {
+            if (window.innerWidth > 768) return;
+
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+            isSwiping = false;
+
+            // 如果側邊欄已開啟，允許從任何位置開始滑動
+            // 如果側邊欄關閉，只允許從左邊緣開始滑動
+            if (!sidebar.classList.contains('open') && touchStartX > EDGE_THRESHOLD) {
+                return;
+            }
+            isSwiping = true;
+        }, { passive: true });
+
+        document.addEventListener('touchmove', (e) => {
+            if (!isSwiping || window.innerWidth > 768) return;
+
+            touchMoveX = e.touches[0].clientX;
+            const touchMoveY = e.touches[0].clientY;
+
+            // 檢查是否為水平滑動（避免與垂直滾動衝突）
+            const deltaX = touchMoveX - touchStartX;
+            const deltaY = touchMoveY - touchStartY;
+
+            if (Math.abs(deltaY) > Math.abs(deltaX)) {
+                isSwiping = false;
+                return;
+            }
+        }, { passive: true });
+
+        document.addEventListener('touchend', () => {
+            if (!isSwiping || window.innerWidth > 768) return;
+
+            const deltaX = touchMoveX - touchStartX;
+
+            if (sidebar.classList.contains('open')) {
+                // 側邊欄開啟時，向左滑動關閉
+                if (deltaX < -SWIPE_THRESHOLD) {
+                    closeSidebar();
+                }
+            } else {
+                // 側邊欄關閉時，向右滑動開啟
+                if (deltaX > SWIPE_THRESHOLD) {
+                    openSidebar();
+                }
+            }
+
+            // 重置
+            touchStartX = 0;
+            touchMoveX = 0;
+            isSwiping = false;
+        }, { passive: true });
+
+        // ESC 鍵關閉側邊欄
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && window.innerWidth <= 768 && sidebar.classList.contains('open')) {
+                closeSidebar();
+            }
         });
 
         // Activity items click
@@ -6666,6 +6940,9 @@
             btn.textContent = '開始探索';
         }
     </script>
+
+    <!-- Quill.js 富文本編輯器 -->
+    <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
 
     <!-- API & App Scripts (v7 - cache bust) -->
     <script src="js/api.js?v=7"></script>

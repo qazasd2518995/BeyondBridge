@@ -6786,3 +6786,1628 @@
     gap: 1rem;
   }
 }
+
+/* ==================== Quill 富文本編輯器樣式 ==================== */
+.quill-editor-container {
+  background: var(--white);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--gray-200);
+  overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.quill-editor-container:focus-within {
+  border-color: var(--olive);
+  box-shadow: 0 0 0 3px rgba(128, 128, 64, 0.1);
+}
+
+/* Quill 工具列樣式 */
+.quill-editor-container .ql-toolbar {
+  border: none;
+  border-bottom: 1px solid var(--gray-200);
+  background: var(--gray-50);
+  padding: 0.75rem;
+  font-family: inherit;
+}
+
+.quill-editor-container .ql-toolbar .ql-formats {
+  margin-right: 1rem;
+}
+
+.quill-editor-container .ql-toolbar button {
+  width: 32px;
+  height: 32px;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  transition: all 0.15s ease;
+}
+
+.quill-editor-container .ql-toolbar button:hover {
+  background: var(--gray-200);
+}
+
+.quill-editor-container .ql-toolbar button.ql-active {
+  background: var(--olive);
+  color: var(--white);
+}
+
+.quill-editor-container .ql-toolbar button.ql-active .ql-stroke {
+  stroke: var(--white);
+}
+
+.quill-editor-container .ql-toolbar button.ql-active .ql-fill {
+  fill: var(--white);
+}
+
+.quill-editor-container .ql-toolbar .ql-picker {
+  font-size: 0.875rem;
+}
+
+.quill-editor-container .ql-toolbar .ql-picker-label {
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  border-color: var(--gray-300);
+}
+
+.quill-editor-container .ql-toolbar .ql-picker-label:hover {
+  background: var(--gray-200);
+  border-color: var(--gray-400);
+}
+
+.quill-editor-container .ql-toolbar .ql-picker-options {
+  border-radius: var(--radius-md);
+  border-color: var(--gray-200);
+  box-shadow: var(--shadow-md);
+}
+
+/* Quill 編輯區域樣式 */
+.quill-editor-container .ql-container {
+  border: none;
+  font-family: inherit;
+  font-size: 0.95rem;
+}
+
+.quill-editor-container .ql-editor {
+  min-height: 150px;
+  padding: 1rem;
+  color: var(--charcoal);
+  line-height: 1.6;
+}
+
+.quill-editor-container .ql-editor.ql-blank::before {
+  color: var(--gray-400);
+  font-style: normal;
+}
+
+/* 編輯器內容樣式 */
+.quill-editor-container .ql-editor h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--charcoal);
+  margin-bottom: 0.75rem;
+}
+
+.quill-editor-container .ql-editor h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--charcoal);
+  margin-bottom: 0.5rem;
+}
+
+.quill-editor-container .ql-editor h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--charcoal);
+  margin-bottom: 0.5rem;
+}
+
+.quill-editor-container .ql-editor p {
+  margin-bottom: 0.75rem;
+}
+
+.quill-editor-container .ql-editor ul,
+.quill-editor-container .ql-editor ol {
+  padding-left: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.quill-editor-container .ql-editor li {
+  margin-bottom: 0.25rem;
+}
+
+.quill-editor-container .ql-editor blockquote {
+  border-left: 4px solid var(--olive);
+  padding-left: 1rem;
+  margin: 1rem 0;
+  color: var(--gray-600);
+  background: var(--gray-50);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding: 0.75rem 1rem;
+}
+
+.quill-editor-container .ql-editor pre {
+  background: var(--charcoal);
+  color: var(--cream);
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.875rem;
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+
+.quill-editor-container .ql-editor code {
+  background: var(--gray-100);
+  padding: 0.125rem 0.375rem;
+  border-radius: var(--radius-sm);
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.875rem;
+  color: var(--terracotta);
+}
+
+.quill-editor-container .ql-editor a {
+  color: var(--olive);
+  text-decoration: underline;
+}
+
+.quill-editor-container .ql-editor a:hover {
+  color: var(--olive-deep);
+}
+
+.quill-editor-container .ql-editor img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-md);
+  margin: 0.5rem 0;
+}
+
+/* 簡潔版工具列 (用於回覆等較小區域) */
+.quill-editor-simple .ql-toolbar {
+  padding: 0.5rem;
+}
+
+.quill-editor-simple .ql-toolbar button {
+  width: 28px;
+  height: 28px;
+}
+
+.quill-editor-simple .ql-editor {
+  min-height: 100px;
+  padding: 0.75rem;
+}
+
+/* 回覆區域編輯器 */
+.reply-form .quill-editor-container {
+  margin-bottom: 1rem;
+}
+
+/* 作業提交編輯器 */
+.submission-area .quill-editor-container {
+  margin-bottom: 1.5rem;
+}
+
+.submission-area .quill-editor-container .ql-editor {
+  min-height: 200px;
+}
+
+/* 討論區編輯器 */
+.modal-body .quill-editor-container {
+  margin-top: 0.5rem;
+}
+
+/* 響應式調整 */
+@media (max-width: 768px) {
+  .quill-editor-container .ql-toolbar {
+    padding: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .quill-editor-container .ql-toolbar .ql-formats {
+    margin-right: 0.5rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .quill-editor-container .ql-toolbar button {
+    width: 28px;
+    height: 28px;
+  }
+
+  .quill-editor-container .ql-editor {
+    min-height: 120px;
+    padding: 0.75rem;
+  }
+}
+
+/* ==================== 麵包屑導航 ==================== */
+.page-header-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.breadcrumb-nav {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  color: var(--gray-500);
+}
+
+.breadcrumb-nav a {
+  color: var(--olive);
+  text-decoration: none;
+  transition: color 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.breadcrumb-nav a:hover {
+  color: var(--olive-deep);
+  text-decoration: underline;
+}
+
+.breadcrumb-nav .breadcrumb-separator {
+  color: var(--gray-400);
+  margin: 0 0.25rem;
+  font-size: 0.75rem;
+}
+
+.breadcrumb-nav .breadcrumb-separator svg {
+  width: 12px;
+  height: 12px;
+  stroke: currentColor;
+}
+
+.breadcrumb-nav .breadcrumb-current {
+  color: var(--charcoal);
+  font-weight: 500;
+}
+
+.breadcrumb-nav .breadcrumb-home {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.breadcrumb-nav .breadcrumb-home svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* 響應式調整 */
+@media (max-width: 768px) {
+  .breadcrumb-nav {
+    font-size: 0.8rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .breadcrumb-nav .breadcrumb-separator {
+    margin: 0 0.125rem;
+  }
+
+  /* 在手機上隱藏中間層級，只顯示首頁和當前頁 */
+  .breadcrumb-nav.breadcrumb-collapsed .breadcrumb-middle {
+    display: none;
+  }
+
+  .breadcrumb-nav.breadcrumb-collapsed .breadcrumb-ellipsis {
+    display: inline;
+  }
+}
+
+.breadcrumb-nav .breadcrumb-ellipsis {
+  display: none;
+  color: var(--gray-400);
+}
+
+/* ==================== 學生儀表板增強樣式 ==================== */
+
+/* 個人化問候區域 */
+.dashboard-greeting {
+  background: linear-gradient(135deg, var(--olive) 0%, var(--olive-deep) 100%);
+  border-radius: var(--radius-lg);
+  padding: 2rem;
+  margin-bottom: 1.5rem;
+  color: var(--white);
+  position: relative;
+  overflow: hidden;
+}
+
+.dashboard-greeting::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -10%;
+  width: 300px;
+  height: 300px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 50%;
+}
+
+.dashboard-greeting::after {
+  content: '';
+  position: absolute;
+  bottom: -30%;
+  left: -5%;
+  width: 200px;
+  height: 200px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 50%;
+}
+
+.greeting-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+
+.greeting-text h1 {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.greeting-text p {
+  opacity: 0.9;
+  font-size: 0.95rem;
+}
+
+.greeting-stats {
+  display: flex;
+  gap: 2rem;
+}
+
+.greeting-stat-item {
+  text-align: center;
+}
+
+.greeting-stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.greeting-stat-label {
+  font-size: 0.75rem;
+  opacity: 0.85;
+}
+
+/* 進度圓環 */
+.progress-ring-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.progress-ring {
+  position: relative;
+  width: 120px;
+  height: 120px;
+}
+
+.progress-ring svg {
+  transform: rotate(-90deg);
+  width: 100%;
+  height: 100%;
+}
+
+.progress-ring circle {
+  fill: none;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.5s ease;
+}
+
+.progress-ring .progress-bg {
+  stroke: rgba(255, 255, 255, 0.2);
+  stroke-width: 8;
+}
+
+.progress-ring .progress-fill {
+  stroke: var(--white);
+  stroke-width: 8;
+}
+
+.progress-ring .progress-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.progress-ring .progress-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  display: block;
+}
+
+.progress-ring .progress-label {
+  font-size: 0.7rem;
+  opacity: 0.85;
+}
+
+/* 緊急提醒區域增強 */
+.urgent-alert {
+  background: linear-gradient(135deg, var(--terracotta) 0%, #c75a3a 100%);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  color: var(--white);
+  margin-bottom: 1rem;
+  animation: pulse-subtle 2s infinite;
+}
+
+@keyframes pulse-subtle {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(199, 90, 58, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(199, 90, 58, 0); }
+}
+
+.urgent-alert-icon {
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.urgent-alert-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.urgent-alert-content {
+  flex: 1;
+}
+
+.urgent-alert-title {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.urgent-alert-subtitle {
+  font-size: 0.85rem;
+  opacity: 0.9;
+}
+
+.urgent-alert-action {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-sm);
+  color: var(--white);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.urgent-alert-action:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* 迷你行事曆 */
+.mini-calendar {
+  background: var(--white);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+}
+
+.mini-calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.mini-calendar-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.mini-calendar-nav {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.mini-calendar-nav button {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: var(--gray-100);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease;
+}
+
+.mini-calendar-nav button:hover {
+  background: var(--gray-200);
+}
+
+.mini-calendar-nav button svg {
+  width: 14px;
+  height: 14px;
+}
+
+.mini-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  text-align: center;
+  font-size: 0.75rem;
+}
+
+.mini-calendar-day-name {
+  color: var(--gray-500);
+  padding: 0.25rem;
+  font-weight: 500;
+}
+
+.mini-calendar-day {
+  padding: 0.35rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.mini-calendar-day:hover {
+  background: var(--gray-100);
+}
+
+.mini-calendar-day.today {
+  background: var(--olive);
+  color: var(--white);
+  font-weight: 600;
+}
+
+.mini-calendar-day.has-event {
+  position: relative;
+}
+
+.mini-calendar-day.has-event::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  background: var(--terracotta);
+  border-radius: 50%;
+}
+
+.mini-calendar-day.other-month {
+  color: var(--gray-300);
+}
+
+/* 最近成績卡片 */
+.grade-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--gray-50);
+  border-radius: var(--radius-md);
+  margin-bottom: 0.75rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.grade-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.grade-card:last-child {
+  margin-bottom: 0;
+}
+
+.grade-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.grade-icon.assignment {
+  background: rgba(199, 90, 58, 0.1);
+  color: var(--terracotta);
+}
+
+.grade-icon.quiz {
+  background: rgba(66, 153, 225, 0.1);
+  color: var(--blue);
+}
+
+.grade-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.grade-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.grade-title {
+  font-weight: 500;
+  font-size: 0.9rem;
+  margin-bottom: 0.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.grade-meta {
+  font-size: 0.75rem;
+  color: var(--gray-500);
+}
+
+.grade-score {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.grade-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.grade-value.excellent {
+  color: var(--success);
+}
+
+.grade-value.good {
+  color: var(--olive);
+}
+
+.grade-value.average {
+  color: var(--terracotta);
+}
+
+.grade-value.poor {
+  color: var(--danger);
+}
+
+.grade-max {
+  font-size: 0.75rem;
+  color: var(--gray-500);
+}
+
+/* 響應式調整 */
+@media (max-width: 768px) {
+  .dashboard-greeting {
+    padding: 1.5rem;
+  }
+
+  .greeting-content {
+    flex-direction: column;
+    text-align: center;
+    gap: 1.5rem;
+  }
+
+  .greeting-text h1 {
+    font-size: 1.4rem;
+  }
+
+  .greeting-stats {
+    justify-content: center;
+    gap: 1.5rem;
+  }
+
+  .progress-ring {
+    width: 100px;
+    height: 100px;
+  }
+
+  .progress-ring .progress-value {
+    font-size: 1.25rem;
+  }
+
+  .urgent-alert {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .mini-calendar {
+    display: none;
+  }
+}
+
+/* ==================== 教師儀表板增強樣式 ==================== */
+
+/* 教師概覽區域 (使用不同的漸層色) */
+.dashboard-greeting.teacher-greeting {
+  background: linear-gradient(135deg, var(--terracotta) 0%, #c75a3a 100%);
+}
+
+/* 待評分佇列樣式 */
+.grading-queue {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.grading-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--gray-50);
+  border-radius: var(--radius-md);
+  margin-bottom: 0.75rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+}
+
+.grading-item:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.grading-item:last-child {
+  margin-bottom: 0;
+}
+
+.grading-item.urgent {
+  border-left: 4px solid var(--terracotta);
+  background: rgba(199, 90, 58, 0.05);
+}
+
+.grading-item-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  background: var(--olive);
+  color: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.grading-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.grading-item-title {
+  font-weight: 500;
+  font-size: 0.9rem;
+  margin-bottom: 0.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.grading-item-meta {
+  font-size: 0.75rem;
+  color: var(--gray-500);
+  display: flex;
+  gap: 0.75rem;
+}
+
+.grading-item-status {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.grading-item-status.waiting {
+  background: rgba(199, 90, 58, 0.1);
+  color: var(--terracotta);
+}
+
+.grading-item-status.reviewed {
+  background: rgba(128, 128, 64, 0.1);
+  color: var(--olive);
+}
+
+/* 學生警示卡片 */
+.student-alert-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--gray-50);
+  border-radius: var(--radius-md);
+  margin-bottom: 0.75rem;
+  border-left: 4px solid var(--terracotta);
+}
+
+.student-alert-item:last-child {
+  margin-bottom: 0;
+}
+
+.student-alert-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--terracotta);
+  color: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.student-alert-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.student-alert-name {
+  font-weight: 500;
+  font-size: 0.9rem;
+  margin-bottom: 0.25rem;
+}
+
+.student-alert-reason {
+  font-size: 0.75rem;
+  color: var(--terracotta);
+}
+
+.student-alert-action {
+  font-size: 0.8rem;
+  color: var(--olive);
+  text-decoration: none;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-sm);
+  background: var(--olive-light);
+  transition: background 0.2s ease;
+}
+
+.student-alert-action:hover {
+  background: var(--gray-200);
+}
+
+/* 快捷操作按鈕 hover 效果 */
+.teacher-action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+/* 待評分佇列項目 */
+.grading-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--gray-100);
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.grading-item:last-child {
+  border-bottom: none;
+}
+
+.grading-item:hover {
+  background: var(--olive-light);
+}
+
+.grading-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.grading-item-title {
+  font-weight: 500;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.grading-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.grading-item-count {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  background: var(--terracotta-light);
+  border-radius: var(--radius-md);
+  min-width: 50px;
+}
+
+.grading-item-count .count-number {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--terracotta);
+  line-height: 1;
+}
+
+.grading-item-count .count-label {
+  font-size: 0.65rem;
+  color: var(--terracotta);
+  margin-top: 0.25rem;
+}
+
+/* 最近提交列表 */
+.recent-submissions-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.submission-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--gray-100);
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.submission-item:last-child {
+  border-bottom: none;
+}
+
+.submission-item:hover {
+  background: var(--olive-light);
+  margin: 0 -1rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-sm);
+}
+
+.submission-student {
+  font-weight: 500;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+.submission-assignment {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  grid-column: 1;
+}
+
+.submission-time {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-align: right;
+  grid-row: 1 / 3;
+  align-self: center;
+}
+
+/* Empty state 樣式 */
+.empty-state.small {
+  padding: 1.5rem !important;
+}
+
+.empty-state.small svg {
+  width: 32px;
+  height: 32px;
+}
+
+.empty-state.small p {
+  font-size: 0.85rem;
+}
+
+/* ==================== Phase 3.1: 三欄式課程布局 ==================== */
+
+/* 課程頁面主容器 */
+.course-page-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr 280px;
+  gap: 1.5rem;
+  min-height: calc(100vh - 200px);
+}
+
+/* 課程頭部 - 橫跨三欄 */
+.course-page-header {
+  grid-column: 1 / -1;
+  background: linear-gradient(135deg, var(--olive) 0%, var(--olive-deep, #3d4a38) 100%);
+  border-radius: var(--radius-lg);
+  padding: 2rem;
+  color: white;
+  margin-bottom: 0.5rem;
+}
+
+.course-page-header .back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  transition: background 0.2s ease;
+}
+
+.course-page-header .back-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.course-page-header h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+}
+
+.course-page-header .course-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  font-size: 0.9rem;
+  opacity: 0.9;
+  margin-top: 0.75rem;
+}
+
+.course-page-header .course-meta span {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.course-page-header .course-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+/* 左側欄 - 課程導航 */
+.course-left-sidebar {
+  position: sticky;
+  top: 1rem;
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+}
+
+.course-nav-card {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+
+.course-nav-card-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--gray-100);
+  font-weight: 600;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-primary);
+}
+
+.course-nav-card-header svg {
+  width: 18px;
+  height: 18px;
+  color: var(--olive);
+}
+
+/* 章節樹狀導航 */
+.sections-tree {
+  padding: 0.5rem 0;
+}
+
+.section-tree-item {
+  padding: 0;
+}
+
+.section-tree-header {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1.25rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  gap: 0.5rem;
+}
+
+.section-tree-header:hover {
+  background: var(--olive-light);
+}
+
+.section-tree-header.active {
+  background: var(--olive-light);
+  border-left: 3px solid var(--olive);
+  padding-left: calc(1.25rem - 3px);
+}
+
+.section-tree-toggle {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.section-tree-toggle.expanded {
+  transform: rotate(90deg);
+}
+
+.section-tree-toggle.no-children {
+  visibility: hidden;
+}
+
+.section-tree-name {
+  flex: 1;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.section-tree-badge {
+  font-size: 0.7rem;
+  background: var(--olive);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+/* 活動子列表 */
+.section-activities-list {
+  display: none;
+  padding-left: 2rem;
+  background: var(--gray-50);
+}
+
+.section-activities-list.expanded {
+  display: block;
+}
+
+.activity-tree-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.activity-tree-item:hover {
+  background: var(--olive-light);
+  color: var(--text-primary);
+}
+
+.activity-tree-item.completed {
+  color: var(--success);
+}
+
+.activity-tree-item svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+/* 快速連結 */
+.quick-links-list {
+  padding: 0.5rem 0;
+}
+
+.quick-link-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.25rem;
+  color: var(--text-primary);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.quick-link-item:hover {
+  background: var(--olive-light);
+}
+
+.quick-link-item svg {
+  width: 18px;
+  height: 18px;
+  color: var(--olive);
+}
+
+.quick-link-item span {
+  font-size: 0.9rem;
+}
+
+/* 中央內容區 */
+.course-main-content {
+  min-width: 0;
+}
+
+/* 章節卡片 */
+.section-card {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+}
+
+.section-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  background: var(--cream);
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.section-card-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 0.25rem 0;
+}
+
+.section-card-summary {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.section-card-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+/* 活動列表 - 改進版 */
+.activity-list {
+  padding: 0;
+}
+
+.activity-list-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--gray-100);
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.activity-list-item:last-child {
+  border-bottom: none;
+}
+
+.activity-list-item:hover {
+  background: var(--olive-light);
+}
+
+.activity-list-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.activity-list-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.activity-list-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.activity-list-name {
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.activity-list-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.activity-list-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.activity-list-status .completed-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: var(--success-light, #d1fae5);
+  color: var(--success);
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+/* 右側欄 */
+.course-right-sidebar {
+  position: sticky;
+  top: 1rem;
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+}
+
+.sidebar-widget {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+
+.sidebar-widget-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--gray-100);
+  font-weight: 600;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sidebar-widget-body {
+  padding: 1rem 1.25rem;
+}
+
+/* 進度環形圖 - 課程用 */
+.course-progress-widget {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.5rem;
+}
+
+.course-progress-ring {
+  width: 120px;
+  height: 120px;
+  position: relative;
+}
+
+.course-progress-ring svg {
+  transform: rotate(-90deg);
+}
+
+.course-progress-ring .progress-bg {
+  fill: none;
+  stroke: var(--gray-200);
+  stroke-width: 8;
+}
+
+.course-progress-ring .progress-fill {
+  fill: none;
+  stroke: var(--olive);
+  stroke-width: 8;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.5s ease;
+}
+
+.course-progress-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.course-progress-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--olive);
+}
+
+.course-progress-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.course-progress-stats {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--gray-100);
+  width: 100%;
+}
+
+.progress-stat {
+  text-align: center;
+}
+
+.progress-stat-value {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.progress-stat-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+/* 最近活動小工具 */
+.recent-activity-list {
+  padding: 0;
+}
+
+.recent-activity-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.recent-activity-item:last-child {
+  border-bottom: none;
+}
+
+.recent-activity-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--olive-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.recent-activity-icon svg {
+  width: 16px;
+  height: 16px;
+  color: var(--olive);
+}
+
+.recent-activity-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.recent-activity-text {
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.recent-activity-time {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+/* 響應式調整 */
+@media (max-width: 1200px) {
+  .course-page-layout {
+    grid-template-columns: 260px 1fr 260px;
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 992px) {
+  .course-page-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .course-left-sidebar,
+  .course-right-sidebar {
+    position: static;
+    max-height: none;
+    overflow-y: visible;
+  }
+
+  .course-left-sidebar {
+    order: 2;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+
+  .course-main-content {
+    order: 1;
+  }
+
+  .course-right-sidebar {
+    order: 3;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .pending-tasks-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .teacher-quick-actions {
+    grid-template-columns: 1fr !important;
+  }
+
+  .grading-item {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .grading-item-count {
+    flex-direction: row;
+    gap: 0.5rem;
+  }
+
+  .grading-item-count .count-label {
+    margin-top: 0;
+  }
+
+  .submission-item {
+    grid-template-columns: 1fr;
+  }
+
+  .submission-time {
+    grid-row: auto;
+    grid-column: 1;
+    text-align: left;
+  }
+
+  .course-left-sidebar,
+  .course-right-sidebar {
+    grid-template-columns: 1fr;
+  }
+
+  .course-page-header {
+    padding: 1.5rem;
+  }
+
+  .course-page-header h1 {
+    font-size: 1.35rem;
+  }
+
+  .course-page-header .course-actions {
+    flex-wrap: wrap;
+  }
+
+  .section-card-header {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .section-card-actions {
+    width: 100%;
+  }
+}

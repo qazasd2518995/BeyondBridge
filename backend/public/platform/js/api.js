@@ -462,6 +462,104 @@ const API = {
 
     async getAnalytics() {
       return API.request('/admin/analytics/overview');
+    },
+
+    // ===== 系統監控 API =====
+    systemHealth: {
+      async get() {
+        return API.request('/admin/system/health');
+      },
+      async getErrors(filters = {}) {
+        const params = new URLSearchParams(filters).toString();
+        return API.request(`/admin/system/errors?${params}`);
+      }
+    },
+
+    // ===== 數據匯出 API =====
+    export: {
+      async users(options = {}) {
+        return API.request('/admin/export/users', {
+          method: 'POST',
+          body: options
+        });
+      },
+      async courses(options = {}) {
+        return API.request('/admin/export/courses', {
+          method: 'POST',
+          body: options
+        });
+      },
+      async licenses(options = {}) {
+        return API.request('/admin/export/licenses', {
+          method: 'POST',
+          body: options
+        });
+      }
+    },
+
+    // ===== 報表 API =====
+    reports: {
+      async generate(type, dateRange, options = {}) {
+        return API.request('/admin/reports/generate', {
+          method: 'POST',
+          body: { type, dateRange, ...options }
+        });
+      }
+    },
+
+    // ===== 自動化規則 API =====
+    automation: {
+      async getRules() {
+        return API.request('/admin/automation/rules');
+      },
+      async createRule(data) {
+        return API.request('/admin/automation/rules', {
+          method: 'POST',
+          body: data
+        });
+      },
+      async updateRule(ruleId, data) {
+        return API.request(`/admin/automation/rules/${ruleId}`, {
+          method: 'PUT',
+          body: data
+        });
+      },
+      async deleteRule(ruleId) {
+        return API.request(`/admin/automation/rules/${ruleId}`, {
+          method: 'DELETE'
+        });
+      },
+      async toggleRule(ruleId) {
+        return API.request(`/admin/automation/rules/${ruleId}/toggle`, {
+          method: 'PUT'
+        });
+      }
+    },
+
+    // ===== 用戶活動分析 API =====
+    analytics: {
+      async getUserActivity(dateRange = '30d', groupBy = 'day') {
+        return API.request(`/admin/analytics/user-activity?range=${dateRange}&groupBy=${groupBy}`);
+      },
+      async getUserDetail(userId) {
+        return API.request(`/admin/analytics/user/${userId}`);
+      }
+    },
+
+    // ===== 批量操作 API =====
+    batch: {
+      async updateUsers(userIds, updates) {
+        return API.request('/admin/users/batch/update', {
+          method: 'PUT',
+          body: { userIds, updates }
+        });
+      },
+      async deleteUsers(userIds) {
+        return API.request('/admin/users/batch/delete', {
+          method: 'DELETE',
+          body: { userIds }
+        });
+      }
     }
   },
 
@@ -2059,6 +2157,63 @@ const API = {
         method: 'POST',
         body: JSON.stringify(data)
       });
+    }
+  },
+
+  // ===== 即時客服 Chat API =====
+  chat: {
+    // 獲取聊天室列表
+    async getRooms() {
+      return API.request('/chat/rooms');
+    },
+
+    // 創建新聊天室
+    async createRoom(data = {}) {
+      return API.request('/chat/rooms', {
+        method: 'POST',
+        body: data
+      });
+    },
+
+    // 獲取單一聊天室
+    async getRoom(roomId) {
+      return API.request(`/chat/rooms/${roomId}`);
+    },
+
+    // 獲取聊天室訊息
+    async getMessages(roomId, options = {}) {
+      const params = new URLSearchParams(options).toString();
+      return API.request(`/chat/rooms/${roomId}/messages?${params}`);
+    },
+
+    // 關閉聊天室
+    async closeRoom(roomId) {
+      return API.request(`/chat/rooms/${roomId}/close`, {
+        method: 'PUT'
+      });
+    },
+
+    // 獲取客服狀態
+    async getStatus() {
+      return API.request('/chat/status');
+    },
+
+    // 管理員：獲取所有聊天室
+    async adminGetRooms(filters = {}) {
+      const params = new URLSearchParams(filters).toString();
+      return API.request(`/chat/admin/rooms?${params}`);
+    },
+
+    // 管理員：認領聊天室
+    async adminClaimRoom(roomId) {
+      return API.request(`/chat/admin/rooms/${roomId}/claim`, {
+        method: 'PUT'
+      });
+    },
+
+    // 管理員：獲取統計
+    async adminGetStats() {
+      return API.request('/chat/admin/stats');
     }
   },
 

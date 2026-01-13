@@ -1107,6 +1107,1384 @@
             .analytics-charts { grid-template-columns: 1fr; }
             .analytics-bottom { grid-template-columns: 1fr; }
         }
+
+        /* ==================== 確認對話框組件 ==================== */
+        .confirm-dialog-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(44, 44, 44, 0.5);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            opacity: 0;
+            transition: opacity 0.25s ease;
+        }
+
+        .confirm-dialog-overlay.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .confirm-dialog {
+            background: white;
+            border-radius: var(--radius-xl);
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+            animation: confirmDialogIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            overflow: hidden;
+        }
+
+        @keyframes confirmDialogIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9) translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .confirm-dialog-header {
+            padding: 1.5rem 1.5rem 0;
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .confirm-dialog-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .confirm-dialog-icon svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .confirm-dialog.warning .confirm-dialog-icon {
+            background: rgba(236, 201, 75, 0.15);
+            color: #B7791F;
+        }
+
+        .confirm-dialog.danger .confirm-dialog-icon {
+            background: rgba(245, 101, 101, 0.15);
+            color: var(--danger);
+        }
+
+        .confirm-dialog.info .confirm-dialog-icon {
+            background: rgba(66, 153, 225, 0.15);
+            color: var(--info);
+        }
+
+        .confirm-dialog-content {
+            flex: 1;
+        }
+
+        .confirm-dialog-title {
+            font-family: var(--font-heading);
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: var(--charcoal);
+            margin-bottom: 0.5rem;
+        }
+
+        .confirm-dialog-message {
+            font-size: 0.9rem;
+            color: var(--gray-600);
+            line-height: 1.6;
+        }
+
+        .confirm-dialog-body {
+            padding: 1.25rem 1.5rem;
+        }
+
+        .confirm-dialog-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius-md);
+            font-size: 0.9rem;
+            transition: var(--transition-fast);
+            font-family: var(--font-body);
+        }
+
+        .confirm-dialog-input:focus {
+            outline: none;
+            border-color: var(--olive);
+            box-shadow: 0 0 0 3px var(--olive-muted);
+        }
+
+        .confirm-dialog-input.error {
+            border-color: var(--danger);
+            box-shadow: 0 0 0 3px rgba(245, 101, 101, 0.1);
+        }
+
+        .confirm-dialog-hint {
+            font-size: 0.8rem;
+            color: var(--gray-500);
+            margin-top: 0.5rem;
+        }
+
+        .confirm-dialog-footer {
+            padding: 1rem 1.5rem 1.5rem;
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+        }
+
+        .confirm-dialog-btn {
+            padding: 0.6rem 1.25rem;
+            border-radius: var(--radius-md);
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition-fast);
+            border: none;
+            font-family: var(--font-body);
+        }
+
+        .confirm-dialog-btn-cancel {
+            background: var(--gray-100);
+            color: var(--gray-600);
+        }
+
+        .confirm-dialog-btn-cancel:hover {
+            background: var(--gray-200);
+            color: var(--charcoal);
+        }
+
+        .confirm-dialog-btn-confirm {
+            background: var(--olive);
+            color: white;
+        }
+
+        .confirm-dialog-btn-confirm:hover {
+            background: var(--olive-deep);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .confirm-dialog.danger .confirm-dialog-btn-confirm {
+            background: var(--danger);
+        }
+
+        .confirm-dialog.danger .confirm-dialog-btn-confirm:hover {
+            background: #E53E3E;
+        }
+
+        .confirm-dialog.warning .confirm-dialog-btn-confirm {
+            background: #D69E2E;
+        }
+
+        .confirm-dialog.warning .confirm-dialog-btn-confirm:hover {
+            background: #B7791F;
+        }
+
+        .confirm-dialog-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* ==================== 麵包屑導航 ==================== */
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 0;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+        }
+
+        .breadcrumb-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--gray-500);
+            text-decoration: none;
+            transition: var(--transition-fast);
+        }
+
+        .breadcrumb-item:hover {
+            color: var(--olive);
+        }
+
+        .breadcrumb-item.active {
+            color: var(--charcoal);
+            font-weight: 500;
+            cursor: default;
+        }
+
+        .breadcrumb-item.active:hover {
+            color: var(--charcoal);
+        }
+
+        .breadcrumb-separator {
+            color: var(--gray-300);
+            font-size: 0.75rem;
+        }
+
+        .breadcrumb-home-icon {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* 頁面標題區域優化 */
+        .view-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1.5rem;
+        }
+
+        .view-header-left {
+            flex: 1;
+        }
+
+        .view-header-title {
+            font-family: var(--font-heading);
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--charcoal);
+            margin: 0;
+        }
+
+        .view-header-subtitle {
+            font-size: 0.9rem;
+            color: var(--gray-500);
+            margin-top: 0.25rem;
+        }
+
+        .view-header-actions {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        /* ==================== 表格批量操作 ==================== */
+        .batch-toolbar {
+            display: none;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.75rem 1rem;
+            background: linear-gradient(135deg, var(--olive-muted) 0%, rgba(74, 93, 35, 0.05) 100%);
+            border: 1px solid var(--olive-light);
+            border-radius: var(--radius-md);
+            margin-bottom: 1rem;
+            animation: slideDown 0.2s ease;
+        }
+
+        .batch-toolbar.active {
+            display: flex;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .batch-toolbar-info {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--olive-deep);
+        }
+
+        .batch-toolbar-info .count {
+            font-weight: 600;
+            color: var(--olive);
+        }
+
+        .batch-toolbar-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-left: auto;
+        }
+
+        .batch-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.5rem 0.875rem;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition-fast);
+            font-family: var(--font-body);
+        }
+
+        .batch-btn svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        .batch-btn-primary {
+            background: var(--olive);
+            color: white;
+        }
+
+        .batch-btn-primary:hover {
+            background: var(--olive-deep);
+            transform: translateY(-1px);
+        }
+
+        .batch-btn-secondary {
+            background: white;
+            color: var(--gray-600);
+            border: 1px solid var(--gray-300);
+        }
+
+        .batch-btn-secondary:hover {
+            background: var(--gray-100);
+            border-color: var(--gray-400);
+        }
+
+        .batch-btn-danger {
+            background: rgba(245, 101, 101, 0.1);
+            color: var(--danger);
+            border: 1px solid rgba(245, 101, 101, 0.3);
+        }
+
+        .batch-btn-danger:hover {
+            background: var(--danger);
+            color: white;
+            border-color: var(--danger);
+        }
+
+        .batch-btn-clear {
+            background: transparent;
+            color: var(--gray-500);
+            padding: 0.4rem 0.6rem;
+        }
+
+        .batch-btn-clear:hover {
+            color: var(--charcoal);
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        /* 表格選擇框樣式 */
+        .table-checkbox {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: var(--olive);
+        }
+
+        .table-checkbox-cell {
+            width: 40px;
+            text-align: center;
+        }
+
+        /* 選中行樣式 */
+        tr.selected {
+            background: var(--olive-muted) !important;
+        }
+
+        tr.selected:hover {
+            background: rgba(74, 93, 35, 0.15) !important;
+        }
+
+        /* 全選框容器 */
+        .select-all-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* ==================== 可排序表頭 ==================== */
+        .sortable-header {
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap;
+            transition: var(--transition-fast);
+        }
+
+        .sortable-header:hover {
+            color: var(--olive);
+        }
+
+        .sortable-header .sort-wrapper {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .sortable-header .sort-icon {
+            width: 14px;
+            height: 14px;
+            opacity: 0.3;
+            transition: var(--transition-fast);
+        }
+
+        .sortable-header:hover .sort-icon {
+            opacity: 0.6;
+        }
+
+        .sortable-header.sort-asc .sort-icon,
+        .sortable-header.sort-desc .sort-icon {
+            opacity: 1;
+            color: var(--olive);
+        }
+
+        .sortable-header.sort-desc .sort-icon {
+            transform: rotate(180deg);
+        }
+
+        /* ==================== 進階篩選面板 ==================== */
+        .filter-panel {
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-lg);
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+            display: none;
+            animation: slideDown 0.2s ease;
+        }
+
+        .filter-panel.active {
+            display: block;
+        }
+
+        .filter-panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .filter-panel-title {
+            font-weight: 600;
+            color: var(--charcoal);
+            font-size: 0.95rem;
+        }
+
+        .filter-panel-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+
+        .filter-group label {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--gray-600);
+        }
+
+        .filter-group select,
+        .filter-group input {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-sm);
+            font-size: 0.875rem;
+            transition: var(--transition-fast);
+            font-family: var(--font-body);
+        }
+
+        .filter-group select:focus,
+        .filter-group input:focus {
+            outline: none;
+            border-color: var(--olive);
+            box-shadow: 0 0 0 2px var(--olive-muted);
+        }
+
+        .filter-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid var(--gray-100);
+        }
+
+        .filter-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.35rem 0.6rem;
+            background: var(--olive-muted);
+            border-radius: var(--radius-sm);
+            font-size: 0.8rem;
+            color: var(--olive-deep);
+        }
+
+        .filter-tag-remove {
+            cursor: pointer;
+            opacity: 0.6;
+            transition: var(--transition-fast);
+        }
+
+        .filter-tag-remove:hover {
+            opacity: 1;
+        }
+
+        .filter-toggle-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.5rem 0.875rem;
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-md);
+            font-size: 0.85rem;
+            color: var(--gray-600);
+            cursor: pointer;
+            transition: var(--transition-fast);
+            font-family: var(--font-body);
+        }
+
+        .filter-toggle-btn:hover {
+            border-color: var(--olive);
+            color: var(--olive);
+        }
+
+        .filter-toggle-btn.active {
+            background: var(--olive-muted);
+            border-color: var(--olive);
+            color: var(--olive);
+        }
+
+        .filter-toggle-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .active-filter-count {
+            background: var(--olive);
+            color: white;
+            font-size: 0.7rem;
+            padding: 0.15rem 0.4rem;
+            border-radius: 10px;
+            margin-left: 0.25rem;
+        }
+
+        /* ==================== 實時表單驗證 ==================== */
+        .form-input-wrapper {
+            position: relative;
+        }
+
+        .form-input.validating {
+            padding-right: 2.5rem;
+        }
+
+        .form-input.valid {
+            border-color: var(--success);
+        }
+
+        .form-input.valid:focus {
+            box-shadow: 0 0 0 3px rgba(72, 187, 120, 0.1);
+        }
+
+        .form-input.invalid {
+            border-color: var(--danger);
+        }
+
+        .form-input.invalid:focus {
+            box-shadow: 0 0 0 3px rgba(245, 101, 101, 0.1);
+        }
+
+        .validation-icon {
+            position: absolute;
+            right: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 18px;
+            height: 18px;
+            display: none;
+        }
+
+        .form-input.valid + .validation-icon.success,
+        .form-input.invalid + .validation-icon.error {
+            display: block;
+        }
+
+        .validation-icon.success {
+            color: var(--success);
+        }
+
+        .validation-icon.error {
+            color: var(--danger);
+        }
+
+        .validation-message {
+            font-size: 0.8rem;
+            margin-top: 0.35rem;
+            display: none;
+        }
+
+        .validation-message.error {
+            color: var(--danger);
+            display: block;
+        }
+
+        .validation-message.hint {
+            color: var(--gray-500);
+            display: block;
+        }
+
+        /* 密碼強度指示器 */
+        .password-strength {
+            display: flex;
+            gap: 0.25rem;
+            margin-top: 0.5rem;
+        }
+
+        .password-strength-bar {
+            flex: 1;
+            height: 4px;
+            background: var(--gray-200);
+            border-radius: 2px;
+            transition: var(--transition-fast);
+        }
+
+        .password-strength.weak .password-strength-bar:nth-child(1) {
+            background: var(--danger);
+        }
+
+        .password-strength.medium .password-strength-bar:nth-child(1),
+        .password-strength.medium .password-strength-bar:nth-child(2) {
+            background: var(--warning);
+        }
+
+        .password-strength.strong .password-strength-bar:nth-child(1),
+        .password-strength.strong .password-strength-bar:nth-child(2),
+        .password-strength.strong .password-strength-bar:nth-child(3) {
+            background: var(--success);
+        }
+
+        .password-strength-text {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+            margin-top: 0.25rem;
+        }
+
+        .password-strength.weak .password-strength-text {
+            color: var(--danger);
+        }
+
+        .password-strength.medium .password-strength-text {
+            color: var(--warning);
+        }
+
+        .password-strength.strong .password-strength-text {
+            color: var(--success);
+        }
+
+        /* ==================== 增強統計卡片 ==================== */
+        .stat-card-enhanced {
+            background: white;
+            border-radius: var(--radius-xl);
+            padding: 1.5rem;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(212, 197, 169, 0.2);
+            box-shadow: var(--shadow-card);
+            transition: var(--transition-base);
+        }
+
+        .stat-card-enhanced:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .stat-card-enhanced .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .stat-card-enhanced .stat-icon-wrapper {
+            width: 48px;
+            height: 48px;
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition-base);
+        }
+
+        .stat-card-enhanced:hover .stat-icon-wrapper {
+            transform: scale(1.1);
+        }
+
+        .stat-card-enhanced .stat-icon-wrapper.users { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+        .stat-card-enhanced .stat-icon-wrapper.courses { background: rgba(168, 184, 154, 0.2); color: var(--olive); }
+        .stat-card-enhanced .stat-icon-wrapper.resources { background: rgba(193, 122, 94, 0.1); color: var(--terracotta); }
+        .stat-card-enhanced .stat-icon-wrapper.active { background: rgba(72, 187, 120, 0.1); color: var(--success); }
+
+        .stat-card-enhanced .stat-trend {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.8rem;
+            font-weight: 500;
+            padding: 0.25rem 0.5rem;
+            border-radius: var(--radius-sm);
+        }
+
+        .stat-card-enhanced .stat-trend.up {
+            background: rgba(72, 187, 120, 0.1);
+            color: var(--success);
+        }
+
+        .stat-card-enhanced .stat-trend.down {
+            background: rgba(245, 101, 101, 0.1);
+            color: var(--danger);
+        }
+
+        .stat-card-enhanced .stat-trend svg {
+            width: 12px;
+            height: 12px;
+        }
+
+        .stat-card-enhanced .stat-content {
+            margin-bottom: 0.75rem;
+        }
+
+        .stat-card-enhanced .stat-value {
+            font-family: var(--font-display);
+            font-size: 2rem;
+            font-weight: 600;
+            color: var(--charcoal);
+            line-height: 1.2;
+        }
+
+        .stat-card-enhanced .stat-label {
+            font-size: 0.85rem;
+            color: var(--gray-500);
+            margin-top: 0.25rem;
+        }
+
+        .stat-card-enhanced .stat-sparkline {
+            height: 40px;
+            margin-top: 0.5rem;
+        }
+
+        .stat-card-enhanced .stat-sparkline svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .stat-card-enhanced .stat-sparkline path {
+            fill: none;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .stat-card-enhanced .stat-sparkline .sparkline-area {
+            opacity: 0.1;
+        }
+
+        .stat-card-enhanced.users .stat-sparkline path { stroke: #3b82f6; }
+        .stat-card-enhanced.users .stat-sparkline .sparkline-area { fill: #3b82f6; }
+        .stat-card-enhanced.courses .stat-sparkline path { stroke: var(--olive); }
+        .stat-card-enhanced.courses .stat-sparkline .sparkline-area { fill: var(--olive); }
+        .stat-card-enhanced.resources .stat-sparkline path { stroke: var(--terracotta); }
+        .stat-card-enhanced.resources .stat-sparkline .sparkline-area { fill: var(--terracotta); }
+        .stat-card-enhanced.active .stat-sparkline path { stroke: var(--success); }
+        .stat-card-enhanced.active .stat-sparkline .sparkline-area { fill: var(--success); }
+
+        /* 快速操作區域優化 */
+        .dashboard-quick-actions {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .quick-action-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: 1.25rem;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition-base);
+            border: 1px solid var(--gray-100);
+        }
+
+        .quick-action-card:hover {
+            background: var(--olive-muted);
+            border-color: var(--olive-light);
+            transform: translateY(-2px);
+        }
+
+        .quick-action-card svg {
+            width: 32px;
+            height: 32px;
+            color: var(--olive);
+            margin-bottom: 0.75rem;
+        }
+
+        .quick-action-card span {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--charcoal);
+        }
+
+        /* 即時狀態指示器 */
+        .live-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.35rem 0.75rem;
+            background: rgba(72, 187, 120, 0.1);
+            border-radius: 20px;
+            font-size: 0.75rem;
+            color: var(--success);
+            font-weight: 500;
+        }
+
+        .live-indicator .pulse {
+            width: 8px;
+            height: 8px;
+            background: var(--success);
+            border-radius: 50%;
+            animation: livePulse 2s ease-in-out infinite;
+        }
+
+        @keyframes livePulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.8); }
+        }
+
+        /* ========================================
+           系統監控視圖樣式
+           ======================================== */
+        .system-status-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .system-status-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            border: 1px solid var(--gray-100);
+            transition: var(--transition-base);
+        }
+
+        .system-status-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+
+        .status-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .status-icon.healthy {
+            background: rgba(72, 187, 120, 0.1);
+            color: var(--success);
+        }
+
+        .status-icon.warning {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+        }
+
+        .status-icon.error {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+        }
+
+        .status-info {
+            flex: 1;
+        }
+
+        .status-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.25rem;
+        }
+
+        .status-value {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .status-value.healthy { color: var(--success); }
+        .status-value.warning { color: var(--warning); }
+        .status-value.error { color: var(--danger); }
+
+        .system-metrics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .resource-meter {
+            margin-bottom: 1.5rem;
+        }
+
+        .resource-meter:last-child {
+            margin-bottom: 0;
+        }
+
+        .meter-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .meter-bar {
+            height: 8px;
+            background: var(--gray-100);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .meter-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--olive), var(--olive-light));
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .meter-fill.warning {
+            background: linear-gradient(90deg, var(--warning), #fbbf24);
+        }
+
+        .meter-fill.danger {
+            background: linear-gradient(90deg, var(--danger), #f87171);
+        }
+
+        .meter-detail {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        .uptime-info {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+        }
+
+        .error-log-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .error-log-item {
+            display: flex;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            background: var(--gray-50);
+            border-radius: var(--radius-md);
+            border-left: 3px solid;
+        }
+
+        .error-log-item.error { border-left-color: var(--danger); }
+        .error-log-item.warning { border-left-color: var(--warning); }
+        .error-log-item.info { border-left-color: #3b82f6; }
+
+        .error-log-icon {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+        }
+
+        .error-log-item.error .error-log-icon { color: var(--danger); }
+        .error-log-item.warning .error-log-icon { color: var(--warning); }
+        .error-log-item.info .error-log-icon { color: #3b82f6; }
+
+        .error-log-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .error-log-message {
+            font-size: 0.875rem;
+            color: var(--charcoal);
+            margin-bottom: 0.25rem;
+        }
+
+        .error-log-meta {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            background: var(--gray-200);
+            border-radius: 12px;
+            transition: var(--transition-base);
+        }
+
+        .toggle-slider::before {
+            content: '';
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: white;
+            top: 3px;
+            left: 3px;
+            transition: var(--transition-base);
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background: var(--olive);
+        }
+
+        .toggle-switch input:checked + .toggle-slider::before {
+            transform: translateX(20px);
+        }
+
+        /* ========================================
+           數據匯出視圖樣式
+           ======================================== */
+        .export-options-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+        }
+
+        .export-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition-base);
+            border: 2px solid var(--gray-100);
+        }
+
+        .export-card:hover {
+            border-color: var(--olive);
+            background: var(--olive-muted);
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+        }
+
+        .export-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 16px;
+            background: var(--olive-muted);
+            color: var(--olive);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            transition: var(--transition-base);
+        }
+
+        .export-card:hover .export-icon {
+            background: var(--olive);
+            color: white;
+        }
+
+        .export-card h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--charcoal);
+            margin-bottom: 0.5rem;
+        }
+
+        .export-card p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            margin-bottom: 1rem;
+        }
+
+        .export-formats {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .format-badge {
+            padding: 0.25rem 0.75rem;
+            background: var(--gray-100);
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .export-card:hover .format-badge {
+            background: rgba(168, 184, 154, 0.3);
+            color: var(--olive);
+        }
+
+        /* ========================================
+           自動化規則視圖樣式
+           ======================================== */
+        .rule-status-toggle {
+            position: relative;
+            width: 40px;
+            height: 22px;
+        }
+
+        .rule-status-toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .rule-toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--gray-200);
+            border-radius: 11px;
+            transition: var(--transition-base);
+        }
+
+        .rule-toggle-slider::before {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: white;
+            top: 3px;
+            left: 3px;
+            transition: var(--transition-base);
+        }
+
+        .rule-status-toggle input:checked + .rule-toggle-slider {
+            background: var(--success);
+        }
+
+        .rule-status-toggle input:checked + .rule-toggle-slider::before {
+            transform: translateX(18px);
+        }
+
+        .rule-type-badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .rule-type-badge.auto-approve { background: rgba(72, 187, 120, 0.1); color: var(--success); }
+        .rule-type-badge.auto-notify { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+        .rule-type-badge.auto-suspend { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
+        .rule-type-badge.auto-archive { background: rgba(107, 114, 128, 0.1); color: var(--gray-500); }
+        .rule-type-badge.scheduled { background: rgba(168, 184, 154, 0.2); color: var(--olive); }
+
+        /* ========================================
+           用戶活動分析視圖樣式
+           ======================================== */
+        .activity-metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .activity-metric-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: 1.25rem;
+            border: 1px solid var(--gray-100);
+        }
+
+        .activity-metric-card .metric-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .activity-metric-card .metric-title {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .activity-metric-card .metric-trend {
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.2rem 0.5rem;
+            border-radius: 10px;
+        }
+
+        .activity-metric-card .metric-trend.positive {
+            background: rgba(72, 187, 120, 0.1);
+            color: var(--success);
+        }
+
+        .activity-metric-card .metric-trend.negative {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+        }
+
+        .activity-metric-card .metric-trend.neutral {
+            background: var(--gray-100);
+            color: var(--text-secondary);
+        }
+
+        .activity-metric-card .metric-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--charcoal);
+            margin-bottom: 0.5rem;
+        }
+
+        .activity-metric-card .metric-sparkline {
+            height: 40px;
+        }
+
+        .activity-charts-grid {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .activity-bottom-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .heatmap-container {
+            display: grid;
+            grid-template-columns: auto repeat(24, 1fr);
+            gap: 2px;
+            font-size: 0.7rem;
+        }
+
+        .heatmap-row-label {
+            padding: 0.25rem;
+            text-align: right;
+            color: var(--text-secondary);
+            font-size: 0.7rem;
+        }
+
+        .heatmap-cell {
+            aspect-ratio: 1;
+            border-radius: 2px;
+            background: var(--gray-100);
+            transition: background-color 0.2s;
+        }
+
+        .heatmap-cell:hover {
+            outline: 2px solid var(--olive);
+            outline-offset: 1px;
+        }
+
+        .heatmap-cell.level-0 { background: #f0f4f0; }
+        .heatmap-cell.level-1 { background: #c5d5c0; }
+        .heatmap-cell.level-2 { background: #9ab88f; }
+        .heatmap-cell.level-3 { background: #6f9b5e; }
+        .heatmap-cell.level-4 { background: var(--olive); }
+
+        .heatmap-legend {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .legend-scale {
+            display: flex;
+            gap: 2px;
+        }
+
+        .legend-item {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+
+        /* 響應式調整 */
+        @media (max-width: 1200px) {
+            .system-status-grid,
+            .export-options-grid,
+            .activity-metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .system-metrics-grid,
+            .activity-charts-grid,
+            .activity-bottom-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .system-status-grid,
+            .export-options-grid,
+            .activity-metrics-grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -1286,6 +2664,41 @@
                         <line x1="6" y1="20" x2="6" y2="14"/>
                     </svg>
                     數據分析
+                </a>
+
+                <div class="nav-section">系統工具</div>
+                <a class="nav-item" data-view="systemMonitor">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                        <line x1="8" y1="21" x2="16" y2="21"/>
+                        <line x1="12" y1="17" x2="12" y2="21"/>
+                        <path d="M6 10l3-3 2 2 4-4 3 3"/>
+                    </svg>
+                    系統監控
+                </a>
+                <a class="nav-item" data-view="dataExport">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    數據匯出
+                </a>
+                <a class="nav-item" data-view="automation">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                    自動化規則
+                </a>
+                <a class="nav-item" data-view="userActivity">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                    用戶活動分析
                 </a>
 
                 <div class="nav-section">帳戶</div>
@@ -1616,9 +3029,9 @@
                 </div>
 
                 <div class="card">
-                    <div class="card-body">
-                        <table class="data-table">
-                            <thead>
+                    <div class="card-body table-container">
+                        <table class="data-table" id="usersTable">
+                            <thead id="usersTableHead">
                                 <tr>
                                     <th>用戶</th>
                                     <th>角色</th>
@@ -2283,6 +3696,444 @@
                     </div>
                 </div>
             </div>
+
+            <!-- System Monitor View - 系統監控 -->
+            <div id="systemMonitorView" class="admin-view">
+                <div class="admin-header">
+                    <h2>系統監控</h2>
+                    <div class="admin-header-actions">
+                        <label class="toggle-switch" style="display: flex; align-items: center; gap: 0.5rem;">
+                            <input type="checkbox" id="autoRefreshToggle" onchange="toggleAutoRefresh(this.checked)">
+                            <span class="toggle-slider"></span>
+                            <span style="font-size: 0.875rem; color: var(--text-secondary);">自動更新 (30秒)</span>
+                        </label>
+                        <button class="btn-secondary" onclick="loadSystemHealth()">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
+                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                            </svg>
+                            立即刷新
+                        </button>
+                    </div>
+                </div>
+
+                <!-- System Status Cards -->
+                <div class="system-status-grid">
+                    <div class="system-status-card" id="statusCardAPI">
+                        <div class="status-icon healthy">
+                            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                <polyline points="22 4 12 14.01 9 11.01"/>
+                            </svg>
+                        </div>
+                        <div class="status-info">
+                            <div class="status-label">API 服務</div>
+                            <div class="status-value healthy" id="apiStatus">正常運行</div>
+                        </div>
+                    </div>
+                    <div class="system-status-card" id="statusCardDB">
+                        <div class="status-icon healthy">
+                            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                                <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                                <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+                                <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+                            </svg>
+                        </div>
+                        <div class="status-info">
+                            <div class="status-label">資料庫</div>
+                            <div class="status-value healthy" id="dbStatus">正常連接</div>
+                        </div>
+                    </div>
+                    <div class="system-status-card" id="statusCardStorage">
+                        <div class="status-icon healthy">
+                            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                            </svg>
+                        </div>
+                        <div class="status-info">
+                            <div class="status-label">儲存空間</div>
+                            <div class="status-value healthy" id="storageStatus">充足</div>
+                        </div>
+                    </div>
+                    <div class="system-status-card" id="statusCardMemory">
+                        <div class="status-icon healthy">
+                            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="4" y="4" width="16" height="16" rx="2" ry="2"/>
+                                <rect x="9" y="9" width="6" height="6"/>
+                                <line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/>
+                                <line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/>
+                                <line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/>
+                                <line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/>
+                            </svg>
+                        </div>
+                        <div class="status-info">
+                            <div class="status-label">記憶體使用</div>
+                            <div class="status-value" id="memoryStatus">-</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- System Metrics -->
+                <div class="system-metrics-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>系統資源使用</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="resource-meter">
+                                <div class="meter-label">
+                                    <span>記憶體</span>
+                                    <span id="memoryPercent">0%</span>
+                                </div>
+                                <div class="meter-bar">
+                                    <div class="meter-fill" id="memoryBar" style="width: 0%"></div>
+                                </div>
+                                <div class="meter-detail" id="memoryDetail">已使用 0 MB / 總共 0 MB</div>
+                            </div>
+                            <div class="resource-meter">
+                                <div class="meter-label">
+                                    <span>運行時間</span>
+                                    <span id="uptimeValue">-</span>
+                                </div>
+                                <div class="uptime-info">
+                                    <span>Node.js 版本：</span>
+                                    <span id="nodeVersion">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>最近錯誤日誌</h3>
+                            <select class="form-select" id="errorSeverityFilter" onchange="filterErrors()" style="width: 120px;">
+                                <option value="">全部等級</option>
+                                <option value="error">錯誤</option>
+                                <option value="warning">警告</option>
+                                <option value="info">資訊</option>
+                            </select>
+                        </div>
+                        <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                            <div class="error-log-list" id="errorLogList">
+                                <div class="empty-state">
+                                    <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5">
+                                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                        <polyline points="22 4 12 14.01 9 11.01"/>
+                                    </svg>
+                                    <p>系統運行正常，無錯誤記錄</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Export View - 數據匯出 -->
+            <div id="dataExportView" class="admin-view">
+                <div class="admin-header">
+                    <h2>數據匯出</h2>
+                </div>
+
+                <!-- Export Options -->
+                <div class="export-options-grid">
+                    <div class="export-card" onclick="showExportModal('users')">
+                        <div class="export-icon">
+                            <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                <circle cx="9" cy="7" r="4"/>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                            </svg>
+                        </div>
+                        <h3>用戶數據</h3>
+                        <p>匯出所有用戶資料，包含基本資訊、角色、狀態等</p>
+                        <div class="export-formats">
+                            <span class="format-badge">CSV</span>
+                            <span class="format-badge">JSON</span>
+                            <span class="format-badge">PDF</span>
+                        </div>
+                    </div>
+                    <div class="export-card" onclick="showExportModal('courses')">
+                        <div class="export-icon">
+                            <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                            </svg>
+                        </div>
+                        <h3>課程數據</h3>
+                        <p>匯出課程資訊，包含名稱、講師、學生數、進度等</p>
+                        <div class="export-formats">
+                            <span class="format-badge">CSV</span>
+                            <span class="format-badge">JSON</span>
+                            <span class="format-badge">PDF</span>
+                        </div>
+                    </div>
+                    <div class="export-card" onclick="showExportModal('licenses')">
+                        <div class="export-icon">
+                            <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                            </svg>
+                        </div>
+                        <h3>授權數據</h3>
+                        <p>匯出授權記錄，包含申請、核准、到期日等資訊</p>
+                        <div class="export-formats">
+                            <span class="format-badge">CSV</span>
+                            <span class="format-badge">JSON</span>
+                            <span class="format-badge">PDF</span>
+                        </div>
+                    </div>
+                    <div class="export-card" onclick="showExportModal('analytics')">
+                        <div class="export-icon">
+                            <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="20" x2="18" y2="10"/>
+                                <line x1="12" y1="20" x2="12" y2="4"/>
+                                <line x1="6" y1="20" x2="6" y2="14"/>
+                            </svg>
+                        </div>
+                        <h3>分析報表</h3>
+                        <p>生成自訂日期範圍的綜合分析報表</p>
+                        <div class="export-formats">
+                            <span class="format-badge">PDF</span>
+                            <span class="format-badge">Excel</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Exports -->
+                <div class="card" style="margin-top: 1.5rem;">
+                    <div class="card-header">
+                        <h3>最近匯出記錄</h3>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>類型</th>
+                                <th>格式</th>
+                                <th>日期範圍</th>
+                                <th>匯出時間</th>
+                                <th>狀態</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recentExportsTable">
+                            <tr>
+                                <td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                                    尚無匯出記錄
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Automation View - 自動化規則 -->
+            <div id="automationView" class="admin-view">
+                <div class="admin-header">
+                    <h2>自動化規則</h2>
+                    <div class="admin-header-actions">
+                        <button class="btn-primary" onclick="openAutomationModal()">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                            </svg>
+                            新增規則
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Automation Stats -->
+                <div class="stats-grid" style="margin-bottom: 1.5rem;">
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalRulesCount">0</div>
+                        <div class="stat-label">總規則數</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="activeRulesCount">0</div>
+                        <div class="stat-label">啟用中</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="todayTriggersCount">0</div>
+                        <div class="stat-label">今日觸發</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalTriggersCount">0</div>
+                        <div class="stat-label">累計觸發</div>
+                    </div>
+                </div>
+
+                <!-- Rules List -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>規則列表</h3>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <select class="form-select" id="ruleTypeFilter" onchange="filterRules()" style="width: 150px;">
+                                <option value="">全部類型</option>
+                                <option value="AUTO_APPROVE_LICENSE">自動核准授權</option>
+                                <option value="AUTO_SEND_NOTIFICATION">自動發送通知</option>
+                                <option value="AUTO_SUSPEND_USER">自動停用用戶</option>
+                                <option value="AUTO_ARCHIVE_COURSE">自動封存課程</option>
+                                <option value="SCHEDULED_REPORT">定期報表</option>
+                            </select>
+                            <select class="form-select" id="ruleStatusFilter" onchange="filterRules()" style="width: 120px;">
+                                <option value="">全部狀態</option>
+                                <option value="active">啟用</option>
+                                <option value="inactive">停用</option>
+                            </select>
+                        </div>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>狀態</th>
+                                <th>規則名稱</th>
+                                <th>類型</th>
+                                <th>條件</th>
+                                <th>動作</th>
+                                <th>上次觸發</th>
+                                <th>觸發次數</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="automationRulesTable">
+                            <tr>
+                                <td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                                    尚無自動化規則，點擊「新增規則」開始設定
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- User Activity View - 用戶活動分析 -->
+            <div id="userActivityView" class="admin-view">
+                <div class="admin-header">
+                    <h2>用戶活動分析</h2>
+                    <div class="admin-header-actions">
+                        <select class="form-select" id="activityDateRange" onchange="loadUserActivity()" style="width: 150px;">
+                            <option value="7d">最近 7 天</option>
+                            <option value="30d" selected>最近 30 天</option>
+                            <option value="90d">最近 90 天</option>
+                            <option value="custom">自訂範圍</option>
+                        </select>
+                        <button class="btn-secondary" onclick="exportActivityReport()">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="7 10 12 15 17 10"/>
+                                <line x1="12" y1="15" x2="12" y2="3"/>
+                            </svg>
+                            匯出報表
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Activity Metrics -->
+                <div class="activity-metrics-grid">
+                    <div class="activity-metric-card">
+                        <div class="metric-header">
+                            <span class="metric-title">日活躍用戶 (DAU)</span>
+                            <span class="metric-trend positive" id="dauTrend">+0%</span>
+                        </div>
+                        <div class="metric-value" id="dauValue">0</div>
+                        <div class="metric-sparkline" id="dauSparkline"></div>
+                    </div>
+                    <div class="activity-metric-card">
+                        <div class="metric-header">
+                            <span class="metric-title">週活躍用戶 (WAU)</span>
+                            <span class="metric-trend positive" id="wauTrend">+0%</span>
+                        </div>
+                        <div class="metric-value" id="wauValue">0</div>
+                        <div class="metric-sparkline" id="wauSparkline"></div>
+                    </div>
+                    <div class="activity-metric-card">
+                        <div class="metric-header">
+                            <span class="metric-title">月活躍用戶 (MAU)</span>
+                            <span class="metric-trend positive" id="mauTrend">+0%</span>
+                        </div>
+                        <div class="metric-value" id="mauValue">0</div>
+                        <div class="metric-sparkline" id="mauSparkline"></div>
+                    </div>
+                    <div class="activity-metric-card">
+                        <div class="metric-header">
+                            <span class="metric-title">用戶留存率</span>
+                            <span class="metric-trend neutral" id="retentionTrend">-</span>
+                        </div>
+                        <div class="metric-value" id="retentionValue">0%</div>
+                        <div class="metric-sparkline" id="retentionSparkline"></div>
+                    </div>
+                </div>
+
+                <!-- Activity Charts -->
+                <div class="activity-charts-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>活躍用戶趨勢</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container" style="height: 300px;">
+                                <canvas id="activityTrendChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>行為分布</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container" style="height: 300px;">
+                                <canvas id="behaviorDistributionChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Activity Heatmap and Top Users -->
+                <div class="activity-bottom-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>活動時段熱力圖</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="heatmap-container" id="activityHeatmap">
+                                <!-- Heatmap will be rendered here -->
+                            </div>
+                            <div class="heatmap-legend">
+                                <span>較少</span>
+                                <div class="legend-scale">
+                                    <div class="legend-item" style="background: #f0f4f0;"></div>
+                                    <div class="legend-item" style="background: #c5d5c0;"></div>
+                                    <div class="legend-item" style="background: #9ab88f;"></div>
+                                    <div class="legend-item" style="background: #6f9b5e;"></div>
+                                    <div class="legend-item" style="background: var(--olive);"></div>
+                                </div>
+                                <span>較多</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>高活躍用戶 Top 10</h3>
+                        </div>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>用戶</th>
+                                    <th>角色</th>
+                                    <th>活動次數</th>
+                                    <th>最後活動</th>
+                                </tr>
+                            </thead>
+                            <tbody id="topActiveUsersTable">
+                                <tr>
+                                    <td colspan="5" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                                        載入中...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </main>
     </div>
 
@@ -2499,9 +4350,1241 @@
         </div>
     </div>
 
+    <!-- 確認對話框組件 -->
+    <div class="confirm-dialog-overlay" id="confirmDialogOverlay">
+        <div class="confirm-dialog" id="confirmDialog">
+            <div class="confirm-dialog-header">
+                <div class="confirm-dialog-icon" id="confirmDialogIcon">
+                    <!-- 圖示會由 JS 動態插入 -->
+                </div>
+                <div class="confirm-dialog-content">
+                    <h4 class="confirm-dialog-title" id="confirmDialogTitle">確認操作</h4>
+                    <p class="confirm-dialog-message" id="confirmDialogMessage">您確定要執行此操作嗎？</p>
+                </div>
+            </div>
+            <div class="confirm-dialog-body" id="confirmDialogBody" style="display: none;">
+                <!-- 可選的輸入欄位區域 -->
+            </div>
+            <div class="confirm-dialog-footer">
+                <button class="confirm-dialog-btn confirm-dialog-btn-cancel" id="confirmDialogCancel">取消</button>
+                <button class="confirm-dialog-btn confirm-dialog-btn-confirm" id="confirmDialogConfirm">確認</button>
+            </div>
+        </div>
+    </div>
+
     <script src="../js/api.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script>
+        // ========== 確認對話框組件 ==========
+        const ConfirmDialog = {
+            overlay: null,
+            dialog: null,
+            currentCallback: null,
+            currentInputValidator: null,
+
+            init() {
+                this.overlay = document.getElementById('confirmDialogOverlay');
+                this.dialog = document.getElementById('confirmDialog');
+
+                // 綁定按鈕事件
+                document.getElementById('confirmDialogCancel').addEventListener('click', () => this.close(false));
+                document.getElementById('confirmDialogConfirm').addEventListener('click', () => this.handleConfirm());
+
+                // 點擊遮罩關閉
+                this.overlay.addEventListener('click', (e) => {
+                    if (e.target === this.overlay) this.close(false);
+                });
+
+                // ESC 鍵關閉
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape' && this.overlay.classList.contains('active')) {
+                        this.close(false);
+                    }
+                });
+            },
+
+            /**
+             * 顯示確認對話框
+             * @param {Object} options 配置選項
+             * @param {string} options.title - 標題
+             * @param {string} options.message - 訊息內容
+             * @param {string} options.type - 類型: 'danger' | 'warning' | 'info'
+             * @param {string} options.confirmText - 確認按鈕文字
+             * @param {string} options.cancelText - 取消按鈕文字
+             * @param {Object} options.input - 輸入框配置 { placeholder, hint, validator }
+             * @param {Function} options.onConfirm - 確認回調
+             * @param {Function} options.onCancel - 取消回調
+             */
+            show(options = {}) {
+                const {
+                    title = '確認操作',
+                    message = '您確定要執行此操作嗎？',
+                    type = 'warning',
+                    confirmText = '確認',
+                    cancelText = '取消',
+                    input = null,
+                    onConfirm = null,
+                    onCancel = null
+                } = options;
+
+                // 設置類型
+                this.dialog.className = `confirm-dialog ${type}`;
+
+                // 設置圖示
+                const iconContainer = document.getElementById('confirmDialogIcon');
+                iconContainer.innerHTML = this.getIcon(type);
+
+                // 設置內容
+                document.getElementById('confirmDialogTitle').textContent = title;
+                document.getElementById('confirmDialogMessage').textContent = message;
+                document.getElementById('confirmDialogConfirm').textContent = confirmText;
+                document.getElementById('confirmDialogCancel').textContent = cancelText;
+
+                // 處理輸入框
+                const bodyEl = document.getElementById('confirmDialogBody');
+                if (input) {
+                    bodyEl.style.display = 'block';
+                    bodyEl.innerHTML = `
+                        <input type="text"
+                               class="confirm-dialog-input"
+                               id="confirmDialogInput"
+                               placeholder="${input.placeholder || ''}"
+                               autocomplete="off">
+                        ${input.hint ? `<p class="confirm-dialog-hint">${input.hint}</p>` : ''}
+                    `;
+                    this.currentInputValidator = input.validator || null;
+
+                    // 監聽輸入
+                    const inputEl = document.getElementById('confirmDialogInput');
+                    inputEl.addEventListener('input', () => {
+                        inputEl.classList.remove('error');
+                    });
+                } else {
+                    bodyEl.style.display = 'none';
+                    bodyEl.innerHTML = '';
+                    this.currentInputValidator = null;
+                }
+
+                // 保存回調
+                this.currentCallback = onConfirm;
+                this.currentCancelCallback = onCancel;
+
+                // 顯示對話框
+                this.overlay.classList.add('active');
+
+                // 聚焦到輸入框或確認按鈕
+                setTimeout(() => {
+                    if (input) {
+                        document.getElementById('confirmDialogInput')?.focus();
+                    } else {
+                        document.getElementById('confirmDialogConfirm').focus();
+                    }
+                }, 100);
+            },
+
+            handleConfirm() {
+                // 如果有輸入框，驗證輸入
+                const inputEl = document.getElementById('confirmDialogInput');
+                if (inputEl && this.currentInputValidator) {
+                    const value = inputEl.value.trim();
+                    if (!this.currentInputValidator(value)) {
+                        inputEl.classList.add('error');
+                        inputEl.focus();
+                        return;
+                    }
+                }
+
+                this.close(true);
+            },
+
+            close(confirmed) {
+                this.overlay.classList.remove('active');
+
+                // 取得輸入值
+                const inputEl = document.getElementById('confirmDialogInput');
+                const inputValue = inputEl ? inputEl.value.trim() : null;
+
+                if (confirmed && this.currentCallback) {
+                    this.currentCallback(inputValue);
+                } else if (!confirmed && this.currentCancelCallback) {
+                    this.currentCancelCallback();
+                }
+
+                this.currentCallback = null;
+                this.currentCancelCallback = null;
+                this.currentInputValidator = null;
+            },
+
+            getIcon(type) {
+                const icons = {
+                    danger: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="15" y1="9" x2="9" y2="15"/>
+                        <line x1="9" y1="9" x2="15" y2="15"/>
+                    </svg>`,
+                    warning: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>`,
+                    info: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="16" x2="12" y2="12"/>
+                        <line x1="12" y1="8" x2="12.01" y2="8"/>
+                    </svg>`
+                };
+                return icons[type] || icons.warning;
+            }
+        };
+
+        /**
+         * 快捷函數：顯示確認對話框
+         * @returns {Promise} 返回 Promise，confirmed 時 resolve，取消時 reject
+         */
+        function showConfirmDialog(options) {
+            return new Promise((resolve, reject) => {
+                ConfirmDialog.show({
+                    ...options,
+                    onConfirm: (inputValue) => resolve(inputValue),
+                    onCancel: () => reject(new Error('cancelled'))
+                });
+            });
+        }
+
+        // ========== 迷你圖生成器 ==========
+        const Sparkline = {
+            /**
+             * 生成 SVG 迷你圖
+             * @param {Array} data - 數據陣列
+             * @param {Object} options - 選項
+             */
+            generate(data, options = {}) {
+                const { width = 100, height = 40, showArea = true } = options;
+
+                if (!data || data.length < 2) {
+                    // 生成模擬數據
+                    data = [0, 2, 1, 4, 3, 6, 5, 8, 7, 10];
+                }
+
+                const max = Math.max(...data);
+                const min = Math.min(...data);
+                const range = max - min || 1;
+
+                const points = data.map((value, index) => {
+                    const x = (index / (data.length - 1)) * width;
+                    const y = height - ((value - min) / range) * height;
+                    return `${x},${y}`;
+                });
+
+                const linePath = `M${points.join(' L')}`;
+                const areaPath = `M0,${height} L${points.join(' L')} L${width},${height} Z`;
+
+                return `
+                    <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
+                        ${showArea ? `<path class="sparkline-area" d="${areaPath}"/>` : ''}
+                        <path d="${linePath}"/>
+                    </svg>
+                `;
+            },
+
+            /**
+             * 更新迷你圖
+             */
+            update(containerId, data, options) {
+                const container = document.getElementById(containerId);
+                if (container) {
+                    container.innerHTML = this.generate(data, options);
+                }
+            }
+        };
+
+        // ========== 實時表單驗證組件 ==========
+        const FormValidator = {
+            forms: {},
+
+            // 預設驗證規則
+            rules: {
+                required: {
+                    validate: (value) => value.trim().length > 0,
+                    message: '此欄位為必填'
+                },
+                email: {
+                    validate: (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value),
+                    message: '請輸入有效的電子郵件地址'
+                },
+                minLength: (min) => ({
+                    validate: (value) => value.length >= min,
+                    message: `至少需要 ${min} 個字元`
+                }),
+                maxLength: (max) => ({
+                    validate: (value) => value.length <= max,
+                    message: `最多只能 ${max} 個字元`
+                }),
+                pattern: (regex, msg) => ({
+                    validate: (value) => regex.test(value),
+                    message: msg || '格式不正確'
+                }),
+                password: {
+                    validate: (value) => value.length >= 6,
+                    message: '密碼至少需要 6 個字元'
+                },
+                confirmPassword: (passwordField) => ({
+                    validate: (value, form) => {
+                        const password = form.querySelector(`[name="${passwordField}"]`)?.value;
+                        return value === password;
+                    },
+                    message: '密碼不一致'
+                }),
+                phone: {
+                    validate: (value) => !value || /^[0-9\-\+\s()]{8,20}$/.test(value),
+                    message: '請輸入有效的電話號碼'
+                },
+                url: {
+                    validate: (value) => !value || /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/.test(value),
+                    message: '請輸入有效的網址'
+                }
+            },
+
+            /**
+             * 初始化表單驗證
+             * @param {string} formId - 表單 ID
+             * @param {Object} fieldRules - 欄位規則 { fieldName: ['required', 'email', ...] }
+             * @param {Object} options - 選項 { validateOnInput, validateOnBlur, showSuccessState }
+             */
+            init(formId, fieldRules, options = {}) {
+                const form = document.getElementById(formId);
+                if (!form) return;
+
+                const config = {
+                    validateOnInput: true,
+                    validateOnBlur: true,
+                    showSuccessState: true,
+                    ...options
+                };
+
+                this.forms[formId] = { form, fieldRules, config, errors: {} };
+
+                // 綁定事件
+                Object.keys(fieldRules).forEach(fieldName => {
+                    const input = form.querySelector(`[name="${fieldName}"]`);
+                    if (!input) return;
+
+                    // 為輸入框添加包裝器（如果還沒有）
+                    this.wrapInput(input);
+
+                    if (config.validateOnInput) {
+                        let debounceTimer;
+                        input.addEventListener('input', () => {
+                            clearTimeout(debounceTimer);
+                            debounceTimer = setTimeout(() => {
+                                this.validateField(formId, fieldName);
+                            }, 300);
+                        });
+                    }
+
+                    if (config.validateOnBlur) {
+                        input.addEventListener('blur', () => {
+                            this.validateField(formId, fieldName);
+                        });
+                    }
+
+                    // 密碼強度檢測
+                    if (fieldRules[fieldName].includes('password')) {
+                        input.addEventListener('input', () => {
+                            this.updatePasswordStrength(input);
+                        });
+                    }
+                });
+
+                // 攔截表單提交
+                form.addEventListener('submit', (e) => {
+                    if (!this.validateForm(formId)) {
+                        e.preventDefault();
+                    }
+                });
+            },
+
+            /**
+             * 包裝輸入框
+             */
+            wrapInput(input) {
+                if (input.parentElement.classList.contains('form-input-wrapper')) return;
+
+                const wrapper = document.createElement('div');
+                wrapper.className = 'form-input-wrapper';
+                input.parentNode.insertBefore(wrapper, input);
+                wrapper.appendChild(input);
+
+                // 添加驗證圖示
+                wrapper.insertAdjacentHTML('beforeend', `
+                    <svg class="validation-icon success" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    <svg class="validation-icon error" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="15" y1="9" x2="9" y2="15"/>
+                        <line x1="9" y1="9" x2="15" y2="15"/>
+                    </svg>
+                `);
+
+                // 添加錯誤訊息容器
+                const messageEl = document.createElement('div');
+                messageEl.className = 'validation-message';
+                messageEl.id = `${input.name}-error`;
+                wrapper.parentNode.insertBefore(messageEl, wrapper.nextSibling);
+            },
+
+            /**
+             * 驗證單一欄位
+             */
+            validateField(formId, fieldName) {
+                const formData = this.forms[formId];
+                if (!formData) return true;
+
+                const { form, fieldRules, config, errors } = formData;
+                const input = form.querySelector(`[name="${fieldName}"]`);
+                if (!input) return true;
+
+                const rules = fieldRules[fieldName] || [];
+                const value = input.value;
+
+                // 執行所有規則
+                for (const rule of rules) {
+                    let ruleObj;
+                    if (typeof rule === 'string') {
+                        ruleObj = this.rules[rule];
+                    } else if (typeof rule === 'object') {
+                        ruleObj = rule;
+                    }
+
+                    if (ruleObj && !ruleObj.validate(value, form)) {
+                        errors[fieldName] = ruleObj.message;
+                        this.showError(input, ruleObj.message);
+                        return false;
+                    }
+                }
+
+                // 驗證通過
+                delete errors[fieldName];
+                if (config.showSuccessState && value.trim()) {
+                    this.showSuccess(input);
+                } else {
+                    this.clearValidation(input);
+                }
+                return true;
+            },
+
+            /**
+             * 驗證整個表單
+             */
+            validateForm(formId) {
+                const formData = this.forms[formId];
+                if (!formData) return true;
+
+                const { fieldRules } = formData;
+                let isValid = true;
+
+                Object.keys(fieldRules).forEach(fieldName => {
+                    if (!this.validateField(formId, fieldName)) {
+                        isValid = false;
+                    }
+                });
+
+                return isValid;
+            },
+
+            /**
+             * 顯示錯誤狀態
+             */
+            showError(input, message) {
+                input.classList.remove('valid');
+                input.classList.add('invalid', 'validating');
+
+                const messageEl = document.getElementById(`${input.name}-error`);
+                if (messageEl) {
+                    messageEl.textContent = message;
+                    messageEl.className = 'validation-message error';
+                }
+            },
+
+            /**
+             * 顯示成功狀態
+             */
+            showSuccess(input) {
+                input.classList.remove('invalid');
+                input.classList.add('valid', 'validating');
+
+                const messageEl = document.getElementById(`${input.name}-error`);
+                if (messageEl) {
+                    messageEl.textContent = '';
+                    messageEl.className = 'validation-message';
+                }
+            },
+
+            /**
+             * 清除驗證狀態
+             */
+            clearValidation(input) {
+                input.classList.remove('valid', 'invalid', 'validating');
+
+                const messageEl = document.getElementById(`${input.name}-error`);
+                if (messageEl) {
+                    messageEl.textContent = '';
+                    messageEl.className = 'validation-message';
+                }
+            },
+
+            /**
+             * 更新密碼強度指示器
+             */
+            updatePasswordStrength(input) {
+                let strengthEl = input.parentElement.parentElement.querySelector('.password-strength-container');
+                if (!strengthEl) {
+                    strengthEl = document.createElement('div');
+                    strengthEl.className = 'password-strength-container';
+                    strengthEl.innerHTML = `
+                        <div class="password-strength">
+                            <div class="password-strength-bar"></div>
+                            <div class="password-strength-bar"></div>
+                            <div class="password-strength-bar"></div>
+                        </div>
+                        <div class="password-strength-text"></div>
+                    `;
+                    const messageEl = document.getElementById(`${input.name}-error`);
+                    if (messageEl) {
+                        messageEl.parentNode.insertBefore(strengthEl, messageEl.nextSibling);
+                    }
+                }
+
+                const password = input.value;
+                const strength = this.calculatePasswordStrength(password);
+                const strengthWrapper = strengthEl.querySelector('.password-strength');
+                const strengthText = strengthEl.querySelector('.password-strength-text');
+
+                strengthWrapper.className = `password-strength ${strength.level}`;
+                strengthText.textContent = strength.text;
+            },
+
+            /**
+             * 計算密碼強度
+             */
+            calculatePasswordStrength(password) {
+                if (!password) return { level: '', text: '' };
+
+                let score = 0;
+                if (password.length >= 6) score++;
+                if (password.length >= 10) score++;
+                if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score++;
+                if (/\d/.test(password)) score++;
+                if (/[^a-zA-Z0-9]/.test(password)) score++;
+
+                if (score <= 2) return { level: 'weak', text: '密碼強度：弱' };
+                if (score <= 3) return { level: 'medium', text: '密碼強度：中等' };
+                return { level: 'strong', text: '密碼強度：強' };
+            },
+
+            /**
+             * 取得表單錯誤
+             */
+            getErrors(formId) {
+                return this.forms[formId]?.errors || {};
+            },
+
+            /**
+             * 重設表單驗證狀態
+             */
+            reset(formId) {
+                const formData = this.forms[formId];
+                if (!formData) return;
+
+                formData.errors = {};
+                const { form, fieldRules } = formData;
+
+                Object.keys(fieldRules).forEach(fieldName => {
+                    const input = form.querySelector(`[name="${fieldName}"]`);
+                    if (input) {
+                        this.clearValidation(input);
+                    }
+                });
+            }
+        };
+
+        // ========== 表格排序組件 ==========
+        const TableSorter = {
+            currentSort: { column: null, direction: 'asc' },
+            tableId: null,
+            sortCallbacks: {},
+
+            /**
+             * 初始化表格排序
+             * @param {string} tableId - 表格 ID
+             * @param {Function} onSort - 排序回調
+             */
+            init(tableId, onSort) {
+                this.tableId = tableId;
+                this.sortCallbacks[tableId] = onSort;
+                this.currentSort = { column: null, direction: 'asc' };
+            },
+
+            /**
+             * 執行排序
+             * @param {string} column - 欄位名稱
+             */
+            sort(column) {
+                // 切換排序方向
+                if (this.currentSort.column === column) {
+                    this.currentSort.direction = this.currentSort.direction === 'asc' ? 'desc' : 'asc';
+                } else {
+                    this.currentSort.column = column;
+                    this.currentSort.direction = 'asc';
+                }
+
+                // 更新表頭樣式
+                this.updateHeaderStyles();
+
+                // 執行排序回調
+                if (this.sortCallbacks[this.tableId]) {
+                    this.sortCallbacks[this.tableId](column, this.currentSort.direction);
+                }
+            },
+
+            /**
+             * 更新表頭樣式
+             */
+            updateHeaderStyles() {
+                const table = document.getElementById(this.tableId);
+                if (!table) return;
+
+                const headers = table.querySelectorAll('.sortable-header');
+                headers.forEach(th => {
+                    th.classList.remove('sort-asc', 'sort-desc');
+                    if (th.dataset.column === this.currentSort.column) {
+                        th.classList.add(`sort-${this.currentSort.direction}`);
+                    }
+                });
+            },
+
+            /**
+             * 生成排序圖示
+             */
+            getSortIcon() {
+                return `<svg class="sort-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 5v14M5 12l7-7 7 7"/>
+                </svg>`;
+            },
+
+            /**
+             * 對資料進行排序
+             * @param {Array} data - 資料陣列
+             * @param {string} column - 排序欄位
+             * @param {string} direction - 排序方向
+             * @param {Object} columnTypes - 欄位類型定義
+             */
+            sortData(data, column, direction, columnTypes = {}) {
+                if (!column) return data;
+
+                return [...data].sort((a, b) => {
+                    let valA = a[column];
+                    let valB = b[column];
+
+                    // 處理 null/undefined
+                    if (valA == null) valA = '';
+                    if (valB == null) valB = '';
+
+                    const type = columnTypes[column] || 'string';
+
+                    let comparison = 0;
+                    switch (type) {
+                        case 'number':
+                            comparison = Number(valA) - Number(valB);
+                            break;
+                        case 'date':
+                            comparison = new Date(valA) - new Date(valB);
+                            break;
+                        default:
+                            comparison = String(valA).localeCompare(String(valB), 'zh-TW');
+                    }
+
+                    return direction === 'desc' ? -comparison : comparison;
+                });
+            }
+        };
+
+        // ========== 進階篩選組件 ==========
+        const AdvancedFilter = {
+            filters: {},
+            panelId: null,
+            onFilterChange: null,
+
+            /**
+             * 初始化篩選器
+             * @param {string} panelId - 面板 ID
+             * @param {Function} onFilterChange - 篩選變更回調
+             */
+            init(panelId, onFilterChange) {
+                this.panelId = panelId;
+                this.onFilterChange = onFilterChange;
+                this.filters = {};
+            },
+
+            /**
+             * 設定篩選值
+             * @param {string} key - 篩選鍵
+             * @param {any} value - 篩選值
+             */
+            setFilter(key, value) {
+                if (value === '' || value === null || value === 'all') {
+                    delete this.filters[key];
+                } else {
+                    this.filters[key] = value;
+                }
+                this.updateFilterTags();
+                if (this.onFilterChange) {
+                    this.onFilterChange(this.filters);
+                }
+            },
+
+            /**
+             * 清除所有篩選
+             */
+            clearAll() {
+                this.filters = {};
+                this.resetFormInputs();
+                this.updateFilterTags();
+                if (this.onFilterChange) {
+                    this.onFilterChange(this.filters);
+                }
+            },
+
+            /**
+             * 重設表單輸入
+             */
+            resetFormInputs() {
+                const panel = document.getElementById(this.panelId);
+                if (!panel) return;
+
+                panel.querySelectorAll('select').forEach(select => {
+                    select.value = select.options[0]?.value || '';
+                });
+                panel.querySelectorAll('input').forEach(input => {
+                    input.value = '';
+                });
+            },
+
+            /**
+             * 更新篩選標籤顯示
+             */
+            updateFilterTags() {
+                const tagsContainer = document.getElementById(`${this.panelId}Tags`);
+                if (!tagsContainer) return;
+
+                const filterCount = Object.keys(this.filters).length;
+                if (filterCount === 0) {
+                    tagsContainer.innerHTML = '';
+                    tagsContainer.style.display = 'none';
+                    return;
+                }
+
+                tagsContainer.style.display = 'flex';
+                tagsContainer.innerHTML = Object.entries(this.filters).map(([key, value]) => {
+                    const label = this.getFilterLabel(key, value);
+                    return `
+                        <span class="filter-tag">
+                            ${label}
+                            <span class="filter-tag-remove" onclick="AdvancedFilter.setFilter('${key}', '')">&times;</span>
+                        </span>
+                    `;
+                }).join('');
+
+                // 更新篩選按鈕計數
+                this.updateToggleButton(filterCount);
+            },
+
+            /**
+             * 取得篩選標籤文字
+             */
+            getFilterLabel(key, value) {
+                const labels = {
+                    role: { educator: '建橋者', trainer: '橋樑工匠', creator: '知識建築師', student: '探橋者' },
+                    status: { active: '啟用中', suspended: '已停用', pending: '待審核' },
+                    subscriptionTier: { free: '免費', basic: '基礎', premium: '進階', enterprise: '企業' }
+                };
+                const keyLabels = { role: '角色', status: '狀態', subscriptionTier: '訂閱', dateFrom: '開始日期', dateTo: '結束日期', search: '搜尋' };
+
+                const keyLabel = keyLabels[key] || key;
+                const valueLabel = labels[key]?.[value] || value;
+                return `${keyLabel}: ${valueLabel}`;
+            },
+
+            /**
+             * 更新切換按鈕
+             */
+            updateToggleButton(count) {
+                const toggleBtn = document.querySelector(`[data-filter-toggle="${this.panelId}"]`);
+                if (!toggleBtn) return;
+
+                const countBadge = toggleBtn.querySelector('.active-filter-count');
+                if (count > 0) {
+                    if (countBadge) {
+                        countBadge.textContent = count;
+                    } else {
+                        toggleBtn.insertAdjacentHTML('beforeend', `<span class="active-filter-count">${count}</span>`);
+                    }
+                    toggleBtn.classList.add('active');
+                } else {
+                    if (countBadge) countBadge.remove();
+                    toggleBtn.classList.remove('active');
+                }
+            },
+
+            /**
+             * 切換面板顯示
+             */
+            togglePanel() {
+                const panel = document.getElementById(this.panelId);
+                if (panel) {
+                    panel.classList.toggle('active');
+                }
+            },
+
+            /**
+             * 篩選資料
+             * @param {Array} data - 資料陣列
+             * @param {Object} filterDefs - 篩選定義 { key: { type: 'exact'|'contains'|'dateRange', field: 'fieldName' } }
+             */
+            filterData(data, filterDefs = {}) {
+                if (Object.keys(this.filters).length === 0) return data;
+
+                return data.filter(item => {
+                    return Object.entries(this.filters).every(([key, value]) => {
+                        const def = filterDefs[key] || { type: 'exact', field: key };
+                        const itemValue = item[def.field];
+
+                        switch (def.type) {
+                            case 'contains':
+                                return String(itemValue || '').toLowerCase().includes(String(value).toLowerCase());
+                            case 'dateRange':
+                                // 處理日期範圍篩選
+                                const itemDate = new Date(itemValue);
+                                if (key.endsWith('From')) {
+                                    return itemDate >= new Date(value);
+                                } else if (key.endsWith('To')) {
+                                    return itemDate <= new Date(value);
+                                }
+                                return true;
+                            default:
+                                return itemValue === value;
+                        }
+                    });
+                });
+            },
+
+            /**
+             * 生成篩選面板 HTML
+             */
+            renderPanel(config) {
+                const { title = '進階篩選', fields = [] } = config;
+
+                const fieldsHtml = fields.map(field => {
+                    if (field.type === 'select') {
+                        const optionsHtml = field.options.map(opt =>
+                            `<option value="${opt.value}">${opt.label}</option>`
+                        ).join('');
+                        return `
+                            <div class="filter-group">
+                                <label>${field.label}</label>
+                                <select onchange="AdvancedFilter.setFilter('${field.key}', this.value)">
+                                    <option value="">全部</option>
+                                    ${optionsHtml}
+                                </select>
+                            </div>
+                        `;
+                    } else if (field.type === 'date') {
+                        return `
+                            <div class="filter-group">
+                                <label>${field.label}</label>
+                                <input type="date" onchange="AdvancedFilter.setFilter('${field.key}', this.value)">
+                            </div>
+                        `;
+                    } else {
+                        return `
+                            <div class="filter-group">
+                                <label>${field.label}</label>
+                                <input type="text" placeholder="${field.placeholder || ''}" oninput="AdvancedFilter.setFilter('${field.key}', this.value)">
+                            </div>
+                        `;
+                    }
+                }).join('');
+
+                return `
+                    <div class="filter-panel" id="${this.panelId}">
+                        <div class="filter-panel-header">
+                            <span class="filter-panel-title">${title}</span>
+                            <div class="filter-panel-actions">
+                                <button class="batch-btn batch-btn-secondary" onclick="AdvancedFilter.clearAll()">清除全部</button>
+                            </div>
+                        </div>
+                        <div class="filter-grid">
+                            ${fieldsHtml}
+                        </div>
+                        <div class="filter-tags" id="${this.panelId}Tags" style="display: none;"></div>
+                    </div>
+                `;
+            }
+        };
+
+        // ========== 批量操作組件 ==========
+        const BatchOperations = {
+            selectedItems: new Set(),
+            tableId: null,
+            idField: null,
+            callbacks: {},
+
+            /**
+             * 初始化批量操作
+             * @param {Object} config - 配置選項
+             * @param {string} config.tableId - 表格 ID
+             * @param {string} config.toolbarId - 工具列 ID
+             * @param {string} config.idField - ID 欄位名稱
+             * @param {Object} config.callbacks - 回調函數 { onExport, onDelete, onStatusChange }
+             */
+            init(config) {
+                this.tableId = config.tableId;
+                this.toolbarId = config.toolbarId;
+                this.idField = config.idField || 'id';
+                this.callbacks = config.callbacks || {};
+                this.selectedItems.clear();
+                this.updateToolbar();
+            },
+
+            /**
+             * 切換選擇狀態
+             * @param {string} itemId - 項目 ID
+             * @param {boolean} selected - 是否選中
+             */
+            toggleItem(itemId, selected) {
+                if (selected) {
+                    this.selectedItems.add(itemId);
+                } else {
+                    this.selectedItems.delete(itemId);
+                }
+                this.updateToolbar();
+                this.updateRowStyle(itemId, selected);
+                this.updateSelectAllCheckbox();
+            },
+
+            /**
+             * 全選/取消全選
+             * @param {Array} allIds - 所有項目 ID
+             * @param {boolean} selected - 是否選中
+             */
+            toggleAll(allIds, selected) {
+                if (selected) {
+                    allIds.forEach(id => this.selectedItems.add(id));
+                } else {
+                    this.selectedItems.clear();
+                }
+                this.updateToolbar();
+                this.updateAllRowStyles(selected);
+
+                // 更新所有 checkbox
+                const checkboxes = document.querySelectorAll(`#${this.tableId} .row-checkbox`);
+                checkboxes.forEach(cb => cb.checked = selected);
+            },
+
+            /**
+             * 清除所有選擇
+             */
+            clearSelection() {
+                this.selectedItems.clear();
+                this.updateToolbar();
+                this.updateAllRowStyles(false);
+
+                // 取消所有 checkbox
+                const checkboxes = document.querySelectorAll(`#${this.tableId} .row-checkbox`);
+                checkboxes.forEach(cb => cb.checked = false);
+
+                const selectAllCb = document.querySelector(`#${this.tableId} .select-all-checkbox`);
+                if (selectAllCb) selectAllCb.checked = false;
+            },
+
+            /**
+             * 更新工具列狀態
+             */
+            updateToolbar() {
+                const toolbar = document.getElementById(this.toolbarId);
+                if (!toolbar) return;
+
+                const count = this.selectedItems.size;
+                if (count > 0) {
+                    toolbar.classList.add('active');
+                    const countEl = toolbar.querySelector('.selected-count');
+                    if (countEl) countEl.textContent = count;
+                } else {
+                    toolbar.classList.remove('active');
+                }
+            },
+
+            /**
+             * 更新行樣式
+             */
+            updateRowStyle(itemId, selected) {
+                const row = document.querySelector(`#${this.tableId} tr[data-id="${itemId}"]`);
+                if (row) {
+                    if (selected) {
+                        row.classList.add('selected');
+                    } else {
+                        row.classList.remove('selected');
+                    }
+                }
+            },
+
+            /**
+             * 更新所有行樣式
+             */
+            updateAllRowStyles(selected) {
+                const rows = document.querySelectorAll(`#${this.tableId} tbody tr`);
+                rows.forEach(row => {
+                    if (selected) {
+                        row.classList.add('selected');
+                    } else {
+                        row.classList.remove('selected');
+                    }
+                });
+            },
+
+            /**
+             * 更新全選 checkbox 狀態
+             */
+            updateSelectAllCheckbox() {
+                const selectAllCb = document.querySelector(`#${this.tableId} .select-all-checkbox`);
+                const allCheckboxes = document.querySelectorAll(`#${this.tableId} .row-checkbox`);
+
+                if (selectAllCb && allCheckboxes.length > 0) {
+                    const allChecked = Array.from(allCheckboxes).every(cb => cb.checked);
+                    const someChecked = Array.from(allCheckboxes).some(cb => cb.checked);
+
+                    selectAllCb.checked = allChecked;
+                    selectAllCb.indeterminate = someChecked && !allChecked;
+                }
+            },
+
+            /**
+             * 取得選中的項目 ID 陣列
+             */
+            getSelectedIds() {
+                return Array.from(this.selectedItems);
+            },
+
+            /**
+             * 執行批量匯出
+             */
+            async exportSelected(format = 'csv') {
+                const ids = this.getSelectedIds();
+                if (ids.length === 0) return;
+
+                if (this.callbacks.onExport) {
+                    await this.callbacks.onExport(ids, format);
+                }
+            },
+
+            /**
+             * 執行批量刪除
+             */
+            async deleteSelected() {
+                const ids = this.getSelectedIds();
+                if (ids.length === 0) return;
+
+                try {
+                    await showConfirmDialog({
+                        title: '批量刪除',
+                        message: `確定要刪除選中的 ${ids.length} 個項目嗎？此操作無法復原。`,
+                        type: 'danger',
+                        confirmText: '確認刪除',
+                        cancelText: '取消'
+                    });
+
+                    if (this.callbacks.onDelete) {
+                        await this.callbacks.onDelete(ids);
+                        this.clearSelection();
+                    }
+                } catch (e) {
+                    // 用戶取消
+                }
+            },
+
+            /**
+             * 批量變更狀態
+             */
+            async changeStatus(newStatus) {
+                const ids = this.getSelectedIds();
+                if (ids.length === 0) return;
+
+                if (this.callbacks.onStatusChange) {
+                    await this.callbacks.onStatusChange(ids, newStatus);
+                    this.clearSelection();
+                }
+            },
+
+            /**
+             * 生成批量操作工具列 HTML
+             */
+            renderToolbar(options = {}) {
+                const {
+                    showExport = true,
+                    showDelete = true,
+                    customActions = []
+                } = options;
+
+                const exportIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
+                const deleteIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`;
+                const clearIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+
+                let actionsHtml = '';
+
+                if (showExport) {
+                    actionsHtml += `<button class="batch-btn batch-btn-primary" onclick="BatchOperations.exportSelected('csv')">${exportIcon} 匯出 CSV</button>`;
+                }
+
+                customActions.forEach(action => {
+                    actionsHtml += `<button class="batch-btn ${action.className || 'batch-btn-secondary'}" onclick="${action.onClick}">${action.icon || ''} ${action.label}</button>`;
+                });
+
+                if (showDelete) {
+                    actionsHtml += `<button class="batch-btn batch-btn-danger" onclick="BatchOperations.deleteSelected()">${deleteIcon} 刪除</button>`;
+                }
+
+                return `
+                    <div class="batch-toolbar" id="${this.toolbarId}">
+                        <div class="batch-toolbar-info">
+                            <span>已選擇</span>
+                            <span class="count selected-count">0</span>
+                            <span>個項目</span>
+                        </div>
+                        <div class="batch-toolbar-actions">
+                            ${actionsHtml}
+                            <button class="batch-btn batch-btn-clear" onclick="BatchOperations.clearSelection()" title="清除選擇">${clearIcon}</button>
+                        </div>
+                    </div>
+                `;
+            }
+        };
+
+        // ========== 麵包屑導航組件 ==========
+        const Breadcrumb = {
+            // 視圖名稱對照
+            viewNames: {
+                'dashboard': '儀表板',
+                'users': '用戶管理',
+                'resources': '教材管理',
+                'licenses': '授權管理',
+                'announcements': '公告管理',
+                'analytics': '數據分析',
+                'support': '客服中心',
+                'courses': '課程管理',
+                'courseCategories': '課程類別',
+                'questionbank': '題庫管理',
+                'badges': '徽章系統',
+                'learningPaths': '學習路徑',
+                'scorm': 'SCORM',
+                'lti': 'LTI 工具',
+                'h5p': 'H5P 內容',
+                'roles': '角色權限',
+                'rubrics': '評分標準',
+                'auditLogs': '審計日誌',
+                'systemMonitor': '系統監控',
+                'dataExport': '數據匯出',
+                'automation': '自動化規則',
+                'userActivity': '用戶活動'
+            },
+
+            // 視圖分類 (用於顯示父級)
+            viewCategories: {
+                'users': '主要功能',
+                'resources': '主要功能',
+                'licenses': '主要功能',
+                'announcements': '主要功能',
+                'analytics': '主要功能',
+                'support': '主要功能',
+                'courses': '教學管理',
+                'courseCategories': '教學管理',
+                'questionbank': '教學管理',
+                'badges': '教學管理',
+                'learningPaths': '教學管理',
+                'scorm': '進階功能',
+                'lti': '進階功能',
+                'h5p': '進階功能',
+                'roles': '進階功能',
+                'rubrics': '進階功能',
+                'auditLogs': '系統管理',
+                'systemMonitor': '系統管理',
+                'dataExport': '系統管理',
+                'automation': '系統管理',
+                'userActivity': '系統管理'
+            },
+
+            /**
+             * 生成麵包屑 HTML
+             * @param {string} currentView - 當前視圖名稱
+             * @param {Array} additionalItems - 額外的麵包屑項目 [{name, onClick}]
+             */
+            render(currentView, additionalItems = []) {
+                const viewName = this.viewNames[currentView] || currentView;
+                const homeIcon = `<svg class="breadcrumb-home-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                    <polyline points="9 22 9 12 15 12 15 22"/>
+                </svg>`;
+
+                let html = `
+                    <nav class="breadcrumb" id="pageBreadcrumb">
+                        <a class="breadcrumb-item" href="#" onclick="showView('dashboard'); return false;">
+                            ${homeIcon}
+                            <span>首頁</span>
+                        </a>
+                `;
+
+                // 如果不是首頁，添加當前頁面
+                if (currentView !== 'dashboard') {
+                    html += `
+                        <span class="breadcrumb-separator">›</span>
+                        <span class="breadcrumb-item active">${viewName}</span>
+                    `;
+                }
+
+                // 添加額外項目
+                additionalItems.forEach(item => {
+                    html += `
+                        <span class="breadcrumb-separator">›</span>
+                        ${item.onClick
+                            ? `<a class="breadcrumb-item" href="#" onclick="${item.onClick}; return false;">${item.name}</a>`
+                            : `<span class="breadcrumb-item active">${item.name}</span>`
+                        }
+                    `;
+                });
+
+                html += '</nav>';
+                return html;
+            },
+
+            /**
+             * 更新指定容器的麵包屑
+             * @param {string} containerId - 容器 ID
+             * @param {string} currentView - 當前視圖
+             * @param {Array} additionalItems - 額外項目
+             */
+            update(containerId, currentView, additionalItems = []) {
+                const container = document.getElementById(containerId);
+                if (container) {
+                    const existingBreadcrumb = container.querySelector('.breadcrumb');
+                    if (existingBreadcrumb) {
+                        existingBreadcrumb.outerHTML = this.render(currentView, additionalItems);
+                    } else {
+                        container.insertAdjacentHTML('afterbegin', this.render(currentView, additionalItems));
+                    }
+                }
+            }
+        };
+
         // ========== 客服中心全域變數 ==========
         let adminSocket = null;
         let adminChatRooms = [];
@@ -2521,6 +5604,9 @@
             'student': '探橋者'
         };
 
+        // 當前視圖狀態
+        let currentViewName = 'dashboard';
+
         // View Management
         function showView(viewName) {
             document.querySelectorAll('.admin-view').forEach(v => v.classList.remove('active'));
@@ -2528,6 +5614,12 @@
 
             document.getElementById(`${viewName}View`).classList.add('active');
             document.querySelector(`.nav-item[data-view="${viewName}"]`)?.classList.add('active');
+
+            // 更新當前視圖狀態
+            currentViewName = viewName;
+
+            // 更新麵包屑導航
+            updateBreadcrumb(viewName);
 
             // Load data for the view
             switch(viewName) {
@@ -2550,8 +5642,32 @@
                 case 'roles': loadRoles(); break;
                 case 'rubrics': loadRubrics(); break;
                 case 'auditLogs': loadAuditLogs(); break;
+                // Phase 3 新增視圖
+                case 'systemMonitor': loadSystemHealth(); break;
+                case 'dataExport': loadDataExport(); break;
+                case 'automation': loadAutomationRules(); break;
+                case 'userActivity': loadUserActivity(); break;
             }
         }
+
+        // 更新麵包屑導航
+        function updateBreadcrumb(viewName, additionalItems = []) {
+            const viewContainer = document.getElementById(`${viewName}View`);
+            if (viewContainer) {
+                // 檢查是否已有麵包屑容器
+                let breadcrumbContainer = viewContainer.querySelector('.breadcrumb-container');
+                if (!breadcrumbContainer) {
+                    // 在視圖的第一個子元素前插入麵包屑容器
+                    breadcrumbContainer = document.createElement('div');
+                    breadcrumbContainer.className = 'breadcrumb-container';
+                    viewContainer.insertBefore(breadcrumbContainer, viewContainer.firstChild);
+                }
+                breadcrumbContainer.innerHTML = Breadcrumb.render(viewName, additionalItems);
+            }
+        }
+
+        // 初始化確認對話框組件
+        ConfirmDialog.init();
 
         // Auth
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
@@ -2826,14 +5942,67 @@
         // 渲染用戶列表
         function renderUsers(users) {
             const tbody = document.getElementById('usersTableBody');
+            const thead = document.getElementById('usersTableHead');
+
+            // 確保有表頭的全選 checkbox
+            if (thead && !thead.querySelector('.select-all-checkbox')) {
+                const firstTh = thead.querySelector('tr th');
+                if (firstTh) {
+                    const selectAllTh = document.createElement('th');
+                    selectAllTh.className = 'table-checkbox-cell';
+                    selectAllTh.innerHTML = `<input type="checkbox" class="table-checkbox select-all-checkbox" onchange="handleUserSelectAll(this.checked)">`;
+                    firstTh.parentElement.insertBefore(selectAllTh, firstTh);
+                }
+            }
+
+            // 確保有批量操作工具列
+            let batchToolbar = document.getElementById('usersBatchToolbar');
+            if (!batchToolbar) {
+                const tableContainer = document.querySelector('#usersView .table-container') ||
+                                       document.querySelector('#usersView table')?.parentElement;
+                if (tableContainer) {
+                    tableContainer.insertAdjacentHTML('beforebegin', BatchOperations.renderToolbar({
+                        showExport: true,
+                        showDelete: false,
+                        customActions: [
+                            {
+                                label: '批量停用',
+                                className: 'batch-btn-secondary',
+                                onClick: "batchChangeUserStatus('suspended')"
+                            },
+                            {
+                                label: '批量啟用',
+                                className: 'batch-btn-secondary',
+                                onClick: "batchChangeUserStatus('active')"
+                            }
+                        ]
+                    }).replace('id="undefined"', 'id="usersBatchToolbar"'));
+
+                    // 初始化批量操作
+                    BatchOperations.init({
+                        tableId: 'usersTable',
+                        toolbarId: 'usersBatchToolbar',
+                        idField: 'userId',
+                        callbacks: {
+                            onExport: exportUsers,
+                            onStatusChange: batchUpdateUserStatus
+                        }
+                    });
+                }
+            }
+
             if (users.length > 0) {
                 tbody.innerHTML = users.map(u => {
                     const role = u.role || 'educator';
                     const roleName = roleNames[role] || role;
                     const roleColor = getRoleColor(role);
+                    const isSelected = BatchOperations.selectedItems.has(u.userId);
 
                     return `
-                        <tr data-role="${role}">
+                        <tr data-role="${role}" data-id="${u.userId}" class="${isSelected ? 'selected' : ''}">
+                            <td class="table-checkbox-cell">
+                                <input type="checkbox" class="table-checkbox row-checkbox" ${isSelected ? 'checked' : ''} onchange="BatchOperations.toggleItem('${u.userId}', this.checked)">
+                            </td>
                             <td>
                                 <div class="user-info">
                                     <div class="user-avatar">${(u.displayName || 'U')[0]}</div>
@@ -2856,7 +6025,90 @@
                     `;
                 }).join('');
             } else {
-                tbody.innerHTML = '<tr><td colspan="6">無符合條件的用戶</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7">無符合條件的用戶</td></tr>';
+            }
+        }
+
+        // 用戶全選處理
+        function handleUserSelectAll(checked) {
+            const allIds = getFilteredUsers().map(u => u.userId);
+            BatchOperations.toggleAll(allIds, checked);
+        }
+
+        // 批量變更用戶狀態
+        async function batchChangeUserStatus(newStatus) {
+            const ids = BatchOperations.getSelectedIds();
+            if (ids.length === 0) return;
+
+            const actionText = newStatus === 'suspended' ? '停用' : '啟用';
+
+            try {
+                await showConfirmDialog({
+                    title: `批量${actionText}用戶`,
+                    message: `確定要${actionText}選中的 ${ids.length} 個用戶帳號嗎？`,
+                    type: newStatus === 'suspended' ? 'warning' : 'info',
+                    confirmText: `確認${actionText}`,
+                    cancelText: '取消'
+                });
+
+                await batchUpdateUserStatus(ids, newStatus);
+            } catch (e) {
+                // 用戶取消
+            }
+        }
+
+        // 批量更新用戶狀態 API
+        async function batchUpdateUserStatus(userIds, newStatus) {
+            let successCount = 0;
+            for (const userId of userIds) {
+                const result = await API.admin.updateUserStatus(userId, newStatus);
+                if (result.success) {
+                    successCount++;
+                    const userIndex = allUsers.findIndex(u => u.userId === userId);
+                    if (userIndex !== -1) {
+                        allUsers[userIndex].status = newStatus;
+                    }
+                }
+            }
+
+            if (successCount > 0) {
+                showToast(`成功更新 ${successCount} 個用戶`, 'success');
+                BatchOperations.clearSelection();
+                renderUsers(getFilteredUsers());
+            }
+        }
+
+        // 匯出用戶
+        async function exportUsers(userIds, format = 'csv') {
+            const users = allUsers.filter(u => userIds.includes(u.userId));
+            if (users.length === 0) return;
+
+            if (format === 'csv') {
+                const headers = ['姓名', '電子郵件', '角色', '訂閱方案', '狀態', '註冊日期'];
+                const rows = users.map(u => [
+                    u.displayName || '',
+                    u.email || '',
+                    roleNames[u.role] || u.role || '',
+                    u.subscriptionTier || 'free',
+                    u.status || '',
+                    formatDate(u.createdAt) || ''
+                ]);
+
+                const csvContent = [headers, ...rows]
+                    .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+                    .join('\n');
+
+                const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `users_export_${new Date().toISOString().slice(0, 10)}.csv`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+
+                showToast(`已匯出 ${users.length} 個用戶`, 'success');
             }
         }
 
@@ -2938,12 +6190,23 @@
         }
 
         async function archiveResource(resourceId) {
-            if (!confirm('確定要下架此教材嗎？')) return;
-            const result = await API.admin.updateResource(resourceId, { status: 'archived' });
-            if (result.success) {
-                loadResources();
-            } else {
-                alert(result.message || '操作失敗');
+            try {
+                await showConfirmDialog({
+                    title: '下架教材',
+                    message: '下架後，此教材將不會顯示在平台上。確定要下架嗎？',
+                    type: 'warning',
+                    confirmText: '確認下架',
+                    cancelText: '取消'
+                });
+
+                const result = await API.admin.updateResource(resourceId, { status: 'archived' });
+                if (result.success) {
+                    loadResources();
+                } else {
+                    alert(result.message || '操作失敗');
+                }
+            } catch (e) {
+                // 用戶取消操作
             }
         }
 
@@ -3232,14 +6495,34 @@
         // Actions
         async function toggleUserStatus(userId, currentStatus) {
             const newStatus = currentStatus === 'active' ? 'suspended' : 'active';
-            const result = await API.admin.updateUserStatus(userId, newStatus);
-            if (result.success) {
-                // 更新本地資料
-                const userIndex = allUsers.findIndex(u => u.userId === userId);
-                if (userIndex !== -1) {
-                    allUsers[userIndex].status = newStatus;
+            const user = allUsers.find(u => u.userId === userId);
+            const userName = user ? user.displayName : '此用戶';
+
+            const actionText = newStatus === 'suspended' ? '停用' : '啟用';
+            const messageText = newStatus === 'suspended'
+                ? `停用後，${userName} 將無法登入系統。`
+                : `啟用後，${userName} 將可以正常使用系統。`;
+
+            try {
+                await showConfirmDialog({
+                    title: `${actionText}用戶帳號`,
+                    message: messageText,
+                    type: newStatus === 'suspended' ? 'warning' : 'info',
+                    confirmText: actionText,
+                    cancelText: '取消'
+                });
+
+                const result = await API.admin.updateUserStatus(userId, newStatus);
+                if (result.success) {
+                    // 更新本地資料
+                    const userIndex = allUsers.findIndex(u => u.userId === userId);
+                    if (userIndex !== -1) {
+                        allUsers[userIndex].status = newStatus;
+                    }
+                    renderUsers(getFilteredUsers());
                 }
-                renderUsers(getFilteredUsers());
+            } catch (e) {
+                // 用戶取消操作
             }
         }
 
@@ -3249,9 +6532,19 @@
         }
 
         async function deleteResource(resourceId) {
-            if (confirm('確定要下架此教材嗎？')) {
+            try {
+                await showConfirmDialog({
+                    title: '下架教材',
+                    message: '下架後，此教材將不會顯示在平台上。確定要下架嗎？',
+                    type: 'warning',
+                    confirmText: '確認下架',
+                    cancelText: '取消'
+                });
+
                 const result = await API.admin.deleteResource(resourceId);
                 if (result.success) loadResources();
+            } catch (e) {
+                // 用戶取消操作
             }
         }
 
@@ -3264,9 +6557,19 @@
         }
 
         async function deleteAnnouncement(announcementId) {
-            if (confirm('確定要刪除此公告嗎？')) {
+            try {
+                await showConfirmDialog({
+                    title: '刪除公告',
+                    message: '刪除後將無法復原。確定要刪除此公告嗎？',
+                    type: 'danger',
+                    confirmText: '確認刪除',
+                    cancelText: '取消'
+                });
+
                 const result = await API.admin.deleteAnnouncement(announcementId);
                 if (result.success) loadAnnouncements();
+            } catch (e) {
+                // 用戶取消操作
             }
         }
 
@@ -3792,13 +7095,23 @@
         }
 
         // 結束對話
-        function adminCloseChat() {
+        async function adminCloseChat() {
             if (!currentAdminChatId) return;
 
-            if (confirm('確定要結束這個對話嗎？')) {
+            try {
+                await showConfirmDialog({
+                    title: '結束對話',
+                    message: '結束後此對話將被關閉，用戶需要重新發起諮詢。確定要結束嗎？',
+                    type: 'warning',
+                    confirmText: '結束對話',
+                    cancelText: '取消'
+                });
+
                 if (adminSocket) {
                     adminSocket.emit('chat:close', { chatId: currentAdminChatId });
                 }
+            } catch (e) {
+                // 用戶取消操作
             }
         }
 
@@ -4347,6 +7660,611 @@
             } catch (error) {
                 console.error('Load audit logs error:', error);
             }
+        }
+
+        // ========================================
+        // Phase 3: 系統監控功能
+        // ========================================
+        let systemHealthInterval = null;
+
+        async function loadSystemHealth() {
+            try {
+                const result = await API.admin.systemHealth.get();
+                if (result.success) {
+                    const { status, services, system } = result.data;
+
+                    // 更新服務狀態卡片
+                    updateStatusCard('API', services.api);
+                    updateStatusCard('DB', services.database);
+                    updateStatusCard('Storage', services.storage);
+
+                    // 更新記憶體狀態
+                    const memoryUsed = system.memory.heapUsed;
+                    const memoryTotal = system.memory.heapTotal;
+                    const memoryPercent = Math.round((memoryUsed / memoryTotal) * 100);
+
+                    document.getElementById('memoryStatus').textContent = `${memoryPercent}%`;
+                    document.getElementById('memoryPercent').textContent = `${memoryPercent}%`;
+                    document.getElementById('memoryBar').style.width = `${memoryPercent}%`;
+                    document.getElementById('memoryDetail').textContent =
+                        `已使用 ${(memoryUsed / 1024 / 1024).toFixed(1)} MB / 總共 ${(memoryTotal / 1024 / 1024).toFixed(1)} MB`;
+
+                    // 根據使用率設定顏色
+                    const memoryBar = document.getElementById('memoryBar');
+                    memoryBar.classList.remove('warning', 'danger');
+                    if (memoryPercent > 80) {
+                        memoryBar.classList.add('danger');
+                        document.getElementById('memoryStatus').classList.add('warning');
+                    } else if (memoryPercent > 60) {
+                        memoryBar.classList.add('warning');
+                    }
+
+                    // 更新運行時間
+                    document.getElementById('uptimeValue').textContent = formatUptime(system.uptime);
+                    document.getElementById('nodeVersion').textContent = system.nodeVersion;
+                }
+
+                // 載入錯誤日誌
+                await loadErrorLogs();
+            } catch (error) {
+                console.error('Load system health error:', error);
+            }
+        }
+
+        function updateStatusCard(type, status) {
+            const cardId = `statusCard${type}`;
+            const statusId = type.toLowerCase() + 'Status';
+            const card = document.getElementById(cardId);
+            const statusEl = document.getElementById(statusId);
+
+            if (!card || !statusEl) return;
+
+            const icon = card.querySelector('.status-icon');
+
+            // 移除所有狀態類別
+            icon.classList.remove('healthy', 'warning', 'error');
+            statusEl.classList.remove('healthy', 'warning', 'error');
+
+            if (status === 'healthy') {
+                icon.classList.add('healthy');
+                statusEl.classList.add('healthy');
+                statusEl.textContent = '正常運行';
+            } else if (status === 'warning') {
+                icon.classList.add('warning');
+                statusEl.classList.add('warning');
+                statusEl.textContent = '需要注意';
+            } else {
+                icon.classList.add('error');
+                statusEl.classList.add('error');
+                statusEl.textContent = '異常';
+            }
+        }
+
+        function formatUptime(seconds) {
+            const days = Math.floor(seconds / 86400);
+            const hours = Math.floor((seconds % 86400) / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+
+            if (days > 0) {
+                return `${days} 天 ${hours} 小時`;
+            } else if (hours > 0) {
+                return `${hours} 小時 ${minutes} 分鐘`;
+            } else {
+                return `${minutes} 分鐘`;
+            }
+        }
+
+        async function loadErrorLogs() {
+            try {
+                const filter = document.getElementById('errorSeverityFilter')?.value || '';
+                const result = await API.admin.systemHealth.getErrors({ severity: filter });
+                const errorList = document.getElementById('errorLogList');
+
+                if (!errorList) return;
+
+                const errors = result.success ? result.data.errors : [];
+
+                if (errors.length === 0) {
+                    errorList.innerHTML = `
+                        <div class="empty-state">
+                            <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                <polyline points="22 4 12 14.01 9 11.01"/>
+                            </svg>
+                            <p>系統運行正常，無錯誤記錄</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                errorList.innerHTML = errors.map(err => `
+                    <div class="error-log-item ${err.severity}">
+                        <svg class="error-log-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            ${err.severity === 'error'
+                                ? '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>'
+                                : err.severity === 'warning'
+                                ? '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>'
+                                : '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>'}
+                        </svg>
+                        <div class="error-log-content">
+                            <div class="error-log-message">${err.message}</div>
+                            <div class="error-log-meta">${err.category} · ${new Date(err.timestamp).toLocaleString('zh-TW')}</div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Load error logs error:', error);
+            }
+        }
+
+        function filterErrors() {
+            loadErrorLogs();
+        }
+
+        function toggleAutoRefresh(enabled) {
+            if (enabled) {
+                systemHealthInterval = setInterval(loadSystemHealth, 30000);
+            } else {
+                if (systemHealthInterval) {
+                    clearInterval(systemHealthInterval);
+                    systemHealthInterval = null;
+                }
+            }
+        }
+
+        // ========================================
+        // Phase 3: 數據匯出功能
+        // ========================================
+        function loadDataExport() {
+            // 數據匯出視圖只需要初始化，不需要載入資料
+            // 可以載入最近匯出記錄（如果有實現）
+        }
+
+        function showExportModal(type) {
+            const typeNames = {
+                'users': '用戶數據',
+                'courses': '課程數據',
+                'licenses': '授權數據',
+                'analytics': '分析報表'
+            };
+
+            // 使用確認對話框詢問匯出格式
+            showConfirmDialog({
+                title: `匯出${typeNames[type]}`,
+                message: `請選擇匯出格式：<br><br>
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <button class="btn btn-sm btn-secondary" onclick="executeExport('${type}', 'csv'); ConfirmDialog.close(false);">CSV</button>
+                        <button class="btn btn-sm btn-secondary" onclick="executeExport('${type}', 'json'); ConfirmDialog.close(false);">JSON</button>
+                        ${type !== 'analytics' ? '<button class="btn btn-sm btn-secondary" onclick="executeExport(\'' + type + '\', \'pdf\'); ConfirmDialog.close(false);">PDF</button>' : ''}
+                    </div>`,
+                type: 'info',
+                confirmText: '取消',
+                onConfirm: () => {}
+            });
+        }
+
+        async function executeExport(type, format) {
+            try {
+                let result;
+
+                switch (type) {
+                    case 'users':
+                        result = await API.admin.export.users({ format });
+                        break;
+                    case 'courses':
+                        result = await API.admin.export.courses({ format });
+                        break;
+                    case 'licenses':
+                        result = await API.admin.export.licenses({ format });
+                        break;
+                    default:
+                        alert('功能開發中');
+                        return;
+                }
+
+                if (result.success && result.data.records) {
+                    if (format === 'csv') {
+                        downloadCSV(result.data.records, `${type}_export`);
+                    } else if (format === 'json') {
+                        downloadJSON(result.data.records, `${type}_export`);
+                    } else {
+                        alert('PDF 匯出功能開發中');
+                    }
+                }
+            } catch (error) {
+                console.error('Export error:', error);
+                alert('匯出失敗：' + error.message);
+            }
+        }
+
+        function downloadCSV(data, filename) {
+            if (!data || data.length === 0) {
+                alert('沒有數據可匯出');
+                return;
+            }
+
+            const headers = Object.keys(data[0]);
+            const csvContent = [
+                headers.join(','),
+                ...data.map(row => headers.map(h => {
+                    let val = row[h] || '';
+                    if (typeof val === 'string' && (val.includes(',') || val.includes('"') || val.includes('\n'))) {
+                        val = '"' + val.replace(/"/g, '""') + '"';
+                    }
+                    return val;
+                }).join(','))
+            ].join('\n');
+
+            const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `${filename}_${new Date().toISOString().slice(0, 10)}.csv`;
+            link.click();
+        }
+
+        function downloadJSON(data, filename) {
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `${filename}_${new Date().toISOString().slice(0, 10)}.json`;
+            link.click();
+        }
+
+        // ========================================
+        // Phase 3: 自動化規則功能
+        // ========================================
+        let automationRulesData = [];
+
+        async function loadAutomationRules() {
+            try {
+                const result = await API.admin.automation.getRules();
+
+                if (result.success) {
+                    automationRulesData = result.data.rules || [];
+
+                    // 更新統計
+                    document.getElementById('totalRulesCount').textContent = automationRulesData.length;
+                    document.getElementById('activeRulesCount').textContent =
+                        automationRulesData.filter(r => r.isActive).length;
+                    document.getElementById('todayTriggersCount').textContent =
+                        result.data.todayTriggers || 0;
+                    document.getElementById('totalTriggersCount').textContent =
+                        result.data.totalTriggers || 0;
+
+                    renderAutomationRules();
+                } else {
+                    renderEmptyAutomationRules();
+                }
+            } catch (error) {
+                console.error('Load automation rules error:', error);
+                renderEmptyAutomationRules();
+            }
+        }
+
+        function renderAutomationRules() {
+            const tbody = document.getElementById('automationRulesTable');
+            if (!tbody) return;
+
+            const typeFilter = document.getElementById('ruleTypeFilter')?.value || '';
+            const statusFilter = document.getElementById('ruleStatusFilter')?.value || '';
+
+            let filtered = automationRulesData;
+            if (typeFilter) {
+                filtered = filtered.filter(r => r.type === typeFilter);
+            }
+            if (statusFilter === 'active') {
+                filtered = filtered.filter(r => r.isActive);
+            } else if (statusFilter === 'inactive') {
+                filtered = filtered.filter(r => !r.isActive);
+            }
+
+            if (filtered.length === 0) {
+                renderEmptyAutomationRules();
+                return;
+            }
+
+            const typeLabels = {
+                'AUTO_APPROVE_LICENSE': '自動核准授權',
+                'AUTO_SEND_NOTIFICATION': '自動發送通知',
+                'AUTO_SUSPEND_USER': '自動停用用戶',
+                'AUTO_ARCHIVE_COURSE': '自動封存課程',
+                'SCHEDULED_REPORT': '定期報表'
+            };
+
+            const typeClasses = {
+                'AUTO_APPROVE_LICENSE': 'auto-approve',
+                'AUTO_SEND_NOTIFICATION': 'auto-notify',
+                'AUTO_SUSPEND_USER': 'auto-suspend',
+                'AUTO_ARCHIVE_COURSE': 'auto-archive',
+                'SCHEDULED_REPORT': 'scheduled'
+            };
+
+            tbody.innerHTML = filtered.map(rule => `
+                <tr>
+                    <td>
+                        <label class="rule-status-toggle">
+                            <input type="checkbox" ${rule.isActive ? 'checked' : ''}
+                                   onchange="toggleAutomationRule('${rule.id}')">
+                            <span class="rule-toggle-slider"></span>
+                        </label>
+                    </td>
+                    <td><strong>${rule.name}</strong></td>
+                    <td><span class="rule-type-badge ${typeClasses[rule.type] || ''}">${typeLabels[rule.type] || rule.type}</span></td>
+                    <td style="font-size: 0.85rem;">${rule.conditionSummary || '-'}</td>
+                    <td style="font-size: 0.85rem;">${rule.actionSummary || '-'}</td>
+                    <td>${rule.lastTriggered ? formatDate(rule.lastTriggered) : '從未'}</td>
+                    <td>${rule.triggerCount || 0}</td>
+                    <td>
+                        <button class="btn btn-sm btn-secondary" onclick="editAutomationRule('${rule.id}')">編輯</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteAutomationRule('${rule.id}')">刪除</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function renderEmptyAutomationRules() {
+            const tbody = document.getElementById('automationRulesTable');
+            if (!tbody) return;
+
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                        尚無自動化規則，點擊「新增規則」開始設定
+                    </td>
+                </tr>
+            `;
+        }
+
+        function filterRules() {
+            renderAutomationRules();
+        }
+
+        async function toggleAutomationRule(ruleId) {
+            try {
+                await API.admin.automation.toggleRule(ruleId);
+                loadAutomationRules();
+            } catch (error) {
+                console.error('Toggle rule error:', error);
+                alert('操作失敗：' + error.message);
+            }
+        }
+
+        async function deleteAutomationRule(ruleId) {
+            const confirmed = await showConfirmDialog({
+                title: '刪除規則',
+                message: '確定要刪除此自動化規則嗎？此操作無法復原。',
+                type: 'danger',
+                confirmText: '確認刪除'
+            });
+
+            if (confirmed) {
+                try {
+                    await API.admin.automation.deleteRule(ruleId);
+                    loadAutomationRules();
+                } catch (error) {
+                    console.error('Delete rule error:', error);
+                    alert('刪除失敗：' + error.message);
+                }
+            }
+        }
+
+        function openAutomationModal() {
+            alert('自動化規則編輯器開發中');
+        }
+
+        function editAutomationRule(ruleId) {
+            alert('自動化規則編輯器開發中');
+        }
+
+        // ========================================
+        // Phase 3: 用戶活動分析功能
+        // ========================================
+        let activityTrendChart = null;
+        let behaviorDistributionChart = null;
+
+        async function loadUserActivity() {
+            const dateRange = document.getElementById('activityDateRange')?.value || '30d';
+
+            try {
+                const result = await API.admin.analytics.getUserActivity(dateRange);
+
+                if (result.success) {
+                    const { summary, dailyActiveUsers, roleDistribution, registrationTrend } = result.data;
+
+                    // 更新關鍵指標
+                    document.getElementById('dauValue').textContent = summary.dau || 0;
+                    document.getElementById('wauValue').textContent = summary.wau || 0;
+                    document.getElementById('mauValue').textContent = summary.mau || 0;
+                    document.getElementById('retentionValue').textContent = (summary.retention || 0) + '%';
+
+                    // 更新趨勢指示
+                    updateActivityTrend('dau', summary.dauTrend || 0);
+                    updateActivityTrend('wau', summary.wauTrend || 0);
+                    updateActivityTrend('mau', summary.mauTrend || 0);
+
+                    // 更新圖表
+                    renderActivityTrendChart(dailyActiveUsers || []);
+                    renderBehaviorDistributionChart(roleDistribution || {});
+
+                    // 更新熱力圖
+                    renderActivityHeatmap();
+
+                    // 載入高活躍用戶列表
+                    loadTopActiveUsers();
+                }
+            } catch (error) {
+                console.error('Load user activity error:', error);
+            }
+        }
+
+        function updateActivityTrend(metric, trend) {
+            const trendEl = document.getElementById(`${metric}Trend`);
+            if (!trendEl) return;
+
+            trendEl.classList.remove('positive', 'negative', 'neutral');
+
+            if (trend > 0) {
+                trendEl.classList.add('positive');
+                trendEl.textContent = `+${trend}%`;
+            } else if (trend < 0) {
+                trendEl.classList.add('negative');
+                trendEl.textContent = `${trend}%`;
+            } else {
+                trendEl.classList.add('neutral');
+                trendEl.textContent = '0%';
+            }
+        }
+
+        function renderActivityTrendChart(data) {
+            const ctx = document.getElementById('activityTrendChart');
+            if (!ctx) return;
+
+            if (activityTrendChart) {
+                activityTrendChart.destroy();
+            }
+
+            // 模擬數據如果沒有真實數據
+            if (!data || data.length === 0) {
+                data = Array.from({ length: 30 }, (_, i) => ({
+                    date: new Date(Date.now() - (29 - i) * 86400000).toISOString().slice(0, 10),
+                    count: Math.floor(Math.random() * 50) + 10
+                }));
+            }
+
+            activityTrendChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.map(d => d.date),
+                    datasets: [{
+                        label: '活躍用戶',
+                        data: data.map(d => d.count),
+                        borderColor: '#5a6b4d',
+                        backgroundColor: 'rgba(90, 107, 77, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { maxTicksLimit: 7 }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: '#f3f4f6' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderBehaviorDistributionChart(data) {
+            const ctx = document.getElementById('behaviorDistributionChart');
+            if (!ctx) return;
+
+            if (behaviorDistributionChart) {
+                behaviorDistributionChart.destroy();
+            }
+
+            // 模擬數據
+            const labels = ['登入', '瀏覽課程', '提交作業', '參與討論', '下載資源'];
+            const values = [35, 28, 18, 12, 7];
+
+            behaviorDistributionChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: [
+                            '#5a6b4d',
+                            '#c17a5e',
+                            '#3b82f6',
+                            '#8b5cf6',
+                            '#f59e0b'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderActivityHeatmap() {
+            const container = document.getElementById('activityHeatmap');
+            if (!container) return;
+
+            const days = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
+            const hours = Array.from({ length: 24 }, (_, i) => i);
+
+            // 生成模擬數據
+            let html = '';
+
+            // 時段標題行
+            html += '<div class="heatmap-row-label"></div>';
+            hours.forEach(h => {
+                html += `<div style="text-align: center; font-size: 0.65rem; color: var(--text-secondary);">${h}</div>`;
+            });
+
+            // 每日數據行
+            days.forEach(day => {
+                html += `<div class="heatmap-row-label">${day}</div>`;
+                hours.forEach(h => {
+                    const level = Math.floor(Math.random() * 5);
+                    html += `<div class="heatmap-cell level-${level}" title="${day} ${h}:00"></div>`;
+                });
+            });
+
+            container.innerHTML = html;
+        }
+
+        async function loadTopActiveUsers() {
+            const tbody = document.getElementById('topActiveUsersTable');
+            if (!tbody) return;
+
+            // 模擬數據
+            const users = [
+                { rank: 1, name: '王小明', role: 'educator', count: 156, lastActive: new Date() },
+                { rank: 2, name: '李老師', role: 'trainer', count: 143, lastActive: new Date() },
+                { rank: 3, name: '張同學', role: 'student', count: 128, lastActive: new Date() },
+                { rank: 4, name: '陳教授', role: 'creator', count: 115, lastActive: new Date() },
+                { rank: 5, name: '林助教', role: 'educator', count: 102, lastActive: new Date() }
+            ];
+
+            const roleMap = {
+                'educator': '建橋者',
+                'trainer': '橋樑工匠',
+                'creator': '知識建築師',
+                'admin': '管理員',
+                'student': '探橋者'
+            };
+
+            tbody.innerHTML = users.map(u => `
+                <tr>
+                    <td><strong>${u.rank}</strong></td>
+                    <td>${u.name}</td>
+                    <td><span class="role-badge role-${u.role}">${roleMap[u.role] || u.role}</span></td>
+                    <td>${u.count}</td>
+                    <td>${formatDate(u.lastActive)}</td>
+                </tr>
+            `).join('');
+        }
+
+        function exportActivityReport() {
+            alert('活動報表匯出功能開發中');
         }
 
         // Placeholder functions for modal dialogs

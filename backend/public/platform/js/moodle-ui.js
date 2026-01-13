@@ -8,7 +8,359 @@ const MoodleUI = {
   currentCourse: null,
   currentCourseId: null,
 
+  // ==================== 麵包屑導航 ====================
+
+  // 導航歷史堆疊
+  breadcrumbStack: [],
+
+  // 視圖層級定義 (定義父子關係)
+  viewHierarchy: {
+    // 主要頁面 (頂層)
+    'dashboard': { parent: null, label: '首頁' },
+    'teacherDashboard': { parent: null, label: '教學儀表板' },
+    'studentDashboard': { parent: null, label: '學習儀表板' },
+
+    // 課程相關
+    'moodleCourses': { parent: 'dashboard', label: '我的課程' },
+    'courseDetail': { parent: 'moodleCourses', label: '課程內容', dynamic: true },
+
+    // 作業相關
+    'moodleAssignments': { parent: 'dashboard', label: '作業管理' },
+    'assignmentDetail': { parent: 'moodleAssignments', label: '作業詳情', dynamic: true },
+
+    // 測驗相關
+    'moodleQuizzes': { parent: 'dashboard', label: '測驗中心' },
+    'quizAttempt': { parent: 'moodleQuizzes', label: '測驗作答', dynamic: true },
+    'questionBank': { parent: 'dashboard', label: '題庫管理' },
+
+    // 論壇相關
+    'moodleForums': { parent: 'dashboard', label: '討論區' },
+    'forumDetail': { parent: 'moodleForums', label: '討論詳情', dynamic: true },
+
+    // 成績相關
+    'moodleGradebook': { parent: 'dashboard', label: '成績簿' },
+    'gradebookManagement': { parent: 'moodleGradebook', label: '成績管理' },
+
+    // 行事曆與通知
+    'moodleCalendar': { parent: 'dashboard', label: '行事曆' },
+    'moodleNotifications': { parent: 'dashboard', label: '通知中心' },
+
+    // 檔案管理
+    'moodleFiles': { parent: 'dashboard', label: '檔案管理' },
+
+    // 學習路徑與徽章
+    'learningPaths': { parent: 'dashboard', label: '學習路徑' },
+    'badges': { parent: 'dashboard', label: '成就徽章' },
+
+    // 系統管理
+    'rolesManagement': { parent: 'dashboard', label: '角色權限' },
+    'courseCategories': { parent: 'dashboard', label: '課程類別' },
+    'auditLogs': { parent: 'dashboard', label: '審計日誌' },
+    'rubrics': { parent: 'dashboard', label: '評分標準' },
+    'groupsManager': { parent: 'dashboard', label: '群組管理' },
+    'courseCompletionSettings': { parent: 'dashboard', label: '課程完成設定' },
+
+    // 外部工具
+    'scormManager': { parent: 'dashboard', label: 'SCORM 管理' },
+    'ltiManager': { parent: 'dashboard', label: 'LTI 外部工具' },
+    'h5pManager': { parent: 'dashboard', label: 'H5P 內容' },
+
+    // 其他
+    'settings': { parent: 'dashboard', label: '設定' },
+    'discussions': { parent: 'dashboard', label: '討論' },
+    'consultations': { parent: 'dashboard', label: '即時客服' },
+    'classes': { parent: 'dashboard', label: '班級管理' },
+    'studentClasses': { parent: 'dashboard', label: '我的班級' },
+    'classDetail': { parent: 'classes', label: '班級詳情', dynamic: true }
+  },
+
+  // 動態標籤緩存 (用於存儲課程名、作業名等)
+  dynamicLabels: {},
+
+  /**
+   * 設置動態標籤 (用於課程名、作業名等)
+   * @param {string} viewName - 視圖名稱
+   * @param {string} label - 動態標籤
+   */
+  setDynamicLabel(viewName, label) {
+    this.dynamicLabels[viewName] = label;
+    this.renderBreadcrumb();
+  },
+
+  /**
+   * 更新麵包屑導航
+   * @param {string} viewName - 當前視圖名稱
+   * @param {Object} options - 額外選項 (如動態標籤)
+   */
+  updateBreadcrumb(viewName, options = {}) {
+    // 如果提供了動態標籤，設置它
+    if (options.label) {
+      this.dynamicLabels[viewName] = options.label;
+    }
+
+    // 建立麵包屑路徑
+    const path = this.buildBreadcrumbPath(viewName);
+    this.breadcrumbStack = path;
+    this.renderBreadcrumb();
+  },
+
+  /**
+   * 建立麵包屑路徑
+   * @param {string} viewName - 視圖名稱
+   * @returns {Array} 路徑數組
+   */
+  buildBreadcrumbPath(viewName) {
+    const path = [];
+    let current = viewName;
+
+    while (current) {
+      const viewInfo = this.viewHierarchy[current];
+      if (!viewInfo) break;
+
+      const label = viewInfo.dynamic && this.dynamicLabels[current]
+        ? this.dynamicLabels[current]
+        : viewInfo.label;
+
+      path.unshift({
+        view: current,
+        label: label
+      });
+
+      current = viewInfo.parent;
+    }
+
+    return path;
+  },
+
+  /**
+   * 渲染麵包屑導航
+   */
+  renderBreadcrumb() {
+    const container = document.getElementById('breadcrumbNav');
+    if (!container) return;
+
+    const path = this.breadcrumbStack;
+
+    // 如果只有一個項目或沒有項目，隱藏麵包屑
+    if (path.length <= 1) {
+      container.style.display = 'none';
+      return;
+    }
+
+    container.style.display = 'flex';
+
+    // 分隔符 SVG
+    const separatorSvg = `<svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="9,18 15,12 9,6"/></svg>`;
+
+    // 首頁圖標 SVG
+    const homeSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`;
+
+    let html = '';
+
+    path.forEach((item, index) => {
+      const isFirst = index === 0;
+      const isLast = index === path.length - 1;
+      const isMiddle = !isFirst && !isLast;
+
+      if (index > 0) {
+        html += `<span class="breadcrumb-separator">${separatorSvg}</span>`;
+      }
+
+      if (isLast) {
+        // 當前頁 (不可點擊)
+        html += `<span class="breadcrumb-current">${item.label}</span>`;
+      } else if (isFirst && item.view === 'dashboard') {
+        // 首頁連結
+        html += `
+          <a href="#" class="breadcrumb-home" onclick="showView('dashboard'); MoodleUI.updateBreadcrumb('dashboard'); return false;">
+            ${homeSvg}
+          </a>
+        `;
+      } else {
+        // 中間層級連結
+        const middleClass = isMiddle ? 'breadcrumb-middle' : '';
+        html += `
+          <a href="#" class="${middleClass}" onclick="showView('${item.view}'); MoodleUI.updateBreadcrumb('${item.view}'); return false;">
+            ${item.label}
+          </a>
+        `;
+      }
+    });
+
+    // 添加省略號 (用於手機模式)
+    if (path.length > 2) {
+      container.classList.add('breadcrumb-collapsed');
+    } else {
+      container.classList.remove('breadcrumb-collapsed');
+    }
+
+    container.innerHTML = html;
+  },
+
+  /**
+   * 清除麵包屑導航
+   */
+  clearBreadcrumb() {
+    this.breadcrumbStack = [];
+    this.dynamicLabels = {};
+    const container = document.getElementById('breadcrumbNav');
+    if (container) {
+      container.style.display = 'none';
+      container.innerHTML = '';
+    }
+  },
+
   // ==================== 工具函數 ====================
+
+  // 活躍的 Quill 編輯器實例
+  activeEditors: new Map(),
+
+  /**
+   * 初始化 Quill 富文本編輯器
+   * @param {string} containerId - 容器元素 ID
+   * @param {Object} options - 配置選項
+   * @returns {Quill|null} Quill 實例或 null
+   */
+  initEditor(containerId, options = {}) {
+    const container = document.getElementById(containerId);
+    if (!container) {
+      console.warn(`Editor container not found: ${containerId}`);
+      return null;
+    }
+
+    // 如果已有編輯器實例，先銷毀
+    if (this.activeEditors.has(containerId)) {
+      this.destroyEditor(containerId);
+    }
+
+    // 默認配置
+    const defaultConfig = {
+      modules: {
+        toolbar: [
+          [{ 'header': [1, 2, 3, false] }],
+          ['bold', 'italic', 'underline', 'strike'],
+          [{ 'color': [] }, { 'background': [] }],
+          [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+          [{ 'indent': '-1' }, { 'indent': '+1' }],
+          ['blockquote', 'code-block'],
+          ['link', 'image'],
+          ['clean']
+        ]
+      },
+      theme: 'snow',
+      placeholder: options.placeholder || '請輸入內容...'
+    };
+
+    // 簡易版配置（用於評論、論壇回覆等）
+    const simpleConfig = {
+      modules: {
+        toolbar: [
+          ['bold', 'italic', 'underline'],
+          [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+          ['link'],
+          ['clean']
+        ]
+      },
+      theme: 'snow',
+      placeholder: options.placeholder || '請輸入內容...'
+    };
+
+    // 根據 options.config 選擇配置
+    const useSimple = options.simple || options.config === 'simple';
+    const config = useSimple ? simpleConfig : { ...defaultConfig, ...options };
+
+    try {
+      const quill = new Quill(container, config);
+      this.activeEditors.set(containerId, quill);
+
+      // 設置初始內容
+      if (options.content) {
+        quill.root.innerHTML = options.content;
+      }
+
+      return quill;
+    } catch (error) {
+      console.error('Failed to initialize Quill editor:', error);
+      return null;
+    }
+  },
+
+  /**
+   * 獲取編輯器內容
+   * @param {string} containerId - 容器元素 ID
+   * @returns {Object} { html, text, delta }
+   */
+  getEditorContent(containerId) {
+    const quill = this.activeEditors.get(containerId);
+    if (!quill) {
+      return { html: '', text: '', delta: null };
+    }
+    return {
+      html: quill.root.innerHTML,
+      text: quill.getText().trim(),
+      delta: quill.getContents()
+    };
+  },
+
+  /**
+   * 設置編輯器內容
+   * @param {string} containerId - 容器元素 ID
+   * @param {string} content - HTML 內容
+   */
+  setEditorContent(containerId, content) {
+    const quill = this.activeEditors.get(containerId);
+    if (quill) {
+      quill.root.innerHTML = content || '';
+    }
+  },
+
+  /**
+   * 清空編輯器內容
+   * @param {string} containerId - 容器元素 ID
+   */
+  clearEditor(containerId) {
+    const quill = this.activeEditors.get(containerId);
+    if (quill) {
+      quill.setText('');
+    }
+  },
+
+  /**
+   * 銷毀編輯器實例
+   * @param {string} containerId - 容器元素 ID
+   */
+  destroyEditor(containerId) {
+    const quill = this.activeEditors.get(containerId);
+    if (quill) {
+      // Quill 沒有官方的 destroy 方法，需要手動清理
+      const container = document.getElementById(containerId);
+      if (container) {
+        container.innerHTML = '';
+        container.className = container.className.replace(/ql-\S+/g, '').trim();
+      }
+      this.activeEditors.delete(containerId);
+    }
+  },
+
+  /**
+   * 創建帶編輯器的表單區塊 HTML
+   * @param {string} id - 編輯器 ID
+   * @param {string} label - 標籤文字
+   * @param {Object} options - 選項
+   * @returns {string} HTML 字串
+   */
+  createEditorField(id, label, options = {}) {
+    const required = options.required ? '<span style="color: var(--terracotta);">*</span>' : '';
+    const height = options.height || '200px';
+    return `
+      <div class="form-group" style="margin-bottom: 1.5rem;">
+        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-primary);">
+          ${label} ${required}
+        </label>
+        <div id="${id}" class="quill-editor-container" style="min-height: ${height}; background: white; border-radius: 8px;"></div>
+      </div>
+    `;
+  },
 
   /**
    * HTML 轉義 - 防止 XSS 和正確顯示 HTML 標籤文字
@@ -126,6 +478,11 @@ const MoodleUI = {
       this.currentCourse = result.data;
       this.currentCourseId = courseId;
       this.renderCoursePage(result.data);
+
+      // 設置麵包屑動態標籤 (課程名稱)
+      const courseName = result.data.title || result.data.name || '課程';
+      this.setDynamicLabel('courseDetail', courseName);
+
       showView('courseDetail');
     } catch (error) {
       console.error('Open course error:', error);
@@ -142,80 +499,442 @@ const MoodleUI = {
 
     const user = API.getCurrentUser();
     const isTeacher = course.teacherId === user?.userId || user?.role === 'teacher';
+    const sections = course.sections || [];
+
+    // 計算進度
+    let totalActivities = 0;
+    let completedActivities = 0;
+    sections.forEach(section => {
+      const activities = section.activities || [];
+      totalActivities += activities.length;
+      completedActivities += activities.filter(a => a.completed).length;
+    });
+    const progressPercent = totalActivities > 0 ? Math.round((completedActivities / totalActivities) * 100) : 0;
 
     container.innerHTML = `
-      <!-- 課程頭部 -->
-      <div class="course-header">
-        <button onclick="showView('moodleCourses')" class="back-btn">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
-          返回課程列表
-        </button>
-        <div class="course-header-content">
-          <div class="course-header-info">
-            <span class="course-category-badge">${course.category || '一般'}</span>
-            <h1>${course.title || course.name || '課程'}</h1>
-            <p>${course.description || course.summary || ''}</p>
-            <div class="course-header-meta">
-              <span>教師：${course.instructorName || course.teacherName || '教師'}</span>
-              <span>${course.enrollmentCount || course.enrolledCount || 0} 位學生</span>
-              <span>格式：${course.format === 'topics' ? '主題' : course.format === 'weeks' ? '週次' : '單一活動'}</span>
-            </div>
+      <div class="course-page-layout">
+        <!-- 課程頭部 - 橫跨三欄 -->
+        <div class="course-page-header">
+          <button onclick="showView('moodleCourses')" class="back-btn">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
+            返回課程列表
+          </button>
+          <h1>${course.title || course.name || '課程'}</h1>
+          <p style="opacity: 0.9; margin: 0;">${course.description || course.summary || ''}</p>
+          <div class="course-meta">
+            <span>
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              ${course.instructorName || course.teacherName || '教師'}
+            </span>
+            <span>
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+              ${course.enrollmentCount || course.enrolledCount || 0} 位學生
+            </span>
+            <span>
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              ${sections.length} 個章節
+            </span>
           </div>
-          <div class="course-header-actions">
+          <div class="course-actions">
             ${!course.isEnrolled && !isTeacher ? `
-              <button onclick="MoodleUI.enrollCourse('${course.courseId}')" class="btn-primary">
+              <button onclick="MoodleUI.enrollCourse('${course.courseId}')" class="btn-primary" style="background: white; color: var(--olive);">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
                 報名課程
               </button>
             ` : ''}
             ${isTeacher ? `
-              <button onclick="MoodleUI.openCourseSettings('${course.courseId}')" class="btn-secondary">
+              <button onclick="MoodleUI.openCourseSettings('${course.courseId}')" class="btn-secondary" style="background: rgba(255,255,255,0.2); color: white; border: none;">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
                 課程設定
               </button>
-              <button onclick="MoodleUI.openAddSection('${course.courseId}')" class="btn-primary">
+              <button onclick="MoodleUI.openAddSection('${course.courseId}')" class="btn-primary" style="background: white; color: var(--olive);">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 新增章節
               </button>
             ` : ''}
           </div>
         </div>
-      </div>
 
-      <!-- 課程導航標籤 -->
-      <div class="course-nav-tabs">
-        <button class="nav-tab active" onclick="MoodleUI.switchCourseTab('content')">課程內容</button>
-        <button class="nav-tab" onclick="MoodleUI.switchCourseTab('participants')">參與者</button>
-        <button class="nav-tab" onclick="MoodleUI.switchCourseTab('grades')">成績</button>
-        ${isTeacher ? '<button class="nav-tab" onclick="MoodleUI.switchCourseTab(\'groups\')">群組</button>' : ''}
-        ${isTeacher ? '<button class="nav-tab" onclick="MoodleUI.switchCourseTab(\'reports\')">報表</button>' : ''}
-      </div>
+        <!-- 左側欄 - 課程導航 -->
+        <aside class="course-left-sidebar">
+          <!-- 章節導航 -->
+          <div class="course-nav-card">
+            <div class="course-nav-card-header">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
+              課程章節
+            </div>
+            <div class="sections-tree">
+              ${this.renderSectionsTree(sections, course.courseId)}
+            </div>
+          </div>
 
-      <!-- 課程內容區 -->
-      <div id="courseContentPanel" class="course-panel active">
-        ${this.renderCourseSections(course.sections || [], isTeacher, course.courseId)}
-      </div>
+          <!-- 快速連結 -->
+          <div class="course-nav-card">
+            <div class="course-nav-card-header">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+              快速連結
+            </div>
+            <div class="quick-links-list">
+              <div class="quick-link-item" onclick="MoodleUI.switchCourseTab('participants')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                <span>參與者</span>
+              </div>
+              <div class="quick-link-item" onclick="MoodleUI.switchCourseTab('grades')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                <span>成績簿</span>
+              </div>
+              <div class="quick-link-item" onclick="showView('moodleForums'); MoodleUI.loadForums();">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                <span>討論區</span>
+              </div>
+              <div class="quick-link-item" onclick="showView('moodleCalendar'); MoodleUI.loadCalendar();">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                <span>行事曆</span>
+              </div>
+              ${isTeacher ? `
+                <div class="quick-link-item" onclick="MoodleUI.switchCourseTab('groups')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                  <span>群組管理</span>
+                </div>
+                <div class="quick-link-item" onclick="MoodleUI.switchCourseTab('reports')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                  <span>報表分析</span>
+                </div>
+              ` : ''}
+            </div>
+          </div>
+        </aside>
 
-      <!-- 參與者區 -->
-      <div id="courseParticipantsPanel" class="course-panel" style="display: none;">
-        <div class="loading">載入中...</div>
-      </div>
+        <!-- 中央內容區 -->
+        <main class="course-main-content">
+          <!-- 課程內容區 -->
+          <div id="courseContentPanel" class="course-panel active">
+            ${this.renderCourseSectionsCards(sections, isTeacher, course.courseId)}
+          </div>
 
-      <!-- 成績區 -->
-      <div id="courseGradesPanel" class="course-panel" style="display: none;">
-        <div class="loading">載入中...</div>
-      </div>
+          <!-- 參與者區 -->
+          <div id="courseParticipantsPanel" class="course-panel" style="display: none;">
+            <div class="loading">載入中...</div>
+          </div>
 
-      <!-- 群組區 (教師) -->
-      <div id="courseGroupsPanel" class="course-panel" style="display: none;">
-        <div class="loading">載入中...</div>
-      </div>
+          <!-- 成績區 -->
+          <div id="courseGradesPanel" class="course-panel" style="display: none;">
+            <div class="loading">載入中...</div>
+          </div>
 
-      <!-- 報表區 (教師) -->
-      <div id="courseReportsPanel" class="course-panel" style="display: none;">
-        <div class="loading">載入中...</div>
+          <!-- 群組區 (教師) -->
+          <div id="courseGroupsPanel" class="course-panel" style="display: none;">
+            <div class="loading">載入中...</div>
+          </div>
+
+          <!-- 報表區 (教師) -->
+          <div id="courseReportsPanel" class="course-panel" style="display: none;">
+            <div class="loading">載入中...</div>
+          </div>
+        </main>
+
+        <!-- 右側欄 -->
+        <aside class="course-right-sidebar">
+          <!-- 進度小工具 -->
+          <div class="sidebar-widget">
+            <div class="sidebar-widget-header">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--olive)" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22,4 12,14.01 9,11.01"/></svg>
+              學習進度
+            </div>
+            <div class="course-progress-widget">
+              <div class="course-progress-ring">
+                <svg viewBox="0 0 36 36" width="120" height="120">
+                  <circle class="progress-bg" cx="18" cy="18" r="15.915"/>
+                  <circle class="progress-fill" cx="18" cy="18" r="15.915"
+                          stroke-dasharray="100" stroke-dashoffset="${100 - progressPercent}"
+                          id="courseProgressCircle"/>
+                </svg>
+                <div class="course-progress-center">
+                  <div class="course-progress-value">${progressPercent}%</div>
+                  <div class="course-progress-label">完成</div>
+                </div>
+              </div>
+              <div class="course-progress-stats">
+                <div class="progress-stat">
+                  <div class="progress-stat-value">${completedActivities}</div>
+                  <div class="progress-stat-label">已完成</div>
+                </div>
+                <div class="progress-stat">
+                  <div class="progress-stat-value">${totalActivities - completedActivities}</div>
+                  <div class="progress-stat-label">待完成</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 迷你行事曆 -->
+          <div class="sidebar-widget">
+            <div class="sidebar-widget-header">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--olive)" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              行事曆
+            </div>
+            <div class="sidebar-widget-body" id="courseMiniCalendar">
+              <!-- 由 JS 填充 -->
+            </div>
+          </div>
+
+          <!-- 最近活動 -->
+          <div class="sidebar-widget">
+            <div class="sidebar-widget-header">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--olive)" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
+              最近活動
+            </div>
+            <div class="sidebar-widget-body">
+              <div class="recent-activity-list" id="courseRecentActivity">
+                ${this.renderRecentCourseActivity(sections)}
+              </div>
+            </div>
+          </div>
+        </aside>
       </div>
     `;
+
+    // 初始化迷你行事曆
+    const calendarContainer = document.getElementById('courseMiniCalendar');
+    if (calendarContainer) {
+      this.renderMiniCalendar(calendarContainer, new Date());
+    }
+  },
+
+  /**
+   * 渲染章節樹狀導航
+   */
+  renderSectionsTree(sections, courseId) {
+    if (sections.length === 0) {
+      return '<div class="empty-state small" style="padding: 1rem;">尚無章節</div>';
+    }
+
+    return sections.map((section, index) => {
+      const activities = section.activities || [];
+      const hasActivities = activities.length > 0;
+      const completedCount = activities.filter(a => a.completed).length;
+
+      return `
+        <div class="section-tree-item" data-section-id="${section.sectionId}">
+          <div class="section-tree-header" onclick="MoodleUI.toggleSectionTree(this, '${section.sectionId}')">
+            <span class="section-tree-toggle ${hasActivities ? '' : 'no-children'}">
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9,6 15,12 9,18"/></svg>
+            </span>
+            <span class="section-tree-name">${section.name || `第 ${index + 1} 週`}</span>
+            ${hasActivities ? `<span class="section-tree-badge">${completedCount}/${activities.length}</span>` : ''}
+          </div>
+          <div class="section-activities-list" id="sectionActivities_${section.sectionId}">
+            ${this.renderActivitiesTreeItems(activities, courseId)}
+          </div>
+        </div>
+      `;
+    }).join('');
+  },
+
+  /**
+   * 渲染活動樹狀項目
+   */
+  renderActivitiesTreeItems(activities, courseId) {
+    if (activities.length === 0) return '';
+
+    const activityIcons = {
+      page: '<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/>',
+      url: '<path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>',
+      file: '<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/>',
+      assignment: '<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>',
+      quiz: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+      forum: '<path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>',
+      label: '<line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/>'
+    };
+
+    return activities.map(activity => `
+      <div class="activity-tree-item ${activity.completed ? 'completed' : ''}" onclick="MoodleUI.openActivity('${activity.type}', '${activity.activityId}', '${courseId}')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          ${activityIcons[activity.type] || activityIcons.page}
+        </svg>
+        <span>${activity.name}</span>
+        ${activity.completed ? '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>' : ''}
+      </div>
+    `).join('');
+  },
+
+  /**
+   * 切換章節樹展開/收起
+   */
+  toggleSectionTree(headerEl, sectionId) {
+    const activitiesList = document.getElementById(`sectionActivities_${sectionId}`);
+    const toggleIcon = headerEl.querySelector('.section-tree-toggle');
+
+    if (activitiesList) {
+      activitiesList.classList.toggle('expanded');
+      toggleIcon?.classList.toggle('expanded');
+    }
+  },
+
+  /**
+   * 渲染章節卡片 (中央內容區)
+   */
+  renderCourseSectionsCards(sections, isTeacher, courseId) {
+    if (sections.length === 0) {
+      return `
+        <div class="section-card">
+          <div class="section-card-header" style="justify-content: center;">
+            <div style="text-align: center; padding: 2rem;">
+              <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="var(--gray-400)" stroke-width="1">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/>
+              </svg>
+              <p style="color: var(--text-secondary); margin: 1rem 0 0.5rem;">此課程尚無內容</p>
+              ${isTeacher ? '<p style="font-size: 0.85rem; color: var(--text-secondary);">點擊「新增章節」開始建立課程內容</p>' : ''}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    return sections.map((section, index) => `
+      <div class="section-card ${section.visible === false ? 'hidden-section' : ''}" id="section_${section.sectionId}">
+        <div class="section-card-header">
+          <div>
+            <h3 class="section-card-title">${section.name || `第 ${index + 1} 週`}</h3>
+            ${section.summary ? `<p class="section-card-summary">${section.summary}</p>` : ''}
+          </div>
+          ${isTeacher ? `
+            <div class="section-card-actions">
+              <button onclick="MoodleUI.openAddActivity('${courseId}', '${section.sectionId}')" class="btn-sm btn-primary">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                新增活動
+              </button>
+              <button onclick="MoodleUI.editSection('${courseId}', '${section.sectionId}')" class="btn-sm btn-secondary">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                編輯
+              </button>
+            </div>
+          ` : ''}
+        </div>
+        <div class="activity-list">
+          ${this.renderActivityListItems(section.activities || [], isTeacher, courseId, section.sectionId)}
+        </div>
+      </div>
+    `).join('');
+  },
+
+  /**
+   * 渲染活動列表項目 (新版)
+   */
+  renderActivityListItems(activities, isTeacher, courseId, sectionId) {
+    if (activities.length === 0) {
+      return `<div class="activity-list-item" style="justify-content: center; color: var(--text-secondary); cursor: default;">此章節尚無活動</div>`;
+    }
+
+    const activityIcons = {
+      page: '<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/>',
+      url: '<path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>',
+      file: '<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>',
+      assignment: '<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>',
+      quiz: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+      forum: '<path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>',
+      label: '<line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/>'
+    };
+
+    const activityColors = {
+      page: 'var(--olive)',
+      url: '#6366f1',
+      file: '#10b981',
+      assignment: 'var(--terracotta)',
+      quiz: '#8b5cf6',
+      forum: '#f59e0b',
+      label: 'var(--gray-500)'
+    };
+
+    const activityLabels = {
+      page: '頁面',
+      url: '連結',
+      file: '檔案',
+      assignment: '作業',
+      quiz: '測驗',
+      forum: '討論',
+      label: '標籤'
+    };
+
+    return activities.map(activity => `
+      <div class="activity-list-item ${activity.visible === false ? 'hidden-activity' : ''}" onclick="MoodleUI.openActivity('${activity.type}', '${activity.activityId}', '${courseId}')">
+        <div class="activity-list-icon" style="background: ${activityColors[activity.type] || 'var(--gray-400)'}15; color: ${activityColors[activity.type] || 'var(--gray-400)'}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            ${activityIcons[activity.type] || activityIcons.page}
+          </svg>
+        </div>
+        <div class="activity-list-info">
+          <div class="activity-list-name">${activity.name}</div>
+          <div class="activity-list-meta">
+            <span>${activityLabels[activity.type] || '活動'}</span>
+            ${activity.dueDate ? `<span>截止：${this.formatDate(activity.dueDate)}</span>` : ''}
+          </div>
+        </div>
+        <div class="activity-list-status">
+          ${activity.completed ? `
+            <span class="completed-badge">
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>
+              已完成
+            </span>
+          ` : ''}
+          ${isTeacher ? `
+            <div class="activity-actions" onclick="event.stopPropagation()">
+              <button onclick="MoodleUI.editActivity('${courseId}', '${sectionId}', '${activity.activityId}')" class="btn-icon-sm">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </button>
+              <button onclick="MoodleUI.deleteActivity('${courseId}', '${sectionId}', '${activity.activityId}')" class="btn-icon-sm danger">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+              </button>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `).join('');
+  },
+
+  /**
+   * 渲染最近課程活動
+   */
+  renderRecentCourseActivity(sections) {
+    // 收集所有活動並按時間排序
+    const allActivities = [];
+    sections.forEach(section => {
+      (section.activities || []).forEach(activity => {
+        allActivities.push({
+          ...activity,
+          sectionName: section.name
+        });
+      });
+    });
+
+    // 取最近 5 個活動
+    const recentActivities = allActivities.slice(0, 5);
+
+    if (recentActivities.length === 0) {
+      return '<p style="font-size: 0.85rem; color: var(--text-secondary); text-align: center;">尚無活動</p>';
+    }
+
+    const activityIcons = {
+      page: '<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>',
+      assignment: '<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>',
+      quiz: '<circle cx="12" cy="12" r="10"/>',
+      forum: '<path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>',
+      default: '<circle cx="12" cy="12" r="10"/>'
+    };
+
+    return recentActivities.map(activity => `
+      <div class="recent-activity-item">
+        <div class="recent-activity-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            ${activityIcons[activity.type] || activityIcons.default}
+          </svg>
+        </div>
+        <div class="recent-activity-content">
+          <div class="recent-activity-text">${activity.name}</div>
+          <div class="recent-activity-time">${activity.sectionName || '章節'}</div>
+        </div>
+      </div>
+    `).join('');
   },
 
   /**
@@ -1043,7 +1762,16 @@ const MoodleUI = {
    */
   closeModal(modalId) {
     const modal = document.getElementById(modalId);
-    if (modal) modal.remove();
+    if (modal) {
+      // 清理 modal 內的 Quill 編輯器
+      const editorContainers = modal.querySelectorAll('.quill-editor-container');
+      editorContainers.forEach(container => {
+        if (container.id) {
+          this.destroyEditor(container.id);
+        }
+      });
+      modal.remove();
+    }
   },
 
   // ==================== 作業系統 ====================
@@ -1191,7 +1919,20 @@ const MoodleUI = {
         </div>
       `;
 
+      // 設置麵包屑動態標籤 (作業名稱)
+      this.setDynamicLabel('assignmentDetail', assignment.title || '作業');
+
       showView('assignmentDetail');
+
+      // 初始化作業提交編輯器 (如果有的話)
+      if (!isTeacher && !assignment.submission && assignment.submissionType !== 'file') {
+        setTimeout(() => {
+          this.initEditor('submissionContentEditor', {
+            placeholder: '輸入作業內容...',
+            config: 'default'
+          });
+        }, 100);
+      }
     } catch (error) {
       console.error('Open assignment error:', error);
       showToast('載入作業失敗');
@@ -1223,7 +1964,7 @@ const MoodleUI = {
           ${assignment.submissionType !== 'file' ? `
             <div class="form-group">
               <label>作業內容</label>
-              <textarea id="submissionContent" rows="8" placeholder="輸入作業內容..."></textarea>
+              <div id="submissionContentEditor" class="quill-editor-container"></div>
             </div>
           ` : ''}
           ${assignment.submissionType !== 'text' ? `
@@ -1282,11 +2023,13 @@ const MoodleUI = {
    * 提交作業
    */
   async submitAssignment(assignmentId) {
-    const content = document.getElementById('submissionContent')?.value;
+    // 從 Quill 編輯器取得內容
+    const editorContent = this.getEditorContent('submissionContentEditor');
+    const content = editorContent?.html || '';
     const fileInput = document.getElementById('submissionFile');
     const files = fileInput?.files;
 
-    if (!content && (!files || files.length === 0)) {
+    if (!content.trim() && (!files || files.length === 0)) {
       showToast('請輸入內容或上傳檔案');
       return;
     }
@@ -1793,11 +2536,562 @@ const MoodleUI = {
         </div>
       `;
 
+      // 設置麵包屑動態標籤 (論壇名稱)
+      this.setDynamicLabel('forumDetail', forum.title || forum.name || '討論區');
+
       showView('forumDetail');
     } catch (error) {
       console.error('Open forum error:', error);
       showToast('載入討論區失敗');
     }
+  },
+
+  // ==================== 學生儀表板增強 ====================
+
+  /**
+   * 更新儀表板問候訊息
+   */
+  updateDashboardGreeting() {
+    const user = API.getCurrentUser();
+    const greetingMessage = document.getElementById('greetingMessage');
+    const greetingSubtext = document.getElementById('greetingSubtext');
+
+    if (!greetingMessage) return;
+
+    const hour = new Date().getHours();
+    let greeting = '';
+    let subtext = '';
+
+    if (hour < 12) {
+      greeting = '早安';
+      subtext = '新的一天，新的學習機會！';
+    } else if (hour < 18) {
+      greeting = '午安';
+      subtext = '繼續保持學習的動力！';
+    } else {
+      greeting = '晚安';
+      subtext = '今天的學習進度如何？';
+    }
+
+    const userName = user?.name || user?.fullName || '學習者';
+    greetingMessage.textContent = `${greeting}，${userName}！`;
+    greetingSubtext.textContent = subtext;
+  },
+
+  /**
+   * 更新進度圓環
+   * @param {number} percentage - 完成百分比 (0-100)
+   */
+  updateProgressRing(percentage) {
+    const circle = document.getElementById('progressCircle');
+    const valueDisplay = document.getElementById('progressValue');
+
+    if (!circle || !valueDisplay) return;
+
+    // 計算 stroke-dashoffset (圓周長為 100)
+    const offset = 100 - percentage;
+    circle.style.strokeDashoffset = offset;
+
+    valueDisplay.textContent = `${Math.round(percentage)}%`;
+  },
+
+  /**
+   * 更新儀表板統計
+   */
+  async updateDashboardStats() {
+    try {
+      // 更新問候訊息
+      this.updateDashboardGreeting();
+
+      // 嘗試載入課程數據
+      const coursesResult = await API.courses.list({ enrolled: true });
+      let courseCount = 0;
+      let totalProgress = 0;
+
+      if (coursesResult.success && coursesResult.data) {
+        const courses = Array.isArray(coursesResult.data) ? coursesResult.data : coursesResult.data.courses || [];
+        courseCount = courses.length;
+
+        // 計算總進度
+        courses.forEach(course => {
+          totalProgress += course.progress || 0;
+        });
+
+        if (courseCount > 0) {
+          totalProgress = totalProgress / courseCount;
+        }
+      }
+
+      // 更新顯示
+      const greetingCourses = document.getElementById('greetingCourses');
+      if (greetingCourses) greetingCourses.textContent = courseCount;
+
+      // 更新進度圓環
+      this.updateProgressRing(totalProgress);
+
+      // 更新統計卡片
+      const statCourseCount = document.getElementById('statCourseCount');
+      if (statCourseCount) statCourseCount.textContent = courseCount;
+
+      const statCompletionRate = document.getElementById('statCompletionRate');
+      if (statCompletionRate) statCompletionRate.textContent = `${Math.round(totalProgress)}%`;
+
+    } catch (error) {
+      console.error('Update dashboard stats error:', error);
+    }
+  },
+
+  /**
+   * 檢查並顯示緊急提醒 (48小時內到期)
+   */
+  async checkUrgentDeadlines() {
+    const container = document.getElementById('urgentAlertContainer');
+    if (!container) return;
+
+    try {
+      const assignmentsResult = await API.assignments.list({ filter: 'pending' });
+      if (!assignmentsResult.success) return;
+
+      const assignments = assignmentsResult.data?.assignments || assignmentsResult.data || [];
+      const now = new Date();
+      const fortyEightHours = 48 * 60 * 60 * 1000;
+
+      // 找出 48 小時內到期的作業
+      const urgentItems = assignments.filter(a => {
+        if (!a.dueDate || a.submitted) return false;
+        const dueDate = new Date(a.dueDate);
+        const timeDiff = dueDate - now;
+        return timeDiff > 0 && timeDiff <= fortyEightHours;
+      });
+
+      if (urgentItems.length === 0) {
+        container.innerHTML = '';
+        return;
+      }
+
+      // 找出最緊急的項目
+      const mostUrgent = urgentItems.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))[0];
+      const dueDate = new Date(mostUrgent.dueDate);
+      const hoursLeft = Math.ceil((dueDate - now) / (60 * 60 * 1000));
+
+      container.innerHTML = `
+        <div class="urgent-alert">
+          <div class="urgent-alert-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+          </div>
+          <div class="urgent-alert-content">
+            <div class="urgent-alert-title">⚠️ 緊急提醒：${mostUrgent.title}</div>
+            <div class="urgent-alert-subtitle">
+              剩餘 ${hoursLeft} 小時到期${urgentItems.length > 1 ? ` (還有 ${urgentItems.length - 1} 項即將到期)` : ''}
+            </div>
+          </div>
+          <button class="urgent-alert-action" onclick="MoodleUI.openAssignment('${mostUrgent.assignmentId}')">
+            立即查看
+          </button>
+        </div>
+      `;
+    } catch (error) {
+      console.error('Check urgent deadlines error:', error);
+    }
+  },
+
+  /**
+   * 渲染迷你行事曆
+   * @param {HTMLElement} container - 容器元素
+   * @param {Date} date - 當前顯示的月份
+   */
+  renderMiniCalendar(container, date = new Date()) {
+    if (!container) return;
+
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const today = new Date();
+
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const startDay = firstDay.getDay();
+
+    const monthNames = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+    const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
+
+    let html = `
+      <div class="mini-calendar">
+        <div class="mini-calendar-header">
+          <span class="mini-calendar-title">${year}年 ${monthNames[month]}</span>
+          <div class="mini-calendar-nav">
+            <button onclick="MoodleUI.changeMiniCalendarMonth(-1)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
+            </button>
+            <button onclick="MoodleUI.changeMiniCalendarMonth(1)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9,6 15,12 9,18"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="mini-calendar-grid">
+    `;
+
+    // 星期標題
+    dayNames.forEach(day => {
+      html += `<div class="mini-calendar-day-name">${day}</div>`;
+    });
+
+    // 上月填充
+    const prevMonthDays = new Date(year, month, 0).getDate();
+    for (let i = startDay - 1; i >= 0; i--) {
+      html += `<div class="mini-calendar-day other-month">${prevMonthDays - i}</div>`;
+    }
+
+    // 當月日期
+    for (let day = 1; day <= lastDay.getDate(); day++) {
+      const isToday = year === today.getFullYear() && month === today.getMonth() && day === today.getDate();
+      html += `<div class="mini-calendar-day${isToday ? ' today' : ''}">${day}</div>`;
+    }
+
+    // 下月填充
+    const remainingDays = 42 - (startDay + lastDay.getDate());
+    for (let i = 1; i <= remainingDays && remainingDays < 7; i++) {
+      html += `<div class="mini-calendar-day other-month">${i}</div>`;
+    }
+
+    html += '</div></div>';
+    container.innerHTML = html;
+  },
+
+  // 迷你行事曆當前日期
+  miniCalendarDate: new Date(),
+
+  /**
+   * 切換迷你行事曆月份
+   * @param {number} delta - 月份變化 (+1 或 -1)
+   */
+  changeMiniCalendarMonth(delta) {
+    this.miniCalendarDate.setMonth(this.miniCalendarDate.getMonth() + delta);
+    const container = document.querySelector('.mini-calendar')?.parentElement;
+    if (container) {
+      this.renderMiniCalendar(container, this.miniCalendarDate);
+    }
+  },
+
+  /**
+   * 初始化學生儀表板
+   */
+  async initStudentDashboard() {
+    // 更新統計數據
+    await this.updateDashboardStats();
+
+    // 檢查緊急提醒
+    await this.checkUrgentDeadlines();
+  },
+
+  // ==================== 教師儀表板增強 ====================
+
+  /**
+   * 更新教師儀表板問候訊息
+   */
+  updateTeacherDashboardGreeting() {
+    const user = API.getCurrentUser();
+    const greetingMessage = document.getElementById('teacherGreetingMessage');
+    const greetingSubtext = document.getElementById('teacherGreetingSubtext');
+
+    if (!greetingMessage) return;
+
+    const hour = new Date().getHours();
+    let greeting = '';
+    let subtext = '';
+
+    if (hour < 12) {
+      greeting = '早安';
+      subtext = '新的一天，準備好啟發學生了嗎？';
+    } else if (hour < 18) {
+      greeting = '午安';
+      subtext = '持續關注學生的學習進度！';
+    } else {
+      greeting = '晚安';
+      subtext = '辛苦了！看看今天的教學成果';
+    }
+
+    const userName = user?.name || user?.fullName || '老師';
+    greetingMessage.textContent = `${greeting}，${userName}！`;
+    greetingSubtext.textContent = subtext;
+  },
+
+  /**
+   * 更新教師儀表板統計數據
+   */
+  async updateTeacherDashboardStats() {
+    try {
+      // 更新問候訊息
+      this.updateTeacherDashboardGreeting();
+
+      // 載入課程數據
+      const coursesResult = await API.courses.list({ role: 'teacher' });
+      let courseCount = 0;
+      let totalStudents = 0;
+
+      if (coursesResult.success && coursesResult.data) {
+        const courses = Array.isArray(coursesResult.data) ? coursesResult.data : coursesResult.data.courses || [];
+        courseCount = courses.length;
+        courses.forEach(course => {
+          totalStudents += course.studentCount || course.enrolledCount || 0;
+        });
+      }
+
+      // 載入待評分作業
+      let pendingGrading = 0;
+      try {
+        const assignmentsResult = await API.assignments.list({ filter: 'pending_grading' });
+        if (assignmentsResult.success) {
+          const assignments = assignmentsResult.data?.assignments || assignmentsResult.data || [];
+          assignments.forEach(a => {
+            pendingGrading += a.pendingSubmissions || a.ungraded || 0;
+          });
+        }
+      } catch (e) {
+        console.log('Could not load pending grading count');
+      }
+
+      // 更新問候區域統計
+      const teacherPendingGrading = document.getElementById('teacherPendingGrading');
+      if (teacherPendingGrading) teacherPendingGrading.textContent = pendingGrading;
+
+      const teacherStudentCount = document.getElementById('teacherStudentCount');
+      if (teacherStudentCount) teacherStudentCount.textContent = totalStudents;
+
+      const teacherCourseCount = document.getElementById('teacherCourseCount');
+      if (teacherCourseCount) teacherCourseCount.textContent = courseCount;
+
+      // 更新統計卡片
+      const teacherTotalStudents = document.getElementById('teacherTotalStudents');
+      if (teacherTotalStudents) teacherTotalStudents.textContent = totalStudents;
+
+      const teacherActiveCourses = document.getElementById('teacherActiveCourses');
+      if (teacherActiveCourses) teacherActiveCourses.textContent = courseCount;
+
+      // 更新待處理任務區域
+      const pendingAssignments = document.getElementById('pendingAssignments');
+      if (pendingAssignments) pendingAssignments.textContent = pendingGrading;
+
+    } catch (error) {
+      console.error('Update teacher dashboard stats error:', error);
+    }
+  },
+
+  /**
+   * 載入待評分佇列
+   */
+  async loadGradingQueue() {
+    const container = document.getElementById('gradingQueueList');
+    if (!container) return;
+
+    try {
+      const result = await API.assignments.list({ filter: 'pending_grading', limit: 5 });
+
+      if (!result.success) {
+        container.innerHTML = '<p class="empty-state">無法載入待評分項目</p>';
+        return;
+      }
+
+      const assignments = result.data?.assignments || result.data || [];
+
+      if (assignments.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="48" height="48">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+              <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+            <p>太棒了！目前沒有待評分的作業</p>
+          </div>
+        `;
+        return;
+      }
+
+      let html = '';
+      for (const assignment of assignments) {
+        const pendingCount = assignment.pendingSubmissions || assignment.ungraded || 0;
+        const dueDate = assignment.dueDate ? new Date(assignment.dueDate).toLocaleDateString('zh-TW') : '無截止日期';
+
+        html += `
+          <div class="grading-item" onclick="MoodleUI.openAssignment('${assignment.assignmentId}')">
+            <div class="grading-item-info">
+              <div class="grading-item-title">${assignment.title}</div>
+              <div class="grading-item-meta">
+                <span>${assignment.courseName || '課程'}</span>
+                <span>•</span>
+                <span>截止：${dueDate}</span>
+              </div>
+            </div>
+            <div class="grading-item-count">
+              <span class="count-number">${pendingCount}</span>
+              <span class="count-label">待評分</span>
+            </div>
+          </div>
+        `;
+      }
+
+      container.innerHTML = html;
+
+    } catch (error) {
+      console.error('Load grading queue error:', error);
+      container.innerHTML = '<p class="empty-state">載入失敗</p>';
+    }
+  },
+
+  /**
+   * 載入需關注學生列表
+   */
+  async loadAtRiskStudents() {
+    const container = document.getElementById('studentAlertsList');
+    if (!container) return;
+
+    try {
+      // 嘗試從 API 載入需關注學生
+      // 如果 API 不存在，顯示空狀態
+      let students = [];
+
+      try {
+        const result = await API.request('/api/analytics/at-risk-students', { method: 'GET' });
+        if (result.success && result.data) {
+          students = result.data || [];
+        }
+      } catch (e) {
+        // API 可能不存在，使用空陣列
+      }
+
+      if (students.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state small">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="32" height="32">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+            <p>目前沒有需要特別關注的學生</p>
+          </div>
+        `;
+        return;
+      }
+
+      let html = '';
+      for (const student of students.slice(0, 5)) {
+        const alertType = student.riskLevel === 'high' ? 'danger' : 'warning';
+        html += `
+          <div class="student-alert-item ${alertType}">
+            <div class="student-alert-avatar">
+              ${student.name?.charAt(0) || '?'}
+            </div>
+            <div class="student-alert-info">
+              <div class="student-alert-name">${student.name || '未知學生'}</div>
+              <div class="student-alert-reason">${student.reason || '需要關注'}</div>
+            </div>
+            <button class="student-alert-action" onclick="MoodleUI.viewStudentDetail('${student.userId}')">
+              查看
+            </button>
+          </div>
+        `;
+      }
+
+      container.innerHTML = html;
+
+    } catch (error) {
+      console.error('Load at-risk students error:', error);
+      container.innerHTML = '<p class="empty-state small">載入失敗</p>';
+    }
+  },
+
+  /**
+   * 載入最近提交
+   */
+  async loadRecentSubmissions() {
+    const container = document.getElementById('recentSubmissionsList');
+    if (!container) return;
+
+    try {
+      const result = await API.assignments.list({ filter: 'recent_submissions', limit: 5 });
+
+      if (!result.success) {
+        container.innerHTML = '<p class="empty-state small">無法載入</p>';
+        return;
+      }
+
+      const submissions = result.data?.submissions || result.data?.assignments || [];
+
+      if (submissions.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state small">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="32" height="32">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+            </svg>
+            <p>目前沒有新提交</p>
+          </div>
+        `;
+        return;
+      }
+
+      let html = '<div class="recent-submissions-list">';
+      for (const item of submissions.slice(0, 5)) {
+        const submittedAt = item.submittedAt ? new Date(item.submittedAt).toLocaleString('zh-TW', {
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        }) : '';
+
+        html += `
+          <div class="submission-item" onclick="MoodleUI.openAssignment('${item.assignmentId}')">
+            <div class="submission-student">${item.studentName || '學生'}</div>
+            <div class="submission-assignment">${item.title || item.assignmentTitle || '作業'}</div>
+            <div class="submission-time">${submittedAt}</div>
+          </div>
+        `;
+      }
+      html += '</div>';
+
+      container.innerHTML = html;
+
+    } catch (error) {
+      console.error('Load recent submissions error:', error);
+      container.innerHTML = '<p class="empty-state small">載入失敗</p>';
+    }
+  },
+
+  /**
+   * 查看學生詳情
+   * @param {string} userId - 學生 ID
+   */
+  viewStudentDetail(userId) {
+    // 導航到學生詳情頁面（如果有的話）
+    if (typeof showView === 'function') {
+      window.currentStudentId = userId;
+      showView('studentDetail');
+    } else {
+      showToast('學生詳情功能開發中');
+    }
+  },
+
+  /**
+   * 初始化教師儀表板
+   */
+  async initTeacherDashboard() {
+    // 更新統計數據
+    await this.updateTeacherDashboardStats();
+
+    // 載入待評分佇列
+    await this.loadGradingQueue();
+
+    // 載入需關注學生
+    await this.loadAtRiskStudents();
+
+    // 載入最近提交
+    await this.loadRecentSubmissions();
   },
 
   // ==================== 行事曆系統 ====================
@@ -2148,7 +3442,7 @@ const MoodleUI = {
           </div>
           <div class="form-group">
             <label>內容 *</label>
-            <textarea id="discussionMessage" rows="6" placeholder="輸入討論內容"></textarea>
+            <div id="discussionMessageEditor" class="quill-editor-container"></div>
           </div>
         </div>
         <div class="modal-footer">
@@ -2159,6 +3453,14 @@ const MoodleUI = {
     `;
     document.body.appendChild(modal);
     modal.onclick = (e) => { if (e.target === modal) this.closeModal('newDiscussionModal'); };
+
+    // 初始化討論內容編輯器
+    setTimeout(() => {
+      this.initEditor('discussionMessageEditor', {
+        placeholder: '輸入討論內容...',
+        config: 'default'
+      });
+    }, 100);
   },
 
   /**
@@ -2166,9 +3468,11 @@ const MoodleUI = {
    */
   async submitNewDiscussion(forumId) {
     const subject = document.getElementById('discussionSubject').value.trim();
-    const message = document.getElementById('discussionMessage').value.trim();
+    // 從 Quill 編輯器取得內容
+    const editorContent = this.getEditorContent('discussionMessageEditor');
+    const message = editorContent?.html || '';
 
-    if (!subject || !message) {
+    if (!subject || !message.trim()) {
       showToast('請填寫主題和內容');
       return;
     }
@@ -2249,13 +3553,23 @@ const MoodleUI = {
             ${!discussion.locked ? `
               <div class="reply-form">
                 <h4>發表回覆</h4>
-                <textarea id="replyMessage" rows="4" placeholder="輸入回覆內容..."></textarea>
+                <div id="replyMessageEditor" class="quill-editor-container quill-editor-simple"></div>
                 <button onclick="MoodleUI.submitReply('${forumId}', '${discussionId}')" class="btn-primary">發表回覆</button>
               </div>
             ` : '<div class="locked-notice">此討論已鎖定，無法回覆</div>'}
           </div>
         </div>
       `;
+
+      // 初始化回覆編輯器 (如果討論未鎖定)
+      if (!discussion.locked) {
+        setTimeout(() => {
+          this.initEditor('replyMessageEditor', {
+            placeholder: '輸入回覆內容...',
+            config: 'simple'
+          });
+        }, 100);
+      }
     } catch (error) {
       console.error('Open discussion error:', error);
       showToast('載入討論失敗');
@@ -2266,8 +3580,11 @@ const MoodleUI = {
    * 提交回覆
    */
   async submitReply(forumId, discussionId) {
-    const message = document.getElementById('replyMessage').value.trim();
-    if (!message) {
+    // 從 Quill 編輯器取得內容
+    const editorContent = this.getEditorContent('replyMessageEditor');
+    const message = editorContent?.html || '';
+
+    if (!message.trim()) {
       showToast('請輸入回覆內容');
       return;
     }
