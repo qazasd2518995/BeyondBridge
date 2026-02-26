@@ -204,6 +204,12 @@ const App = {
           </svg>
           授權管理
         </a>
+        <a href="#" class="nav-item" data-view="moodleFiles" onclick="showView('moodleFiles');">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>
+          </svg>
+          檔案管理
+        </a>
       </div>
       <div class="nav-section">
         <div class="nav-section-title">課程設定</div>
@@ -230,6 +236,15 @@ const App = {
             <polyline points="2,12 12,17 22,12"/>
           </svg>
           班級管理
+        </a>
+        <a href="#" class="nav-item" data-view="groupsManager" onclick="showView('groupsManager');">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 00-3-3.87"/>
+            <path d="M16 3.13a4 4 0 010 7.75"/>
+          </svg>
+          分組管理
         </a>
       </div>
       <div class="nav-section">
@@ -320,7 +335,7 @@ const App = {
           </svg>
           我的成績
         </a>
-        <a href="#" class="nav-item" data-view="myBadges" onclick="showView('myBadges'); MoodleUI.openBadges();">
+        <a href="#" class="nav-item" data-view="badges" onclick="showView('badges'); MoodleUI.openBadges();">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="8" r="6"/>
             <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/>
@@ -347,6 +362,12 @@ const App = {
             <path d="M16 3.13a4 4 0 010 7.75"/>
           </svg>
           我的班級
+        </a>
+        <a href="#" class="nav-item" data-view="moodleFiles" onclick="showView('moodleFiles');">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>
+          </svg>
+          我的檔案
         </a>
       </div>
       <div class="nav-section">
@@ -2641,6 +2662,387 @@ const App = {
         <button onclick="App.closeQuiz()" style="padding:0.75rem 1.5rem;background:var(--gray-200);border:none;border-radius:8px;cursor:pointer;">關閉</button>
         <button onclick="App.startQuiz('${this.currentQuiz.quizId}')" style="padding:0.75rem 2rem;background:var(--olive);color:var(--cream);border:none;border-radius:8px;cursor:pointer;font-weight:500;">再試一次</button>
       `;
+    }
+  },
+
+  // ============================================================
+  // 動態視圖載入函數
+  // ============================================================
+
+  /**
+   * 載入「我的課程」視圖
+   */
+  async loadMyCoursesView() {
+    const container = document.getElementById('myCoursesContent');
+    if (!container) return;
+    container.innerHTML = '<div class="loading-indicator">載入中...</div>';
+    try {
+      const result = await API.courses.getMyCourses();
+      const courses = result.success ? (result.data || []) : [];
+      if (courses.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>尚未報名任何課程</p><button onclick="showView(\'moodleCourses\')" class="btn-primary">瀏覽課程</button></div>';
+        return;
+      }
+      container.innerHTML = `
+        <div class="courses-grid">
+          ${courses.map(c => `
+            <div class="course-card" onclick="MoodleUI.openCourse('${c.courseId}')">
+              <div class="course-card-header" style="background: ${MoodleUI.getCourseGradient ? MoodleUI.getCourseGradient(c.category) : 'linear-gradient(135deg, var(--olive) 0%, var(--olive-light) 100%)'}">
+                <span class="course-category">${c.category || '未分類'}</span>
+                <h3>${c.title}</h3>
+              </div>
+              <div class="course-card-body">
+                <p class="course-instructor">${c.instructorName || ''}</p>
+                ${c.progress !== undefined ? `
+                  <div class="progress-bar-container">
+                    <div class="progress-bar" style="width:${c.progress}%"></div>
+                    <span class="progress-text">${c.progress}%</span>
+                  </div>
+                ` : ''}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    } catch (error) {
+      console.error('loadMyCoursesView error:', error);
+      container.innerHTML = '<div class="error-state">載入課程失敗</div>';
+    }
+  },
+
+  /**
+   * 載入授權管理視圖
+   */
+  async loadLicensesView() {
+    const container = document.getElementById('licensesContent');
+    if (!container) return;
+    container.innerHTML = '<div class="loading-indicator">載入中...</div>';
+    try {
+      const result = await API.licenses.list();
+      const licenses = result.success ? (result.data || []) : [];
+      container.innerHTML = `
+        <div class="stats-row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem;margin-bottom:1.5rem;">
+          <div class="stat-card" style="background:var(--white);padding:1.5rem;border-radius:12px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.06);"><div class="stat-number" style="font-size:2rem;font-weight:700;color:var(--olive);">${licenses.length}</div><div class="stat-label" style="font-size:0.85rem;color:var(--gray-500);">總授權數</div></div>
+          <div class="stat-card" style="background:var(--white);padding:1.5rem;border-radius:12px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.06);"><div class="stat-number" style="font-size:2rem;font-weight:700;color:var(--olive);">${licenses.filter(l => l.status === 'active').length}</div><div class="stat-label" style="font-size:0.85rem;color:var(--gray-500);">有效授權</div></div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">授權清單</h2>
+          </div>
+          <div class="card-body">
+            <table class="data-table">
+              <thead><tr><th>名稱</th><th>狀態</th><th>到期日</th></tr></thead>
+              <tbody>
+                ${licenses.map(l => `
+                  <tr>
+                    <td>${l.name || l.licenseId}</td>
+                    <td><span class="status-badge ${l.status === 'active' ? 'active' : l.status === 'expired' ? 'warning' : ''}">${l.status === 'active' ? '有效' : l.status === 'expired' ? '已過期' : l.status}</span></td>
+                    <td>${l.expiresAt ? new Date(l.expiresAt).toLocaleDateString('zh-TW') : '-'}</td>
+                  </tr>
+                `).join('')}
+                ${licenses.length === 0 ? '<tr><td colspan="3" style="text-align:center;padding:2rem;color:var(--gray-500);">尚無授權紀錄</td></tr>' : ''}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    } catch (error) {
+      console.error('loadLicensesView error:', error);
+      container.innerHTML = '<div class="error-state">載入授權資料失敗</div>';
+    }
+  },
+
+  /**
+   * 載入影音視圖
+   */
+  async loadVideosView() {
+    const container = document.getElementById('videosContent');
+    if (!container) return;
+    container.innerHTML = '<div class="loading-indicator">載入中...</div>';
+    try {
+      const result = await API.resources.list({ type: 'video' });
+      const videos = result.success ? (result.data || []) : [];
+      container.innerHTML = `
+        <div class="video-stats" style="margin-bottom:1rem;">
+          <span style="color:var(--gray-500);">${videos.length} 部影片</span>
+        </div>
+        <div class="videos-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1.5rem;">
+          ${videos.map(v => `
+            <div class="video-card" style="background:var(--white);border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);cursor:pointer;" onclick="openVideoPlayer && openVideoPlayer('${v.resourceId || ''}')">
+              <div class="video-thumbnail" style="position:relative;aspect-ratio:16/9;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);display:flex;align-items:center;justify-content:center;">
+                <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="#f5f0e8" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polygon points="10,8 16,12 10,16" fill="#f5f0e8"/></svg>
+              </div>
+              <div class="video-info" style="padding:1rem;">
+                <h4 style="font-size:1rem;font-weight:600;margin-bottom:0.5rem;">${v.title}</h4>
+                <p style="font-size:0.85rem;color:var(--gray-500);">${v.description || ''}</p>
+              </div>
+            </div>
+          `).join('')}
+          ${videos.length === 0 ? '<div class="empty-state" style="text-align:center;padding:3rem;color:var(--gray-500);grid-column:1/-1;"><p>尚無影片資源</p></div>' : ''}
+        </div>
+      `;
+    } catch (error) {
+      console.error('loadVideosView error:', error);
+      container.innerHTML = '<div class="error-state">載入影片失敗</div>';
+    }
+  },
+
+  /**
+   * 載入測驗列表視圖
+   */
+  async loadQuizzesListView() {
+    const container = document.getElementById('quizzesListContent');
+    if (!container) return;
+    container.innerHTML = '<div class="loading-indicator">載入中...</div>';
+    try {
+      const result = await API.quizzes.list();
+      const quizzes = result.success ? (result.data || []) : [];
+      const completed = quizzes.filter(q => q.status === 'completed' || q.attempted).length;
+      container.innerHTML = `
+        <div class="stats-row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem;margin-bottom:1.5rem;">
+          <div class="stat-card" style="background:var(--white);padding:1.5rem;border-radius:12px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.06);"><div style="font-size:2rem;font-weight:700;color:var(--olive);">${quizzes.length}</div><div style="font-size:0.85rem;color:var(--gray-500);">總測驗</div></div>
+          <div class="stat-card" style="background:var(--white);padding:1.5rem;border-radius:12px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.06);"><div style="font-size:2rem;font-weight:700;color:var(--terracotta);">${completed}</div><div style="font-size:0.85rem;color:var(--gray-500);">已完成</div></div>
+        </div>
+        <div class="quiz-list">
+          ${quizzes.map(q => `
+            <div class="quiz-item" style="background:var(--white);border-radius:12px;padding:1.5rem;margin-bottom:1rem;box-shadow:0 2px 8px rgba(0,0,0,0.06);display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="typeof MoodleUI !== 'undefined' && MoodleUI.openQuiz && MoodleUI.openQuiz('${q.quizId}')">
+              <div class="quiz-info">
+                <h4 style="font-size:1.1rem;font-weight:600;margin-bottom:0.25rem;">${q.title}</h4>
+                <p style="font-size:0.85rem;color:var(--gray-500);">${q.description || ''}</p>
+                <div class="quiz-meta" style="display:flex;gap:0.75rem;margin-top:0.5rem;font-size:0.8rem;color:var(--gray-400);">
+                  ${q.timeLimit ? `<span>時限: ${q.timeLimit} 分鐘</span>` : ''}
+                  ${q.questionCount ? `<span>${q.questionCount} 題</span>` : ''}
+                </div>
+              </div>
+              <div class="quiz-status">
+                ${q.attempted ? '<span class="status-badge active" style="background:var(--olive-light);color:var(--olive);padding:4px 12px;border-radius:20px;font-size:0.8rem;">已作答</span>' : '<span class="status-badge" style="background:var(--gray-100);color:var(--gray-500);padding:4px 12px;border-radius:20px;font-size:0.8rem;">未作答</span>'}
+              </div>
+            </div>
+          `).join('')}
+          ${quizzes.length === 0 ? '<div class="empty-state" style="text-align:center;padding:3rem;color:var(--gray-500);"><p>尚無測驗</p></div>' : ''}
+        </div>
+      `;
+    } catch (error) {
+      console.error('loadQuizzesListView error:', error);
+      container.innerHTML = '<div class="error-state">載入測驗失敗</div>';
+    }
+  },
+
+  /**
+   * 載入討論列表視圖
+   */
+  async loadDiscussionsListView() {
+    const container = document.getElementById('discussionsListContent');
+    if (!container) return;
+    container.innerHTML = '<div class="loading-indicator">載入中...</div>';
+    try {
+      const result = await API.discussions.list();
+      const posts = result.success ? (result.data || []) : [];
+      container.innerHTML = `
+        <div class="discussions-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <span style="color:var(--gray-500);">${posts.length} 則討論</span>
+          <button onclick="typeof MoodleUI !== 'undefined' && MoodleUI.showCreateDiscussionForm ? MoodleUI.showCreateDiscussionForm() : (typeof openNewPostModal === 'function' ? openNewPostModal() : showToast('功能開發中'))" class="btn-primary" style="padding:0.75rem 1.5rem;background:var(--olive);color:var(--cream);border:none;border-radius:8px;cursor:pointer;font-weight:500;display:flex;align-items:center;gap:0.5rem;">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            發起討論
+          </button>
+        </div>
+        <div class="discussions-list">
+          ${posts.map(p => {
+            const avatarColors = ['var(--olive)', 'var(--terracotta)', '#6366f1', '#059669', '#1976D2'];
+            const colorIndex = (p.authorName || '').charCodeAt(0) % avatarColors.length || 0;
+            return `
+            <div class="discussion-card" style="background:var(--white);border-radius:12px;padding:1.5rem;margin-bottom:1rem;box-shadow:0 2px 8px rgba(0,0,0,0.06);cursor:pointer;display:flex;gap:1rem;" onclick="typeof MoodleUI !== 'undefined' && MoodleUI.openDiscussion && MoodleUI.openDiscussion('${p.id || p.postId}')">
+              <div class="discussion-avatar" style="width:48px;height:48px;background:${avatarColors[colorIndex]};border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--cream);font-weight:600;flex-shrink:0;">${(p.authorName || '匿')[0]}</div>
+              <div class="discussion-content" style="flex:1;">
+                <h4 style="font-size:1.1rem;font-weight:600;margin-bottom:0.25rem;">${p.title}</h4>
+                <p style="color:var(--gray-600);margin-bottom:0.75rem;line-height:1.6;font-size:0.9rem;">${(p.content || '').substring(0, 100)}${(p.content || '').length > 100 ? '...' : ''}</p>
+                <div class="discussion-meta" style="display:flex;gap:1rem;font-size:0.8rem;color:var(--gray-400);">
+                  <span>${p.authorName || '匿名'}</span>
+                  <span>${p.createdAt ? new Date(p.createdAt).toLocaleDateString('zh-TW') : ''}</span>
+                  <span>${p.replyCount || 0} 回覆</span>
+                  <span>${p.likeCount || 0} 讚</span>
+                </div>
+              </div>
+            </div>
+          `}).join('')}
+          ${posts.length === 0 ? '<div class="empty-state" style="text-align:center;padding:3rem;color:var(--gray-500);"><p>尚無討論</p></div>' : ''}
+        </div>
+      `;
+    } catch (error) {
+      console.error('loadDiscussionsListView error:', error);
+      container.innerHTML = '<div class="error-state">載入討論失敗</div>';
+    }
+  },
+
+  async loadFilesView() {
+    const container = document.getElementById('filesContent');
+    if (!container) return;
+    container.innerHTML = '<div class="loading-indicator" style="text-align:center;padding:2rem;color:var(--gray-500);">載入中...</div>';
+    try {
+      const result = await API.files.list();
+      const files = result.success ? (result.data || []) : [];
+      container.innerHTML = `
+        <div style="padding:1.5rem">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+            <h2>我的檔案</h2>
+            <button onclick="document.getElementById('fileUploadInput').click()" class="btn-primary">上傳檔案</button>
+            <input type="file" id="fileUploadInput" style="display:none" onchange="App.handleFileUpload(this)">
+          </div>
+          <div class="files-list">
+            ${files.map(f => `
+              <div class="file-item" style="display:flex;align-items:center;padding:12px;border-bottom:1px solid #eee;gap:12px">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+                <div style="flex:1">
+                  <div style="font-weight:500">${f.fileName || f.name || 'file'}</div>
+                  <div style="font-size:0.85rem;color:var(--gray-500)">${f.size ? (f.size / 1024).toFixed(1) + ' KB' : ''} ${f.createdAt ? '・' + new Date(f.createdAt).toLocaleDateString('zh-TW') : ''}</div>
+                </div>
+                <button onclick="App.deleteFile('${f.fileId || f.id}')" class="btn-sm btn-danger">刪除</button>
+              </div>
+            `).join('')}
+            ${files.length === 0 ? '<div class="empty-state" style="text-align:center;padding:3rem;color:var(--gray-500)"><p>尚無檔案</p></div>' : ''}
+          </div>
+        </div>
+      `;
+    } catch (error) {
+      console.error('loadFilesView error:', error);
+      container.innerHTML = '<div class="error-state">載入檔案失敗</div>';
+    }
+  },
+
+  async handleFileUpload(input) {
+    if (!input.files || !input.files[0]) return;
+    try {
+      showToast('上傳中...');
+      const result = await API.files.upload(input.files[0]);
+      if (result.success) {
+        showToast('上傳成功');
+        this.loadFilesView();
+      } else {
+        showToast(result.message || '上傳失敗');
+      }
+    } catch (error) {
+      showToast('上傳失敗');
+    }
+    input.value = '';
+  },
+
+  async deleteFile(fileId) {
+    if (!confirm('確定要刪除此檔案嗎？')) return;
+    try {
+      const result = await API.files.delete(fileId);
+      if (result.success) {
+        showToast('檔案已刪除');
+        this.loadFilesView();
+      } else {
+        showToast(result.message || '刪除失敗');
+      }
+    } catch (error) {
+      showToast('刪除失敗');
+    }
+  },
+
+  async loadGroupsManagerView() {
+    const container = document.getElementById('groupsManagerContent');
+    if (!container) return;
+    container.innerHTML = '<div class="loading-indicator" style="text-align:center;padding:2rem;color:var(--gray-500);">載入中...</div>';
+    try {
+      const user = API.getCurrentUser();
+      const coursesResult = await API.courses.getMyCourses();
+      const courses = coursesResult.success ? (coursesResult.data || []) : [];
+      const teacherCourses = courses.filter(c => c.instructorId === user?.userId || c.role === 'teacher');
+
+      if (teacherCourses.length === 0) {
+        container.innerHTML = '<div class="empty-state" style="text-align:center;padding:3rem;color:var(--gray-500)"><p>您目前沒有管理中的課程</p></div>';
+        return;
+      }
+
+      container.innerHTML = `
+        <div style="padding:1.5rem">
+          <h2>課程分組管理</h2>
+          <p style="color:var(--gray-500);margin-bottom:1rem">選擇課程以管理其分組</p>
+          <div class="course-select-list">
+            ${teacherCourses.map(c => `
+              <div class="course-select-card" onclick="App.openCourseGroups('${c.courseId}')" style="padding:16px;border:1px solid #eee;border-radius:8px;margin-bottom:8px;cursor:pointer;transition:background 0.2s" onmouseover="this.style.background='#f9f9f9'" onmouseout="this.style.background=''">
+                <strong>${c.title}</strong>
+                <span style="color:var(--gray-500);margin-left:8px">${c.shortName || ''}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    } catch (error) {
+      console.error('loadGroupsManagerView error:', error);
+      container.innerHTML = '<div class="error-state">載入失敗</div>';
+    }
+  },
+
+  async openCourseGroups(courseId) {
+    const container = document.getElementById('groupsManagerContent');
+    if (!container) return;
+    container.innerHTML = '<div class="loading-indicator" style="text-align:center;padding:2rem">載入中...</div>';
+    try {
+      const result = await API.courseGroups.list(courseId);
+      const groups = result.success ? (result.data || []) : [];
+      container.innerHTML = `
+        <div style="padding:1.5rem">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+            <div>
+              <button onclick="App.loadGroupsManagerView()" class="btn-secondary" style="margin-right:8px">← 返回</button>
+              <strong>分組管理</strong>
+            </div>
+            <button onclick="App.createGroupPrompt('${courseId}')" class="btn-primary">新增分組</button>
+          </div>
+          <div class="groups-list">
+            ${groups.map(g => `
+              <div class="group-card" style="padding:16px;border:1px solid #eee;border-radius:8px;margin-bottom:8px">
+                <div style="display:flex;justify-content:space-between;align-items:center">
+                  <strong>${g.name}</strong>
+                  <div>
+                    <span style="color:var(--gray-500);margin-right:8px">${g.memberCount || 0} 名成員</span>
+                    <button onclick="App.deleteGroup('${courseId}', '${g.groupId}')" class="btn-sm btn-danger">刪除</button>
+                  </div>
+                </div>
+                ${g.description ? `<p style="color:var(--gray-500);margin-top:4px">${g.description}</p>` : ''}
+              </div>
+            `).join('')}
+            ${groups.length === 0 ? '<div class="empty-state" style="text-align:center;padding:2rem;color:var(--gray-500)"><p>尚無分組</p></div>' : ''}
+          </div>
+        </div>
+      `;
+    } catch (error) {
+      console.error('openCourseGroups error:', error);
+      container.innerHTML = '<div class="error-state">載入分組失敗</div>';
+    }
+  },
+
+  async createGroupPrompt(courseId) {
+    const name = prompt('請輸入分組名稱：');
+    if (!name) return;
+    try {
+      const result = await API.courseGroups.create(courseId, { name });
+      if (result.success) {
+        showToast('分組已建立');
+        this.openCourseGroups(courseId);
+      } else {
+        showToast(result.message || '建立失敗');
+      }
+    } catch (error) {
+      showToast('建立分組失敗');
+    }
+  },
+
+  async deleteGroup(courseId, groupId) {
+    if (!confirm('確定要刪除此分組嗎？')) return;
+    try {
+      const result = await API.courseGroups.delete(courseId, groupId);
+      if (result.success) {
+        showToast('分組已刪除');
+        this.openCourseGroups(courseId);
+      } else {
+        showToast(result.message || '刪除失敗');
+      }
+    } catch (error) {
+      showToast('刪除分組失敗');
     }
   }
 };

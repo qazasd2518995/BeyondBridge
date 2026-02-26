@@ -6,10 +6,16 @@
 
 require('dotenv').config();
 
+// 驗證環境變數
+const validateEnv = require('./utils/env-validator');
+validateEnv();
+
 const express = require('express');
 const http = require('http');
 const cors = require('cors');
 const path = require('path');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 
 // 載入路由處理器
 const authRoutes = require('./handlers/auth');
@@ -50,10 +56,15 @@ const rubricsRoutes = require('./handlers/rubrics');
 const auditLogsRoutes = require('./handlers/audit-logs');
 const scormRoutes = require('./handlers/scorm');
 const ltiRoutes = require('./handlers/lti');
+const lti13Routes = require('./handlers/lti13');
 const h5pRoutes = require('./handlers/h5p');
 
 // 教師功能路由
 const teacherAlertsRoutes = require('./handlers/teacher-alerts');
+
+// 中間件
+const stripDbKeysMiddleware = require('./middleware/strip-db-keys');
+const { errorHandler } = require('./middleware/error-handler');
 
 // 載入 WebSocket 伺服器
 const { initSocketServer } = require('./realtime/socketServer');
@@ -61,13 +72,41 @@ const { initSocketServer } = require('./realtime/socketServer');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// 中間件設定 - CORS 允許所有來源（開發模式）
-app.use(cors({
-  origin: true,  // 允許所有來源，包括 file:// 和 null origin
-  credentials: true
+// 安全 Headers
+app.use(helmet({
+  contentSecurityPolicy: false // 因為有自己的 SPA 頁面
 }));
+
+// CORS 設定
+const corsOptions = {
+  origin: process.env.NODE_ENV === 'production'
+    ? (process.env.CORS_ORIGINS || '').split(',').filter(Boolean)
+    : true,
+  credentials: true
+};
+app.use(cors(corsOptions));
+
+// Rate Limiting
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 分鐘
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'RATE_LIMITED', message: '請求過於頻繁，請稍後再試' }
+});
+const authLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'RATE_LIMITED', message: '登入嘗試過於頻繁，請稍後再試' }
+});
+app.use('/api/', apiLimiter);
+app.use('/api/auth/', authLimiter);
+
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(stripDbKeysMiddleware);
 
 // 請求日誌（只記錄 API 請求）
 app.use((req, res, next) => {
@@ -125,6 +164,7 @@ app.use('/api/rubrics', rubricsRoutes);
 app.use('/api/audit-logs', auditLogsRoutes);
 app.use('/api/scorm', scormRoutes);
 app.use('/api/lti', ltiRoutes);
+app.use('/api/lti/13', lti13Routes);  // LTI 1.3 端點
 app.use('/api/h5p', h5pRoutes);
 
 // 教師功能路由
@@ -187,15 +227,8 @@ app.use((req, res) => {
   }
 });
 
-// 錯誤處理
-app.use((err, req, res, next) => {
-  console.error('Server Error:', err);
-  res.status(500).json({
-    success: false,
-    error: 'INTERNAL_ERROR',
-    message: process.env.NODE_ENV === 'development' ? err.message : '伺服器內部錯誤'
-  });
-});
+// 集中式錯誤處理
+app.use(errorHandler);
 
 // 建立 HTTP 伺服器並整合 Socket.io
 const httpServer = http.createServer(app);
@@ -248,6 +281,7 @@ httpServer.listen(PORT, () => {
   console.log('  /api/audit-logs    → 審計日誌');
   console.log('  /api/scorm         → SCORM 學習包');
   console.log('  /api/lti           → LTI 外部工具');
+  console.log('  /api/lti/13        → LTI 1.3 端點');
   console.log('  /api/h5p           → H5P 互動內容');
 });
 

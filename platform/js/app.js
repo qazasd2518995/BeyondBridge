@@ -74,32 +74,23 @@ const App = {
     const sidebar = document.querySelector('.sidebar-nav');
     if (!sidebar) return;
 
-    // 定義建橋者（教師/教育者）側邊欄
+    // 定義建橋者（教師/教育者）側邊欄 - 優化版
     const educatorSidebar = `
       <div class="nav-section">
-        <div class="nav-section-title">建橋中心</div>
+        <div class="nav-section-title">教學中心</div>
         <a href="#" class="nav-item active" data-view="dashboard" onclick="navigateTo(this, 'dashboard')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
             <polyline points="9,22 9,12 15,12 15,22"/>
           </svg>
-          建橋總覽
+          教學儀表板
         </a>
-        <a href="#" class="nav-item" data-view="library" onclick="navigateTo(this, 'library')">
+        <a href="#" class="nav-item" data-view="moodleCourses" onclick="showView('moodleCourses'); MoodleUI.loadCourses();">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M4 19.5A2.5 2.5 0 016.5 17H20"/>
-            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>
+            <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/>
+            <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>
           </svg>
-          知識建材庫
-          <span class="nav-badge">128</span>
-        </a>
-        <a href="#" class="nav-item" data-view="courses" onclick="navigateTo(this, 'courses')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polygon points="12,2 2,7 12,12 22,7"/>
-            <polyline points="2,17 12,22 22,17"/>
-            <polyline points="2,12 12,17 22,12"/>
-          </svg>
-          我的橋樑
+          我的課程
         </a>
         <a href="#" class="nav-item" data-view="classes" onclick="navigateTo(this, 'classes')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -108,7 +99,100 @@ const App = {
             <path d="M23 21v-2a4 4 0 00-3-3.87"/>
             <path d="M16 3.13a4 4 0 010 7.75"/>
           </svg>
-          共建團隊
+          我的學生
+        </a>
+        <a href="#" class="nav-item" data-view="moodleCalendar" onclick="showView('moodleCalendar'); MoodleUI.loadCalendar();">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+          教學行事曆
+        </a>
+        <a href="#" class="nav-item" data-view="moodleNotifications" onclick="showView('moodleNotifications'); MoodleUI.loadNotifications();">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M13.73 21a2 2 0 01-3.46 0"/>
+          </svg>
+          通知中心
+        </a>
+      </div>
+      <div class="nav-section">
+        <div class="nav-section-title">教學活動</div>
+        <a href="#" class="nav-item" data-view="moodleAssignments" onclick="showView('moodleAssignments'); MoodleUI.loadAssignments();">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+            <polyline points="14,2 14,8 20,8"/>
+            <line x1="12" y1="18" x2="12" y2="12"/>
+            <line x1="9" y1="15" x2="15" y2="15"/>
+          </svg>
+          作業管理
+        </a>
+        <a href="#" class="nav-item" data-view="moodleQuizzes" onclick="showView('moodleQuizzes'); MoodleUI.loadQuizzes();">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          測驗管理
+        </a>
+        <a href="#" class="nav-item" data-view="questionBank" onclick="showView('questionBank'); MoodleUI.openQuestionBank();">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 4h16a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2z"/>
+            <path d="M9 9h6M9 13h3"/>
+            <circle cx="16" cy="13" r="1"/>
+          </svg>
+          題庫管理
+        </a>
+        <a href="#" class="nav-item" data-view="moodleForums" onclick="showView('moodleForums'); MoodleUI.loadForums();">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+          </svg>
+          討論區管理
+        </a>
+      </div>
+      <div class="nav-section">
+        <div class="nav-section-title">評量與成績</div>
+        <a href="#" class="nav-item" data-view="moodleGradebook" onclick="showView('moodleGradebook'); MoodleUI.loadGradebook();">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+            <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+          </svg>
+          成績簿
+        </a>
+        <a href="#" class="nav-item" data-view="rubrics" onclick="showView('rubrics'); MoodleUI.openRubricsManager();">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <path d="M3 9h18"/>
+            <path d="M3 15h18"/>
+            <path d="M9 3v18"/>
+            <path d="M15 3v18"/>
+          </svg>
+          評分標準
+        </a>
+        <a href="#" class="nav-item" data-view="badges" onclick="showView('badges'); MoodleUI.openBadges();">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="8" r="6"/>
+            <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/>
+          </svg>
+          徽章頒發
+        </a>
+        <a href="#" class="nav-item" data-view="gradebookManagement" onclick="showView('gradebookManagement'); MoodleUI.openGradebookManagement();">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="20" x2="18" y2="10"/>
+            <line x1="12" y1="20" x2="12" y2="4"/>
+            <line x1="6" y1="20" x2="6" y2="14"/>
+          </svg>
+          學習分析
+        </a>
+      </div>
+      <div class="nav-section">
+        <div class="nav-section-title">教學資源</div>
+        <a href="#" class="nav-item" data-view="library" onclick="navigateTo(this, 'library')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 19.5A2.5 2.5 0 016.5 17H20"/>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>
+          </svg>
+          教材庫
         </a>
         <a href="#" class="nav-item" data-view="licenses" onclick="navigateTo(this, 'licenses')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -118,218 +202,53 @@ const App = {
             <line x1="16" y1="17" x2="8" y2="17"/>
             <polyline points="10,9 9,9 8,9"/>
           </svg>
-          建材授權
+          授權管理
         </a>
-        <a href="#" class="nav-item" data-view="consultations" onclick="navigateTo(this, 'consultations')">
+        <a href="#" class="nav-item" data-view="moodleFiles" onclick="showView('moodleFiles');">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+            <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>
           </svg>
-          專業諮詢
+          檔案管理
         </a>
       </div>
       <div class="nav-section">
-        <div class="nav-section-title">課程學習</div>
-        <a href="#" class="nav-item" data-view="moodleCourses" onclick="showView('moodleCourses'); MoodleUI.loadCourses();">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/>
-            <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>
-          </svg>
-          課程中心
-        </a>
-        <a href="#" class="nav-item" data-view="moodleAssignments" onclick="showView('moodleAssignments'); MoodleUI.loadAssignments();">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-            <polyline points="14,2 14,8 20,8"/>
-            <line x1="12" y1="18" x2="12" y2="12"/>
-            <line x1="9" y1="15" x2="15" y2="15"/>
-          </svg>
-          我的作業
-        </a>
-        <a href="#" class="nav-item" data-view="moodleQuizzes" onclick="showView('moodleQuizzes'); MoodleUI.loadQuizzes();">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/>
-            <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/>
-            <line x1="12" y1="17" x2="12.01" y2="17"/>
-          </svg>
-          測驗中心
-        </a>
-        <a href="#" class="nav-item" data-view="moodleForums" onclick="showView('moodleForums'); MoodleUI.loadForums();">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
-          </svg>
-          討論區
-        </a>
-        <a href="#" class="nav-item" data-view="moodleGradebook" onclick="showView('moodleGradebook'); MoodleUI.loadGradebook();">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
-            <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
-          </svg>
-          成績簿
-        </a>
-        <a href="#" class="nav-item" data-view="moodleCalendar" onclick="showView('moodleCalendar'); MoodleUI.loadCalendar();">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-            <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-          </svg>
-          行事曆
-        </a>
-        <a href="#" class="nav-item" data-view="moodleNotifications" onclick="showView('moodleNotifications'); MoodleUI.loadNotifications();">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-            <path d="M13.73 21a2 2 0 01-3.46 0"/>
-          </svg>
-          通知中心
-        </a>
-      </div>
-      <div class="nav-section">
-        <div class="nav-section-title">教學管理</div>
-        <a href="#" class="nav-item" data-view="questionBank" onclick="showView('questionBank'); MoodleUI.openQuestionBank();">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M4 4h16a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2z"/>
-            <path d="M9 9h6M9 13h3"/>
-            <circle cx="16" cy="13" r="1"/>
-          </svg>
-          題庫管理
-        </a>
-        <a href="#" class="nav-item" data-view="gradebookManagement" onclick="showView('gradebookManagement'); MoodleUI.openGradebookManagement();">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-            <line x1="3" y1="9" x2="21" y2="9"/>
-            <line x1="3" y1="15" x2="21" y2="15"/>
-            <line x1="9" y1="3" x2="9" y2="21"/>
-            <line x1="15" y1="3" x2="15" y2="21"/>
-          </svg>
-          成績簿管理
-        </a>
+        <div class="nav-section-title">課程設定</div>
         <a href="#" class="nav-item" data-view="courseCompletionSettings" onclick="showView('courseCompletionSettings'); MoodleUI.openCourseCompletionSettings();">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
             <polyline points="22,4 12,14.01 9,11.01"/>
           </svg>
-          課程完成設定
+          完成條件
         </a>
-      </div>
-      <div class="nav-section">
-        <div class="nav-section-title">橋樑管理</div>
-        <a href="#" class="nav-item" data-view="settings" onclick="navigateTo(this, 'settings')">
+        <a href="#" class="nav-item" data-view="learningPaths" onclick="showView('learningPaths'); MoodleUI.openLearningPaths();">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="3"/>
-            <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
+            <path d="M18 20V10"/>
+            <path d="M12 20V4"/>
+            <path d="M6 20v-6"/>
+            <path d="M18 10l-6-6-6 6"/>
           </svg>
-          橋樑設定
+          學習路徑
         </a>
-        <a href="#" class="nav-item" data-view="logout" onclick="navigateTo(this, 'logout')">
+        <a href="#" class="nav-item" data-view="courses" onclick="navigateTo(this, 'courses')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
-            <polyline points="16,17 21,12 16,7"/>
-            <line x1="21" y1="12" x2="9" y2="12"/>
+            <polygon points="12,2 2,7 12,12 22,7"/>
+            <polyline points="2,17 12,22 22,17"/>
+            <polyline points="2,12 12,17 22,12"/>
           </svg>
-          離開橋樑
+          班級管理
         </a>
-      </div>
-    `;
-
-    // 定義探橋者（學生）側邊欄
-    const studentSidebar = `
-      <div class="nav-section">
-        <div class="nav-section-title">探索中心</div>
-        <a href="#" class="nav-item active" data-view="dashboard" onclick="navigateTo(this, 'dashboard')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
-            <polyline points="9,22 9,12 15,12 15,22"/>
-          </svg>
-          探索總覽
-        </a>
-        <a href="#" class="nav-item" data-view="studentClasses" onclick="navigateTo(this, 'studentClasses')">
+        <a href="#" class="nav-item" data-view="groupsManager" onclick="showView('groupsManager');">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
             <circle cx="9" cy="7" r="4"/>
             <path d="M23 21v-2a4 4 0 00-3-3.87"/>
             <path d="M16 3.13a4 4 0 010 7.75"/>
           </svg>
-          我的橋隊
+          分組管理
         </a>
       </div>
       <div class="nav-section">
-        <div class="nav-section-title">過橋工具</div>
-        <a href="#" class="nav-item" data-view="videos" onclick="navigateTo(this, 'videos')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polygon points="23,7 16,12 23,17"/>
-            <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
-          </svg>
-          影音橋段
-        </a>
-        <a href="#" class="nav-item" data-view="quizzes" onclick="navigateTo(this, 'quizzes')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/>
-            <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/>
-            <line x1="12" y1="17" x2="12.01" y2="17"/>
-          </svg>
-          橋樑驗收
-        </a>
-        <a href="#" class="nav-item" data-view="discussions" onclick="navigateTo(this, 'discussions')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
-          </svg>
-          共建論壇
-        </a>
-      </div>
-      <div class="nav-section">
-        <div class="nav-section-title">課程學習</div>
-        <a href="#" class="nav-item" data-view="moodleCourses" onclick="showView('moodleCourses'); MoodleUI.loadCourses();">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/>
-            <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>
-          </svg>
-          課程中心
-        </a>
-        <a href="#" class="nav-item" data-view="moodleAssignments" onclick="showView('moodleAssignments'); MoodleUI.loadAssignments();">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-            <polyline points="14,2 14,8 20,8"/>
-            <line x1="12" y1="18" x2="12" y2="12"/>
-            <line x1="9" y1="15" x2="15" y2="15"/>
-          </svg>
-          我的作業
-        </a>
-        <a href="#" class="nav-item" data-view="moodleQuizzes" onclick="showView('moodleQuizzes'); MoodleUI.loadQuizzes();">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/>
-            <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/>
-            <line x1="12" y1="17" x2="12.01" y2="17"/>
-          </svg>
-          測驗中心
-        </a>
-        <a href="#" class="nav-item" data-view="moodleForums" onclick="showView('moodleForums'); MoodleUI.loadForums();">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
-          </svg>
-          討論區
-        </a>
-        <a href="#" class="nav-item" data-view="moodleGradebook" onclick="showView('moodleGradebook'); MoodleUI.loadGradebook();">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
-            <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
-          </svg>
-          成績簿
-        </a>
-        <a href="#" class="nav-item" data-view="moodleCalendar" onclick="showView('moodleCalendar'); MoodleUI.loadCalendar();">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-            <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-          </svg>
-          行事曆
-        </a>
-        <a href="#" class="nav-item" data-view="moodleNotifications" onclick="showView('moodleNotifications'); MoodleUI.loadNotifications();">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-            <path d="M13.73 21a2 2 0 01-3.46 0"/>
-          </svg>
-          通知中心
-        </a>
-      </div>
-      <div class="nav-section">
-        <div class="nav-section-title">探橋者</div>
+        <div class="nav-section-title">設定</div>
         <a href="#" class="nav-item" data-view="settings" onclick="navigateTo(this, 'settings')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="3"/>
@@ -343,7 +262,130 @@ const App = {
             <polyline points="16,17 21,12 16,7"/>
             <line x1="21" y1="12" x2="9" y2="12"/>
           </svg>
-          離開橋樑
+          登出
+        </a>
+      </div>
+    `;
+
+    // 定義探橋者（學生）側邊欄 - 簡化版
+    const studentSidebar = `
+      <div class="nav-section">
+        <div class="nav-section-title">我的學習</div>
+        <a href="#" class="nav-item active" data-view="dashboard" onclick="navigateTo(this, 'dashboard')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+            <polyline points="9,22 9,12 15,12 15,22"/>
+          </svg>
+          學習儀表板
+        </a>
+        <a href="#" class="nav-item" data-view="moodleCourses" onclick="showView('moodleCourses'); MoodleUI.loadCourses();">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/>
+            <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>
+          </svg>
+          我的課程
+        </a>
+        <a href="#" class="nav-item" data-view="moodleCalendar" onclick="showView('moodleCalendar'); MoodleUI.loadCalendar();">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+          學習行事曆
+        </a>
+        <a href="#" class="nav-item" data-view="moodleNotifications" onclick="showView('moodleNotifications'); MoodleUI.loadNotifications();">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M13.73 21a2 2 0 01-3.46 0"/>
+          </svg>
+          通知中心
+        </a>
+      </div>
+      <div class="nav-section">
+        <div class="nav-section-title">學習任務</div>
+        <a href="#" class="nav-item" data-view="moodleAssignments" onclick="showView('moodleAssignments'); MoodleUI.loadAssignments();">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+            <polyline points="14,2 14,8 20,8"/>
+            <line x1="12" y1="18" x2="12" y2="12"/>
+            <line x1="9" y1="15" x2="15" y2="15"/>
+          </svg>
+          待交作業
+        </a>
+        <a href="#" class="nav-item" data-view="moodleQuizzes" onclick="showView('moodleQuizzes'); MoodleUI.loadQuizzes();">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          待考測驗
+        </a>
+        <a href="#" class="nav-item" data-view="moodleForums" onclick="showView('moodleForums'); MoodleUI.loadForums();">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+          </svg>
+          課程討論
+        </a>
+      </div>
+      <div class="nav-section">
+        <div class="nav-section-title">學習成果</div>
+        <a href="#" class="nav-item" data-view="moodleGradebook" onclick="showView('moodleGradebook'); MoodleUI.loadGradebook();">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+            <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+          </svg>
+          我的成績
+        </a>
+        <a href="#" class="nav-item" data-view="badges" onclick="showView('badges'); MoodleUI.openBadges();">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="8" r="6"/>
+            <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/>
+          </svg>
+          我的徽章
+        </a>
+        <a href="#" class="nav-item" data-view="learningPaths" onclick="showView('learningPaths'); MoodleUI.openLearningPaths();">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 20V10"/>
+            <path d="M12 20V4"/>
+            <path d="M6 20v-6"/>
+            <path d="M18 10l-6-6-6 6"/>
+          </svg>
+          學習進度
+        </a>
+      </div>
+      <div class="nav-section">
+        <div class="nav-section-title">學習社群</div>
+        <a href="#" class="nav-item" data-view="studentClasses" onclick="navigateTo(this, 'studentClasses')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 00-3-3.87"/>
+            <path d="M16 3.13a4 4 0 010 7.75"/>
+          </svg>
+          我的班級
+        </a>
+        <a href="#" class="nav-item" data-view="moodleFiles" onclick="showView('moodleFiles');">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>
+          </svg>
+          我的檔案
+        </a>
+      </div>
+      <div class="nav-section">
+        <div class="nav-section-title">設定</div>
+        <a href="#" class="nav-item" data-view="settings" onclick="navigateTo(this, 'settings')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
+          </svg>
+          個人設定
+        </a>
+        <a href="#" class="nav-item" data-view="logout" onclick="navigateTo(this, 'logout')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
+            <polyline points="16,17 21,12 16,7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+          登出
         </a>
       </div>
     `;
@@ -514,6 +556,7 @@ const App = {
   async loadDashboardData() {
     try {
       const user = API.getCurrentUser();
+      const isStudent = user && user.role === 'student';
 
       // 並行載入各項資料
       const promises = [
@@ -527,12 +570,546 @@ const App = {
         promises.push(this.loadUserCourses(user.userId));
         promises.push(this.loadUserActivities(user.userId));
         promises.push(this.loadUserLicenses(user.userId));
+
+        // 學生專屬資料
+        if (isStudent) {
+          promises.push(this.loadUpcomingDeadlines(user.userId));
+          promises.push(this.loadRecentBadges(user.userId));
+          promises.push(this.loadWeeklyStats(user.userId));
+        }
       }
 
       await Promise.all(promises);
+
+      // 根據角色顯示/隱藏儀表板區塊
+      const isTeacher = user && (user.role === 'educator' || user.role === 'trainer' || user.role === 'creator');
+      this.updateDashboardLayout(isStudent, isTeacher);
+
+      // 教師專屬數據載入
+      if (isTeacher) {
+        await this.loadTeacherDashboardData();
+      }
     } catch (error) {
       console.error('Load dashboard data error:', error);
     }
+  },
+
+  /**
+   * 根據角色更新儀表板布局
+   */
+  updateDashboardLayout(isStudent, isTeacher) {
+    const studentDashboard = document.getElementById('dashboardView');
+    const teacherDashboard = document.getElementById('teacherDashboardView');
+    const urgentSection = document.getElementById('urgentDeadlinesSection');
+    const achievementsCard = document.getElementById('recentAchievementsCard');
+
+    // 根據角色顯示對應的儀表板
+    if (isTeacher) {
+      if (studentDashboard) studentDashboard.style.display = 'none';
+      if (teacherDashboard) teacherDashboard.style.display = 'block';
+    } else {
+      if (studentDashboard) studentDashboard.style.display = 'block';
+      if (teacherDashboard) teacherDashboard.style.display = 'none';
+    }
+
+    // 學生專屬區塊
+    if (urgentSection) {
+      urgentSection.style.display = isStudent ? 'block' : 'none';
+    }
+    if (achievementsCard) {
+      achievementsCard.style.display = isStudent ? 'block' : 'none';
+    }
+  },
+
+  /**
+   * 載入即將截止的任務（作業和測驗）
+   */
+  async loadUpcomingDeadlines(userId) {
+    try {
+      // 載入作業和測驗
+      const [assignmentsRes, quizzesRes] = await Promise.all([
+        API.assignments.list(),
+        API.quizzes.list()
+      ]);
+
+      const now = new Date();
+      const sevenDaysLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+      const deadlines = [];
+
+      // 處理作業截止日期
+      if (assignmentsRes.success && assignmentsRes.data) {
+        assignmentsRes.data.forEach(assignment => {
+          if (assignment.dueDate) {
+            const dueDate = new Date(assignment.dueDate);
+            if (dueDate > now && dueDate <= sevenDaysLater && assignment.status !== 'submitted') {
+              deadlines.push({
+                type: 'assignment',
+                title: assignment.title,
+                dueDate: dueDate,
+                courseTitle: assignment.courseTitle,
+                id: assignment.assignmentId
+              });
+            }
+          }
+        });
+      }
+
+      // 處理測驗截止日期
+      if (quizzesRes.success && quizzesRes.data) {
+        quizzesRes.data.forEach(quiz => {
+          if (quiz.endDate || quiz.dueDate) {
+            const dueDate = new Date(quiz.endDate || quiz.dueDate);
+            if (dueDate > now && dueDate <= sevenDaysLater && quiz.status !== 'completed') {
+              deadlines.push({
+                type: 'quiz',
+                title: quiz.title,
+                dueDate: dueDate,
+                courseTitle: quiz.courseTitle,
+                id: quiz.quizId
+              });
+            }
+          }
+        });
+      }
+
+      // 按截止日期排序
+      deadlines.sort((a, b) => a.dueDate - b.dueDate);
+
+      this.updateDeadlinesUI(deadlines);
+    } catch (error) {
+      console.error('Load upcoming deadlines error:', error);
+    }
+  },
+
+  /**
+   * 更新即將截止區塊的 UI
+   */
+  updateDeadlinesUI(deadlines) {
+    const deadlineList = document.getElementById('deadlineList');
+    const deadlineCount = document.querySelector('.deadline-count');
+
+    if (deadlineCount) {
+      deadlineCount.textContent = `${deadlines.length} 項`;
+    }
+
+    if (!deadlineList) return;
+
+    if (deadlines.length === 0) {
+      deadlineList.innerHTML = `
+        <div class="empty-state" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width: 48px; height: 48px; margin-bottom: 0.5rem; opacity: 0.5;">
+            <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+            <polyline points="22,4 12,14.01 9,11.01"/>
+          </svg>
+          <p>太棒了！近期沒有待完成的任務</p>
+        </div>
+      `;
+      return;
+    }
+
+    deadlineList.innerHTML = deadlines.slice(0, 5).map(item => {
+      const daysLeft = Math.ceil((item.dueDate - new Date()) / (1000 * 60 * 60 * 24));
+      const urgencyClass = daysLeft <= 2 ? 'urgent' : daysLeft <= 4 ? 'warning' : 'normal';
+      const icon = item.type === 'assignment' ?
+        `<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>` :
+        `<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>`;
+
+      return `
+        <div class="deadline-item" style="display: flex; align-items: center; padding: 0.75rem; border-radius: 8px; background: var(--surface-light); margin-bottom: 0.5rem; cursor: pointer;" onclick="showView('moodle${item.type === 'assignment' ? 'Assignments' : 'Quizzes'}');">
+          <div class="deadline-icon ${urgencyClass}" style="width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-right: 0.75rem; background: ${urgencyClass === 'urgent' ? 'var(--terracotta-light)' : urgencyClass === 'warning' ? 'var(--sand-light)' : 'var(--olive-light)'};">
+            <svg viewBox="0 0 24 24" fill="none" stroke="${urgencyClass === 'urgent' ? 'var(--terracotta)' : urgencyClass === 'warning' ? 'var(--sand)' : 'var(--olive)'}" stroke-width="2" style="width: 18px; height: 18px;">
+              ${icon}
+            </svg>
+          </div>
+          <div class="deadline-info" style="flex: 1;">
+            <div class="deadline-title" style="font-weight: 500; margin-bottom: 2px;">${item.title}</div>
+            <div class="deadline-meta" style="font-size: 0.75rem; color: var(--text-secondary);">
+              ${item.courseTitle || ''} ・ ${item.type === 'assignment' ? '作業' : '測驗'}
+            </div>
+          </div>
+          <div class="deadline-due" style="text-align: right;">
+            <div class="days-left" style="font-weight: 600; color: ${urgencyClass === 'urgent' ? 'var(--terracotta)' : urgencyClass === 'warning' ? 'var(--sand)' : 'var(--olive)'};">
+              ${daysLeft === 0 ? '今天' : daysLeft === 1 ? '明天' : `${daysLeft} 天後`}
+            </div>
+            <div class="due-date" style="font-size: 0.7rem; color: var(--text-secondary);">
+              ${item.dueDate.toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' })}
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  },
+
+  /**
+   * 載入最近獲得的徽章
+   */
+  async loadRecentBadges(userId) {
+    try {
+      const result = await API.badges.getUserBadges(userId);
+      if (result.success && result.data) {
+        this.updateRecentBadgesUI(result.data.slice(0, 4));
+      }
+    } catch (error) {
+      console.error('Load recent badges error:', error);
+    }
+  },
+
+  /**
+   * 更新最近徽章的 UI
+   */
+  updateRecentBadgesUI(badges) {
+    const badgesList = document.getElementById('recentBadgesList');
+    const badgeCountStat = document.getElementById('statBadgeCount');
+
+    if (badgeCountStat) {
+      badgeCountStat.textContent = badges.length;
+    }
+
+    if (!badgesList) return;
+
+    if (badges.length === 0) {
+      badgesList.innerHTML = `
+        <div class="empty-state" style="text-align: center; padding: 2rem; color: var(--text-secondary); grid-column: 1/-1;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width: 48px; height: 48px; margin-bottom: 0.5rem; opacity: 0.5;">
+            <circle cx="12" cy="8" r="6"/>
+            <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/>
+          </svg>
+          <p>完成課程和作業來獲得徽章！</p>
+        </div>
+      `;
+      return;
+    }
+
+    const badgeColors = ['#FFD700', '#C0C0C0', '#CD7F32', '#4CAF50', '#2196F3', '#9C27B0'];
+
+    badgesList.innerHTML = badges.map((badge, index) => `
+      <div class="badge-item" style="text-align: center; padding: 0.75rem; background: var(--surface-light); border-radius: 8px;">
+        <div class="badge-icon" style="width: 48px; height: 48px; margin: 0 auto 0.5rem; background: ${badgeColors[index % badgeColors.length]}20; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="${badgeColors[index % badgeColors.length]}" stroke-width="2" style="width: 24px; height: 24px;">
+            <circle cx="12" cy="8" r="6"/>
+            <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/>
+          </svg>
+        </div>
+        <div class="badge-name" style="font-size: 0.75rem; font-weight: 500;">${badge.name || badge.badgeName || '徽章'}</div>
+      </div>
+    `).join('');
+  },
+
+  /**
+   * 載入本週學習統計
+   */
+  async loadWeeklyStats(userId) {
+    try {
+      const result = await API.users.getStats(userId);
+      if (result.success && result.data) {
+        this.updateWeeklyStatsUI(result.data);
+      }
+    } catch (error) {
+      console.error('Load weekly stats error:', error);
+    }
+  },
+
+  /**
+   * 更新本週學習統計 UI
+   */
+  updateWeeklyStatsUI(stats) {
+    // 更新統計卡片
+    const courseCount = document.getElementById('statCourseCount');
+    const completionRate = document.getElementById('statCompletionRate');
+    const studyHours = document.getElementById('statStudyHours');
+
+    if (courseCount) courseCount.textContent = stats.coursesInProgress || 0;
+    if (completionRate) completionRate.textContent = `${stats.avgCompletion || 0}%`;
+    if (studyHours) studyHours.textContent = `${Math.round((stats.weeklyStudyMinutes || 0) / 60)}h`;
+
+    // 更新週統計
+    const weeklyCompleted = document.getElementById('weeklyCompletedItems');
+    const weeklyMinutes = document.getElementById('weeklyStudyMinutes');
+    const weeklyDays = document.getElementById('weeklyLoginDays');
+    const weeklyScore = document.getElementById('weeklyQuizScore');
+
+    if (weeklyCompleted) weeklyCompleted.textContent = stats.weeklyCompletedItems || 0;
+    if (weeklyMinutes) weeklyMinutes.textContent = stats.weeklyStudyMinutes || 0;
+    if (weeklyDays) weeklyDays.textContent = stats.consecutiveLoginDays || 0;
+    if (weeklyScore) weeklyScore.textContent = stats.avgQuizScore ? `${stats.avgQuizScore}%` : '-';
+  },
+
+  /**
+   * 載入教師儀表板數據
+   */
+  async loadTeacherDashboardData() {
+    try {
+      // 並行載入所有教師相關數據
+      const [coursesRes, assignmentsRes, quizzesRes, forumsRes] = await Promise.all([
+        API.courses.list(),
+        API.assignments.list(),
+        API.quizzes.list(),
+        API.forums.list()
+      ]);
+
+      // 計算待處理事項
+      let pendingAssignments = 0;
+      let pendingQuizzes = 0;
+      let pendingForums = 0;
+
+      if (assignmentsRes.success && assignmentsRes.data) {
+        pendingAssignments = assignmentsRes.data.filter(a => a.pendingGrading > 0 || a.status === 'pending').length;
+      }
+
+      if (quizzesRes.success && quizzesRes.data) {
+        pendingQuizzes = quizzesRes.data.filter(q => q.pendingReview > 0 || q.status === 'pending').length;
+      }
+
+      if (forumsRes.success && forumsRes.data) {
+        pendingForums = forumsRes.data.filter(f => f.unrepliedPosts > 0).length;
+      }
+
+      // 更新待處理事項 UI
+      const pendingAssignmentsEl = document.getElementById('pendingAssignments');
+      const pendingQuizzesEl = document.getElementById('pendingQuizzes');
+      const pendingForumsEl = document.getElementById('pendingForums');
+
+      if (pendingAssignmentsEl) pendingAssignmentsEl.textContent = pendingAssignments;
+      if (pendingQuizzesEl) pendingQuizzesEl.textContent = pendingQuizzes;
+      if (pendingForumsEl) pendingForumsEl.textContent = pendingForums;
+
+      // 更新統計卡片
+      if (coursesRes.success && coursesRes.data) {
+        const courses = coursesRes.data;
+        const totalStudents = courses.reduce((sum, c) => sum + (c.studentCount || 0), 0);
+        const avgProgress = courses.length > 0 ?
+          Math.round(courses.reduce((sum, c) => sum + (c.avgProgress || 0), 0) / courses.length) : 0;
+
+        const totalStudentsEl = document.getElementById('teacherTotalStudents');
+        const activeCoursesEl = document.getElementById('teacherActiveCourses');
+        const avgProgressEl = document.getElementById('teacherAvgProgress');
+
+        if (totalStudentsEl) totalStudentsEl.textContent = totalStudents;
+        if (activeCoursesEl) activeCoursesEl.textContent = courses.length;
+        if (avgProgressEl) avgProgressEl.textContent = `${avgProgress}%`;
+
+        // 更新課程列表
+        this.updateTeacherCourseList(courses);
+      }
+
+      // 載入學生警示和最近提交
+      await Promise.all([
+        this.loadStudentAlerts(),
+        this.loadRecentSubmissions()
+      ]);
+    } catch (error) {
+      console.error('Load teacher dashboard data error:', error);
+    }
+  },
+
+  /**
+   * 更新教師課程列表
+   */
+  updateTeacherCourseList(courses) {
+    const courseList = document.getElementById('teacherCourseList');
+    if (!courseList) return;
+
+    if (courses.length === 0) {
+      courseList.innerHTML = `
+        <div class="empty-state" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width: 48px; height: 48px; margin-bottom: 0.5rem; opacity: 0.5;">
+            <polygon points="12,2 2,7 12,12 22,7"/>
+            <polyline points="2,17 12,22 22,17"/>
+            <polyline points="2,12 12,17 22,12"/>
+          </svg>
+          <p>尚未建立任何課程</p>
+          <a href="#" onclick="MoodleUI.showCreateCourseModal();" style="color: var(--olive); text-decoration: underline;">建立第一個課程</a>
+        </div>
+      `;
+      return;
+    }
+
+    const colors = [
+      { bg: 'var(--olive-light)', color: 'var(--olive)' },
+      { bg: 'var(--terracotta-light)', color: 'var(--terracotta)' },
+      { bg: 'var(--sand-light)', color: 'var(--sand)' },
+      { bg: '#E3F2FD', color: '#1976D2' }
+    ];
+
+    courseList.innerHTML = courses.slice(0, 4).map((course, index) => {
+      const colorSet = colors[index % colors.length];
+      return `
+        <div class="teacher-course-item" style="display: flex; align-items: center; padding: 0.75rem; border-radius: 8px; background: var(--surface-light); margin-bottom: 0.5rem; cursor: pointer;" onclick="App.openCourse('${course.courseId}');">
+          <div class="course-icon" style="width: 40px; height: 40px; border-radius: 8px; background: ${colorSet.bg}; display: flex; align-items: center; justify-content: center; margin-right: 0.75rem; flex-shrink: 0;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="${colorSet.color}" stroke-width="2" style="width: 20px; height: 20px;">
+              <polygon points="12,2 2,7 12,12 22,7"/>
+              <polyline points="2,17 12,22 22,17"/>
+              <polyline points="2,12 12,17 22,12"/>
+            </svg>
+          </div>
+          <div class="course-info" style="flex: 1; min-width: 0;">
+            <div class="course-title" style="font-weight: 500; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${course.title || course.courseTitle || '課程'}</div>
+            <div class="course-meta" style="font-size: 0.75rem; color: var(--text-secondary);">
+              ${course.studentCount || 0} 位學生 ・ 平均進度 ${course.avgProgress || 0}%
+            </div>
+          </div>
+          <div class="course-stats" style="text-align: right;">
+            ${course.pendingGrading > 0 ? `
+              <span style="background: var(--terracotta-light); color: var(--terracotta); padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: 500;">
+                ${course.pendingGrading} 待批改
+              </span>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+  },
+
+  /**
+   * 載入學生狀態警示
+   */
+  async loadStudentAlerts() {
+    try {
+      // 從 API 獲取學生預警
+      const result = await API.teachers.getAlerts();
+
+      let alerts = [];
+      if (result.success && result.data) {
+        alerts = result.data.slice(0, 5); // 只顯示前 5 項
+      }
+
+      this.updateStudentAlertsUI(alerts);
+    } catch (error) {
+      console.error('Load student alerts error:', error);
+      // 發生錯誤時顯示空列表
+      this.updateStudentAlertsUI([]);
+    }
+  },
+
+  /**
+   * 更新學生警示 UI
+   */
+  updateStudentAlertsUI(alerts) {
+    const alertsList = document.getElementById('studentAlertsList');
+    const alertCount = document.getElementById('studentAlertCount');
+
+    if (alertCount) {
+      alertCount.textContent = `${alerts.length} 項`;
+      alertCount.style.display = alerts.length > 0 ? 'inline-block' : 'none';
+    }
+
+    if (!alertsList) return;
+
+    if (alerts.length === 0) {
+      alertsList.innerHTML = `
+        <div class="empty-state" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width: 48px; height: 48px; margin-bottom: 0.5rem; opacity: 0.5;">
+            <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+            <polyline points="22,4 12,14.01 9,11.01"/>
+          </svg>
+          <p>太好了！目前沒有需要關注的學生</p>
+        </div>
+      `;
+      return;
+    }
+
+    const alertTypes = {
+      behind: { icon: '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>', color: 'var(--terracotta)', bg: 'var(--terracotta-light)' },
+      missing: { icon: '<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="9" y1="15" x2="15" y2="15"/>', color: 'var(--sand)', bg: 'var(--sand-light)' },
+      inactive: { icon: '<circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/>', color: '#1976D2', bg: '#E3F2FD' },
+      declining: { icon: '<polyline points="23,6 13.5,15.5 8.5,10.5 1,18"/><polyline points="17,6 23,6 23,12"/>', color: 'var(--terracotta)', bg: 'var(--terracotta-light)' }
+    };
+
+    alertsList.innerHTML = alerts.map(alert => {
+      const config = alertTypes[alert.type] || alertTypes.behind;
+      return `
+        <div class="alert-item" style="display: flex; align-items: center; padding: 0.75rem; border-radius: 8px; background: var(--surface-light); margin-bottom: 0.5rem;">
+          <div class="alert-icon" style="width: 36px; height: 36px; border-radius: 8px; background: ${config.bg}; display: flex; align-items: center; justify-content: center; margin-right: 0.75rem;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="${config.color}" stroke-width="2" style="width: 18px; height: 18px;">
+              ${config.icon}
+            </svg>
+          </div>
+          <div class="alert-info" style="flex: 1;">
+            <div class="alert-student" style="font-weight: 500; margin-bottom: 2px;">${alert.studentName}</div>
+            <div class="alert-message" style="font-size: 0.75rem; color: var(--text-secondary);">
+              ${alert.message}${alert.courseTitle ? ` - ${alert.courseTitle}` : ''}
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  },
+
+  /**
+   * 載入最近提交
+   */
+  async loadRecentSubmissions() {
+    try {
+      const result = await API.assignments.list();
+      let submissions = [];
+
+      if (result.success && result.data) {
+        // 從作業中提取最近提交
+        submissions = result.data
+          .filter(a => a.submissions && a.submissions.length > 0)
+          .flatMap(a => a.submissions.map(s => ({
+            studentName: s.studentName || '學生',
+            assignmentTitle: a.title,
+            submittedAt: s.submittedAt || s.createdAt,
+            status: s.status
+          })))
+          .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt))
+          .slice(0, 5);
+      }
+
+      this.updateRecentSubmissionsUI(submissions);
+    } catch (error) {
+      console.error('Load recent submissions error:', error);
+    }
+  },
+
+  /**
+   * 更新最近提交 UI
+   */
+  updateRecentSubmissionsUI(submissions) {
+    const submissionsList = document.getElementById('recentSubmissionsList');
+    const weeklySubmissionsEl = document.getElementById('teacherWeeklySubmissions');
+
+    // 計算本週提交數
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    const weeklyCount = submissions.filter(s => new Date(s.submittedAt) > oneWeekAgo).length;
+
+    if (weeklySubmissionsEl) {
+      weeklySubmissionsEl.textContent = weeklyCount;
+    }
+
+    if (!submissionsList) return;
+
+    if (submissions.length === 0) {
+      submissionsList.innerHTML = `
+        <div class="empty-state" style="text-align: center; padding: 1.5rem; color: var(--text-secondary);">
+          <p>尚無新的提交記錄</p>
+        </div>
+      `;
+      return;
+    }
+
+    submissionsList.innerHTML = submissions.map(sub => {
+      const timeAgo = this.formatTimeAgo(sub.submittedAt);
+      const statusColor = sub.status === 'graded' ? 'var(--success)' :
+                         sub.status === 'pending' ? 'var(--sand)' : 'var(--text-secondary)';
+
+      return `
+        <div class="submission-item" style="display: flex; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid var(--gray-100);">
+          <div class="submission-avatar" style="width: 32px; height: 32px; border-radius: 50%; background: var(--olive-light); display: flex; align-items: center; justify-content: center; margin-right: 0.75rem; font-size: 0.75rem; font-weight: 600; color: var(--olive);">
+            ${(sub.studentName || '?')[0]}
+          </div>
+          <div class="submission-info" style="flex: 1; min-width: 0;">
+            <div style="font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+              <strong>${sub.studentName}</strong> 提交了 <span style="color: var(--olive);">${sub.assignmentTitle}</span>
+            </div>
+            <div style="font-size: 0.7rem; color: var(--text-secondary);">${timeAgo}</div>
+          </div>
+          <div style="width: 8px; height: 8px; border-radius: 50%; background: ${statusColor};" title="${sub.status === 'graded' ? '已批改' : '待批改'}"></div>
+        </div>
+      `;
+    }).join('');
   },
 
   /**
@@ -2085,6 +2662,387 @@ const App = {
         <button onclick="App.closeQuiz()" style="padding:0.75rem 1.5rem;background:var(--gray-200);border:none;border-radius:8px;cursor:pointer;">關閉</button>
         <button onclick="App.startQuiz('${this.currentQuiz.quizId}')" style="padding:0.75rem 2rem;background:var(--olive);color:var(--cream);border:none;border-radius:8px;cursor:pointer;font-weight:500;">再試一次</button>
       `;
+    }
+  },
+
+  // ============================================================
+  // 動態視圖載入函數
+  // ============================================================
+
+  /**
+   * 載入「我的課程」視圖
+   */
+  async loadMyCoursesView() {
+    const container = document.getElementById('myCoursesContent');
+    if (!container) return;
+    container.innerHTML = '<div class="loading-indicator">載入中...</div>';
+    try {
+      const result = await API.courses.getMyCourses();
+      const courses = result.success ? (result.data || []) : [];
+      if (courses.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>尚未報名任何課程</p><button onclick="showView(\'moodleCourses\')" class="btn-primary">瀏覽課程</button></div>';
+        return;
+      }
+      container.innerHTML = `
+        <div class="courses-grid">
+          ${courses.map(c => `
+            <div class="course-card" onclick="MoodleUI.openCourse('${c.courseId}')">
+              <div class="course-card-header" style="background: ${MoodleUI.getCourseGradient ? MoodleUI.getCourseGradient(c.category) : 'linear-gradient(135deg, var(--olive) 0%, var(--olive-light) 100%)'}">
+                <span class="course-category">${c.category || '未分類'}</span>
+                <h3>${c.title}</h3>
+              </div>
+              <div class="course-card-body">
+                <p class="course-instructor">${c.instructorName || ''}</p>
+                ${c.progress !== undefined ? `
+                  <div class="progress-bar-container">
+                    <div class="progress-bar" style="width:${c.progress}%"></div>
+                    <span class="progress-text">${c.progress}%</span>
+                  </div>
+                ` : ''}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    } catch (error) {
+      console.error('loadMyCoursesView error:', error);
+      container.innerHTML = '<div class="error-state">載入課程失敗</div>';
+    }
+  },
+
+  /**
+   * 載入授權管理視圖
+   */
+  async loadLicensesView() {
+    const container = document.getElementById('licensesContent');
+    if (!container) return;
+    container.innerHTML = '<div class="loading-indicator">載入中...</div>';
+    try {
+      const result = await API.licenses.list();
+      const licenses = result.success ? (result.data || []) : [];
+      container.innerHTML = `
+        <div class="stats-row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem;margin-bottom:1.5rem;">
+          <div class="stat-card" style="background:var(--white);padding:1.5rem;border-radius:12px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.06);"><div class="stat-number" style="font-size:2rem;font-weight:700;color:var(--olive);">${licenses.length}</div><div class="stat-label" style="font-size:0.85rem;color:var(--gray-500);">總授權數</div></div>
+          <div class="stat-card" style="background:var(--white);padding:1.5rem;border-radius:12px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.06);"><div class="stat-number" style="font-size:2rem;font-weight:700;color:var(--olive);">${licenses.filter(l => l.status === 'active').length}</div><div class="stat-label" style="font-size:0.85rem;color:var(--gray-500);">有效授權</div></div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">授權清單</h2>
+          </div>
+          <div class="card-body">
+            <table class="data-table">
+              <thead><tr><th>名稱</th><th>狀態</th><th>到期日</th></tr></thead>
+              <tbody>
+                ${licenses.map(l => `
+                  <tr>
+                    <td>${l.name || l.licenseId}</td>
+                    <td><span class="status-badge ${l.status === 'active' ? 'active' : l.status === 'expired' ? 'warning' : ''}">${l.status === 'active' ? '有效' : l.status === 'expired' ? '已過期' : l.status}</span></td>
+                    <td>${l.expiresAt ? new Date(l.expiresAt).toLocaleDateString('zh-TW') : '-'}</td>
+                  </tr>
+                `).join('')}
+                ${licenses.length === 0 ? '<tr><td colspan="3" style="text-align:center;padding:2rem;color:var(--gray-500);">尚無授權紀錄</td></tr>' : ''}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    } catch (error) {
+      console.error('loadLicensesView error:', error);
+      container.innerHTML = '<div class="error-state">載入授權資料失敗</div>';
+    }
+  },
+
+  /**
+   * 載入影音視圖
+   */
+  async loadVideosView() {
+    const container = document.getElementById('videosContent');
+    if (!container) return;
+    container.innerHTML = '<div class="loading-indicator">載入中...</div>';
+    try {
+      const result = await API.resources.list({ type: 'video' });
+      const videos = result.success ? (result.data || []) : [];
+      container.innerHTML = `
+        <div class="video-stats" style="margin-bottom:1rem;">
+          <span style="color:var(--gray-500);">${videos.length} 部影片</span>
+        </div>
+        <div class="videos-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1.5rem;">
+          ${videos.map(v => `
+            <div class="video-card" style="background:var(--white);border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);cursor:pointer;" onclick="openVideoPlayer && openVideoPlayer('${v.resourceId || ''}')">
+              <div class="video-thumbnail" style="position:relative;aspect-ratio:16/9;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);display:flex;align-items:center;justify-content:center;">
+                <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="#f5f0e8" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polygon points="10,8 16,12 10,16" fill="#f5f0e8"/></svg>
+              </div>
+              <div class="video-info" style="padding:1rem;">
+                <h4 style="font-size:1rem;font-weight:600;margin-bottom:0.5rem;">${v.title}</h4>
+                <p style="font-size:0.85rem;color:var(--gray-500);">${v.description || ''}</p>
+              </div>
+            </div>
+          `).join('')}
+          ${videos.length === 0 ? '<div class="empty-state" style="text-align:center;padding:3rem;color:var(--gray-500);grid-column:1/-1;"><p>尚無影片資源</p></div>' : ''}
+        </div>
+      `;
+    } catch (error) {
+      console.error('loadVideosView error:', error);
+      container.innerHTML = '<div class="error-state">載入影片失敗</div>';
+    }
+  },
+
+  /**
+   * 載入測驗列表視圖
+   */
+  async loadQuizzesListView() {
+    const container = document.getElementById('quizzesListContent');
+    if (!container) return;
+    container.innerHTML = '<div class="loading-indicator">載入中...</div>';
+    try {
+      const result = await API.quizzes.list();
+      const quizzes = result.success ? (result.data || []) : [];
+      const completed = quizzes.filter(q => q.status === 'completed' || q.attempted).length;
+      container.innerHTML = `
+        <div class="stats-row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem;margin-bottom:1.5rem;">
+          <div class="stat-card" style="background:var(--white);padding:1.5rem;border-radius:12px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.06);"><div style="font-size:2rem;font-weight:700;color:var(--olive);">${quizzes.length}</div><div style="font-size:0.85rem;color:var(--gray-500);">總測驗</div></div>
+          <div class="stat-card" style="background:var(--white);padding:1.5rem;border-radius:12px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.06);"><div style="font-size:2rem;font-weight:700;color:var(--terracotta);">${completed}</div><div style="font-size:0.85rem;color:var(--gray-500);">已完成</div></div>
+        </div>
+        <div class="quiz-list">
+          ${quizzes.map(q => `
+            <div class="quiz-item" style="background:var(--white);border-radius:12px;padding:1.5rem;margin-bottom:1rem;box-shadow:0 2px 8px rgba(0,0,0,0.06);display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="typeof MoodleUI !== 'undefined' && MoodleUI.openQuiz && MoodleUI.openQuiz('${q.quizId}')">
+              <div class="quiz-info">
+                <h4 style="font-size:1.1rem;font-weight:600;margin-bottom:0.25rem;">${q.title}</h4>
+                <p style="font-size:0.85rem;color:var(--gray-500);">${q.description || ''}</p>
+                <div class="quiz-meta" style="display:flex;gap:0.75rem;margin-top:0.5rem;font-size:0.8rem;color:var(--gray-400);">
+                  ${q.timeLimit ? `<span>時限: ${q.timeLimit} 分鐘</span>` : ''}
+                  ${q.questionCount ? `<span>${q.questionCount} 題</span>` : ''}
+                </div>
+              </div>
+              <div class="quiz-status">
+                ${q.attempted ? '<span class="status-badge active" style="background:var(--olive-light);color:var(--olive);padding:4px 12px;border-radius:20px;font-size:0.8rem;">已作答</span>' : '<span class="status-badge" style="background:var(--gray-100);color:var(--gray-500);padding:4px 12px;border-radius:20px;font-size:0.8rem;">未作答</span>'}
+              </div>
+            </div>
+          `).join('')}
+          ${quizzes.length === 0 ? '<div class="empty-state" style="text-align:center;padding:3rem;color:var(--gray-500);"><p>尚無測驗</p></div>' : ''}
+        </div>
+      `;
+    } catch (error) {
+      console.error('loadQuizzesListView error:', error);
+      container.innerHTML = '<div class="error-state">載入測驗失敗</div>';
+    }
+  },
+
+  /**
+   * 載入討論列表視圖
+   */
+  async loadDiscussionsListView() {
+    const container = document.getElementById('discussionsListContent');
+    if (!container) return;
+    container.innerHTML = '<div class="loading-indicator">載入中...</div>';
+    try {
+      const result = await API.discussions.list();
+      const posts = result.success ? (result.data || []) : [];
+      container.innerHTML = `
+        <div class="discussions-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <span style="color:var(--gray-500);">${posts.length} 則討論</span>
+          <button onclick="typeof MoodleUI !== 'undefined' && MoodleUI.showCreateDiscussionForm ? MoodleUI.showCreateDiscussionForm() : (typeof openNewPostModal === 'function' ? openNewPostModal() : showToast('功能開發中'))" class="btn-primary" style="padding:0.75rem 1.5rem;background:var(--olive);color:var(--cream);border:none;border-radius:8px;cursor:pointer;font-weight:500;display:flex;align-items:center;gap:0.5rem;">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            發起討論
+          </button>
+        </div>
+        <div class="discussions-list">
+          ${posts.map(p => {
+            const avatarColors = ['var(--olive)', 'var(--terracotta)', '#6366f1', '#059669', '#1976D2'];
+            const colorIndex = (p.authorName || '').charCodeAt(0) % avatarColors.length || 0;
+            return `
+            <div class="discussion-card" style="background:var(--white);border-radius:12px;padding:1.5rem;margin-bottom:1rem;box-shadow:0 2px 8px rgba(0,0,0,0.06);cursor:pointer;display:flex;gap:1rem;" onclick="typeof MoodleUI !== 'undefined' && MoodleUI.openDiscussion && MoodleUI.openDiscussion('${p.id || p.postId}')">
+              <div class="discussion-avatar" style="width:48px;height:48px;background:${avatarColors[colorIndex]};border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--cream);font-weight:600;flex-shrink:0;">${(p.authorName || '匿')[0]}</div>
+              <div class="discussion-content" style="flex:1;">
+                <h4 style="font-size:1.1rem;font-weight:600;margin-bottom:0.25rem;">${p.title}</h4>
+                <p style="color:var(--gray-600);margin-bottom:0.75rem;line-height:1.6;font-size:0.9rem;">${(p.content || '').substring(0, 100)}${(p.content || '').length > 100 ? '...' : ''}</p>
+                <div class="discussion-meta" style="display:flex;gap:1rem;font-size:0.8rem;color:var(--gray-400);">
+                  <span>${p.authorName || '匿名'}</span>
+                  <span>${p.createdAt ? new Date(p.createdAt).toLocaleDateString('zh-TW') : ''}</span>
+                  <span>${p.replyCount || 0} 回覆</span>
+                  <span>${p.likeCount || 0} 讚</span>
+                </div>
+              </div>
+            </div>
+          `}).join('')}
+          ${posts.length === 0 ? '<div class="empty-state" style="text-align:center;padding:3rem;color:var(--gray-500);"><p>尚無討論</p></div>' : ''}
+        </div>
+      `;
+    } catch (error) {
+      console.error('loadDiscussionsListView error:', error);
+      container.innerHTML = '<div class="error-state">載入討論失敗</div>';
+    }
+  },
+
+  async loadFilesView() {
+    const container = document.getElementById('filesContent');
+    if (!container) return;
+    container.innerHTML = '<div class="loading-indicator" style="text-align:center;padding:2rem;color:var(--gray-500);">載入中...</div>';
+    try {
+      const result = await API.files.list();
+      const files = result.success ? (result.data || []) : [];
+      container.innerHTML = `
+        <div style="padding:1.5rem">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+            <h2>我的檔案</h2>
+            <button onclick="document.getElementById('fileUploadInput').click()" class="btn-primary">上傳檔案</button>
+            <input type="file" id="fileUploadInput" style="display:none" onchange="App.handleFileUpload(this)">
+          </div>
+          <div class="files-list">
+            ${files.map(f => `
+              <div class="file-item" style="display:flex;align-items:center;padding:12px;border-bottom:1px solid #eee;gap:12px">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+                <div style="flex:1">
+                  <div style="font-weight:500">${f.fileName || f.name || 'file'}</div>
+                  <div style="font-size:0.85rem;color:var(--gray-500)">${f.size ? (f.size / 1024).toFixed(1) + ' KB' : ''} ${f.createdAt ? '・' + new Date(f.createdAt).toLocaleDateString('zh-TW') : ''}</div>
+                </div>
+                <button onclick="App.deleteFile('${f.fileId || f.id}')" class="btn-sm btn-danger">刪除</button>
+              </div>
+            `).join('')}
+            ${files.length === 0 ? '<div class="empty-state" style="text-align:center;padding:3rem;color:var(--gray-500)"><p>尚無檔案</p></div>' : ''}
+          </div>
+        </div>
+      `;
+    } catch (error) {
+      console.error('loadFilesView error:', error);
+      container.innerHTML = '<div class="error-state">載入檔案失敗</div>';
+    }
+  },
+
+  async handleFileUpload(input) {
+    if (!input.files || !input.files[0]) return;
+    try {
+      showToast('上傳中...');
+      const result = await API.files.upload(input.files[0]);
+      if (result.success) {
+        showToast('上傳成功');
+        this.loadFilesView();
+      } else {
+        showToast(result.message || '上傳失敗');
+      }
+    } catch (error) {
+      showToast('上傳失敗');
+    }
+    input.value = '';
+  },
+
+  async deleteFile(fileId) {
+    if (!confirm('確定要刪除此檔案嗎？')) return;
+    try {
+      const result = await API.files.delete(fileId);
+      if (result.success) {
+        showToast('檔案已刪除');
+        this.loadFilesView();
+      } else {
+        showToast(result.message || '刪除失敗');
+      }
+    } catch (error) {
+      showToast('刪除失敗');
+    }
+  },
+
+  async loadGroupsManagerView() {
+    const container = document.getElementById('groupsManagerContent');
+    if (!container) return;
+    container.innerHTML = '<div class="loading-indicator" style="text-align:center;padding:2rem;color:var(--gray-500);">載入中...</div>';
+    try {
+      const user = API.getCurrentUser();
+      const coursesResult = await API.courses.getMyCourses();
+      const courses = coursesResult.success ? (coursesResult.data || []) : [];
+      const teacherCourses = courses.filter(c => c.instructorId === user?.userId || c.role === 'teacher');
+
+      if (teacherCourses.length === 0) {
+        container.innerHTML = '<div class="empty-state" style="text-align:center;padding:3rem;color:var(--gray-500)"><p>您目前沒有管理中的課程</p></div>';
+        return;
+      }
+
+      container.innerHTML = `
+        <div style="padding:1.5rem">
+          <h2>課程分組管理</h2>
+          <p style="color:var(--gray-500);margin-bottom:1rem">選擇課程以管理其分組</p>
+          <div class="course-select-list">
+            ${teacherCourses.map(c => `
+              <div class="course-select-card" onclick="App.openCourseGroups('${c.courseId}')" style="padding:16px;border:1px solid #eee;border-radius:8px;margin-bottom:8px;cursor:pointer;transition:background 0.2s" onmouseover="this.style.background='#f9f9f9'" onmouseout="this.style.background=''">
+                <strong>${c.title}</strong>
+                <span style="color:var(--gray-500);margin-left:8px">${c.shortName || ''}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    } catch (error) {
+      console.error('loadGroupsManagerView error:', error);
+      container.innerHTML = '<div class="error-state">載入失敗</div>';
+    }
+  },
+
+  async openCourseGroups(courseId) {
+    const container = document.getElementById('groupsManagerContent');
+    if (!container) return;
+    container.innerHTML = '<div class="loading-indicator" style="text-align:center;padding:2rem">載入中...</div>';
+    try {
+      const result = await API.courseGroups.list(courseId);
+      const groups = result.success ? (result.data || []) : [];
+      container.innerHTML = `
+        <div style="padding:1.5rem">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+            <div>
+              <button onclick="App.loadGroupsManagerView()" class="btn-secondary" style="margin-right:8px">← 返回</button>
+              <strong>分組管理</strong>
+            </div>
+            <button onclick="App.createGroupPrompt('${courseId}')" class="btn-primary">新增分組</button>
+          </div>
+          <div class="groups-list">
+            ${groups.map(g => `
+              <div class="group-card" style="padding:16px;border:1px solid #eee;border-radius:8px;margin-bottom:8px">
+                <div style="display:flex;justify-content:space-between;align-items:center">
+                  <strong>${g.name}</strong>
+                  <div>
+                    <span style="color:var(--gray-500);margin-right:8px">${g.memberCount || 0} 名成員</span>
+                    <button onclick="App.deleteGroup('${courseId}', '${g.groupId}')" class="btn-sm btn-danger">刪除</button>
+                  </div>
+                </div>
+                ${g.description ? `<p style="color:var(--gray-500);margin-top:4px">${g.description}</p>` : ''}
+              </div>
+            `).join('')}
+            ${groups.length === 0 ? '<div class="empty-state" style="text-align:center;padding:2rem;color:var(--gray-500)"><p>尚無分組</p></div>' : ''}
+          </div>
+        </div>
+      `;
+    } catch (error) {
+      console.error('openCourseGroups error:', error);
+      container.innerHTML = '<div class="error-state">載入分組失敗</div>';
+    }
+  },
+
+  async createGroupPrompt(courseId) {
+    const name = prompt('請輸入分組名稱：');
+    if (!name) return;
+    try {
+      const result = await API.courseGroups.create(courseId, { name });
+      if (result.success) {
+        showToast('分組已建立');
+        this.openCourseGroups(courseId);
+      } else {
+        showToast(result.message || '建立失敗');
+      }
+    } catch (error) {
+      showToast('建立分組失敗');
+    }
+  },
+
+  async deleteGroup(courseId, groupId) {
+    if (!confirm('確定要刪除此分組嗎？')) return;
+    try {
+      const result = await API.courseGroups.delete(courseId, groupId);
+      if (result.success) {
+        showToast('分組已刪除');
+        this.openCourseGroups(courseId);
+      } else {
+        showToast(result.message || '刪除失敗');
+      }
+    } catch (error) {
+      showToast('刪除分組失敗');
     }
   }
 };

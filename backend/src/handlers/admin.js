@@ -7,6 +7,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../utils/db');
 const auth = require('../utils/auth');
+const cache = require('../utils/cache');
 
 // 所有管理員路由都需要管理員權限
 router.use(auth.adminMiddleware);
@@ -17,6 +18,13 @@ router.use(auth.adminMiddleware);
  */
 router.get('/dashboard', async (req, res) => {
   try {
+    // 嘗試從快取取得（TTL 60 秒）
+    const CACHE_KEY = 'admin:dashboard';
+    const cached = cache.get(CACHE_KEY);
+    if (cached) {
+      return res.json({ success: true, data: { ...cached, fromCache: true } });
+    }
+
     // 取得各類統計數據
     const [users, resources, courses, licenses, announcements] = await Promise.all([
       db.scan({ filter: { expression: 'entityType = :type', values: { ':type': 'USER' } } }),
@@ -58,24 +66,29 @@ router.get('/dashboard', async (req, res) => {
         createdAt: u.createdAt
       }));
 
+    const dashboardData = {
+      stats: {
+        totalUsers: users.length,
+        activeUsers,
+        newUsersThisMonth: newUsers,
+        totalResources: resources.length,
+        publishedResources,
+        totalCourses: courses.length,
+        activeLicenses,
+        pendingLicenses,
+        expiringLicenses,
+        activeAnnouncements: announcements.filter(a => a.status === 'active').length
+      },
+      recentUsers,
+      timestamp: new Date().toISOString()
+    };
+
+    // 快取 60 秒
+    cache.set(CACHE_KEY, dashboardData, 60000);
+
     res.json({
       success: true,
-      data: {
-        stats: {
-          totalUsers: users.length,
-          activeUsers,
-          newUsersThisMonth: newUsers,
-          totalResources: resources.length,
-          publishedResources,
-          totalCourses: courses.length,
-          activeLicenses,
-          pendingLicenses,
-          expiringLicenses,
-          activeAnnouncements: announcements.filter(a => a.status === 'active').length
-        },
-        recentUsers,
-        timestamp: new Date().toISOString()
-      }
+      data: dashboardData
     });
 
   } catch (error) {

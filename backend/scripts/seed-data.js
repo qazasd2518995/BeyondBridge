@@ -104,6 +104,27 @@ const sampleResources = [
     status: 'published'
   },
   {
+    resourceId: 'res_kinmen001',
+    title: '金門語學習平台',
+    titleEn: 'Kinmen Language Learning Platform',
+    description: '金門語（閩南語金門腔）互動式學習平台，包含發音練習、日常對話、文化故事等豐富內容。透過 LTI 整合，提供沉浸式語言學習體驗。',
+    type: 'interactive',
+    category: 'language',
+    subcategory: 'kinmen-dialect',
+    gradeLevel: 'university',
+    tags: ['金門語', '閩南語', '語言學習', '文化傳承'],
+    creatorId: 'usr_justin',
+    creatorName: 'Justin',
+    duration: 0,
+    unitCount: 6,
+    viewCount: 320,
+    averageRating: 4.9,
+    ratingCount: 42,
+    status: 'published',
+    ltiToolId: 'kinmen-language-tool',
+    requiresEnrollment: true
+  },
+  {
     resourceId: 'res_sci001',
     title: '自然科學實驗影片集',
     titleEn: 'Science Experiment Video Collection',

@@ -898,25 +898,60 @@ async function hasCapabilities(user, capabilities, context = {}, mode = 'all') {
  * @param {string} courseId
  * @returns {string|null}
  */
+// Per-request cache for permission lookups
+const _permCache = new Map();
+const PERM_CACHE_TTL = 5000; // 5 seconds
+
+function _getCacheKey(prefix, ...args) {
+  return `${prefix}:${args.join(':')}`;
+}
+
+function _cachedGet(key) {
+  const entry = _permCache.get(key);
+  if (!entry) return undefined;
+  if (Date.now() > entry.exp) {
+    _permCache.delete(key);
+    return undefined;
+  }
+  return entry.val;
+}
+
+function _cachedSet(key, val) {
+  _permCache.set(key, { val, exp: Date.now() + PERM_CACHE_TTL });
+  // Prevent unbounded growth
+  if (_permCache.size > 500) {
+    const oldest = _permCache.keys().next().value;
+    _permCache.delete(oldest);
+  }
+}
+
 async function getCourseRole(userId, courseId) {
+  const cacheKey = _getCacheKey('courseRole', userId, courseId);
+  const cached = _cachedGet(cacheKey);
+  if (cached !== undefined) return cached;
+
   try {
     // Check course enrollment with role
     const enrollment = await db.getItem(`COURSE#${courseId}`, `ENROLLMENT#${userId}`);
     if (enrollment && enrollment.courseRole) {
+      _cachedSet(cacheKey, enrollment.courseRole);
       return enrollment.courseRole;
     }
 
     // Check if user is the course instructor
     const course = await db.getItem(`COURSE#${courseId}`, 'META');
     if (course && course.instructorId === userId) {
+      _cachedSet(cacheKey, 'teacher');
       return 'teacher';
     }
 
     // Check if enrolled (default to student)
     if (enrollment) {
+      _cachedSet(cacheKey, 'student');
       return 'student';
     }
 
+    _cachedSet(cacheKey, null);
     return null;
   } catch (error) {
     console.error('Error getting course role:', error);
@@ -931,6 +966,11 @@ async function getCourseRole(userId, courseId) {
  * @returns {Array}
  */
 async function getCustomRoles(userId, context = {}) {
+  const ctxKey = context.courseId || context.categoryId || 'system';
+  const cacheKey = _getCacheKey('customRoles', userId, ctxKey);
+  const cached = _cachedGet(cacheKey);
+  if (cached !== undefined) return cached;
+
   try {
     // Query custom role assignments
     const assignments = await db.query({
@@ -948,13 +988,19 @@ async function getCustomRoles(userId, context = {}) {
         continue;
       }
 
-      // Get role definition
-      const roleData = await db.getItem('ROLES', `ROLE#${assignment.roleId}`);
+      // Get role definition - also cacheable
+      const roleCacheKey = _getCacheKey('role', assignment.roleId);
+      let roleData = _cachedGet(roleCacheKey);
+      if (roleData === undefined) {
+        roleData = await db.getItem('ROLES', `ROLE#${assignment.roleId}`);
+        if (roleData) _cachedSet(roleCacheKey, roleData);
+      }
       if (roleData) {
         customRoles.push(roleData);
       }
     }
 
+    _cachedSet(cacheKey, customRoles);
     return customRoles;
   } catch (error) {
     console.error('Error getting custom roles:', error);

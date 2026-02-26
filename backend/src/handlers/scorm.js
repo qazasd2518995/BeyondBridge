@@ -8,9 +8,9 @@
 const express = require('express');
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
-const { docClient, TABLE_NAME, putItem, getItem, queryItems, updateItem } = require('../utils/db');
+const { docClient, TABLE_NAME, putItem, getItem } = require('../utils/db');
 const { authMiddleware, adminMiddleware } = require('../utils/auth');
-const { QueryCommand } = require('@aws-sdk/lib-dynamodb');
+const { QueryCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
 
 // SCORM 資料模型常量
 const SCORM_VERSIONS = {
@@ -92,10 +92,7 @@ router.get('/:packageId', authMiddleware, async (req, res) => {
   try {
     const { packageId } = req.params;
 
-    const result = await getItem({
-      PK: 'SCORM_PACKAGE',
-      SK: `PACKAGE#${packageId}`
-    });
+    const result = await getItem('SCORM_PACKAGE', `PACKAGE#${packageId}`);
 
     if (!result) {
       return res.status(404).json({
@@ -202,10 +199,7 @@ router.put('/:packageId', authMiddleware, async (req, res) => {
     const { packageId } = req.params;
     const updates = req.body;
 
-    const existing = await getItem({
-      PK: 'SCORM_PACKAGE',
-      SK: `PACKAGE#${packageId}`
-    });
+    const existing = await getItem('SCORM_PACKAGE', `PACKAGE#${packageId}`);
 
     if (!existing) {
       return res.status(404).json({
@@ -238,14 +232,13 @@ router.put('/:packageId', authMiddleware, async (req, res) => {
     expressionAttributeNames['#updatedAt'] = 'updatedAt';
     expressionAttributeValues[':updatedAt'] = new Date().toISOString();
 
-    await updateItem({
-      PK: 'SCORM_PACKAGE',
-      SK: `PACKAGE#${packageId}`
-    }, {
+    await docClient.send(new UpdateCommand({
+      TableName: TABLE_NAME,
+      Key: { PK: 'SCORM_PACKAGE', SK: `PACKAGE#${packageId}` },
       UpdateExpression: `SET ${updateExpression.join(', ')}`,
       ExpressionAttributeNames: expressionAttributeNames,
       ExpressionAttributeValues: expressionAttributeValues
-    });
+    }));
 
     res.json({
       success: true,
@@ -270,10 +263,7 @@ router.post('/:packageId/launch', authMiddleware, async (req, res) => {
     const userId = req.user.userId;
 
     // 獲取包信息
-    const scormPackage = await getItem({
-      PK: 'SCORM_PACKAGE',
-      SK: `PACKAGE#${packageId}`
-    });
+    const scormPackage = await getItem('SCORM_PACKAGE', `PACKAGE#${packageId}`);
 
     if (!scormPackage) {
       return res.status(404).json({
@@ -381,10 +371,7 @@ router.get('/:packageId/runtime/:attemptId', authMiddleware, async (req, res) =>
   try {
     const { packageId, attemptId } = req.params;
 
-    const attempt = await getItem({
-      PK: `SCORM_ATTEMPT#${packageId}`,
-      SK: `ATTEMPT#${attemptId}`
-    });
+    const attempt = await getItem(`SCORM_ATTEMPT#${packageId}`, `ATTEMPT#${attemptId}`);
 
     if (!attempt) {
       return res.status(404).json({
@@ -483,10 +470,7 @@ router.put('/:packageId/runtime/:attemptId', authMiddleware, async (req, res) =>
       });
     }
 
-    const attempt = await getItem({
-      PK: `SCORM_ATTEMPT#${packageId}`,
-      SK: `ATTEMPT#${attemptId}`
-    });
+    const attempt = await getItem(`SCORM_ATTEMPT#${packageId}`, `ATTEMPT#${attemptId}`);
 
     if (!attempt) {
       return res.status(404).json({
@@ -582,14 +566,13 @@ router.put('/:packageId/runtime/:attemptId', authMiddleware, async (req, res) =>
     });
 
     if (updateExpression.length > 0) {
-      await updateItem({
-        PK: `SCORM_ATTEMPT#${packageId}`,
-        SK: `ATTEMPT#${attemptId}`
-      }, {
+      await docClient.send(new UpdateCommand({
+        TableName: TABLE_NAME,
+        Key: { PK: `SCORM_ATTEMPT#${packageId}`, SK: `ATTEMPT#${attemptId}` },
         UpdateExpression: `SET ${updateExpression.join(', ')}`,
         ExpressionAttributeNames: expressionAttributeNames,
         ExpressionAttributeValues: expressionAttributeValues
-      });
+      }));
     }
 
     res.json({
@@ -614,15 +597,14 @@ router.post('/:packageId/commit/:attemptId', authMiddleware, async (req, res) =>
     const { packageId, attemptId } = req.params;
 
     // 更新最後訪問時間
-    await updateItem({
-      PK: `SCORM_ATTEMPT#${packageId}`,
-      SK: `ATTEMPT#${attemptId}`
-    }, {
+    await docClient.send(new UpdateCommand({
+      TableName: TABLE_NAME,
+      Key: { PK: `SCORM_ATTEMPT#${packageId}`, SK: `ATTEMPT#${attemptId}` },
       UpdateExpression: 'SET lastAccessedAt = :now',
       ExpressionAttributeValues: {
         ':now': new Date().toISOString()
       }
-    });
+    }));
 
     res.json({
       success: true,
@@ -646,10 +628,7 @@ router.post('/:packageId/finish/:attemptId', authMiddleware, async (req, res) =>
     const { packageId, attemptId } = req.params;
     const now = new Date().toISOString();
 
-    const attempt = await getItem({
-      PK: `SCORM_ATTEMPT#${packageId}`,
-      SK: `ATTEMPT#${attemptId}`
-    });
+    const attempt = await getItem(`SCORM_ATTEMPT#${packageId}`, `ATTEMPT#${attemptId}`);
 
     if (!attempt) {
       return res.status(404).json({
@@ -666,17 +645,16 @@ router.post('/:packageId/finish/:attemptId', authMiddleware, async (req, res) =>
       finalStatus = SCORM_STATUS.INCOMPLETE;
     }
 
-    await updateItem({
-      PK: `SCORM_ATTEMPT#${packageId}`,
-      SK: `ATTEMPT#${attemptId}`
-    }, {
+    await docClient.send(new UpdateCommand({
+      TableName: TABLE_NAME,
+      Key: { PK: `SCORM_ATTEMPT#${packageId}`, SK: `ATTEMPT#${attemptId}` },
       UpdateExpression: 'SET #status = :status, lastAccessedAt = :now, finishedAt = :now',
       ExpressionAttributeNames: { '#status': 'status' },
       ExpressionAttributeValues: {
         ':status': finalStatus,
         ':now': now
       }
-    });
+    }));
 
     res.json({
       success: true,
@@ -824,17 +802,16 @@ router.delete('/:packageId', adminMiddleware, async (req, res) => {
     const { packageId } = req.params;
 
     // 軟刪除
-    await updateItem({
-      PK: 'SCORM_PACKAGE',
-      SK: `PACKAGE#${packageId}`
-    }, {
+    await docClient.send(new UpdateCommand({
+      TableName: TABLE_NAME,
+      Key: { PK: 'SCORM_PACKAGE', SK: `PACKAGE#${packageId}` },
       UpdateExpression: 'SET #status = :status, deletedAt = :now',
       ExpressionAttributeNames: { '#status': 'status' },
       ExpressionAttributeValues: {
         ':status': 'deleted',
         ':now': new Date().toISOString()
       }
-    });
+    }));
 
     res.json({
       success: true,

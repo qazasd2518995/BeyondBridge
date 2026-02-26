@@ -8,9 +8,9 @@
 const express = require('express');
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
-const { docClient, TABLE_NAME, putItem, getItem, queryItems, updateItem } = require('../utils/db');
+const { docClient, TABLE_NAME, putItem, getItem } = require('../utils/db');
 const { authMiddleware, adminMiddleware } = require('../utils/auth');
-const { QueryCommand } = require('@aws-sdk/lib-dynamodb');
+const { QueryCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
 
 // H5P 內容類型
 const H5P_CONTENT_TYPES = {
@@ -126,10 +126,7 @@ router.get('/:contentId', authMiddleware, async (req, res) => {
   try {
     const { contentId } = req.params;
 
-    const result = await getItem({
-      PK: 'H5P_CONTENT',
-      SK: `CONTENT#${contentId}`
-    });
+    const result = await getItem('H5P_CONTENT', `CONTENT#${contentId}`);
 
     if (!result) {
       return res.status(404).json({
@@ -243,10 +240,7 @@ router.put('/:contentId', authMiddleware, async (req, res) => {
     const { contentId } = req.params;
     const updates = req.body;
 
-    const existing = await getItem({
-      PK: 'H5P_CONTENT',
-      SK: `CONTENT#${contentId}`
-    });
+    const existing = await getItem('H5P_CONTENT', `CONTENT#${contentId}`);
 
     if (!existing) {
       return res.status(404).json({
@@ -286,14 +280,13 @@ router.put('/:contentId', authMiddleware, async (req, res) => {
     expressionAttributeNames['#updatedAt'] = 'updatedAt';
     expressionAttributeValues[':updatedAt'] = new Date().toISOString();
 
-    await updateItem({
-      PK: 'H5P_CONTENT',
-      SK: `CONTENT#${contentId}`
-    }, {
+    await docClient.send(new UpdateCommand({
+      TableName: TABLE_NAME,
+      Key: { PK: 'H5P_CONTENT', SK: `CONTENT#${contentId}` },
       UpdateExpression: `SET ${updateExpression.join(', ')}`,
       ExpressionAttributeNames: expressionAttributeNames,
       ExpressionAttributeValues: expressionAttributeValues
-    });
+    }));
 
     res.json({
       success: true,
@@ -316,16 +309,15 @@ router.post('/:contentId/view', authMiddleware, async (req, res) => {
   try {
     const { contentId } = req.params;
 
-    await updateItem({
-      PK: 'H5P_CONTENT',
-      SK: `CONTENT#${contentId}`
-    }, {
+    await docClient.send(new UpdateCommand({
+      TableName: TABLE_NAME,
+      Key: { PK: 'H5P_CONTENT', SK: `CONTENT#${contentId}` },
       UpdateExpression: 'SET viewCount = if_not_exists(viewCount, :zero) + :inc',
       ExpressionAttributeValues: {
         ':zero': 0,
         ':inc': 1
       }
-    });
+    }));
 
     // 記錄用戶瀏覽
     const viewRecord = {
@@ -395,16 +387,15 @@ router.post('/:contentId/attempt', authMiddleware, async (req, res) => {
     await putItem(attempt);
 
     // 更新內容統計
-    await updateItem({
-      PK: 'H5P_CONTENT',
-      SK: `CONTENT#${contentId}`
-    }, {
+    await docClient.send(new UpdateCommand({
+      TableName: TABLE_NAME,
+      Key: { PK: 'H5P_CONTENT', SK: `CONTENT#${contentId}` },
       UpdateExpression: 'SET attemptCount = if_not_exists(attemptCount, :zero) + :inc',
       ExpressionAttributeValues: {
         ':zero': 0,
         ':inc': 1
       }
-    });
+    }));
 
     res.json({
       success: true,
@@ -472,10 +463,7 @@ router.get('/:contentId/report', adminMiddleware, async (req, res) => {
     const { contentId } = req.params;
 
     // 獲取內容資訊
-    const content = await getItem({
-      PK: 'H5P_CONTENT',
-      SK: `CONTENT#${contentId}`
-    });
+    const content = await getItem('H5P_CONTENT', `CONTENT#${contentId}`);
 
     if (!content) {
       return res.status(404).json({
@@ -586,10 +574,7 @@ router.get('/:contentId/embed', authMiddleware, async (req, res) => {
   try {
     const { contentId } = req.params;
 
-    const content = await getItem({
-      PK: 'H5P_CONTENT',
-      SK: `CONTENT#${contentId}`
-    });
+    const content = await getItem('H5P_CONTENT', `CONTENT#${contentId}`);
 
     if (!content) {
       return res.status(404).json({
@@ -630,10 +615,7 @@ router.delete('/:contentId', authMiddleware, async (req, res) => {
   try {
     const { contentId } = req.params;
 
-    const existing = await getItem({
-      PK: 'H5P_CONTENT',
-      SK: `CONTENT#${contentId}`
-    });
+    const existing = await getItem('H5P_CONTENT', `CONTENT#${contentId}`);
 
     if (!existing) {
       return res.status(404).json({
@@ -651,17 +633,16 @@ router.delete('/:contentId', authMiddleware, async (req, res) => {
     }
 
     // 軟刪除
-    await updateItem({
-      PK: 'H5P_CONTENT',
-      SK: `CONTENT#${contentId}`
-    }, {
+    await docClient.send(new UpdateCommand({
+      TableName: TABLE_NAME,
+      Key: { PK: 'H5P_CONTENT', SK: `CONTENT#${contentId}` },
       UpdateExpression: 'SET #status = :status, deletedAt = :now',
       ExpressionAttributeNames: { '#status': 'status' },
       ExpressionAttributeValues: {
         ':status': H5P_STATUS.ARCHIVED,
         ':now': new Date().toISOString()
       }
-    });
+    }));
 
     res.json({
       success: true,
@@ -685,10 +666,7 @@ router.post('/:contentId/duplicate', authMiddleware, async (req, res) => {
     const { contentId } = req.params;
     const { title, courseId } = req.body;
 
-    const original = await getItem({
-      PK: 'H5P_CONTENT',
-      SK: `CONTENT#${contentId}`
-    });
+    const original = await getItem('H5P_CONTENT', `CONTENT#${contentId}`);
 
     if (!original) {
       return res.status(404).json({

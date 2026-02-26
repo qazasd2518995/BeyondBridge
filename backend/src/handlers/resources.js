@@ -25,6 +25,9 @@ router.get('/', optionalAuthMiddleware, async (req, res) => {
       resources = await db.getAllResources({ limit: parseInt(limit) });
     }
 
+    // 只保留 RESOURCE 類型（排除 COURSE 等其他 entityType）
+    resources = resources.filter(r => r.entityType === 'RESOURCE');
+
     // 套用額外篩選
     if (gradeLevel) {
       resources = resources.filter(r => r.gradeLevel === gradeLevel);

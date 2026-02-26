@@ -8,400 +8,6 @@ const MoodleUI = {
   currentCourse: null,
   currentCourseId: null,
 
-  // ==================== 麵包屑導航 ====================
-
-  // 導航歷史堆疊
-  breadcrumbStack: [],
-
-  // 視圖層級定義 (定義父子關係)
-  viewHierarchy: {
-    // 主要頁面 (頂層)
-    'dashboard': { parent: null, label: '首頁' },
-    'teacherDashboard': { parent: null, label: '教學儀表板' },
-    'studentDashboard': { parent: null, label: '學習儀表板' },
-
-    // 課程相關
-    'moodleCourses': { parent: 'dashboard', label: '我的課程' },
-    'courseDetail': { parent: 'moodleCourses', label: '課程內容', dynamic: true },
-
-    // 作業相關
-    'moodleAssignments': { parent: 'dashboard', label: '作業管理' },
-    'assignmentDetail': { parent: 'moodleAssignments', label: '作業詳情', dynamic: true },
-
-    // 測驗相關
-    'moodleQuizzes': { parent: 'dashboard', label: '測驗中心' },
-    'quizAttempt': { parent: 'moodleQuizzes', label: '測驗作答', dynamic: true },
-    'questionBank': { parent: 'dashboard', label: '題庫管理' },
-
-    // 論壇相關
-    'moodleForums': { parent: 'dashboard', label: '討論區' },
-    'forumDetail': { parent: 'moodleForums', label: '討論詳情', dynamic: true },
-
-    // 成績相關
-    'moodleGradebook': { parent: 'dashboard', label: '成績簿' },
-    'gradebookManagement': { parent: 'moodleGradebook', label: '成績管理' },
-
-    // 行事曆與通知
-    'moodleCalendar': { parent: 'dashboard', label: '行事曆' },
-    'moodleNotifications': { parent: 'dashboard', label: '通知中心' },
-
-    // 檔案管理
-    'moodleFiles': { parent: 'dashboard', label: '檔案管理' },
-
-    // 學習路徑與徽章
-    'learningPaths': { parent: 'dashboard', label: '學習路徑' },
-    'badges': { parent: 'dashboard', label: '成就徽章' },
-
-    // 系統管理
-    'rolesManagement': { parent: 'dashboard', label: '角色權限' },
-    'courseCategories': { parent: 'dashboard', label: '課程類別' },
-    'auditLogs': { parent: 'dashboard', label: '審計日誌' },
-    'rubrics': { parent: 'dashboard', label: '評分標準' },
-    'groupsManager': { parent: 'dashboard', label: '群組管理' },
-    'courseCompletionSettings': { parent: 'dashboard', label: '課程完成設定' },
-
-    // 外部工具
-    'scormManager': { parent: 'dashboard', label: 'SCORM 管理' },
-    'ltiManager': { parent: 'dashboard', label: 'LTI 外部工具' },
-    'h5pManager': { parent: 'dashboard', label: 'H5P 內容' },
-
-    // 其他
-    'settings': { parent: 'dashboard', label: '設定' },
-    'discussions': { parent: 'dashboard', label: '討論' },
-    'consultations': { parent: 'dashboard', label: '即時客服' },
-    'classes': { parent: 'dashboard', label: '班級管理' },
-    'studentClasses': { parent: 'dashboard', label: '我的班級' },
-    'classDetail': { parent: 'classes', label: '班級詳情', dynamic: true }
-  },
-
-  // 動態標籤緩存 (用於存儲課程名、作業名等)
-  dynamicLabels: {},
-
-  /**
-   * 設置動態標籤 (用於課程名、作業名等)
-   * @param {string} viewName - 視圖名稱
-   * @param {string} label - 動態標籤
-   */
-  setDynamicLabel(viewName, label) {
-    this.dynamicLabels[viewName] = label;
-    this.renderBreadcrumb();
-  },
-
-  /**
-   * 更新麵包屑導航
-   * @param {string} viewName - 當前視圖名稱
-   * @param {Object} options - 額外選項 (如動態標籤)
-   */
-  updateBreadcrumb(viewName, options = {}) {
-    // 如果提供了動態標籤，設置它
-    if (options.label) {
-      this.dynamicLabels[viewName] = options.label;
-    }
-
-    // 建立麵包屑路徑
-    const path = this.buildBreadcrumbPath(viewName);
-    this.breadcrumbStack = path;
-    this.renderBreadcrumb();
-  },
-
-  /**
-   * 建立麵包屑路徑
-   * @param {string} viewName - 視圖名稱
-   * @returns {Array} 路徑數組
-   */
-  buildBreadcrumbPath(viewName) {
-    const path = [];
-    let current = viewName;
-
-    while (current) {
-      const viewInfo = this.viewHierarchy[current];
-      if (!viewInfo) break;
-
-      const label = viewInfo.dynamic && this.dynamicLabels[current]
-        ? this.dynamicLabels[current]
-        : viewInfo.label;
-
-      path.unshift({
-        view: current,
-        label: label
-      });
-
-      current = viewInfo.parent;
-    }
-
-    return path;
-  },
-
-  /**
-   * 渲染麵包屑導航
-   */
-  renderBreadcrumb() {
-    const container = document.getElementById('breadcrumbNav');
-    if (!container) return;
-
-    const path = this.breadcrumbStack;
-
-    // 如果只有一個項目或沒有項目，隱藏麵包屑
-    if (path.length <= 1) {
-      container.style.display = 'none';
-      return;
-    }
-
-    container.style.display = 'flex';
-
-    // 分隔符 SVG
-    const separatorSvg = `<svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="9,18 15,12 9,6"/></svg>`;
-
-    // 首頁圖標 SVG
-    const homeSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`;
-
-    let html = '';
-
-    path.forEach((item, index) => {
-      const isFirst = index === 0;
-      const isLast = index === path.length - 1;
-      const isMiddle = !isFirst && !isLast;
-
-      if (index > 0) {
-        html += `<span class="breadcrumb-separator">${separatorSvg}</span>`;
-      }
-
-      if (isLast) {
-        // 當前頁 (不可點擊)
-        html += `<span class="breadcrumb-current">${item.label}</span>`;
-      } else if (isFirst && item.view === 'dashboard') {
-        // 首頁連結
-        html += `
-          <a href="#" class="breadcrumb-home" onclick="showView('dashboard'); MoodleUI.updateBreadcrumb('dashboard'); return false;">
-            ${homeSvg}
-          </a>
-        `;
-      } else {
-        // 中間層級連結
-        const middleClass = isMiddle ? 'breadcrumb-middle' : '';
-        html += `
-          <a href="#" class="${middleClass}" onclick="showView('${item.view}'); MoodleUI.updateBreadcrumb('${item.view}'); return false;">
-            ${item.label}
-          </a>
-        `;
-      }
-    });
-
-    // 添加省略號 (用於手機模式)
-    if (path.length > 2) {
-      container.classList.add('breadcrumb-collapsed');
-    } else {
-      container.classList.remove('breadcrumb-collapsed');
-    }
-
-    container.innerHTML = html;
-  },
-
-  /**
-   * 清除麵包屑導航
-   */
-  clearBreadcrumb() {
-    this.breadcrumbStack = [];
-    this.dynamicLabels = {};
-    const container = document.getElementById('breadcrumbNav');
-    if (container) {
-      container.style.display = 'none';
-      container.innerHTML = '';
-    }
-  },
-
-  // ==================== 工具函數 ====================
-
-  // 活躍的 Quill 編輯器實例
-  activeEditors: new Map(),
-
-  /**
-   * 初始化 Quill 富文本編輯器
-   * @param {string} containerId - 容器元素 ID
-   * @param {Object} options - 配置選項
-   * @returns {Quill|null} Quill 實例或 null
-   */
-  initEditor(containerId, options = {}) {
-    const container = document.getElementById(containerId);
-    if (!container) {
-      console.warn(`Editor container not found: ${containerId}`);
-      return null;
-    }
-
-    // 如果已有編輯器實例，先銷毀
-    if (this.activeEditors.has(containerId)) {
-      this.destroyEditor(containerId);
-    }
-
-    // 默認配置
-    const defaultConfig = {
-      modules: {
-        toolbar: [
-          [{ 'header': [1, 2, 3, false] }],
-          ['bold', 'italic', 'underline', 'strike'],
-          [{ 'color': [] }, { 'background': [] }],
-          [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-          [{ 'indent': '-1' }, { 'indent': '+1' }],
-          ['blockquote', 'code-block'],
-          ['link', 'image'],
-          ['clean']
-        ]
-      },
-      theme: 'snow',
-      placeholder: options.placeholder || '請輸入內容...'
-    };
-
-    // 簡易版配置（用於評論、論壇回覆等）
-    const simpleConfig = {
-      modules: {
-        toolbar: [
-          ['bold', 'italic', 'underline'],
-          [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-          ['link'],
-          ['clean']
-        ]
-      },
-      theme: 'snow',
-      placeholder: options.placeholder || '請輸入內容...'
-    };
-
-    // 根據 options.config 選擇配置
-    const useSimple = options.simple || options.config === 'simple';
-    const config = useSimple ? simpleConfig : { ...defaultConfig, ...options };
-
-    try {
-      const quill = new Quill(container, config);
-      this.activeEditors.set(containerId, quill);
-
-      // 設置初始內容
-      if (options.content) {
-        quill.root.innerHTML = options.content;
-      }
-
-      return quill;
-    } catch (error) {
-      console.error('Failed to initialize Quill editor:', error);
-      return null;
-    }
-  },
-
-  /**
-   * 獲取編輯器內容
-   * @param {string} containerId - 容器元素 ID
-   * @returns {Object} { html, text, delta }
-   */
-  getEditorContent(containerId) {
-    const quill = this.activeEditors.get(containerId);
-    if (!quill) {
-      return { html: '', text: '', delta: null };
-    }
-    return {
-      html: quill.root.innerHTML,
-      text: quill.getText().trim(),
-      delta: quill.getContents()
-    };
-  },
-
-  /**
-   * 設置編輯器內容
-   * @param {string} containerId - 容器元素 ID
-   * @param {string} content - HTML 內容
-   */
-  setEditorContent(containerId, content) {
-    const quill = this.activeEditors.get(containerId);
-    if (quill) {
-      quill.root.innerHTML = content || '';
-    }
-  },
-
-  /**
-   * 清空編輯器內容
-   * @param {string} containerId - 容器元素 ID
-   */
-  clearEditor(containerId) {
-    const quill = this.activeEditors.get(containerId);
-    if (quill) {
-      quill.setText('');
-    }
-  },
-
-  /**
-   * 銷毀編輯器實例
-   * @param {string} containerId - 容器元素 ID
-   */
-  destroyEditor(containerId) {
-    const quill = this.activeEditors.get(containerId);
-    if (quill) {
-      // Quill 沒有官方的 destroy 方法，需要手動清理
-      const container = document.getElementById(containerId);
-      if (container) {
-        container.innerHTML = '';
-        container.className = container.className.replace(/ql-\S+/g, '').trim();
-      }
-      this.activeEditors.delete(containerId);
-    }
-  },
-
-  /**
-   * 創建帶編輯器的表單區塊 HTML
-   * @param {string} id - 編輯器 ID
-   * @param {string} label - 標籤文字
-   * @param {Object} options - 選項
-   * @returns {string} HTML 字串
-   */
-  createEditorField(id, label, options = {}) {
-    const required = options.required ? '<span style="color: var(--terracotta);">*</span>' : '';
-    const height = options.height || '200px';
-    return `
-      <div class="form-group" style="margin-bottom: 1.5rem;">
-        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-primary);">
-          ${label} ${required}
-        </label>
-        <div id="${id}" class="quill-editor-container" style="min-height: ${height}; background: white; border-radius: 8px;"></div>
-      </div>
-    `;
-  },
-
-  /**
-   * HTML 轉義 - 防止 XSS 和正確顯示 HTML 標籤文字
-   * @param {string} text - 要轉義的文字
-   * @returns {string} 轉義後的文字
-   */
-  escapeHtml(text) {
-    if (typeof text !== 'string') return text;
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  },
-
-  /**
-   * 安全格式化日期
-   * @param {string|Date|number} dateValue - 日期值
-   * @param {string} format - 格式 ('date' | 'datetime' | 'time')
-   * @param {string} fallback - 無效日期時的回傳值
-   * @returns {string} 格式化後的日期字串
-   */
-  formatDate(dateValue, format = 'date', fallback = '-') {
-    if (!dateValue) return fallback;
-
-    const date = new Date(dateValue);
-    if (isNaN(date.getTime())) return fallback;
-
-    const options = { timeZone: 'Asia/Taipei' };
-
-    switch (format) {
-      case 'datetime':
-        return date.toLocaleString('zh-TW', options);
-      case 'time':
-        return date.toLocaleTimeString('zh-TW', { ...options, hour: '2-digit', minute: '2-digit' });
-      case 'month':
-        return date.toLocaleDateString('zh-TW', { ...options, month: 'short' });
-      case 'date':
-      default:
-        return date.toLocaleDateString('zh-TW', options);
-    }
-  },
-
   // ==================== 課程頁面 ====================
 
   /**
@@ -478,11 +84,6 @@ const MoodleUI = {
       this.currentCourse = result.data;
       this.currentCourseId = courseId;
       this.renderCoursePage(result.data);
-
-      // 設置麵包屑動態標籤 (課程名稱)
-      const courseName = result.data.title || result.data.name || '課程';
-      this.setDynamicLabel('courseDetail', courseName);
-
       showView('courseDetail');
     } catch (error) {
       console.error('Open course error:', error);
@@ -499,442 +100,74 @@ const MoodleUI = {
 
     const user = API.getCurrentUser();
     const isTeacher = course.teacherId === user?.userId || user?.role === 'teacher';
-    const sections = course.sections || [];
-
-    // 計算進度
-    let totalActivities = 0;
-    let completedActivities = 0;
-    sections.forEach(section => {
-      const activities = section.activities || [];
-      totalActivities += activities.length;
-      completedActivities += activities.filter(a => a.completed).length;
-    });
-    const progressPercent = totalActivities > 0 ? Math.round((completedActivities / totalActivities) * 100) : 0;
 
     container.innerHTML = `
-      <div class="course-page-layout">
-        <!-- 課程頭部 - 橫跨三欄 -->
-        <div class="course-page-header">
-          <button onclick="showView('moodleCourses')" class="back-btn">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
-            返回課程列表
-          </button>
-          <h1>${course.title || course.name || '課程'}</h1>
-          <p style="opacity: 0.9; margin: 0;">${course.description || course.summary || ''}</p>
-          <div class="course-meta">
-            <span>
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-              ${course.instructorName || course.teacherName || '教師'}
-            </span>
-            <span>
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-              ${course.enrollmentCount || course.enrolledCount || 0} 位學生
-            </span>
-            <span>
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-              ${sections.length} 個章節
-            </span>
+      <!-- 課程頭部 -->
+      <div class="course-header">
+        <button onclick="showView('moodleCourses')" class="back-btn">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
+          返回課程列表
+        </button>
+        <div class="course-header-content">
+          <div class="course-header-info">
+            <span class="course-category-badge">${course.category || '一般'}</span>
+            <h1>${course.title || course.name || '課程'}</h1>
+            <p>${course.description || course.summary || ''}</p>
+            <div class="course-header-meta">
+              <span>教師：${course.instructorName || course.teacherName || '教師'}</span>
+              <span>${course.enrollmentCount || course.enrolledCount || 0} 位學生</span>
+              <span>格式：${course.format === 'topics' ? '主題' : course.format === 'weeks' ? '週次' : '單一活動'}</span>
+            </div>
           </div>
-          <div class="course-actions">
+          <div class="course-header-actions">
             ${!course.isEnrolled && !isTeacher ? `
-              <button onclick="MoodleUI.enrollCourse('${course.courseId}')" class="btn-primary" style="background: white; color: var(--olive);">
+              <button onclick="MoodleUI.enrollCourse('${course.courseId}')" class="btn-primary">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
                 報名課程
               </button>
             ` : ''}
             ${isTeacher ? `
-              <button onclick="MoodleUI.openCourseSettings('${course.courseId}')" class="btn-secondary" style="background: rgba(255,255,255,0.2); color: white; border: none;">
+              <button onclick="MoodleUI.openCourseSettings('${course.courseId}')" class="btn-secondary">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
                 課程設定
               </button>
-              <button onclick="MoodleUI.openAddSection('${course.courseId}')" class="btn-primary" style="background: white; color: var(--olive);">
+              <button onclick="MoodleUI.openAddSection('${course.courseId}')" class="btn-primary">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 新增章節
               </button>
             ` : ''}
           </div>
         </div>
+      </div>
 
-        <!-- 左側欄 - 課程導航 -->
-        <aside class="course-left-sidebar">
-          <!-- 章節導航 -->
-          <div class="course-nav-card">
-            <div class="course-nav-card-header">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
-              課程章節
-            </div>
-            <div class="sections-tree">
-              ${this.renderSectionsTree(sections, course.courseId)}
-            </div>
-          </div>
+      <!-- 課程導航標籤 -->
+      <div class="course-nav-tabs">
+        <button class="nav-tab active" onclick="MoodleUI.switchCourseTab('content')">課程內容</button>
+        <button class="nav-tab" onclick="MoodleUI.switchCourseTab('participants')">參與者</button>
+        <button class="nav-tab" onclick="MoodleUI.switchCourseTab('grades')">成績</button>
+        ${isTeacher ? '<button class="nav-tab" onclick="MoodleUI.switchCourseTab(\'reports\')">報表</button>' : ''}
+      </div>
 
-          <!-- 快速連結 -->
-          <div class="course-nav-card">
-            <div class="course-nav-card-header">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
-              快速連結
-            </div>
-            <div class="quick-links-list">
-              <div class="quick-link-item" onclick="MoodleUI.switchCourseTab('participants')">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-                <span>參與者</span>
-              </div>
-              <div class="quick-link-item" onclick="MoodleUI.switchCourseTab('grades')">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-                <span>成績簿</span>
-              </div>
-              <div class="quick-link-item" onclick="showView('moodleForums'); MoodleUI.loadForums();">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-                <span>討論區</span>
-              </div>
-              <div class="quick-link-item" onclick="showView('moodleCalendar'); MoodleUI.loadCalendar();">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                <span>行事曆</span>
-              </div>
-              ${isTeacher ? `
-                <div class="quick-link-item" onclick="MoodleUI.switchCourseTab('groups')">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-                  <span>群組管理</span>
-                </div>
-                <div class="quick-link-item" onclick="MoodleUI.switchCourseTab('reports')">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                  <span>報表分析</span>
-                </div>
-              ` : ''}
-            </div>
-          </div>
-        </aside>
+      <!-- 課程內容區 -->
+      <div id="courseContentPanel" class="course-panel active">
+        ${this.renderCourseSections(course.sections || [], isTeacher, course.courseId)}
+      </div>
 
-        <!-- 中央內容區 -->
-        <main class="course-main-content">
-          <!-- 課程內容區 -->
-          <div id="courseContentPanel" class="course-panel active">
-            ${this.renderCourseSectionsCards(sections, isTeacher, course.courseId)}
-          </div>
+      <!-- 參與者區 -->
+      <div id="courseParticipantsPanel" class="course-panel" style="display: none;">
+        <div class="loading">載入中...</div>
+      </div>
 
-          <!-- 參與者區 -->
-          <div id="courseParticipantsPanel" class="course-panel" style="display: none;">
-            <div class="loading">載入中...</div>
-          </div>
+      <!-- 成績區 -->
+      <div id="courseGradesPanel" class="course-panel" style="display: none;">
+        <div class="loading">載入中...</div>
+      </div>
 
-          <!-- 成績區 -->
-          <div id="courseGradesPanel" class="course-panel" style="display: none;">
-            <div class="loading">載入中...</div>
-          </div>
-
-          <!-- 群組區 (教師) -->
-          <div id="courseGroupsPanel" class="course-panel" style="display: none;">
-            <div class="loading">載入中...</div>
-          </div>
-
-          <!-- 報表區 (教師) -->
-          <div id="courseReportsPanel" class="course-panel" style="display: none;">
-            <div class="loading">載入中...</div>
-          </div>
-        </main>
-
-        <!-- 右側欄 -->
-        <aside class="course-right-sidebar">
-          <!-- 進度小工具 -->
-          <div class="sidebar-widget">
-            <div class="sidebar-widget-header">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--olive)" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22,4 12,14.01 9,11.01"/></svg>
-              學習進度
-            </div>
-            <div class="course-progress-widget">
-              <div class="course-progress-ring">
-                <svg viewBox="0 0 36 36" width="120" height="120">
-                  <circle class="progress-bg" cx="18" cy="18" r="15.915"/>
-                  <circle class="progress-fill" cx="18" cy="18" r="15.915"
-                          stroke-dasharray="100" stroke-dashoffset="${100 - progressPercent}"
-                          id="courseProgressCircle"/>
-                </svg>
-                <div class="course-progress-center">
-                  <div class="course-progress-value">${progressPercent}%</div>
-                  <div class="course-progress-label">完成</div>
-                </div>
-              </div>
-              <div class="course-progress-stats">
-                <div class="progress-stat">
-                  <div class="progress-stat-value">${completedActivities}</div>
-                  <div class="progress-stat-label">已完成</div>
-                </div>
-                <div class="progress-stat">
-                  <div class="progress-stat-value">${totalActivities - completedActivities}</div>
-                  <div class="progress-stat-label">待完成</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 迷你行事曆 -->
-          <div class="sidebar-widget">
-            <div class="sidebar-widget-header">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--olive)" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-              行事曆
-            </div>
-            <div class="sidebar-widget-body" id="courseMiniCalendar">
-              <!-- 由 JS 填充 -->
-            </div>
-          </div>
-
-          <!-- 最近活動 -->
-          <div class="sidebar-widget">
-            <div class="sidebar-widget-header">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--olive)" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
-              最近活動
-            </div>
-            <div class="sidebar-widget-body">
-              <div class="recent-activity-list" id="courseRecentActivity">
-                ${this.renderRecentCourseActivity(sections)}
-              </div>
-            </div>
-          </div>
-        </aside>
+      <!-- 報表區 (教師) -->
+      <div id="courseReportsPanel" class="course-panel" style="display: none;">
+        <div class="loading">載入中...</div>
       </div>
     `;
-
-    // 初始化迷你行事曆
-    const calendarContainer = document.getElementById('courseMiniCalendar');
-    if (calendarContainer) {
-      this.renderMiniCalendar(calendarContainer, new Date());
-    }
-  },
-
-  /**
-   * 渲染章節樹狀導航
-   */
-  renderSectionsTree(sections, courseId) {
-    if (sections.length === 0) {
-      return '<div class="empty-state small" style="padding: 1rem;">尚無章節</div>';
-    }
-
-    return sections.map((section, index) => {
-      const activities = section.activities || [];
-      const hasActivities = activities.length > 0;
-      const completedCount = activities.filter(a => a.completed).length;
-
-      return `
-        <div class="section-tree-item" data-section-id="${section.sectionId}">
-          <div class="section-tree-header" onclick="MoodleUI.toggleSectionTree(this, '${section.sectionId}')">
-            <span class="section-tree-toggle ${hasActivities ? '' : 'no-children'}">
-              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9,6 15,12 9,18"/></svg>
-            </span>
-            <span class="section-tree-name">${section.name || `第 ${index + 1} 週`}</span>
-            ${hasActivities ? `<span class="section-tree-badge">${completedCount}/${activities.length}</span>` : ''}
-          </div>
-          <div class="section-activities-list" id="sectionActivities_${section.sectionId}">
-            ${this.renderActivitiesTreeItems(activities, courseId)}
-          </div>
-        </div>
-      `;
-    }).join('');
-  },
-
-  /**
-   * 渲染活動樹狀項目
-   */
-  renderActivitiesTreeItems(activities, courseId) {
-    if (activities.length === 0) return '';
-
-    const activityIcons = {
-      page: '<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/>',
-      url: '<path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>',
-      file: '<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/>',
-      assignment: '<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>',
-      quiz: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
-      forum: '<path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>',
-      label: '<line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/>'
-    };
-
-    return activities.map(activity => `
-      <div class="activity-tree-item ${activity.completed ? 'completed' : ''}" onclick="MoodleUI.openActivity('${activity.type}', '${activity.activityId}', '${courseId}')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          ${activityIcons[activity.type] || activityIcons.page}
-        </svg>
-        <span>${activity.name}</span>
-        ${activity.completed ? '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>' : ''}
-      </div>
-    `).join('');
-  },
-
-  /**
-   * 切換章節樹展開/收起
-   */
-  toggleSectionTree(headerEl, sectionId) {
-    const activitiesList = document.getElementById(`sectionActivities_${sectionId}`);
-    const toggleIcon = headerEl.querySelector('.section-tree-toggle');
-
-    if (activitiesList) {
-      activitiesList.classList.toggle('expanded');
-      toggleIcon?.classList.toggle('expanded');
-    }
-  },
-
-  /**
-   * 渲染章節卡片 (中央內容區)
-   */
-  renderCourseSectionsCards(sections, isTeacher, courseId) {
-    if (sections.length === 0) {
-      return `
-        <div class="section-card">
-          <div class="section-card-header" style="justify-content: center;">
-            <div style="text-align: center; padding: 2rem;">
-              <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="var(--gray-400)" stroke-width="1">
-                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/>
-              </svg>
-              <p style="color: var(--text-secondary); margin: 1rem 0 0.5rem;">此課程尚無內容</p>
-              ${isTeacher ? '<p style="font-size: 0.85rem; color: var(--text-secondary);">點擊「新增章節」開始建立課程內容</p>' : ''}
-            </div>
-          </div>
-        </div>
-      `;
-    }
-
-    return sections.map((section, index) => `
-      <div class="section-card ${section.visible === false ? 'hidden-section' : ''}" id="section_${section.sectionId}">
-        <div class="section-card-header">
-          <div>
-            <h3 class="section-card-title">${section.name || `第 ${index + 1} 週`}</h3>
-            ${section.summary ? `<p class="section-card-summary">${section.summary}</p>` : ''}
-          </div>
-          ${isTeacher ? `
-            <div class="section-card-actions">
-              <button onclick="MoodleUI.openAddActivity('${courseId}', '${section.sectionId}')" class="btn-sm btn-primary">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                新增活動
-              </button>
-              <button onclick="MoodleUI.editSection('${courseId}', '${section.sectionId}')" class="btn-sm btn-secondary">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                編輯
-              </button>
-            </div>
-          ` : ''}
-        </div>
-        <div class="activity-list">
-          ${this.renderActivityListItems(section.activities || [], isTeacher, courseId, section.sectionId)}
-        </div>
-      </div>
-    `).join('');
-  },
-
-  /**
-   * 渲染活動列表項目 (新版)
-   */
-  renderActivityListItems(activities, isTeacher, courseId, sectionId) {
-    if (activities.length === 0) {
-      return `<div class="activity-list-item" style="justify-content: center; color: var(--text-secondary); cursor: default;">此章節尚無活動</div>`;
-    }
-
-    const activityIcons = {
-      page: '<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/>',
-      url: '<path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>',
-      file: '<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>',
-      assignment: '<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>',
-      quiz: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
-      forum: '<path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>',
-      label: '<line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/>'
-    };
-
-    const activityColors = {
-      page: 'var(--olive)',
-      url: '#6366f1',
-      file: '#10b981',
-      assignment: 'var(--terracotta)',
-      quiz: '#8b5cf6',
-      forum: '#f59e0b',
-      label: 'var(--gray-500)'
-    };
-
-    const activityLabels = {
-      page: '頁面',
-      url: '連結',
-      file: '檔案',
-      assignment: '作業',
-      quiz: '測驗',
-      forum: '討論',
-      label: '標籤'
-    };
-
-    return activities.map(activity => `
-      <div class="activity-list-item ${activity.visible === false ? 'hidden-activity' : ''}" onclick="MoodleUI.openActivity('${activity.type}', '${activity.activityId}', '${courseId}')">
-        <div class="activity-list-icon" style="background: ${activityColors[activity.type] || 'var(--gray-400)'}15; color: ${activityColors[activity.type] || 'var(--gray-400)'}">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            ${activityIcons[activity.type] || activityIcons.page}
-          </svg>
-        </div>
-        <div class="activity-list-info">
-          <div class="activity-list-name">${activity.name}</div>
-          <div class="activity-list-meta">
-            <span>${activityLabels[activity.type] || '活動'}</span>
-            ${activity.dueDate ? `<span>截止：${this.formatDate(activity.dueDate)}</span>` : ''}
-          </div>
-        </div>
-        <div class="activity-list-status">
-          ${activity.completed ? `
-            <span class="completed-badge">
-              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>
-              已完成
-            </span>
-          ` : ''}
-          ${isTeacher ? `
-            <div class="activity-actions" onclick="event.stopPropagation()">
-              <button onclick="MoodleUI.editActivity('${courseId}', '${sectionId}', '${activity.activityId}')" class="btn-icon-sm">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-              </button>
-              <button onclick="MoodleUI.deleteActivity('${courseId}', '${sectionId}', '${activity.activityId}')" class="btn-icon-sm danger">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
-              </button>
-            </div>
-          ` : ''}
-        </div>
-      </div>
-    `).join('');
-  },
-
-  /**
-   * 渲染最近課程活動
-   */
-  renderRecentCourseActivity(sections) {
-    // 收集所有活動並按時間排序
-    const allActivities = [];
-    sections.forEach(section => {
-      (section.activities || []).forEach(activity => {
-        allActivities.push({
-          ...activity,
-          sectionName: section.name
-        });
-      });
-    });
-
-    // 取最近 5 個活動
-    const recentActivities = allActivities.slice(0, 5);
-
-    if (recentActivities.length === 0) {
-      return '<p style="font-size: 0.85rem; color: var(--text-secondary); text-align: center;">尚無活動</p>';
-    }
-
-    const activityIcons = {
-      page: '<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>',
-      assignment: '<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>',
-      quiz: '<circle cx="12" cy="12" r="10"/>',
-      forum: '<path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>',
-      default: '<circle cx="12" cy="12" r="10"/>'
-    };
-
-    return recentActivities.map(activity => `
-      <div class="recent-activity-item">
-        <div class="recent-activity-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            ${activityIcons[activity.type] || activityIcons.default}
-          </svg>
-        </div>
-        <div class="recent-activity-content">
-          <div class="recent-activity-text">${activity.name}</div>
-          <div class="recent-activity-time">${activity.sectionName || '章節'}</div>
-        </div>
-      </div>
-    `).join('');
   },
 
   /**
@@ -994,7 +227,8 @@ const MoodleUI = {
       assignment: '<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>',
       quiz: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
       forum: '<path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>',
-      label: '<line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/>'
+      label: '<line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/>',
+      lti: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 12h8"/><path d="M12 8v8"/><circle cx="12" cy="12" r="3"/>'
     };
 
     const activityColors = {
@@ -1004,7 +238,8 @@ const MoodleUI = {
       assignment: 'var(--terracotta)',
       quiz: '#8b5cf6',
       forum: '#f59e0b',
-      label: 'var(--gray-500)'
+      label: 'var(--gray-500)',
+      lti: '#ec4899'
     };
 
     return activities.map(activity => `
@@ -1017,7 +252,7 @@ const MoodleUI = {
         <div class="activity-info">
           <span class="activity-name">${activity.name}</span>
           ${activity.description ? `<span class="activity-desc">${activity.description}</span>` : ''}
-          ${activity.dueDate ? `<span class="activity-due">截止日期：${MoodleUI.formatDate(activity.dueDate)}</span>` : ''}
+          ${activity.dueDate ? `<span class="activity-due">截止日期：${new Date(activity.dueDate).toLocaleDateString('zh-TW')}</span>` : ''}
         </div>
         ${activity.completed ? '<span class="completed-badge">已完成</span>' : ''}
         ${isTeacher ? `
@@ -1060,93 +295,7 @@ const MoodleUI = {
       await this.loadParticipants(this.currentCourseId);
     } else if (tab === 'grades' && this.currentCourseId) {
       await this.loadGrades(this.currentCourseId);
-    } else if (tab === 'groups' && this.currentCourseId) {
-      await this.loadGroupsPanel(this.currentCourseId);
     }
-  },
-
-  /**
-   * 載入群組面板
-   */
-  async loadGroupsPanel(courseId) {
-    const panel = document.getElementById('courseGroupsPanel');
-    if (!panel) return;
-
-    panel.innerHTML = '<div class="loading">載入中...</div>';
-
-    try {
-      const result = await API.courseGroups.getOverview(courseId);
-      if (!result.success) {
-        panel.innerHTML = '<div class="error">載入群組資料失敗</div>';
-        return;
-      }
-
-      const data = result.data;
-      panel.innerHTML = this.renderGroupsPanelContent(courseId, data);
-    } catch (error) {
-      console.error('Load groups panel error:', error);
-      panel.innerHTML = '<div class="error">載入群組資料失敗</div>';
-    }
-  },
-
-  /**
-   * 渲染群組面板內容
-   */
-  renderGroupsPanelContent(courseId, data) {
-    return `
-      <div class="groups-panel-content">
-        <div class="groups-panel-header">
-          <h3>群組管理</h3>
-          <button onclick="MoodleUI.openGroupsManager('${courseId}')" class="btn-primary">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
-              <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
-            </svg>
-            完整管理
-          </button>
-        </div>
-
-        <div class="groups-panel-mode">
-          <label>群組模式：</label>
-          <span class="mode-badge">${this.getGroupModeName(data.groupMode)}</span>
-          ${data.groupModeForced ? '<span class="forced-badge">強制</span>' : ''}
-        </div>
-
-        <div class="groups-panel-stats">
-          <div class="stat-item">
-            <span class="stat-value">${data.totalGroups}</span>
-            <span class="stat-label">群組</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-value">${data.groupedStudents}</span>
-            <span class="stat-label">已分組</span>
-          </div>
-          <div class="stat-item ${data.ungroupedStudents > 0 ? 'warning' : ''}">
-            <span class="stat-value">${data.ungroupedStudents}</span>
-            <span class="stat-label">未分組</span>
-          </div>
-        </div>
-
-        ${data.groups.length === 0 ? `
-          <div class="empty-groups">
-            <p>尚未建立任何群組</p>
-            <button onclick="MoodleUI.openGroupsManager('${courseId}')" class="btn-secondary">
-              建立群組
-            </button>
-          </div>
-        ` : `
-          <div class="groups-preview-list">
-            ${data.groups.slice(0, 5).map(g => `
-              <div class="group-preview-item">
-                <span class="group-name">${g.name}</span>
-                <span class="group-count">${g.memberCount || 0} 人</span>
-              </div>
-            `).join('')}
-            ${data.groups.length > 5 ? `<p class="more-text">還有 ${data.groups.length - 5} 個群組...</p>` : ''}
-          </div>
-        `}
-      </div>
-    `;
   },
 
   /**
@@ -1159,7 +308,7 @@ const MoodleUI = {
       if (!key) return;
 
       try {
-        const result = await API.courseEnrollment.enroll(courseId, key);
+        const result = await API.courses.enroll(courseId, key);
         if (result.success) {
           showToast('報名成功！');
           this.openCourse(courseId); // 重新載入
@@ -1172,7 +321,7 @@ const MoodleUI = {
       }
     } else {
       try {
-        const result = await API.courseEnrollment.enroll(courseId);
+        const result = await API.courses.enroll(courseId);
         if (result.success) {
           showToast('報名成功！');
           this.openCourse(courseId);
@@ -1194,7 +343,7 @@ const MoodleUI = {
     if (!panel) return;
 
     try {
-      const result = await API.courseEnrollment.getParticipants(courseId);
+      const result = await API.courses.getParticipants(courseId);
       if (result.success) {
         const participants = result.data || [];
         panel.innerHTML = this.renderParticipantsList(participants);
@@ -1235,14 +384,14 @@ const MoodleUI = {
                   </div>
                 </td>
                 <td>${p.userEmail || '-'}</td>
-                <td>${p.enrolledAt ? MoodleUI.formatDate(p.enrolledAt) : '-'}</td>
+                <td>${p.enrolledAt ? new Date(p.enrolledAt).toLocaleDateString('zh-TW') : '-'}</td>
                 <td>
                   <div class="mini-progress">
                     <div class="mini-progress-fill" style="width: ${p.progress || 0}%"></div>
                   </div>
                   <span class="progress-text-sm">${p.progress || 0}%</span>
                 </td>
-                <td>${p.lastAccess ? MoodleUI.formatDate(p.lastAccess) : '從未'}</td>
+                <td>${p.lastAccess ? new Date(p.lastAccess).toLocaleDateString('zh-TW') : '從未'}</td>
               </tr>
             `).join('')}
           </tbody>
@@ -1257,12 +406,6 @@ const MoodleUI = {
   async loadGrades(courseId) {
     const panel = document.getElementById('courseGradesPanel');
     if (!panel) return;
-
-    // 防止 undefined courseId
-    if (!courseId) {
-      panel.innerHTML = '<div class="info">請先選擇課程</div>';
-      return;
-    }
 
     const user = API.getCurrentUser();
     const isTeacher = this.currentCourse?.teacherId === user?.userId || user?.role === 'teacher';
@@ -1437,12 +580,285 @@ const MoodleUI = {
       case 'forum':
         this.openForum(activityId);
         break;
+      case 'lti':
+        this.launchLtiTool(activityId, courseId);
+        break;
       case 'page':
+        this.openPageActivity(activityId, courseId);
+        break;
       case 'url':
+        this.openUrlActivity(activityId, courseId);
+        break;
       case 'file':
+        this.openFileActivity(activityId, courseId);
+        break;
       default:
-        showToast('開啟活動: ' + type);
+        showToast('不支援的活動類型: ' + type);
     }
+  },
+
+  /**
+   * 開啟頁面活動 - 在 Modal 中顯示內容
+   */
+  async openPageActivity(activityId, courseId) {
+    try {
+      const result = await API.courseActivities.get(courseId, activityId);
+      if (!result.success || !result.data) {
+        showToast('無法載入頁面內容');
+        return;
+      }
+      const activity = result.data;
+      const content = activity.content || activity.description || '<p>此頁面沒有內容</p>';
+      MoodleUI.createModal('page-activity-modal', activity.title || '頁面內容', `
+        <div class="page-activity-content" style="line-height: 1.8; font-size: 0.95rem;">
+          ${content}
+        </div>
+      `, { maxWidth: '800px' });
+    } catch (error) {
+      console.error('開啟頁面活動失敗:', error);
+      showToast('載入頁面內容失敗');
+    }
+  },
+
+  /**
+   * 開啟網址活動 - 在新分頁中開啟 URL
+   */
+  async openUrlActivity(activityId, courseId) {
+    try {
+      const result = await API.courseActivities.get(courseId, activityId);
+      if (!result.success || !result.data) {
+        showToast('無法載入活動資訊');
+        return;
+      }
+      const activity = result.data;
+      const url = activity.url || activity.externalUrl;
+      if (url) {
+        window.open(url, '_blank');
+      } else {
+        showToast('此活動未設定網址');
+      }
+    } catch (error) {
+      console.error('開啟網址活動失敗:', error);
+      showToast('載入活動資訊失敗');
+    }
+  },
+
+  /**
+   * 開啟檔案活動 - 下載或開啟檔案
+   */
+  async openFileActivity(activityId, courseId) {
+    try {
+      const result = await API.courseActivities.get(courseId, activityId);
+      if (!result.success || !result.data) {
+        showToast('無法載入檔案資訊');
+        return;
+      }
+      const activity = result.data;
+      const fileUrl = activity.fileUrl || activity.url || activity.file;
+      if (fileUrl) {
+        const link = document.createElement('a');
+        link.href = fileUrl;
+        link.download = activity.fileName || activity.title || '';
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else {
+        showToast('此活動未設定檔案');
+      }
+    } catch (error) {
+      console.error('開啟檔案活動失敗:', error);
+      showToast('載入檔案資訊失敗');
+    }
+  },
+
+  /**
+   * 啟動 LTI 1.3 外部工具
+   */
+  async launchLtiTool(activityId, courseId) {
+    try {
+      showToast('正在啟動外部工具...');
+
+      // 取得活動詳情以獲得 toolId
+      const activity = await API.courseActivities.get(courseId, activityId);
+      if (!activity.success || !activity.data) {
+        showToast('無法載入活動資訊');
+        return;
+      }
+
+      const toolId = activity.data.toolId || activity.data.ltiToolId;
+      if (!toolId) {
+        showToast('此活動未設定 LTI 工具');
+        return;
+      }
+
+      // 啟動 LTI OIDC 流程
+      const baseUrl = window.location.origin;
+      const launchUrl = `${baseUrl}/api/lti/13/initiate?` + new URLSearchParams({
+        tool_id: toolId,
+        course_id: courseId,
+        resource_link_id: activityId,
+        target: 'iframe' // 或 'window' 在新視窗開啟
+      }).toString();
+
+      // 建立啟動視窗/iframe
+      this.openLtiLaunchModal(launchUrl, activity.data.name || '外部工具');
+
+    } catch (error) {
+      console.error('LTI launch error:', error);
+      showToast('啟動外部工具失敗');
+    }
+  },
+
+  /**
+   * 開啟 LTI 啟動 Modal
+   */
+  openLtiLaunchModal(launchUrl, toolName) {
+    const modal = document.createElement('div');
+    modal.id = 'ltiLaunchModal';
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+      <div class="modal-content modal-fullscreen">
+        <div class="modal-header">
+          <h3>🔗 ${toolName}</h3>
+          <div style="display: flex; gap: 0.5rem;">
+            <button onclick="MoodleUI.openLtiInNewWindow()" class="btn-secondary btn-sm" title="在新視窗開啟">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
+                <polyline points="15,3 21,3 21,9"/>
+                <line x1="10" y1="14" x2="21" y2="3"/>
+              </svg>
+            </button>
+            <button onclick="MoodleUI.closeModal('ltiLaunchModal')" class="modal-close">&times;</button>
+          </div>
+        </div>
+        <div class="modal-body" style="padding: 0; height: calc(100vh - 120px);">
+          <iframe id="ltiLaunchFrame" src="${launchUrl}" style="width: 100%; height: 100%; border: none;"></iframe>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    // 儲存 launch URL 供新視窗使用
+    this.currentLtiLaunchUrl = launchUrl;
+
+    // 監聽 iframe 訊息（用於 Deep Linking 回傳）
+    window.addEventListener('message', this.handleLtiMessage);
+  },
+
+  /**
+   * 處理 LTI iframe 訊息
+   */
+  handleLtiMessage(event) {
+    if (event.data.type === 'lti_deep_linking_complete') {
+      showToast(`已新增 ${event.data.items?.length || 0} 個項目到課程`);
+      MoodleUI.closeModal('ltiLaunchModal');
+      // 重新載入課程頁面以顯示新內容
+      if (MoodleUI.currentCourseId) {
+        MoodleUI.openCourse(MoodleUI.currentCourseId);
+      }
+    } else if (event.data.type === 'lti_deep_linking_cancel') {
+      MoodleUI.closeModal('ltiLaunchModal');
+    }
+  },
+
+  /**
+   * 在新視窗開啟 LTI 工具
+   */
+  openLtiInNewWindow() {
+    if (this.currentLtiLaunchUrl) {
+      window.open(this.currentLtiLaunchUrl, '_blank', 'width=1024,height=768');
+      this.closeModal('ltiLaunchModal');
+    }
+  },
+
+  // 當前 LTI 啟動 URL
+  currentLtiLaunchUrl: null,
+
+  // LTI 工具快取
+  ltiToolsCache: null,
+
+  /**
+   * 載入 LTI 工具列表到選擇框
+   */
+  async loadLtiTools() {
+    try {
+      // 如果有快取，直接使用
+      if (this.ltiToolsCache) {
+        return this.ltiToolsCache;
+      }
+
+      const response = await fetch('/api/lti/tools');
+      if (!response.ok) {
+        console.error('Failed to load LTI tools');
+        return [];
+      }
+
+      const result = await response.json();
+      if (result.success && result.data) {
+        this.ltiToolsCache = result.data.filter(t => t.status === 'active');
+        return this.ltiToolsCache;
+      }
+      return [];
+    } catch (error) {
+      console.error('Load LTI tools error:', error);
+      return [];
+    }
+  },
+
+  /**
+   * 當選擇 LTI 活動類型時，載入工具列表
+   */
+  async onLtiActivityTypeSelected() {
+    const select = document.getElementById('ltiToolSelect');
+    if (!select) return;
+
+    const tools = await this.loadLtiTools();
+
+    select.innerHTML = '<option value="">-- 請選擇工具 --</option>' +
+      tools.map(tool => `<option value="${tool.toolId}">${tool.name}</option>`).join('');
+  },
+
+  /**
+   * 當選擇 LTI 工具時，顯示工具資訊
+   */
+  onLtiToolSelect() {
+    const select = document.getElementById('ltiToolSelect');
+    const infoDiv = document.getElementById('ltiToolInfo');
+    const nameEl = document.getElementById('ltiToolName');
+    const descEl = document.getElementById('ltiToolDesc');
+
+    if (!select || !infoDiv) return;
+
+    const toolId = select.value;
+    if (!toolId) {
+      infoDiv.style.display = 'none';
+      return;
+    }
+
+    const tool = this.ltiToolsCache?.find(t => t.toolId === toolId);
+    if (tool) {
+      nameEl.textContent = tool.name;
+      descEl.textContent = tool.description || '無說明';
+      infoDiv.style.display = 'block';
+    } else {
+      infoDiv.style.display = 'none';
+    }
+  },
+
+  /**
+   * 啟動 Deep Linking 流程
+   */
+  async launchDeepLinking(toolId, courseId) {
+    const baseUrl = window.location.origin;
+    const launchUrl = `${baseUrl}/api/lti/13/initiate?` + new URLSearchParams({
+      tool_id: toolId,
+      course_id: courseId,
+      message_type: 'LtiDeepLinkingRequest',
+      target: 'iframe'
+    }).toString();
+
+    this.openLtiLaunchModal(launchUrl, '選擇學習內容');
   },
 
   // ==================== 新增章節/活動 Modal ====================
@@ -1564,6 +980,13 @@ const MoodleUI = {
               <span>討論區</span>
               <p>建立討論論壇</p>
             </div>
+            <div class="activity-type-card" onclick="MoodleUI.selectActivityType('lti')">
+              <div class="type-icon" style="background: #ec489920; color: #ec4899">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 12h8"/><path d="M12 8v8"/><circle cx="12" cy="12" r="3"/></svg>
+              </div>
+              <span>外部工具</span>
+              <p>LTI 1.3 外部學習工具</p>
+            </div>
           </div>
 
           <div id="activityFormArea" style="display: none; margin-top: 1.5rem;">
@@ -1600,6 +1023,11 @@ const MoodleUI = {
 
     // 根據類型顯示不同表單
     formArea.innerHTML = this.getActivityForm(type);
+
+    // 如果是 LTI 類型，載入工具列表
+    if (type === 'lti') {
+      this.onLtiActivityTypeSelected();
+    }
   },
 
   /**
@@ -1695,6 +1123,29 @@ const MoodleUI = {
             </select>
           </div>
         `;
+      case 'lti':
+        return commonFields + `
+          <div class="form-group">
+            <label>選擇外部工具 *</label>
+            <select id="ltiToolSelect" onchange="MoodleUI.onLtiToolSelect()">
+              <option value="">-- 請選擇工具 --</option>
+            </select>
+            <p class="form-hint">若無可用工具，請至系統設定新增 LTI 工具</p>
+          </div>
+          <div id="ltiToolInfo" style="display: none; margin-top: 1rem;">
+            <div style="background: var(--gray-100); padding: 1rem; border-radius: 8px;">
+              <h4 id="ltiToolName" style="margin-bottom: 0.5rem;"></h4>
+              <p id="ltiToolDesc" style="font-size: 0.9rem; color: var(--gray-600);"></p>
+            </div>
+          </div>
+          <div class="form-group" style="margin-top: 1rem;">
+            <label>
+              <input type="checkbox" id="ltiDeepLinking">
+              使用 Deep Linking 選擇內容
+            </label>
+            <p class="form-hint">勾選後將開啟工具讓您選擇要新增的內容</p>
+          </div>
+        `;
       default:
         return commonFields;
     }
@@ -1740,6 +1191,20 @@ const MoodleUI = {
       case 'forum':
         activityData.forumType = document.getElementById('forumType')?.value;
         break;
+      case 'lti':
+        const toolId = document.getElementById('ltiToolSelect')?.value;
+        const useDeepLinking = document.getElementById('ltiDeepLinking')?.checked;
+        if (!toolId) {
+          showToast('請選擇外部工具');
+          return;
+        }
+        activityData.toolId = toolId;
+        activityData.ltiToolId = toolId;
+        // 如果使用 Deep Linking，先建立活動再啟動 Deep Linking
+        if (useDeepLinking) {
+          activityData.deepLinking = true;
+        }
+        break;
     }
 
     try {
@@ -1758,20 +1223,43 @@ const MoodleUI = {
   },
 
   /**
+   * 建立通用 Modal
+   */
+  createModal(modalId, title, bodyHtml, options = {}) {
+    // 移除同 ID 的舊 modal
+    const existing = document.getElementById(modalId);
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = modalId;
+    modal.className = 'modal-overlay';
+    modal.style.display = 'flex';
+    modal.onclick = (e) => { if (e.target === modal) this.closeModal(modalId); };
+
+    const maxWidth = options.maxWidth || '600px';
+
+    modal.innerHTML = `
+      <div class="modal" style="max-width: ${maxWidth}; width: 90%;">
+        <div class="modal-header">
+          <h2 class="modal-title">${title}</h2>
+          <button class="modal-close" onclick="MoodleUI.closeModal('${modalId}')">&times;</button>
+        </div>
+        <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+          ${bodyHtml}
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+    return modal;
+  },
+
+  /**
    * 關閉 Modal
    */
   closeModal(modalId) {
     const modal = document.getElementById(modalId);
-    if (modal) {
-      // 清理 modal 內的 Quill 編輯器
-      const editorContainers = modal.querySelectorAll('.quill-editor-container');
-      editorContainers.forEach(container => {
-        if (container.id) {
-          this.destroyEditor(container.id);
-        }
-      });
-      modal.remove();
-    }
+    if (modal) modal.remove();
   },
 
   // ==================== 作業系統 ====================
@@ -1845,7 +1333,7 @@ const MoodleUI = {
           <div class="assignment-info">
             <h3>${a.title}</h3>
             <p class="assignment-course">${a.courseName || '課程'}</p>
-            ${a.dueDate ? `<p class="assignment-due ${isOverdue ? 'overdue' : ''}">截止：${MoodleUI.formatDate(a.dueDate, 'datetime')}</p>` : ''}
+            ${a.dueDate ? `<p class="assignment-due ${isOverdue ? 'overdue' : ''}">截止：${new Date(a.dueDate).toLocaleString('zh-TW')}</p>` : ''}
           </div>
           <div class="assignment-status ${statusClass}">
             <span>${statusText}</span>
@@ -1897,7 +1385,7 @@ const MoodleUI = {
                 </div>
                 <div class="assignment-meta-item">
                   <span class="label">截止日期</span>
-                  <span class="value">${assignment.dueDate ? MoodleUI.formatDate(assignment.dueDate, 'datetime') : '無'}</span>
+                  <span class="value">${assignment.dueDate ? new Date(assignment.dueDate).toLocaleString('zh-TW') : '無'}</span>
                 </div>
                 <div class="assignment-meta-item">
                   <span class="label">滿分</span>
@@ -1919,20 +1407,7 @@ const MoodleUI = {
         </div>
       `;
 
-      // 設置麵包屑動態標籤 (作業名稱)
-      this.setDynamicLabel('assignmentDetail', assignment.title || '作業');
-
       showView('assignmentDetail');
-
-      // 初始化作業提交編輯器 (如果有的話)
-      if (!isTeacher && !assignment.submission && assignment.submissionType !== 'file') {
-        setTimeout(() => {
-          this.initEditor('submissionContentEditor', {
-            placeholder: '輸入作業內容...',
-            config: 'default'
-          });
-        }, 100);
-      }
     } catch (error) {
       console.error('Open assignment error:', error);
       showToast('載入作業失敗');
@@ -1951,7 +1426,7 @@ const MoodleUI = {
             ${assignment.submission.content ? `<div class="text-content">${assignment.submission.content}</div>` : ''}
             ${assignment.submission.files ? `<div class="file-list">${assignment.submission.files.map(f => `<span class="file-item">${f.filename}</span>`).join('')}</div>` : ''}
           </div>
-          <p class="submit-time">提交時間：${MoodleUI.formatDate(assignment.submission.submittedAt, 'datetime')}</p>
+          <p class="submit-time">提交時間：${new Date(assignment.submission.submittedAt).toLocaleString('zh-TW')}</p>
           ${assignment.submission.feedback ? `<div class="feedback"><h4>教師回饋</h4><p>${assignment.submission.feedback}</p></div>` : ''}
         </div>
       `;
@@ -1964,7 +1439,7 @@ const MoodleUI = {
           ${assignment.submissionType !== 'file' ? `
             <div class="form-group">
               <label>作業內容</label>
-              <div id="submissionContentEditor" class="quill-editor-container"></div>
+              <textarea id="submissionContent" rows="8" placeholder="輸入作業內容..."></textarea>
             </div>
           ` : ''}
           ${assignment.submissionType !== 'text' ? `
@@ -2003,7 +1478,7 @@ const MoodleUI = {
                   <div class="avatar">${(s.studentName || 'S')[0]}</div>
                   <div>
                     <span class="name">${s.studentName}</span>
-                    <span class="time">${MoodleUI.formatDate(s.submittedAt, 'datetime')}</span>
+                    <span class="time">${new Date(s.submittedAt).toLocaleString('zh-TW')}</span>
                   </div>
                 </div>
                 <div class="submission-actions">
@@ -2020,16 +1495,65 @@ const MoodleUI = {
   },
 
   /**
+   * 查看學生提交
+   */
+  async viewSubmission(assignmentId, studentId) {
+    try {
+      const result = await API.assignments.getSubmission(assignmentId, studentId);
+      if (result.success) {
+        const s = result.data;
+        MoodleUI.createModal('view-submission-modal', '查看提交', `
+          <div class="submission-detail">
+            <p><strong>學生：</strong>${s.studentName || studentId}</p>
+            <p><strong>提交時間：</strong>${s.submittedAt ? new Date(s.submittedAt).toLocaleString('zh-TW') : '未提交'}</p>
+            <div class="submission-content">${s.content || '<em>無文字內容</em>'}</div>
+            ${s.files?.length ? `<div class="submission-files"><strong>附件：</strong><ul>${s.files.map(f => `<li>${f.name || f.fileName}</li>`).join('')}</ul></div>` : ''}
+            ${s.grade !== undefined && s.grade !== null ? `<p><strong>成績：</strong>${s.grade}</p>` : ''}
+            ${s.feedback ? `<p><strong>回饋：</strong>${s.feedback}</p>` : ''}
+          </div>
+        `);
+      } else {
+        showToast(result.message || '無法載入提交');
+      }
+    } catch (error) {
+      showToast('載入提交失敗');
+    }
+  },
+
+  /**
+   * 教師評分提交
+   */
+  async gradeSubmission(assignmentId, studentId) {
+    const gradeInput = document.getElementById(`grade_${studentId}`);
+    const grade = gradeInput?.value;
+    if (!grade) {
+      showToast('請輸入分數');
+      return;
+    }
+    try {
+      const result = await API.assignments.gradeSubmission(assignmentId, studentId, {
+        grade: parseFloat(grade),
+        feedback: ''
+      });
+      if (result.success) {
+        showToast('評分成功');
+      } else {
+        showToast(result.message || '評分失敗');
+      }
+    } catch (error) {
+      showToast('評分失敗');
+    }
+  },
+
+  /**
    * 提交作業
    */
   async submitAssignment(assignmentId) {
-    // 從 Quill 編輯器取得內容
-    const editorContent = this.getEditorContent('submissionContentEditor');
-    const content = editorContent?.html || '';
+    const content = document.getElementById('submissionContent')?.value;
     const fileInput = document.getElementById('submissionFile');
     const files = fileInput?.files;
 
-    if (!content.trim() && (!files || files.length === 0)) {
+    if (!content && (!files || files.length === 0)) {
       showToast('請輸入內容或上傳檔案');
       return;
     }
@@ -2135,7 +1659,7 @@ const MoodleUI = {
             <p class="quiz-meta">
               ${q.timeLimit ? `時限 ${q.timeLimit} 分鐘` : '不限時'} ·
               ${q.questionCount || q.questions?.length || 0} 題 ·
-              ${q.maxAttempts || '無限'} 次嘗試機會
+              ${q.attempts || 1} 次嘗試機會
             </p>
           </div>
           <div class="quiz-status">
@@ -2167,37 +1691,10 @@ const MoodleUI = {
    */
   async startQuiz(quizId) {
     try {
-      // 檢查防作弊設定
-      let antiCheatSettings = null;
-      try {
-        const acResult = await API.quizzes.antiCheat.getSettings(quizId);
-        if (acResult.success && acResult.data && acResult.data.enabled) {
-          antiCheatSettings = acResult.data;
-        }
-      } catch (e) {
-        console.log('No anti-cheat settings or error:', e);
-      }
-
-      // 如果需要密碼驗證
-      if (antiCheatSettings && antiCheatSettings.requirePassword) {
-        try {
-          await this.showQuizPasswordPrompt(quizId);
-        } catch (e) {
-          // 用戶取消
-          return;
-        }
-      }
-
       const result = await API.quizzes.start(quizId);
       if (result.success) {
         this.currentQuizAttempt = result.data;
         this.currentQuestionIndex = 0;
-
-        // 如果有防作弊設定，啟動監控
-        if (antiCheatSettings) {
-          this.initAntiCheatMonitor(quizId, result.data.attemptId, antiCheatSettings);
-        }
-
         this.renderQuizQuestion();
         showView('quizAttempt');
       } else {
@@ -2245,7 +1742,7 @@ const MoodleUI = {
       </div>
       <div class="quiz-body">
         <div class="question-content">
-          <h3>${this.escapeHtml(question.text)}</h3>
+          <h3>${question.text}</h3>
           ${this.renderQuestionOptions(question)}
         </div>
         <div class="quiz-navigation">
@@ -2269,24 +1766,15 @@ const MoodleUI = {
    * 渲染題目選項
    */
   renderQuestionOptions(question) {
-    // 處理是非題：自動提供選項
-    let options = question.options;
-    if (question.type === 'true_false' && (!options || !Array.isArray(options) || options.length === 0)) {
-      options = ['是 (True)', '否 (False)'];
-    }
-
-    if (!options || !Array.isArray(options) || options.length === 0) {
-      return '<div class="question-options"><p class="text-muted">此題目沒有選項</p></div>';
-    }
     switch (question.type) {
       case 'multiple_choice':
       case 'true_false':
         return `
           <div class="question-options">
-            ${options.map((opt, i) => `
+            ${question.options.map((opt, i) => `
               <label class="question-option ${question.answer === i ? 'selected' : ''}" onclick="MoodleUI.selectAnswer(${i})">
                 <input type="radio" name="answer" value="${i}" ${question.answer === i ? 'checked' : ''}>
-                <span>${this.escapeHtml(opt)}</span>
+                <span>${opt}</span>
               </label>
             `).join('')}
           </div>
@@ -2297,7 +1785,7 @@ const MoodleUI = {
             ${question.options.map((opt, i) => `
               <label class="question-option ${(question.answer || []).includes(i) ? 'selected' : ''}">
                 <input type="checkbox" value="${i}" ${(question.answer || []).includes(i) ? 'checked' : ''} onchange="MoodleUI.selectMultipleAnswer(${i})">
-                <span>${this.escapeHtml(opt)}</span>
+                <span>${opt}</span>
               </label>
             `).join('')}
           </div>
@@ -2365,13 +1853,6 @@ const MoodleUI = {
     if (!confirm('確定要提交測驗嗎？提交後將無法修改答案。')) return;
 
     try {
-      // 停止防作弊監控
-      this.stopAntiCheatMonitor();
-
-      // 移除視訊預覽
-      const webcamPreview = document.getElementById('webcamPreview');
-      if (webcamPreview) webcamPreview.remove();
-
       const result = await API.quizzes.submit(
         this.currentQuizAttempt.quizId,
         this.currentQuizAttempt.attemptId
@@ -2524,574 +2005,23 @@ const MoodleUI = {
                 <div class="discussion-excerpt">${d.message?.substring(0, 100) || ''}...</div>
                 <div class="discussion-meta">
                   <span>${d.authorName}</span>
-                  <span>${MoodleUI.formatDate(d.createdAt)}</span>
+                  <span>${new Date(d.createdAt).toLocaleDateString('zh-TW')}</span>
                 </div>
               </div>
               <div class="discussion-stats">
                 <span class="reply-count">${d.replyCount || 0} 回覆</span>
-                ${d.lastReply ? `<span class="last-reply">最後回覆：${MoodleUI.formatDate(d.lastReply)}</span>` : ''}
+                ${d.lastReply ? `<span class="last-reply">最後回覆：${new Date(d.lastReply).toLocaleDateString('zh-TW')}</span>` : ''}
               </div>
             </div>
           `).join('')}
         </div>
       `;
 
-      // 設置麵包屑動態標籤 (論壇名稱)
-      this.setDynamicLabel('forumDetail', forum.title || forum.name || '討論區');
-
       showView('forumDetail');
     } catch (error) {
       console.error('Open forum error:', error);
       showToast('載入討論區失敗');
     }
-  },
-
-  // ==================== 學生儀表板增強 ====================
-
-  /**
-   * 更新儀表板問候訊息
-   */
-  updateDashboardGreeting() {
-    const user = API.getCurrentUser();
-    const greetingMessage = document.getElementById('greetingMessage');
-    const greetingSubtext = document.getElementById('greetingSubtext');
-
-    if (!greetingMessage) return;
-
-    const hour = new Date().getHours();
-    let greeting = '';
-    let subtext = '';
-
-    if (hour < 12) {
-      greeting = '早安';
-      subtext = '新的一天，新的學習機會！';
-    } else if (hour < 18) {
-      greeting = '午安';
-      subtext = '繼續保持學習的動力！';
-    } else {
-      greeting = '晚安';
-      subtext = '今天的學習進度如何？';
-    }
-
-    const userName = user?.name || user?.fullName || '學習者';
-    greetingMessage.textContent = `${greeting}，${userName}！`;
-    greetingSubtext.textContent = subtext;
-  },
-
-  /**
-   * 更新進度圓環
-   * @param {number} percentage - 完成百分比 (0-100)
-   */
-  updateProgressRing(percentage) {
-    const circle = document.getElementById('progressCircle');
-    const valueDisplay = document.getElementById('progressValue');
-
-    if (!circle || !valueDisplay) return;
-
-    // 計算 stroke-dashoffset (圓周長為 100)
-    const offset = 100 - percentage;
-    circle.style.strokeDashoffset = offset;
-
-    valueDisplay.textContent = `${Math.round(percentage)}%`;
-  },
-
-  /**
-   * 更新儀表板統計
-   */
-  async updateDashboardStats() {
-    try {
-      // 更新問候訊息
-      this.updateDashboardGreeting();
-
-      // 嘗試載入課程數據
-      const coursesResult = await API.courses.list({ enrolled: true });
-      let courseCount = 0;
-      let totalProgress = 0;
-
-      if (coursesResult.success && coursesResult.data) {
-        const courses = Array.isArray(coursesResult.data) ? coursesResult.data : coursesResult.data.courses || [];
-        courseCount = courses.length;
-
-        // 計算總進度
-        courses.forEach(course => {
-          totalProgress += course.progress || 0;
-        });
-
-        if (courseCount > 0) {
-          totalProgress = totalProgress / courseCount;
-        }
-      }
-
-      // 更新顯示
-      const greetingCourses = document.getElementById('greetingCourses');
-      if (greetingCourses) greetingCourses.textContent = courseCount;
-
-      // 更新進度圓環
-      this.updateProgressRing(totalProgress);
-
-      // 更新統計卡片
-      const statCourseCount = document.getElementById('statCourseCount');
-      if (statCourseCount) statCourseCount.textContent = courseCount;
-
-      const statCompletionRate = document.getElementById('statCompletionRate');
-      if (statCompletionRate) statCompletionRate.textContent = `${Math.round(totalProgress)}%`;
-
-    } catch (error) {
-      console.error('Update dashboard stats error:', error);
-    }
-  },
-
-  /**
-   * 檢查並顯示緊急提醒 (48小時內到期)
-   */
-  async checkUrgentDeadlines() {
-    const container = document.getElementById('urgentAlertContainer');
-    if (!container) return;
-
-    try {
-      const assignmentsResult = await API.assignments.list({ filter: 'pending' });
-      if (!assignmentsResult.success) return;
-
-      const assignments = assignmentsResult.data?.assignments || assignmentsResult.data || [];
-      const now = new Date();
-      const fortyEightHours = 48 * 60 * 60 * 1000;
-
-      // 找出 48 小時內到期的作業
-      const urgentItems = assignments.filter(a => {
-        if (!a.dueDate || a.submitted) return false;
-        const dueDate = new Date(a.dueDate);
-        const timeDiff = dueDate - now;
-        return timeDiff > 0 && timeDiff <= fortyEightHours;
-      });
-
-      if (urgentItems.length === 0) {
-        container.innerHTML = '';
-        return;
-      }
-
-      // 找出最緊急的項目
-      const mostUrgent = urgentItems.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))[0];
-      const dueDate = new Date(mostUrgent.dueDate);
-      const hoursLeft = Math.ceil((dueDate - now) / (60 * 60 * 1000));
-
-      container.innerHTML = `
-        <div class="urgent-alert">
-          <div class="urgent-alert-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/>
-              <line x1="12" y1="8" x2="12" y2="12"/>
-              <line x1="12" y1="16" x2="12.01" y2="16"/>
-            </svg>
-          </div>
-          <div class="urgent-alert-content">
-            <div class="urgent-alert-title">⚠️ 緊急提醒：${mostUrgent.title}</div>
-            <div class="urgent-alert-subtitle">
-              剩餘 ${hoursLeft} 小時到期${urgentItems.length > 1 ? ` (還有 ${urgentItems.length - 1} 項即將到期)` : ''}
-            </div>
-          </div>
-          <button class="urgent-alert-action" onclick="MoodleUI.openAssignment('${mostUrgent.assignmentId}')">
-            立即查看
-          </button>
-        </div>
-      `;
-    } catch (error) {
-      console.error('Check urgent deadlines error:', error);
-    }
-  },
-
-  /**
-   * 渲染迷你行事曆
-   * @param {HTMLElement} container - 容器元素
-   * @param {Date} date - 當前顯示的月份
-   */
-  renderMiniCalendar(container, date = new Date()) {
-    if (!container) return;
-
-    const year = date.getFullYear();
-    const month = date.getMonth();
-    const today = new Date();
-
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const startDay = firstDay.getDay();
-
-    const monthNames = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
-    const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
-
-    let html = `
-      <div class="mini-calendar">
-        <div class="mini-calendar-header">
-          <span class="mini-calendar-title">${year}年 ${monthNames[month]}</span>
-          <div class="mini-calendar-nav">
-            <button onclick="MoodleUI.changeMiniCalendarMonth(-1)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
-            </button>
-            <button onclick="MoodleUI.changeMiniCalendarMonth(1)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9,6 15,12 9,18"/></svg>
-            </button>
-          </div>
-        </div>
-        <div class="mini-calendar-grid">
-    `;
-
-    // 星期標題
-    dayNames.forEach(day => {
-      html += `<div class="mini-calendar-day-name">${day}</div>`;
-    });
-
-    // 上月填充
-    const prevMonthDays = new Date(year, month, 0).getDate();
-    for (let i = startDay - 1; i >= 0; i--) {
-      html += `<div class="mini-calendar-day other-month">${prevMonthDays - i}</div>`;
-    }
-
-    // 當月日期
-    for (let day = 1; day <= lastDay.getDate(); day++) {
-      const isToday = year === today.getFullYear() && month === today.getMonth() && day === today.getDate();
-      html += `<div class="mini-calendar-day${isToday ? ' today' : ''}">${day}</div>`;
-    }
-
-    // 下月填充
-    const remainingDays = 42 - (startDay + lastDay.getDate());
-    for (let i = 1; i <= remainingDays && remainingDays < 7; i++) {
-      html += `<div class="mini-calendar-day other-month">${i}</div>`;
-    }
-
-    html += '</div></div>';
-    container.innerHTML = html;
-  },
-
-  // 迷你行事曆當前日期
-  miniCalendarDate: new Date(),
-
-  /**
-   * 切換迷你行事曆月份
-   * @param {number} delta - 月份變化 (+1 或 -1)
-   */
-  changeMiniCalendarMonth(delta) {
-    this.miniCalendarDate.setMonth(this.miniCalendarDate.getMonth() + delta);
-    const container = document.querySelector('.mini-calendar')?.parentElement;
-    if (container) {
-      this.renderMiniCalendar(container, this.miniCalendarDate);
-    }
-  },
-
-  /**
-   * 初始化學生儀表板
-   */
-  async initStudentDashboard() {
-    // 更新統計數據
-    await this.updateDashboardStats();
-
-    // 檢查緊急提醒
-    await this.checkUrgentDeadlines();
-  },
-
-  // ==================== 教師儀表板增強 ====================
-
-  /**
-   * 更新教師儀表板問候訊息
-   */
-  updateTeacherDashboardGreeting() {
-    const user = API.getCurrentUser();
-    const greetingMessage = document.getElementById('teacherGreetingMessage');
-    const greetingSubtext = document.getElementById('teacherGreetingSubtext');
-
-    if (!greetingMessage) return;
-
-    const hour = new Date().getHours();
-    let greeting = '';
-    let subtext = '';
-
-    if (hour < 12) {
-      greeting = '早安';
-      subtext = '新的一天，準備好啟發學生了嗎？';
-    } else if (hour < 18) {
-      greeting = '午安';
-      subtext = '持續關注學生的學習進度！';
-    } else {
-      greeting = '晚安';
-      subtext = '辛苦了！看看今天的教學成果';
-    }
-
-    const userName = user?.name || user?.fullName || '老師';
-    greetingMessage.textContent = `${greeting}，${userName}！`;
-    greetingSubtext.textContent = subtext;
-  },
-
-  /**
-   * 更新教師儀表板統計數據
-   */
-  async updateTeacherDashboardStats() {
-    try {
-      // 更新問候訊息
-      this.updateTeacherDashboardGreeting();
-
-      // 載入課程數據
-      const coursesResult = await API.courses.list({ role: 'teacher' });
-      let courseCount = 0;
-      let totalStudents = 0;
-
-      if (coursesResult.success && coursesResult.data) {
-        const courses = Array.isArray(coursesResult.data) ? coursesResult.data : coursesResult.data.courses || [];
-        courseCount = courses.length;
-        courses.forEach(course => {
-          totalStudents += course.studentCount || course.enrolledCount || 0;
-        });
-      }
-
-      // 載入待評分作業
-      let pendingGrading = 0;
-      try {
-        const assignmentsResult = await API.assignments.list({ filter: 'pending_grading' });
-        if (assignmentsResult.success) {
-          const assignments = assignmentsResult.data?.assignments || assignmentsResult.data || [];
-          assignments.forEach(a => {
-            pendingGrading += a.pendingSubmissions || a.ungraded || 0;
-          });
-        }
-      } catch (e) {
-        console.log('Could not load pending grading count');
-      }
-
-      // 更新問候區域統計
-      const teacherPendingGrading = document.getElementById('teacherPendingGrading');
-      if (teacherPendingGrading) teacherPendingGrading.textContent = pendingGrading;
-
-      const teacherStudentCount = document.getElementById('teacherStudentCount');
-      if (teacherStudentCount) teacherStudentCount.textContent = totalStudents;
-
-      const teacherCourseCount = document.getElementById('teacherCourseCount');
-      if (teacherCourseCount) teacherCourseCount.textContent = courseCount;
-
-      // 更新統計卡片
-      const teacherTotalStudents = document.getElementById('teacherTotalStudents');
-      if (teacherTotalStudents) teacherTotalStudents.textContent = totalStudents;
-
-      const teacherActiveCourses = document.getElementById('teacherActiveCourses');
-      if (teacherActiveCourses) teacherActiveCourses.textContent = courseCount;
-
-      // 更新待處理任務區域
-      const pendingAssignments = document.getElementById('pendingAssignments');
-      if (pendingAssignments) pendingAssignments.textContent = pendingGrading;
-
-    } catch (error) {
-      console.error('Update teacher dashboard stats error:', error);
-    }
-  },
-
-  /**
-   * 載入待評分佇列
-   */
-  async loadGradingQueue() {
-    const container = document.getElementById('gradingQueueList');
-    if (!container) return;
-
-    try {
-      const result = await API.assignments.list({ filter: 'pending_grading', limit: 5 });
-
-      if (!result.success) {
-        container.innerHTML = '<p class="empty-state">無法載入待評分項目</p>';
-        return;
-      }
-
-      const assignments = result.data?.assignments || result.data || [];
-
-      if (assignments.length === 0) {
-        container.innerHTML = `
-          <div class="empty-state">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="48" height="48">
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-              <polyline points="22 4 12 14.01 9 11.01"/>
-            </svg>
-            <p>太棒了！目前沒有待評分的作業</p>
-          </div>
-        `;
-        return;
-      }
-
-      let html = '';
-      for (const assignment of assignments) {
-        const pendingCount = assignment.pendingSubmissions || assignment.ungraded || 0;
-        const dueDate = assignment.dueDate ? new Date(assignment.dueDate).toLocaleDateString('zh-TW') : '無截止日期';
-
-        html += `
-          <div class="grading-item" onclick="MoodleUI.openAssignment('${assignment.assignmentId}')">
-            <div class="grading-item-info">
-              <div class="grading-item-title">${assignment.title}</div>
-              <div class="grading-item-meta">
-                <span>${assignment.courseName || '課程'}</span>
-                <span>•</span>
-                <span>截止：${dueDate}</span>
-              </div>
-            </div>
-            <div class="grading-item-count">
-              <span class="count-number">${pendingCount}</span>
-              <span class="count-label">待評分</span>
-            </div>
-          </div>
-        `;
-      }
-
-      container.innerHTML = html;
-
-    } catch (error) {
-      console.error('Load grading queue error:', error);
-      container.innerHTML = '<p class="empty-state">載入失敗</p>';
-    }
-  },
-
-  /**
-   * 載入需關注學生列表
-   */
-  async loadAtRiskStudents() {
-    const container = document.getElementById('studentAlertsList');
-    if (!container) return;
-
-    try {
-      // 嘗試從 API 載入需關注學生
-      // 如果 API 不存在，顯示空狀態
-      let students = [];
-
-      try {
-        const result = await API.request('/api/analytics/at-risk-students', { method: 'GET' });
-        if (result.success && result.data) {
-          students = result.data || [];
-        }
-      } catch (e) {
-        // API 可能不存在，使用空陣列
-      }
-
-      if (students.length === 0) {
-        container.innerHTML = `
-          <div class="empty-state small">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="32" height="32">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-              <circle cx="9" cy="7" r="4"/>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-            </svg>
-            <p>目前沒有需要特別關注的學生</p>
-          </div>
-        `;
-        return;
-      }
-
-      let html = '';
-      for (const student of students.slice(0, 5)) {
-        const alertType = student.riskLevel === 'high' ? 'danger' : 'warning';
-        html += `
-          <div class="student-alert-item ${alertType}">
-            <div class="student-alert-avatar">
-              ${student.name?.charAt(0) || '?'}
-            </div>
-            <div class="student-alert-info">
-              <div class="student-alert-name">${student.name || '未知學生'}</div>
-              <div class="student-alert-reason">${student.reason || '需要關注'}</div>
-            </div>
-            <button class="student-alert-action" onclick="MoodleUI.viewStudentDetail('${student.userId}')">
-              查看
-            </button>
-          </div>
-        `;
-      }
-
-      container.innerHTML = html;
-
-    } catch (error) {
-      console.error('Load at-risk students error:', error);
-      container.innerHTML = '<p class="empty-state small">載入失敗</p>';
-    }
-  },
-
-  /**
-   * 載入最近提交
-   */
-  async loadRecentSubmissions() {
-    const container = document.getElementById('recentSubmissionsList');
-    if (!container) return;
-
-    try {
-      const result = await API.assignments.list({ filter: 'recent_submissions', limit: 5 });
-
-      if (!result.success) {
-        container.innerHTML = '<p class="empty-state small">無法載入</p>';
-        return;
-      }
-
-      const submissions = result.data?.submissions || result.data?.assignments || [];
-
-      if (submissions.length === 0) {
-        container.innerHTML = `
-          <div class="empty-state small">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="32" height="32">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14 2 14 8 20 8"/>
-              <line x1="16" y1="13" x2="8" y2="13"/>
-              <line x1="16" y1="17" x2="8" y2="17"/>
-            </svg>
-            <p>目前沒有新提交</p>
-          </div>
-        `;
-        return;
-      }
-
-      let html = '<div class="recent-submissions-list">';
-      for (const item of submissions.slice(0, 5)) {
-        const submittedAt = item.submittedAt ? new Date(item.submittedAt).toLocaleString('zh-TW', {
-          month: 'short',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
-        }) : '';
-
-        html += `
-          <div class="submission-item" onclick="MoodleUI.openAssignment('${item.assignmentId}')">
-            <div class="submission-student">${item.studentName || '學生'}</div>
-            <div class="submission-assignment">${item.title || item.assignmentTitle || '作業'}</div>
-            <div class="submission-time">${submittedAt}</div>
-          </div>
-        `;
-      }
-      html += '</div>';
-
-      container.innerHTML = html;
-
-    } catch (error) {
-      console.error('Load recent submissions error:', error);
-      container.innerHTML = '<p class="empty-state small">載入失敗</p>';
-    }
-  },
-
-  /**
-   * 查看學生詳情
-   * @param {string} userId - 學生 ID
-   */
-  viewStudentDetail(userId) {
-    // 導航到學生詳情頁面（如果有的話）
-    if (typeof showView === 'function') {
-      window.currentStudentId = userId;
-      showView('studentDetail');
-    } else {
-      showToast('學生詳情功能開發中');
-    }
-  },
-
-  /**
-   * 初始化教師儀表板
-   */
-  async initTeacherDashboard() {
-    // 更新統計數據
-    await this.updateTeacherDashboardStats();
-
-    // 載入待評分佇列
-    await this.loadGradingQueue();
-
-    // 載入需關注學生
-    await this.loadAtRiskStudents();
-
-    // 載入最近提交
-    await this.loadRecentSubmissions();
   },
 
   // ==================== 行事曆系統 ====================
@@ -3192,22 +2122,19 @@ const MoodleUI = {
         return;
       }
 
-      container.innerHTML = events.map(e => {
-        const eventDate = new Date(e.startDate || e.dueDate);
-        const isValidDate = !isNaN(eventDate.getTime());
-        return `
+      container.innerHTML = events.map(e => `
         <div class="event-item">
           <div class="event-date">
-            <span class="day">${isValidDate ? eventDate.getDate() : '-'}</span>
-            <span class="month">${isValidDate ? eventDate.toLocaleDateString('zh-TW', { month: 'short' }) : '-'}</span>
+            <span class="day">${new Date(e.startDate || e.dueDate).getDate()}</span>
+            <span class="month">${new Date(e.startDate || e.dueDate).toLocaleDateString('zh-TW', { month: 'short' })}</span>
           </div>
           <div class="event-info">
             <div class="event-title">${e.title}</div>
             <div class="event-course">${e.courseName || ''}</div>
-            <div class="event-time">${e.type === 'assignment' ? '截止' : ''}：${isValidDate ? eventDate.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' }) : '-'}</div>
+            <div class="event-time">${e.type === 'assignment' ? '截止' : ''}：${new Date(e.startDate || e.dueDate).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' })}</div>
           </div>
         </div>
-      `}).join('');
+      `).join('');
     } catch (error) {
       console.error('Load upcoming events error:', error);
     }
@@ -3366,15 +2293,15 @@ const MoodleUI = {
             </div>
             <div class="info-item">
               <span class="label">可嘗試次數</span>
-              <span class="value">${quiz.maxAttempts === 0 || !quiz.maxAttempts ? '無限' : quiz.maxAttempts} 次</span>
+              <span class="value">${quiz.attempts === 0 ? '無限' : quiz.attempts || 1} 次</span>
             </div>
             <div class="info-item">
               <span class="label">開放時間</span>
-              <span class="value">${quiz.openDate ? MoodleUI.formatDate(quiz.openDate, 'datetime') : '隨時開放'}</span>
+              <span class="value">${quiz.openDate ? new Date(quiz.openDate).toLocaleString('zh-TW') : '隨時開放'}</span>
             </div>
             <div class="info-item">
               <span class="label">截止時間</span>
-              <span class="value">${quiz.closeDate ? MoodleUI.formatDate(quiz.closeDate, 'datetime') : '無限制'}</span>
+              <span class="value">${quiz.closeDate ? new Date(quiz.closeDate).toLocaleString('zh-TW') : '無限制'}</span>
             </div>
           </div>
           ${quiz.myAttempts && quiz.myAttempts.length > 0 ? `
@@ -3393,8 +2320,8 @@ const MoodleUI = {
                   ${quiz.myAttempts.map((a, i) => `
                     <tr>
                       <td>${i + 1}</td>
-                      <td>${MoodleUI.formatDate(a.startedAt, 'datetime')}</td>
-                      <td>${a.completedAt ? MoodleUI.formatDate(a.completedAt, 'datetime') : '-'}</td>
+                      <td>${new Date(a.startedAt).toLocaleString('zh-TW')}</td>
+                      <td>${a.completedAt ? new Date(a.completedAt).toLocaleString('zh-TW') : '-'}</td>
                       <td>${a.score !== undefined ? a.score + ' 分' : '-'}</td>
                     </tr>
                   `).join('')}
@@ -3442,7 +2369,7 @@ const MoodleUI = {
           </div>
           <div class="form-group">
             <label>內容 *</label>
-            <div id="discussionMessageEditor" class="quill-editor-container"></div>
+            <textarea id="discussionMessage" rows="6" placeholder="輸入討論內容"></textarea>
           </div>
         </div>
         <div class="modal-footer">
@@ -3453,14 +2380,6 @@ const MoodleUI = {
     `;
     document.body.appendChild(modal);
     modal.onclick = (e) => { if (e.target === modal) this.closeModal('newDiscussionModal'); };
-
-    // 初始化討論內容編輯器
-    setTimeout(() => {
-      this.initEditor('discussionMessageEditor', {
-        placeholder: '輸入討論內容...',
-        config: 'default'
-      });
-    }, 100);
   },
 
   /**
@@ -3468,11 +2387,9 @@ const MoodleUI = {
    */
   async submitNewDiscussion(forumId) {
     const subject = document.getElementById('discussionSubject').value.trim();
-    // 從 Quill 編輯器取得內容
-    const editorContent = this.getEditorContent('discussionMessageEditor');
-    const message = editorContent?.html || '';
+    const message = document.getElementById('discussionMessage').value.trim();
 
-    if (!subject || !message.trim()) {
+    if (!subject || !message) {
       showToast('請填寫主題和內容');
       return;
     }
@@ -3518,7 +2435,7 @@ const MoodleUI = {
                 <div class="post-avatar">${(discussion.authorName || 'U')[0]}</div>
                 <div class="post-meta">
                   <span class="author-name">${discussion.authorName}</span>
-                  <span class="post-time">${MoodleUI.formatDate(discussion.createdAt, 'datetime')}</span>
+                  <span class="post-time">${new Date(discussion.createdAt).toLocaleString('zh-TW')}</span>
                 </div>
               </div>
               <h2 class="post-title">${discussion.subject}</h2>
@@ -3533,7 +2450,7 @@ const MoodleUI = {
                     <div class="post-avatar">${(p.authorName || 'U')[0]}</div>
                     <div class="post-meta">
                       <span class="author-name">${p.authorName}</span>
-                      <span class="post-time">${MoodleUI.formatDate(p.createdAt, 'datetime')}</span>
+                      <span class="post-time">${new Date(p.createdAt).toLocaleString('zh-TW')}</span>
                     </div>
                   </div>
                   <div class="post-content">${p.message}</div>
@@ -3553,23 +2470,13 @@ const MoodleUI = {
             ${!discussion.locked ? `
               <div class="reply-form">
                 <h4>發表回覆</h4>
-                <div id="replyMessageEditor" class="quill-editor-container quill-editor-simple"></div>
+                <textarea id="replyMessage" rows="4" placeholder="輸入回覆內容..."></textarea>
                 <button onclick="MoodleUI.submitReply('${forumId}', '${discussionId}')" class="btn-primary">發表回覆</button>
               </div>
             ` : '<div class="locked-notice">此討論已鎖定，無法回覆</div>'}
           </div>
         </div>
       `;
-
-      // 初始化回覆編輯器 (如果討論未鎖定)
-      if (!discussion.locked) {
-        setTimeout(() => {
-          this.initEditor('replyMessageEditor', {
-            placeholder: '輸入回覆內容...',
-            config: 'simple'
-          });
-        }, 100);
-      }
     } catch (error) {
       console.error('Open discussion error:', error);
       showToast('載入討論失敗');
@@ -3580,11 +2487,8 @@ const MoodleUI = {
    * 提交回覆
    */
   async submitReply(forumId, discussionId) {
-    // 從 Quill 編輯器取得內容
-    const editorContent = this.getEditorContent('replyMessageEditor');
-    const message = editorContent?.html || '';
-
-    if (!message.trim()) {
+    const message = document.getElementById('replyMessage').value.trim();
+    if (!message) {
       showToast('請輸入回覆內容');
       return;
     }
@@ -3742,7 +2646,7 @@ const MoodleUI = {
    * 開啟通知
    */
   async openNotification(notificationId) {
-    await API.notifications.markRead(notificationId);
+    await API.notifications.markAsRead(notificationId);
     this.loadNotifications();
   },
 
@@ -3751,7 +2655,7 @@ const MoodleUI = {
    */
   async markAllNotificationsRead() {
     try {
-      await API.notifications.markAllRead();
+      await API.notifications.markAllAsRead();
       showToast('已全部標為已讀');
       this.loadNotifications();
     } catch (error) {
@@ -3780,59 +2684,41 @@ const MoodleUI = {
    * 開啟完整成績簿管理頁面（教師專用）
    */
   async openGradebookManagement(courseId) {
+    if (!courseId) {
+      courseId = this.currentCourseId || this.currentGradebookCourseId;
+      if (!courseId) {
+        const container = document.getElementById('gradebookManagementContent');
+        if (!container) return;
+        showView('gradebookManagement');
+        container.innerHTML = '<div class="loading">載入課程列表...</div>';
+        try {
+          const result = await API.courses.list();
+          const courses = result.success ? (Array.isArray(result.data) ? result.data : (result.data?.courses || [])) : [];
+          container.innerHTML = `
+            <div class="page-header"><h2>成績簿管理</h2><p>請選擇一門課程以管理成績</p></div>
+            <div class="card-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;padding:1rem 0;">
+              ${courses.length === 0 ? '<p style="color:var(--gray-400);grid-column:1/-1;text-align:center;padding:2rem;">尚無可用課程</p>' :
+                courses.map(c => `
+                  <div class="card" style="padding:1.5rem;border:1px solid var(--gray-200);border-radius:8px;cursor:pointer;transition:box-shadow 0.2s;"
+                       onclick="MoodleUI.openGradebookManagement('${c.courseId || c.id}')"
+                       onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow='none'">
+                    <h3 style="margin:0 0 0.5rem;font-size:1.1rem;">${c.title || c.name || '未命名課程'}</h3>
+                    <p style="margin:0;color:var(--gray-400);font-size:0.9rem;">${c.shortName || c.category || ''}</p>
+                  </div>
+                `).join('')}
+            </div>`;
+        } catch (error) {
+          container.innerHTML = '<div class="error">載入課程列表失敗</div>';
+        }
+        return;
+      }
+    }
+    this.currentGradebookCourseId = courseId;
     const container = document.getElementById('gradebookManagementContent');
     if (!container) return;
 
-    showView('gradebookManagement');
-
-    // 如果沒有指定課程，顯示課程選擇頁面
-    if (!courseId) {
-      container.innerHTML = '<div class="loading">載入課程列表...</div>';
-      try {
-        const result = await API.courses.list({ role: 'teacher' });
-        const courses = result.success ? (result.data || []) : [];
-
-        if (courses.length === 0) {
-          container.innerHTML = `
-            <div class="empty-state">
-              <svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="currentColor" stroke-width="1.5">
-                <path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>
-              </svg>
-              <h3>沒有課程</h3>
-              <p>您目前沒有任何課程的教師權限</p>
-            </div>
-          `;
-          return;
-        }
-
-        container.innerHTML = `
-          <div class="gradebook-course-select">
-            <h2>選擇課程</h2>
-            <p>請選擇要管理成績的課程</p>
-            <div class="course-grid">
-              ${courses.map(course => `
-                <div class="course-card" onclick="MoodleUI.openGradebookManagement('${course.courseId}')">
-                  <div class="course-icon" style="background: linear-gradient(135deg, var(--olive-500), var(--olive-600))">
-                    <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="white" stroke-width="2">
-                      <path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>
-                    </svg>
-                  </div>
-                  <h3>${course.title}</h3>
-                  <p>${course.studentCount || 0} 位學生</p>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-        `;
-      } catch (error) {
-        console.error('Load courses for gradebook error:', error);
-        container.innerHTML = '<div class="error">載入課程失敗</div>';
-      }
-      return;
-    }
-
-    this.currentGradebookCourseId = courseId;
     container.innerHTML = '<div class="loading">載入中...</div>';
+    showView('gradebookManagement');
 
     try {
       const [gradebookResult, categoriesResult, settingsResult] = await Promise.all([
@@ -4068,9 +2954,8 @@ const MoodleUI = {
     try {
       const result = await API.gradebook.updateGrade(
         this.currentGradebookCourseId,
-        studentId,
         itemId,
-        { score: newValue ? parseFloat(newValue) : null }
+        { grades: [{ studentId, grade: newValue ? parseFloat(newValue) : null }] }
       );
 
       if (result.success) {
@@ -4562,130 +3447,6 @@ const MoodleUI = {
   },
 
   /**
-   * 開啟類別管理 Modal
-   */
-  async openCategoryManageModal() {
-    const modal = document.createElement('div');
-    modal.id = 'categoryManageModal';
-    modal.className = 'modal-overlay';
-
-    // 載入類別
-    const result = await API.questionBank.getCategories();
-    const categories = result.success ? result.data : [];
-
-    modal.innerHTML = `
-      <div class="modal-content modal-md">
-        <div class="modal-header">
-          <h3>管理題目類別</h3>
-          <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">&times;</button>
-        </div>
-        <div class="modal-body">
-          <div class="category-form">
-            <div class="form-row">
-              <input type="text" id="newCategoryName" placeholder="輸入新類別名稱..." class="form-input">
-              <button onclick="MoodleUI.createQuestionCategory()" class="btn-primary btn-sm">新增類別</button>
-            </div>
-          </div>
-          <div class="category-list" style="margin-top: 1rem; max-height: 300px; overflow-y: auto;">
-            ${categories.length === 0 ? '<p class="text-muted">尚無類別</p>' : categories.map(cat => `
-              <div class="category-list-item" data-id="${cat.categoryId}" style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem; border-bottom: 1px solid var(--gray-200);">
-                <span>${cat.name}</span>
-                <div class="item-actions">
-                  <button onclick="MoodleUI.editQuestionCategory('${cat.categoryId}', '${cat.name}')" class="btn-icon" title="編輯">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                  </button>
-                  <button onclick="MoodleUI.deleteQuestionCategory('${cat.categoryId}')" class="btn-icon btn-danger" title="刪除">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
-                  </button>
-                </div>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button onclick="this.closest('.modal-overlay').remove()" class="btn-secondary">關閉</button>
-        </div>
-      </div>
-    `;
-
-    document.body.appendChild(modal);
-    modal.querySelector('#newCategoryName')?.focus();
-  },
-
-  /**
-   * 新增題目類別
-   */
-  async createQuestionCategory() {
-    const nameInput = document.getElementById('newCategoryName');
-    const name = nameInput?.value?.trim();
-
-    if (!name) {
-      showToast('請輸入類別名稱');
-      return;
-    }
-
-    try {
-      const result = await API.questionBank.createCategory({ name });
-      if (result.success) {
-        showToast('類別已建立');
-        document.getElementById('categoryManageModal')?.remove();
-        await this.openCategoryManageModal();
-        await this.openQuestionBank();
-      } else {
-        showToast(result.message || '建立類別失敗');
-      }
-    } catch (error) {
-      console.error('Create category error:', error);
-      showToast('建立類別時發生錯誤');
-    }
-  },
-
-  /**
-   * 編輯題目類別
-   */
-  async editQuestionCategory(categoryId, currentName) {
-    const newName = prompt('請輸入新的類別名稱:', currentName);
-    if (!newName || newName.trim() === currentName) return;
-
-    try {
-      const result = await API.questionBank.updateCategory(categoryId, { name: newName.trim() });
-      if (result.success) {
-        showToast('類別已更新');
-        document.getElementById('categoryManageModal')?.remove();
-        await this.openCategoryManageModal();
-        await this.openQuestionBank();
-      } else {
-        showToast(result.message || '更新類別失敗');
-      }
-    } catch (error) {
-      console.error('Update category error:', error);
-      showToast('更新類別時發生錯誤');
-    }
-  },
-
-  /**
-   * 刪除題目類別
-   */
-  async deleteQuestionCategory(categoryId) {
-    if (!confirm('確定要刪除此類別嗎？類別內的題目不會被刪除，但會失去類別關聯。')) return;
-
-    try {
-      const result = await API.questionBank.deleteCategory(categoryId);
-      if (result.success) {
-        showToast('類別已刪除');
-        document.getElementById('categoryManageModal')?.remove();
-        await this.openCategoryManageModal();
-        await this.openQuestionBank();
-      } else {
-        showToast(result.message || '刪除類別失敗');
-      }
-    } catch (error) {
-      console.error('Delete category error:', error);
-      showToast('刪除類別時發生錯誤');
-    }
-  },
-
-  /**
    * 開啟新增題目 Modal
    */
   openCreateQuestionModal() {
@@ -4920,309 +3681,6 @@ const MoodleUI = {
   },
 
   /**
-   * 預覽題目
-   */
-  async previewQuestion(questionId) {
-    if (!questionId || questionId === 'undefined') {
-      showToast('請先選擇題目');
-      return;
-    }
-
-    try {
-      const result = await API.questionBank.get(questionId);
-      if (!result.success) {
-        showToast('載入題目失敗');
-        return;
-      }
-
-      const question = result.data;
-      const questionTypes = {
-        'multiple_choice': '選擇題',
-        'true_false': '是非題',
-        'short_answer': '簡答題',
-        'essay': '申論題',
-        'matching': '配對題',
-        'fill_blank': '填空題'
-      };
-
-      const modal = document.createElement('div');
-      modal.id = 'questionPreviewModal';
-      modal.className = 'modal-overlay';
-
-      modal.innerHTML = `
-        <div class="modal-content modal-lg">
-          <div class="modal-header">
-            <h3>題目預覽</h3>
-            <button onclick="MoodleUI.closeModal('questionPreviewModal')" class="modal-close">&times;</button>
-          </div>
-          <div class="modal-body">
-            <div class="question-preview">
-              <div class="question-preview-meta">
-                <span class="question-type">${questionTypes[question.type] || question.type}</span>
-                ${question.category ? `<span class="question-category">${question.category}</span>` : ''}
-                <span class="question-difficulty difficulty-${question.difficulty || 'medium'}">
-                  ${question.difficulty === 'easy' ? '簡單' : question.difficulty === 'hard' ? '困難' : '中等'}
-                </span>
-                ${question.points ? `<span class="question-points">${question.points} 分</span>` : ''}
-              </div>
-              <div class="question-preview-text">
-                <p>${question.questionText}</p>
-              </div>
-              ${question.type === 'multiple_choice' && question.options ? `
-                <ul class="question-preview-options">
-                  ${question.options.map((opt, i) => `
-                    <li class="${question.correctAnswer === i ? 'correct-answer' : ''}">
-                      <span class="option-letter">${String.fromCharCode(65 + i)}</span>
-                      <span class="option-text">${opt}</span>
-                      ${question.correctAnswer === i ? '<span class="correct-badge">✓ 正確答案</span>' : ''}
-                    </li>
-                  `).join('')}
-                </ul>
-              ` : ''}
-              ${question.type === 'true_false' ? `
-                <div class="true-false-answer">
-                  <p>正確答案: <strong>${question.correctAnswer === true || question.correctAnswer === 'true' ? '是' : '否'}</strong></p>
-                </div>
-              ` : ''}
-              ${question.type === 'short_answer' || question.type === 'fill_blank' ? `
-                <div class="short-answer">
-                  <p>參考答案: <strong>${question.correctAnswer || '無'}</strong></p>
-                </div>
-              ` : ''}
-              ${question.explanation ? `
-                <div class="question-explanation">
-                  <h4>解答說明</h4>
-                  <p>${question.explanation}</p>
-                </div>
-              ` : ''}
-              ${question.tags && question.tags.length ? `
-                <div class="question-tags">
-                  ${question.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
-                </div>
-              ` : ''}
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button onclick="MoodleUI.closeModal('questionPreviewModal')" class="btn-secondary">關閉</button>
-            <button onclick="MoodleUI.closeModal('questionPreviewModal'); MoodleUI.editQuestion('${questionId}')" class="btn-primary">編輯題目</button>
-          </div>
-        </div>
-      `;
-
-      document.body.appendChild(modal);
-      modal.onclick = (e) => { if (e.target === modal) this.closeModal('questionPreviewModal'); };
-    } catch (error) {
-      console.error('Preview question error:', error);
-      showToast('載入題目失敗');
-    }
-  },
-
-  /**
-   * 編輯題目
-   */
-  async editQuestion(questionId) {
-    if (!questionId || questionId === 'undefined') {
-      showToast('請先選擇題目');
-      return;
-    }
-
-    try {
-      const result = await API.questionBank.get(questionId);
-      if (!result.success) {
-        showToast('載入題目失敗');
-        return;
-      }
-
-      const question = result.data;
-
-      // 載入類別列表
-      const catResult = await API.questionBank.getCategories();
-      const categories = catResult.success ? catResult.data : [];
-
-      const modal = document.createElement('div');
-      modal.id = 'editQuestionModal';
-      modal.className = 'modal-overlay';
-
-      modal.innerHTML = `
-        <div class="modal-content modal-lg">
-          <div class="modal-header">
-            <h3>編輯題目</h3>
-            <button onclick="MoodleUI.closeModal('editQuestionModal')" class="modal-close">&times;</button>
-          </div>
-          <div class="modal-body">
-            <div class="form-group">
-              <label>題目類型</label>
-              <select id="editQuestionType" class="form-control" onchange="MoodleUI.toggleEditQuestionTypeOptions()">
-                <option value="multiple_choice" ${question.type === 'multiple_choice' ? 'selected' : ''}>選擇題</option>
-                <option value="true_false" ${question.type === 'true_false' ? 'selected' : ''}>是非題</option>
-                <option value="short_answer" ${question.type === 'short_answer' ? 'selected' : ''}>簡答題</option>
-                <option value="essay" ${question.type === 'essay' ? 'selected' : ''}>申論題</option>
-                <option value="fill_blank" ${question.type === 'fill_blank' ? 'selected' : ''}>填空題</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>類別</label>
-              <select id="editQuestionCategory" class="form-control">
-                <option value="">未分類</option>
-                ${categories.map(cat => `
-                  <option value="${cat.categoryId}" ${question.categoryId === cat.categoryId ? 'selected' : ''}>${cat.name}</option>
-                `).join('')}
-              </select>
-            </div>
-            <div class="form-group">
-              <label>題目內容 *</label>
-              <textarea id="editQuestionText" class="form-control" rows="3">${question.questionText || ''}</textarea>
-            </div>
-            <div id="editQuestionOptionsContainer" class="form-group" style="${question.type === 'multiple_choice' ? '' : 'display:none'}">
-              <label>選項</label>
-              <div id="editQuestionOptions">
-                ${(question.options || ['', '', '', '']).map((opt, i) => `
-                  <div class="option-input">
-                    <input type="radio" name="editCorrectAnswer" value="${i}" ${question.correctAnswer === i ? 'checked' : ''}>
-                    <input type="text" class="form-control" value="${opt}" placeholder="選項 ${i + 1}">
-                  </div>
-                `).join('')}
-              </div>
-              <button type="button" class="btn-sm" onclick="MoodleUI.addEditQuestionOption()">+ 新增選項</button>
-            </div>
-            <div id="editTrueFalseContainer" class="form-group" style="${question.type === 'true_false' ? '' : 'display:none'}">
-              <label>正確答案</label>
-              <select id="editTrueFalseAnswer" class="form-control">
-                <option value="true" ${question.correctAnswer === true || question.correctAnswer === 'true' ? 'selected' : ''}>是</option>
-                <option value="false" ${question.correctAnswer === false || question.correctAnswer === 'false' ? 'selected' : ''}>否</option>
-              </select>
-            </div>
-            <div id="editShortAnswerContainer" class="form-group" style="${question.type === 'short_answer' || question.type === 'fill_blank' ? '' : 'display:none'}">
-              <label>參考答案</label>
-              <input type="text" id="editShortAnswer" class="form-control" value="${question.correctAnswer || ''}">
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label>難度</label>
-                <select id="editQuestionDifficulty" class="form-control">
-                  <option value="easy" ${question.difficulty === 'easy' ? 'selected' : ''}>簡單</option>
-                  <option value="medium" ${question.difficulty === 'medium' ? 'selected' : ''}>中等</option>
-                  <option value="hard" ${question.difficulty === 'hard' ? 'selected' : ''}>困難</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>分數</label>
-                <input type="number" id="editQuestionPoints" class="form-control" value="${question.points || 1}" min="1">
-              </div>
-            </div>
-            <div class="form-group">
-              <label>解答說明</label>
-              <textarea id="editQuestionExplanation" class="form-control" rows="2">${question.explanation || ''}</textarea>
-            </div>
-            <div class="form-group">
-              <label>標籤 (以逗號分隔)</label>
-              <input type="text" id="editQuestionTags" class="form-control" value="${(question.tags || []).join(', ')}">
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button onclick="MoodleUI.closeModal('editQuestionModal')" class="btn-secondary">取消</button>
-            <button onclick="MoodleUI.updateQuestion('${questionId}')" class="btn-primary">儲存變更</button>
-          </div>
-        </div>
-      `;
-
-      document.body.appendChild(modal);
-      modal.onclick = (e) => { if (e.target === modal) this.closeModal('editQuestionModal'); };
-    } catch (error) {
-      console.error('Edit question error:', error);
-      showToast('載入題目失敗');
-    }
-  },
-
-  /**
-   * 切換編輯題目類型選項
-   */
-  toggleEditQuestionTypeOptions() {
-    const type = document.getElementById('editQuestionType').value;
-    document.getElementById('editQuestionOptionsContainer').style.display = type === 'multiple_choice' ? '' : 'none';
-    document.getElementById('editTrueFalseContainer').style.display = type === 'true_false' ? '' : 'none';
-    document.getElementById('editShortAnswerContainer').style.display = (type === 'short_answer' || type === 'fill_blank') ? '' : 'none';
-  },
-
-  /**
-   * 新增編輯題目選項
-   */
-  addEditQuestionOption() {
-    const container = document.getElementById('editQuestionOptions');
-    const optionCount = container.children.length;
-    const div = document.createElement('div');
-    div.className = 'option-input';
-    div.innerHTML = `
-      <input type="radio" name="editCorrectAnswer" value="${optionCount}">
-      <input type="text" class="form-control" placeholder="選項 ${optionCount + 1}">
-      <button type="button" class="btn-icon btn-danger" onclick="this.parentElement.remove()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-      </button>
-    `;
-    container.appendChild(div);
-  },
-
-  /**
-   * 更新題目
-   */
-  async updateQuestion(questionId) {
-    const type = document.getElementById('editQuestionType').value;
-    const questionText = document.getElementById('editQuestionText').value.trim();
-    const categoryId = document.getElementById('editQuestionCategory').value;
-    const difficulty = document.getElementById('editQuestionDifficulty').value;
-    const points = parseInt(document.getElementById('editQuestionPoints').value) || 1;
-    const explanation = document.getElementById('editQuestionExplanation').value.trim();
-    const tagsInput = document.getElementById('editQuestionTags').value.trim();
-    const tags = tagsInput ? tagsInput.split(',').map(t => t.trim()).filter(t => t) : [];
-
-    if (!questionText) {
-      showToast('請輸入題目內容');
-      return;
-    }
-
-    let correctAnswer;
-    let options;
-
-    if (type === 'multiple_choice') {
-      const optionInputs = document.querySelectorAll('#editQuestionOptions .option-input');
-      options = Array.from(optionInputs).map(div => div.querySelector('input[type="text"]').value);
-      const selectedRadio = document.querySelector('input[name="editCorrectAnswer"]:checked');
-      correctAnswer = selectedRadio ? parseInt(selectedRadio.value) : 0;
-    } else if (type === 'true_false') {
-      correctAnswer = document.getElementById('editTrueFalseAnswer').value === 'true';
-    } else if (type === 'short_answer' || type === 'fill_blank') {
-      correctAnswer = document.getElementById('editShortAnswer').value.trim();
-    }
-
-    try {
-      const result = await API.questionBank.update(questionId, {
-        type,
-        questionText,
-        categoryId: categoryId || undefined,
-        options,
-        correctAnswer,
-        difficulty,
-        points,
-        explanation,
-        tags
-      });
-
-      if (result.success) {
-        showToast('題目已更新');
-        this.closeModal('editQuestionModal');
-        this.openQuestionBank();
-      } else {
-        showToast(result.message || '更新失敗');
-      }
-    } catch (error) {
-      console.error('Update question error:', error);
-      showToast('更新題目失敗');
-    }
-  },
-
-  /**
    * 匯出題目
    */
   async exportQuestions() {
@@ -5246,233 +3704,51 @@ const MoodleUI = {
     }
   },
 
-  /**
-   * 開啟匯入題目對話框
-   */
-  openImportQuestionsModal() {
-    const modal = document.createElement('div');
-    modal.id = 'importQuestionsModal';
-    modal.className = 'modal-overlay';
-
-    modal.innerHTML = `
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3>匯入題目</h3>
-          <button onclick="MoodleUI.closeModal('importQuestionsModal')" class="modal-close">&times;</button>
-        </div>
-        <div class="modal-body">
-          <div class="form-group">
-            <label>匯入類別</label>
-            <select id="importCategoryId">
-              <option value="">預設類別</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>選擇檔案 (JSON 格式)</label>
-            <input type="file" id="importQuestionsFile" accept=".json" class="form-control">
-          </div>
-          <div class="import-preview" id="importPreview" style="display:none;">
-            <h4>預覽</h4>
-            <div id="importPreviewContent"></div>
-          </div>
-          <div class="form-help">
-            <strong>JSON 格式範例：</strong>
-            <pre style="font-size:12px; background:#f5f5f5; padding:10px; border-radius:4px; overflow:auto;">
-{
-  "questions": [
-    {
-      "type": "multiple_choice",
-      "title": "問題標題",
-      "content": "問題內容",
-      "options": [
-        {"id": "a", "text": "選項A", "isCorrect": false},
-        {"id": "b", "text": "選項B", "isCorrect": true}
-      ],
-      "points": 10,
-      "difficulty": "medium"
-    }
-  ]
-}</pre>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button onclick="MoodleUI.closeModal('importQuestionsModal')" class="btn-secondary">取消</button>
-          <button onclick="MoodleUI.executeImportQuestions()" class="btn-primary" id="importQuestionsBtn" disabled>匯入</button>
-        </div>
-      </div>
-    `;
-
-    document.body.appendChild(modal);
-
-    // 載入類別選項
-    this.loadImportCategoryOptions();
-
-    // 綁定檔案選擇事件
-    document.getElementById('importQuestionsFile').onchange = (e) => {
-      this.previewImportQuestions(e.target.files[0]);
-    };
-
-    modal.onclick = (e) => { if (e.target === modal) this.closeModal('importQuestionsModal'); };
-  },
-
-  /**
-   * 載入匯入類別選項
-   */
-  async loadImportCategoryOptions() {
-    try {
-      const result = await API.questionBank.getCategories();
-      if (result.success) {
-        const select = document.getElementById('importCategoryId');
-        result.data.forEach(cat => {
-          const option = document.createElement('option');
-          option.value = cat.id;
-          option.textContent = cat.name;
-          select.appendChild(option);
-        });
-      }
-    } catch (error) {
-      console.error('Load import categories error:', error);
-    }
-  },
-
-  /**
-   * 預覽匯入的題目
-   */
-  async previewImportQuestions(file) {
-    if (!file) return;
-
-    try {
-      const text = await file.text();
-      const data = JSON.parse(text);
-
-      if (!data.questions || !Array.isArray(data.questions)) {
-        showToast('無效的 JSON 格式：缺少 questions 陣列');
-        return;
-      }
-
-      const preview = document.getElementById('importPreview');
-      const content = document.getElementById('importPreviewContent');
-
-      content.innerHTML = `
-        <p>將匯入 <strong>${data.questions.length}</strong> 題</p>
-        <ul style="max-height:200px; overflow:auto;">
-          ${data.questions.slice(0, 10).map(q => `
-            <li><strong>${q.type || 'unknown'}</strong>: ${q.title || q.content?.substring(0, 50) || '無標題'}</li>
-          `).join('')}
-          ${data.questions.length > 10 ? `<li>... 還有 ${data.questions.length - 10} 題</li>` : ''}
-        </ul>
-      `;
-
-      preview.style.display = 'block';
-      document.getElementById('importQuestionsBtn').disabled = false;
-
-      // 暫存資料
-      this._importData = data;
-    } catch (error) {
-      console.error('Parse import file error:', error);
-      showToast('檔案解析失敗：' + error.message);
-    }
-  },
-
-  /**
-   * 執行匯入題目
-   */
-  async executeImportQuestions() {
-    if (!this._importData) {
-      showToast('請先選擇檔案');
-      return;
-    }
-
-    const categoryId = document.getElementById('importCategoryId').value;
-
-    try {
-      const result = await API.questionBank.import({
-        questions: this._importData.questions,
-        categoryId: categoryId || undefined
-      });
-
-      if (result.success) {
-        showToast(result.message || `成功匯入 ${result.data?.imported || 0} 題`);
-        this.closeModal('importQuestionsModal');
-        this._importData = null;
-        await this.openQuestionBank(); // 重新載入題庫
-      } else {
-        showToast(result.message || '匯入失敗');
-      }
-    } catch (error) {
-      console.error('Import questions error:', error);
-      showToast('匯入失敗');
-    }
-  },
-
   // ==================== 課程完成條件系統 ====================
 
   /**
    * 開啟課程完成設定（教師）
    */
   async openCourseCompletionSettings(courseId) {
-    // 如果沒有提供課程 ID，顯示課程選擇頁面
     if (!courseId) {
-      const container = document.getElementById('courseCompletionSettingsContent');
-      if (!container) return;
-
-      container.innerHTML = '<div class="loading-container"><div class="loading-spinner"></div><p>載入課程列表...</p></div>';
-
-      try {
-        const result = await API.courses.list();
-        const courses = result.success ? result.data.filter(c => c.role === 'teacher' || c.isCreator) : [];
-
-        container.innerHTML = `
-          <div class="completion-settings-page">
-            <div class="page-header-modern">
-              <div class="header-content">
-                <h2>課程完成設定</h2>
-                <p>選擇課程以設定完成條件</p>
+      courseId = this.currentCourseId;
+      if (!courseId) {
+        // 顯示課程選擇器 modal
+        let courseOptions = '';
+        try {
+          const result = await API.courses.list();
+          const courses = result.success ? (Array.isArray(result.data) ? result.data : (result.data?.courses || [])) : [];
+          courses.forEach(c => {
+            courseOptions += `<option value="${c.courseId || c.id}">${c.title || c.name}</option>`;
+          });
+        } catch (e) { /* ignore */ }
+        if (!courseOptions) { showToast('尚無可用課程'); return; }
+        const selectorModal = document.createElement('div');
+        selectorModal.id = 'courseSelectForCompletionModal';
+        selectorModal.className = 'modal-overlay';
+        selectorModal.innerHTML = `
+          <div class="modal-content">
+            <div class="modal-header">
+              <h3>選擇課程</h3>
+              <button onclick="MoodleUI.closeModal('courseSelectForCompletionModal')" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+              <div class="form-group">
+                <label>請選擇要設定完成條件的課程</label>
+                <select id="completionCourseSelect">${courseOptions}</select>
               </div>
             </div>
-            <div class="courses-grid">
-              ${courses.length === 0 ? `
-                <div class="empty-state">
-                  <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path d="M12 14l9-5-9-5-9 5 9 5z"/>
-                    <path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/>
-                  </svg>
-                  <h3>沒有可管理的課程</h3>
-                  <p>您需要是課程的教師才能設定完成條件</p>
-                </div>
-              ` : courses.map(course => `
-                <div class="course-card" onclick="MoodleUI.openCourseCompletionSettingsModal('${course.courseId}')">
-                  <div class="card-cover" style="background: linear-gradient(135deg, var(--olive) 0%, var(--olive-deep) 100%);">
-                    <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="white" stroke-width="1.5">
-                      <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
-                      <polyline points="22,4 12,14.01 9,11.01"/>
-                    </svg>
-                  </div>
-                  <div class="card-body">
-                    <h3>${course.title}</h3>
-                    <p class="text-muted">${course.category || '未分類'}</p>
-                  </div>
-                </div>
-              `).join('')}
+            <div class="modal-footer">
+              <button onclick="MoodleUI.closeModal('courseSelectForCompletionModal')" class="btn-secondary">取消</button>
+              <button onclick="MoodleUI.closeModal('courseSelectForCompletionModal');MoodleUI.openCourseCompletionSettings(document.getElementById('completionCourseSelect').value)" class="btn-primary">確認</button>
             </div>
           </div>
         `;
-        return;
-      } catch (error) {
-        console.error('Load courses error:', error);
-        container.innerHTML = '<div class="error-state"><p>載入課程失敗</p></div>';
+        document.body.appendChild(selectorModal);
+        selectorModal.onclick = (e) => { if (e.target === selectorModal) this.closeModal('courseSelectForCompletionModal'); };
         return;
       }
     }
-
-    // 有課程 ID 時打開 modal
-    this.openCourseCompletionSettingsModal(courseId);
-  },
-
-  /**
-   * 開啟課程完成設定 Modal
-   */
-  async openCourseCompletionSettingsModal(courseId) {
     const modal = document.createElement('div');
     modal.id = 'courseCompletionModal';
     modal.className = 'modal-overlay';
@@ -5859,7 +4135,7 @@ const MoodleUI = {
             </div>
             <div class="info-row">
               <span class="label">建立時間</span>
-              <span class="value">${MoodleUI.formatDate(role.createdAt)}</span>
+              <span class="value">${new Date(role.createdAt).toLocaleDateString('zh-TW')}</span>
             </div>
           </div>
 
@@ -6203,7 +4479,7 @@ const MoodleUI = {
             </div>
             <div class="info-row">
               <span class="label">建立時間</span>
-              <span class="value">${MoodleUI.formatDate(category.createdAt)}</span>
+              <span class="value">${new Date(category.createdAt).toLocaleDateString('zh-TW')}</span>
             </div>
           </div>
 
@@ -6445,914 +4721,6 @@ const MoodleUI = {
     }
   },
 
-  // ==================== 學習路徑系統 ====================
-
-  /**
-   * 開啟學習路徑頁面
-   */
-  async openLearningPaths() {
-    const container = document.getElementById('learningPathsContent');
-    if (!container) return;
-    container.innerHTML = '<div class="loading-container"><div class="loading-spinner"></div><p>載入學習路徑中...</p></div>';
-
-    try {
-      const result = await API.learningPaths.list();
-      const paths = result.success ? result.data : [];
-
-      container.innerHTML = `
-        <div class="learning-paths-page">
-          <div class="page-header-modern">
-            <div class="header-content">
-              <h2>學習路徑</h2>
-              <p>系統化的學習計劃，幫助您有序地掌握技能</p>
-            </div>
-            ${API.isAdmin() ? `
-            <div class="header-actions">
-              <button class="btn-primary" onclick="MoodleUI.openCreateLearningPathModal()">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
-                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                </svg>
-                建立學習路徑
-              </button>
-            </div>
-            ` : ''}
-          </div>
-
-          <div class="learning-paths-grid">
-            ${paths.length === 0 ? `
-              <div class="empty-state">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="64" height="64">
-                  <path d="M18 10h-4v4h4v-4z"/>
-                  <path d="M22 2H2v20h20V2z"/>
-                  <path d="M6 6h4v4H6V6z"/>
-                  <path d="M6 14h4v4H6v-4z"/>
-                </svg>
-                <h3>尚無學習路徑</h3>
-                <p>系統還沒有建立學習路徑</p>
-              </div>
-            ` : paths.map(path => this.renderLearningPathCard(path)).join('')}
-          </div>
-        </div>
-      `;
-    } catch (error) {
-      console.error('Load learning paths error:', error);
-      container.innerHTML = '<div class="error-state">載入學習路徑失敗</div>';
-    }
-  },
-
-  /**
-   * 渲染學習路徑卡片
-   */
-  renderLearningPathCard(path) {
-    const difficultyLabels = {
-      beginner: { text: '入門', class: 'easy' },
-      intermediate: { text: '進階', class: 'medium' },
-      advanced: { text: '高級', class: 'hard' }
-    };
-    const diff = difficultyLabels[path.difficulty] || difficultyLabels.beginner;
-
-    return `
-      <div class="learning-path-card" onclick="MoodleUI.openLearningPathDetail('${path.id}')">
-        <div class="path-thumbnail">
-          <img src="${path.thumbnail || '/images/default-path.jpg'}" alt="${path.name}" onerror="this.src='/images/default-path.jpg'">
-          <span class="difficulty-badge ${diff.class}">${diff.text}</span>
-        </div>
-        <div class="path-content">
-          <h3>${path.name}</h3>
-          <p>${path.description}</p>
-          <div class="path-meta">
-            <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M12 6v6l4 2"/><circle cx="12" cy="12" r="10"/></svg> ${path.estimatedDuration || 0} 小時</span>
-            <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> ${path.totalCourses || 0} 門課程</span>
-          </div>
-          <div class="path-stats">
-            <span>${path.enrolledCount || 0} 人學習中</span>
-            <span>${path.completedCount || 0} 人已完成</span>
-          </div>
-        </div>
-      </div>
-    `;
-  },
-
-  /**
-   * 開啟學習路徑詳情
-   */
-  async openLearningPathDetail(pathId) {
-    const container = document.getElementById('learningPathsContent');
-    if (!container) return;
-    container.innerHTML = '<div class="loading-container"><div class="loading-spinner"></div></div>';
-
-    try {
-      const result = await API.learningPaths.get(pathId);
-      if (!result.success) {
-        showToast('載入學習路徑失敗');
-        return;
-      }
-
-      const path = result.data;
-      container.innerHTML = `
-        <div class="learning-path-detail">
-          <div class="path-header">
-            <button class="btn-back" onclick="MoodleUI.openLearningPaths()">← 返回學習路徑</button>
-            <h2>${path.name}</h2>
-            <p>${path.description}</p>
-            ${path.userEnrolled ? `
-              <div class="progress-section">
-                <div class="progress-bar">
-                  <div class="progress-fill" style="width: ${path.userProgress || 0}%"></div>
-                </div>
-                <span class="progress-text">${path.userProgress || 0}% 完成</span>
-              </div>
-            ` : `
-              <button class="btn-primary" onclick="MoodleUI.enrollLearningPath('${path.id}')">開始學習路徑</button>
-            `}
-          </div>
-
-          <div class="path-courses">
-            <h3>課程內容</h3>
-            ${path.courses.map((course, idx) => `
-              <div class="path-course-item ${course.completed ? 'completed' : ''} ${course.userProgress > 0 ? 'in-progress' : ''}">
-                <div class="course-order">${idx + 1}</div>
-                <div class="course-info">
-                  <h4>${course.title}</h4>
-                  <p>${course.description || ''}</p>
-                  <div class="course-meta">
-                    <span>${course.estimatedHours || 0} 小時</span>
-                    ${course.required ? '<span class="required-badge">必修</span>' : '<span class="optional-badge">選修</span>'}
-                  </div>
-                  ${course.userProgress > 0 ? `
-                    <div class="mini-progress">
-                      <div class="mini-progress-bar">
-                        <div class="mini-progress-fill" style="width: ${course.userProgress}%"></div>
-                      </div>
-                      <span>${course.userProgress}%</span>
-                    </div>
-                  ` : ''}
-                </div>
-                <div class="course-status">
-                  ${course.completed ? '<span class="status-complete">✓ 已完成</span>' :
-                    course.prerequisites?.length && !course.prerequisites.every(p => path.courses.find(c => c.courseId === p)?.completed) ?
-                    '<span class="status-locked">🔒 需先完成前置課程</span>' :
-                    `<button class="btn-sm" onclick="MoodleUI.openCourse('${course.courseId}')">開始學習</button>`}
-                </div>
-              </div>
-            `).join('')}
-          </div>
-
-          ${path.badges?.length ? `
-            <div class="path-badges">
-              <h3>可獲得的徽章</h3>
-              <div class="badges-list">
-                ${path.badges.map(badge => `
-                  <div class="badge-item">
-                    <img src="${badge.image || '/images/badges/default.png'}" alt="${badge.name}">
-                    <span>${badge.name}</span>
-                    <small>${badge.criteria}</small>
-                  </div>
-                `).join('')}
-              </div>
-            </div>
-          ` : ''}
-        </div>
-      `;
-    } catch (error) {
-      console.error('Load learning path detail error:', error);
-      container.innerHTML = '<div class="error-state">載入失敗</div>';
-    }
-  },
-
-  /**
-   * 報名學習路徑
-   */
-  async enrollLearningPath(pathId) {
-    try {
-      const result = await API.learningPaths.enroll(pathId);
-      if (result.success) {
-        showToast('已成功報名學習路徑');
-        await this.openLearningPathDetail(pathId);
-      } else {
-        showToast(result.message || '報名失敗');
-      }
-    } catch (error) {
-      console.error('Enroll learning path error:', error);
-      showToast('報名失敗');
-    }
-  },
-
-  // ==================== 徽章系統 ====================
-
-  /**
-   * 開啟徽章頁面
-   */
-  async openBadges() {
-    const container = document.getElementById('badgesContent');
-    if (!container) return;
-    container.innerHTML = '<div class="loading-container"><div class="loading-spinner"></div><p>載入徽章中...</p></div>';
-
-    try {
-      const [badgesResult, myBadgesResult] = await Promise.all([
-        API.badges.list(),
-        API.badges.getMyBadges()
-      ]);
-
-      const badges = badgesResult.success ? badgesResult.data : [];
-      const myBadges = myBadgesResult.success ? myBadgesResult.data : { earned: [], inProgress: [] };
-
-      container.innerHTML = `
-        <div class="badges-page">
-          <div class="page-header-modern">
-            <div class="header-content">
-              <h2>徽章</h2>
-              <p>您的學習成就與榮譽展示</p>
-            </div>
-            ${API.isAdmin() ? `
-            <div class="header-actions">
-              <button class="btn-primary" onclick="MoodleUI.openCreateBadgeModal()">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
-                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                </svg>
-                建立徽章
-              </button>
-            </div>
-            ` : ''}
-          </div>
-
-          <div class="badges-sections">
-            <section class="badges-section">
-              <h3>我獲得的徽章 (${myBadges.earned?.length || 0})</h3>
-              <div class="badges-grid">
-                ${myBadges.earned?.length ? myBadges.earned.map(item => `
-                  <div class="badge-card earned" onclick="MoodleUI.openBadgeDetail('${item.badge.id}')">
-                    <img src="${item.badge.image || '/images/badges/default.png'}" alt="${item.badge.name}">
-                    <h4>${item.badge.name}</h4>
-                    <p>${item.badge.description}</p>
-                    <small>獲得於 ${MoodleUI.formatDate(item.issuedAt)}</small>
-                  </div>
-                `).join('') : '<p class="empty-text">尚未獲得任何徽章</p>'}
-              </div>
-            </section>
-
-            <section class="badges-section">
-              <h3>進行中 (${myBadges.inProgress?.length || 0})</h3>
-              <div class="badges-grid">
-                ${myBadges.inProgress?.length ? myBadges.inProgress.map(item => `
-                  <div class="badge-card in-progress">
-                    <img src="${item.badge.image || '/images/badges/default.png'}" alt="${item.badge.name}" class="grayscale">
-                    <h4>${item.badge.name}</h4>
-                    <p>${item.badge.description}</p>
-                    <div class="progress-mini">
-                      <div class="progress-bar-mini">
-                        <div class="progress-fill-mini" style="width: ${item.progress}%"></div>
-                      </div>
-                      <span>${item.progress}%</span>
-                    </div>
-                    <small>${item.remaining}</small>
-                  </div>
-                `).join('') : '<p class="empty-text">沒有進行中的徽章</p>'}
-              </div>
-            </section>
-
-            <section class="badges-section">
-              <h3>所有徽章 (${badges.length})</h3>
-              <div class="badges-grid">
-                ${badges.map(badge => {
-                  const isEarned = myBadges.earned?.some(e => e.badge.id === badge.id);
-                  return `
-                    <div class="badge-card ${isEarned ? 'earned' : 'locked'}" onclick="MoodleUI.openBadgeDetail('${badge.id}')">
-                      <img src="${badge.image || '/images/badges/default.png'}" alt="${badge.name}" class="${isEarned ? '' : 'grayscale'}">
-                      <h4>${badge.name}</h4>
-                      <p>${badge.description}</p>
-                      <small>${badge.issuedCount} 人獲得</small>
-                    </div>
-                  `;
-                }).join('')}
-              </div>
-            </section>
-          </div>
-        </div>
-      `;
-    } catch (error) {
-      console.error('Load badges error:', error);
-      container.innerHTML = '<div class="error-state">載入徽章失敗</div>';
-    }
-  },
-
-  /**
-   * 開啟徽章詳情
-   */
-  async openBadgeDetail(badgeId) {
-    try {
-      const result = await API.badges.get(badgeId);
-      if (!result.success) {
-        showToast('載入徽章詳情失敗');
-        return;
-      }
-
-      const badge = result.data;
-      const modal = document.createElement('div');
-      modal.id = 'badgeDetailModal';
-      modal.className = 'modal-overlay';
-
-      modal.innerHTML = `
-        <div class="modal-content">
-          <div class="modal-header">
-            <h3>徽章詳情</h3>
-            <button onclick="MoodleUI.closeModal('badgeDetailModal')" class="modal-close">&times;</button>
-          </div>
-          <div class="modal-body">
-            <div class="badge-detail-content">
-              <img src="${badge.image || '/images/badges/default.png'}" alt="${badge.name}" class="badge-large-image">
-              <h2>${badge.name}</h2>
-              <p class="badge-description">${badge.description}</p>
-              <div class="badge-criteria">
-                <h4>獲得條件</h4>
-                <p>${badge.criteria?.description || '完成指定的學習任務'}</p>
-              </div>
-              <div class="badge-stats">
-                <span><strong>${badge.issuedCount}</strong> 人已獲得</span>
-                ${badge.expiry ? `<span>有效期至 ${MoodleUI.formatDate(badge.expiry)}</span>` : ''}
-              </div>
-              ${badge.recentRecipients?.length ? `
-                <div class="recent-recipients">
-                  <h4>最近獲得者</h4>
-                  <ul>
-                    ${badge.recentRecipients.map(r => `
-                      <li>${r.displayName} - ${MoodleUI.formatDate(r.issuedAt)}</li>
-                    `).join('')}
-                  </ul>
-                </div>
-              ` : ''}
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button onclick="MoodleUI.closeModal('badgeDetailModal')" class="btn-secondary">關閉</button>
-          </div>
-        </div>
-      `;
-
-      document.body.appendChild(modal);
-      modal.onclick = (e) => { if (e.target === modal) this.closeModal('badgeDetailModal'); };
-    } catch (error) {
-      console.error('Open badge detail error:', error);
-      showToast('載入徽章詳情失敗');
-    }
-  },
-
-  // ==================== 評分標準 (Rubrics) 系統 ====================
-
-  /**
-   * 開啟評分標準管理頁面
-   */
-  async openRubricsManager(courseId) {
-    const container = document.getElementById('rubricsContent');
-    if (!container) return;
-    container.innerHTML = '<div class="loading-container"><div class="loading-spinner"></div><p>載入評分標準中...</p></div>';
-
-    try {
-      const [rubricsResult, templatesResult] = await Promise.all([
-        API.rubrics.list(courseId ? { courseId } : {}),
-        API.rubrics.getTemplates()
-      ]);
-
-      const rubrics = rubricsResult.success ? rubricsResult.data : [];
-      const templates = templatesResult.success ? templatesResult.data : [];
-
-      container.innerHTML = `
-        <div class="rubrics-page">
-          <div class="page-header-modern">
-            <div class="header-content">
-              <h2>評分標準管理</h2>
-              <p>建立和管理評分標準 (Rubrics) 以提供一致的評分</p>
-            </div>
-            <div class="header-actions">
-              <button class="btn-secondary" onclick="MoodleUI.openRubricTemplates()">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>
-                </svg>
-                從範本建立
-              </button>
-              <button class="btn-primary" onclick="MoodleUI.openCreateRubricModal()">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
-                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                </svg>
-                建立評分標準
-              </button>
-            </div>
-          </div>
-
-          <div class="rubrics-list">
-            ${rubrics.length === 0 ? `
-              <div class="empty-state">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="64" height="64">
-                  <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
-                </svg>
-                <h3>尚無評分標準</h3>
-                <p>建立評分標準以提供一致、透明的評分方式</p>
-              </div>
-            ` : rubrics.map(rubric => `
-              <div class="rubric-card">
-                <div class="rubric-header">
-                  <h3>${rubric.name}</h3>
-                  <span class="rubric-status ${rubric.status}">${rubric.status === 'active' ? '啟用中' : '草稿'}</span>
-                </div>
-                <p>${rubric.description || '無描述'}</p>
-                <div class="rubric-meta">
-                  <span>${rubric.criteria?.length || 0} 個評分項目</span>
-                  <span>滿分 ${rubric.maxScore || 100} 分</span>
-                  <span>已使用 ${rubric.usageCount || 0} 次</span>
-                </div>
-                <div class="rubric-actions">
-                  <button class="btn-sm" onclick="MoodleUI.previewRubric('${rubric.id}')">預覽</button>
-                  <button class="btn-sm" onclick="MoodleUI.editRubric('${rubric.id}')">編輯</button>
-                  <button class="btn-sm btn-danger" onclick="MoodleUI.deleteRubric('${rubric.id}')">刪除</button>
-                </div>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-      `;
-    } catch (error) {
-      console.error('Load rubrics error:', error);
-      container.innerHTML = '<div class="error-state">載入評分標準失敗</div>';
-    }
-  },
-
-  /**
-   * 預覽評分標準
-   */
-  async previewRubric(rubricId) {
-    try {
-      const result = await API.rubrics.get(rubricId);
-      if (!result.success) {
-        showToast('載入評分標準失敗');
-        return;
-      }
-
-      const rubric = result.data;
-      const modal = document.createElement('div');
-      modal.id = 'rubricPreviewModal';
-      modal.className = 'modal-overlay';
-
-      modal.innerHTML = `
-        <div class="modal-content modal-lg">
-          <div class="modal-header">
-            <h3>評分標準預覽: ${rubric.name}</h3>
-            <button onclick="MoodleUI.closeModal('rubricPreviewModal')" class="modal-close">&times;</button>
-          </div>
-          <div class="modal-body">
-            <p class="rubric-description">${rubric.description || ''}</p>
-            <table class="rubric-table">
-              <thead>
-                <tr>
-                  <th>評分項目</th>
-                  ${rubric.criteria[0]?.levels?.map(l => `<th>${l.label} (${l.score}分)</th>`).join('') || ''}
-                  <th>權重</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${rubric.criteria.map(crit => `
-                  <tr>
-                    <td>
-                      <strong>${crit.name}</strong>
-                      <br><small>${crit.description || ''}</small>
-                    </td>
-                    ${crit.levels.map(level => `
-                      <td class="level-cell">
-                        <div class="level-description">${level.description}</div>
-                      </td>
-                    `).join('')}
-                    <td class="weight-cell">${crit.weight}%</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-            <div class="rubric-summary">
-              <strong>滿分: ${rubric.maxScore} 分</strong>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button onclick="MoodleUI.closeModal('rubricPreviewModal')" class="btn-secondary">關閉</button>
-            <button onclick="MoodleUI.duplicateRubric('${rubric.id}')" class="btn-primary">複製此標準</button>
-          </div>
-        </div>
-      `;
-
-      document.body.appendChild(modal);
-      modal.onclick = (e) => { if (e.target === modal) this.closeModal('rubricPreviewModal'); };
-    } catch (error) {
-      console.error('Preview rubric error:', error);
-      showToast('載入評分標準失敗');
-    }
-  },
-
-  /**
-   * 開啟評分標準範本選擇
-   */
-  async openRubricTemplates() {
-    try {
-      const result = await API.rubrics.getTemplates();
-      if (!result.success) {
-        showToast('載入範本失敗');
-        return;
-      }
-
-      const templates = result.data;
-      const modal = document.createElement('div');
-      modal.id = 'rubricTemplatesModal';
-      modal.className = 'modal-overlay';
-
-      modal.innerHTML = `
-        <div class="modal-content modal-lg">
-          <div class="modal-header">
-            <h3>選擇評分標準範本</h3>
-            <button onclick="MoodleUI.closeModal('rubricTemplatesModal')" class="modal-close">&times;</button>
-          </div>
-          <div class="modal-body">
-            <div class="templates-grid">
-              ${templates.map(template => `
-                <div class="template-card" onclick="MoodleUI.useRubricTemplate('${template.id}')">
-                  <h4>${template.name}</h4>
-                  <p>${template.description}</p>
-                  <div class="template-meta">
-                    <span>${template.criteria?.length || 0} 個評分項目</span>
-                    <span>滿分 ${template.maxScore} 分</span>
-                  </div>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button onclick="MoodleUI.closeModal('rubricTemplatesModal')" class="btn-secondary">取消</button>
-          </div>
-        </div>
-      `;
-
-      document.body.appendChild(modal);
-      modal.onclick = (e) => { if (e.target === modal) this.closeModal('rubricTemplatesModal'); };
-    } catch (error) {
-      console.error('Open rubric templates error:', error);
-      showToast('載入範本失敗');
-    }
-  },
-
-  /**
-   * 使用評分標準範本
-   */
-  async useRubricTemplate(templateId) {
-    this.closeModal('rubricTemplatesModal');
-    // 開啟建立評分標準的模態框，並預填範本內容
-    showToast('已選擇範本，請編輯後儲存');
-    this.openCreateRubricModal(templateId);
-  },
-
-  /**
-   * 開啟建立評分標準模態框
-   */
-  openCreateRubricModal(templateId = null) {
-    const modal = document.createElement('div');
-    modal.id = 'createRubricModal';
-    modal.className = 'modal-overlay';
-
-    modal.innerHTML = `
-      <div class="modal-content modal-lg">
-        <div class="modal-header">
-          <h3>建立評分標準</h3>
-          <button onclick="MoodleUI.closeModal('createRubricModal')" class="modal-close">&times;</button>
-        </div>
-        <div class="modal-body">
-          <div class="form-group">
-            <label>評分標準名稱 *</label>
-            <input type="text" id="rubricName" class="form-control" placeholder="例如：期中報告評分標準">
-          </div>
-          <div class="form-group">
-            <label>描述</label>
-            <textarea id="rubricDescription" class="form-control" rows="2" placeholder="描述這個評分標準的用途"></textarea>
-          </div>
-
-          <h4>評分項目</h4>
-          <div id="rubricCriteriaList">
-            <div class="criteria-item" data-index="0">
-              <div class="criteria-header">
-                <input type="text" class="form-control criteria-name" placeholder="評分項目名稱">
-                <input type="number" class="form-control criteria-weight" placeholder="權重" value="100" min="0" max="100">
-                <span>%</span>
-                <button class="btn-icon" onclick="this.closest('.criteria-item').remove()">✕</button>
-              </div>
-              <textarea class="form-control criteria-description" placeholder="項目說明"></textarea>
-              <div class="criteria-levels">
-                <div class="level-item">
-                  <input type="number" class="level-score" value="4" min="0">
-                  <input type="text" class="level-label" value="優秀">
-                  <input type="text" class="level-desc" placeholder="描述">
-                </div>
-                <div class="level-item">
-                  <input type="number" class="level-score" value="3" min="0">
-                  <input type="text" class="level-label" value="良好">
-                  <input type="text" class="level-desc" placeholder="描述">
-                </div>
-                <div class="level-item">
-                  <input type="number" class="level-score" value="2" min="0">
-                  <input type="text" class="level-label" value="尚可">
-                  <input type="text" class="level-desc" placeholder="描述">
-                </div>
-                <div class="level-item">
-                  <input type="number" class="level-score" value="1" min="0">
-                  <input type="text" class="level-label" value="需改進">
-                  <input type="text" class="level-desc" placeholder="描述">
-                </div>
-              </div>
-            </div>
-          </div>
-          <button class="btn-sm" onclick="MoodleUI.addRubricCriteria()">+ 新增評分項目</button>
-        </div>
-        <div class="modal-footer">
-          <button onclick="MoodleUI.closeModal('createRubricModal')" class="btn-secondary">取消</button>
-          <button onclick="MoodleUI.saveRubric()" class="btn-primary">儲存評分標準</button>
-        </div>
-      </div>
-    `;
-
-    document.body.appendChild(modal);
-    modal.onclick = (e) => { if (e.target === modal) this.closeModal('createRubricModal'); };
-  },
-
-  /**
-   * 新增評分項目
-   */
-  addRubricCriteria() {
-    const list = document.getElementById('rubricCriteriaList');
-    const index = list.children.length;
-
-    const html = `
-      <div class="criteria-item" data-index="${index}">
-        <div class="criteria-header">
-          <input type="text" class="form-control criteria-name" placeholder="評分項目名稱">
-          <input type="number" class="form-control criteria-weight" placeholder="權重" value="0" min="0" max="100">
-          <span>%</span>
-          <button class="btn-icon" onclick="this.closest('.criteria-item').remove()">✕</button>
-        </div>
-        <textarea class="form-control criteria-description" placeholder="項目說明"></textarea>
-        <div class="criteria-levels">
-          <div class="level-item">
-            <input type="number" class="level-score" value="4" min="0">
-            <input type="text" class="level-label" value="優秀">
-            <input type="text" class="level-desc" placeholder="描述">
-          </div>
-          <div class="level-item">
-            <input type="number" class="level-score" value="3" min="0">
-            <input type="text" class="level-label" value="良好">
-            <input type="text" class="level-desc" placeholder="描述">
-          </div>
-          <div class="level-item">
-            <input type="number" class="level-score" value="2" min="0">
-            <input type="text" class="level-label" value="尚可">
-            <input type="text" class="level-desc" placeholder="描述">
-          </div>
-          <div class="level-item">
-            <input type="number" class="level-score" value="1" min="0">
-            <input type="text" class="level-label" value="需改進">
-            <input type="text" class="level-desc" placeholder="描述">
-          </div>
-        </div>
-      </div>
-    `;
-
-    list.insertAdjacentHTML('beforeend', html);
-  },
-
-  /**
-   * 儲存評分標準
-   */
-  async saveRubric() {
-    const name = document.getElementById('rubricName').value.trim();
-    const description = document.getElementById('rubricDescription').value.trim();
-
-    if (!name) {
-      showToast('請輸入評分標準名稱');
-      return;
-    }
-
-    const criteriaItems = document.querySelectorAll('.criteria-item');
-    const criteria = Array.from(criteriaItems).map((item, idx) => {
-      const levels = Array.from(item.querySelectorAll('.level-item')).map(level => ({
-        score: parseInt(level.querySelector('.level-score').value) || 0,
-        label: level.querySelector('.level-label').value || '',
-        description: level.querySelector('.level-desc').value || ''
-      }));
-
-      return {
-        id: `crit_${idx + 1}`,
-        name: item.querySelector('.criteria-name').value || `項目 ${idx + 1}`,
-        description: item.querySelector('.criteria-description').value || '',
-        weight: parseInt(item.querySelector('.criteria-weight').value) || 0,
-        levels
-      };
-    });
-
-    try {
-      const result = await API.rubrics.create({
-        name,
-        description,
-        criteria
-      });
-
-      if (result.success) {
-        showToast('評分標準建立成功');
-        this.closeModal('createRubricModal');
-        await this.openRubricsManager();
-      } else {
-        showToast(result.message || '建立失敗');
-      }
-    } catch (error) {
-      console.error('Save rubric error:', error);
-      showToast('建立評分標準失敗');
-    }
-  },
-
-  /**
-   * 編輯評分標準
-   */
-  async editRubric(rubricId) {
-    try {
-      const result = await API.rubrics.get(rubricId);
-      if (!result.success) {
-        showToast('載入評分標準失敗');
-        return;
-      }
-
-      const rubric = result.data;
-      const modal = document.createElement('div');
-      modal.id = 'editRubricModal';
-      modal.className = 'modal-overlay';
-
-      modal.innerHTML = `
-        <div class="modal-content modal-lg">
-          <div class="modal-header">
-            <h3>編輯評分標準</h3>
-            <button onclick="MoodleUI.closeModal('editRubricModal')" class="modal-close">&times;</button>
-          </div>
-          <div class="modal-body">
-            <div class="form-group">
-              <label>評分標準名稱 *</label>
-              <input type="text" id="editRubricName" class="form-control" value="${rubric.name || ''}">
-            </div>
-            <div class="form-group">
-              <label>描述</label>
-              <textarea id="editRubricDescription" class="form-control" rows="2">${rubric.description || ''}</textarea>
-            </div>
-            <div class="form-group">
-              <label>狀態</label>
-              <select id="editRubricStatus" class="form-control">
-                <option value="draft" ${rubric.status === 'draft' ? 'selected' : ''}>草稿</option>
-                <option value="active" ${rubric.status === 'active' ? 'selected' : ''}>啟用</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>評分項目</label>
-              <div id="editCriteriaList">
-                ${(rubric.criteria || []).map((crit, idx) => `
-                  <div class="criteria-item">
-                    <div class="criteria-header">
-                      <input type="text" class="criteria-name" value="${crit.name || ''}" placeholder="項目名稱">
-                      <input type="number" class="criteria-weight" value="${crit.weight || 0}" min="0" max="100" placeholder="權重%">
-                      <button type="button" class="btn-icon btn-danger" onclick="this.closest('.criteria-item').remove()">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                          <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-                        </svg>
-                      </button>
-                    </div>
-                    <textarea class="criteria-description" placeholder="描述">${crit.description || ''}</textarea>
-                    <div class="levels-list">
-                      ${(crit.levels || []).map(level => `
-                        <div class="level-item">
-                          <input type="number" class="level-score" value="${level.score || 0}" min="0">
-                          <input type="text" class="level-label" value="${level.label || ''}">
-                          <input type="text" class="level-desc" value="${level.description || ''}" placeholder="描述">
-                        </div>
-                      `).join('')}
-                    </div>
-                  </div>
-                `).join('')}
-              </div>
-              <button type="button" class="btn-secondary" onclick="MoodleUI.addCriteriaItem('editCriteriaList')">+ 新增評分項目</button>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button onclick="MoodleUI.closeModal('editRubricModal')" class="btn-secondary">取消</button>
-            <button onclick="MoodleUI.updateRubric('${rubricId}')" class="btn-primary">儲存變更</button>
-          </div>
-        </div>
-      `;
-
-      document.body.appendChild(modal);
-      modal.onclick = (e) => { if (e.target === modal) this.closeModal('editRubricModal'); };
-    } catch (error) {
-      console.error('Edit rubric error:', error);
-      showToast('載入評分標準失敗');
-    }
-  },
-
-  /**
-   * 更新評分標準
-   */
-  async updateRubric(rubricId) {
-    const name = document.getElementById('editRubricName').value.trim();
-    const description = document.getElementById('editRubricDescription').value.trim();
-    const status = document.getElementById('editRubricStatus').value;
-
-    if (!name) {
-      showToast('請輸入評分標準名稱');
-      return;
-    }
-
-    const criteriaItems = document.querySelectorAll('#editCriteriaList .criteria-item');
-    const criteria = Array.from(criteriaItems).map((item, idx) => {
-      const levels = Array.from(item.querySelectorAll('.level-item')).map(level => ({
-        score: parseInt(level.querySelector('.level-score').value) || 0,
-        label: level.querySelector('.level-label').value || '',
-        description: level.querySelector('.level-desc').value || ''
-      }));
-
-      return {
-        id: `crit_${idx + 1}`,
-        name: item.querySelector('.criteria-name').value || `項目 ${idx + 1}`,
-        description: item.querySelector('.criteria-description').value || '',
-        weight: parseInt(item.querySelector('.criteria-weight').value) || 0,
-        levels
-      };
-    });
-
-    try {
-      const result = await API.rubrics.update(rubricId, {
-        name,
-        description,
-        status,
-        criteria
-      });
-
-      if (result.success) {
-        showToast('評分標準已更新');
-        this.closeModal('editRubricModal');
-        await this.openRubricsManager();
-      } else {
-        showToast(result.message || '更新失敗');
-      }
-    } catch (error) {
-      console.error('Update rubric error:', error);
-      showToast('更新評分標準失敗');
-    }
-  },
-
-  /**
-   * 刪除評分標準
-   */
-  async deleteRubric(rubricId) {
-    if (!confirm('確定要刪除此評分標準嗎？此操作無法復原。')) return;
-
-    try {
-      const result = await API.rubrics.delete(rubricId);
-      if (result.success) {
-        showToast('評分標準已刪除');
-        await this.openRubricsManager();
-      } else {
-        showToast(result.message || '刪除失敗');
-      }
-    } catch (error) {
-      console.error('Delete rubric error:', error);
-      showToast('刪除評分標準失敗');
-    }
-  },
-
-  /**
-   * 複製評分標準
-   */
-  async duplicateRubric(rubricId) {
-    try {
-      const result = await API.rubrics.get(rubricId);
-      if (!result.success) {
-        showToast('載入評分標準失敗');
-        return;
-      }
-
-      const rubric = result.data;
-      const duplicateResult = await API.rubrics.create({
-        name: `${rubric.name} (複製)`,
-        description: rubric.description,
-        criteria: rubric.criteria
-      });
-
-      if (duplicateResult.success) {
-        showToast('評分標準已複製');
-        this.closeModal('rubricPreviewModal');
-        await this.openRubricsManager();
-      } else {
-        showToast(duplicateResult.message || '複製失敗');
-      }
-    } catch (error) {
-      console.error('Duplicate rubric error:', error);
-      showToast('複製評分標準失敗');
-    }
-  },
-
   // ==================== 初始化 ====================
 
   /**
@@ -7362,6 +4730,2777 @@ const MoodleUI = {
     // 定期更新通知數量
     this.updateNotificationCount();
     setInterval(() => this.updateNotificationCount(), 60000);
+  },
+
+  /**
+   * 評量標準管理
+   */
+  currentRubricsFilter: 'all',
+
+  async openRubricsManager() {
+    const container = document.getElementById('rubricsContent');
+    if (!container) return;
+    showView('rubrics');
+    container.innerHTML = '<div class="loading">載入中...</div>';
+    try {
+      const [rubricsResult, templatesResult] = await Promise.all([
+        API.rubrics.list(),
+        API.rubrics.getTemplates()
+      ]);
+      const rubrics = rubricsResult.success ? (Array.isArray(rubricsResult.data) ? rubricsResult.data : (rubricsResult.data?.rubrics || [])) : [];
+      const templates = templatesResult.success ? (Array.isArray(templatesResult.data) ? templatesResult.data : (templatesResult.data?.templates || [])) : [];
+      this._rubricsData = rubrics;
+      this._rubricsTemplates = templates;
+      this.renderRubricsPage(container, rubrics, templates);
+    } catch (error) {
+      console.error('Open rubrics manager error:', error);
+      container.innerHTML = '<div class="error">載入評量標準失敗</div>';
+    }
+  },
+
+  renderRubricsPage(container, rubrics, templates) {
+    const filtered = this.currentRubricsFilter === 'all' ? rubrics :
+      rubrics.filter(r => r.status === this.currentRubricsFilter);
+
+    container.innerHTML = `
+      <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+        <h2 style="margin:0;">評量標準管理</h2>
+        <div style="display:flex;gap:0.5rem;">
+          <button onclick="MoodleUI.openCreateRubricModal()" class="btn-primary">+ 建立評量標準</button>
+          ${templates.length > 0 ? '<button onclick="MoodleUI.openCreateRubricFromTemplate()" class="btn-secondary">從範本建立</button>' : ''}
+        </div>
+      </div>
+      <div class="filter-tabs" style="display:flex;gap:0.5rem;margin-bottom:1.5rem;">
+        ${['all','active','draft'].map(f => `
+          <button class="btn-sm ${this.currentRubricsFilter === f ? 'btn-primary' : 'btn-secondary'}"
+                  onclick="MoodleUI.currentRubricsFilter='${f}';MoodleUI.renderRubricsPage(document.getElementById('rubricsContent'),MoodleUI._rubricsData,MoodleUI._rubricsTemplates)">
+            ${f === 'all' ? '全部' : f === 'active' ? '啟用' : '草稿'}
+          </button>
+        `).join('')}
+      </div>
+      <div class="card-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1rem;">
+        ${filtered.length === 0 ? '<p style="color:var(--gray-400);grid-column:1/-1;text-align:center;padding:3rem;">尚無評量標準</p>' :
+          filtered.map(r => `
+            <div class="card" style="padding:1.5rem;border:1px solid var(--gray-200);border-radius:8px;cursor:pointer;"
+                 onclick="MoodleUI.viewRubricDetail('${r.rubricId || r.id}')">
+              <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:0.75rem;">
+                <h3 style="margin:0;font-size:1.1rem;">${r.name || '未命名'}</h3>
+                <span style="padding:2px 8px;border-radius:4px;font-size:0.75rem;background:${r.status === 'active' ? '#dcfce7;color:#166534' : '#fef3c7;color:#92400e'};">
+                  ${r.status === 'active' ? '啟用' : '草稿'}
+                </span>
+              </div>
+              <p style="margin:0 0 0.5rem;color:var(--gray-400);font-size:0.9rem;">${r.description || '無描述'}</p>
+              <div style="display:flex;gap:1rem;font-size:0.85rem;color:var(--gray-400);">
+                <span>準則：${(r.criteria || []).length}</span>
+                <span>最高分：${r.maxScore || 0}</span>
+              </div>
+            </div>
+          `).join('')}
+      </div>`;
+  },
+
+  async viewRubricDetail(rubricId) {
+    const container = document.getElementById('rubricsContent');
+    if (!container) return;
+    container.innerHTML = '<div class="loading">載入中...</div>';
+    try {
+      const result = await API.rubrics.get(rubricId);
+      if (!result.success) { container.innerHTML = '<div class="error">載入失敗</div>'; return; }
+      const r = result.data;
+      const criteria = r.criteria || [];
+      container.innerHTML = `
+        <div style="margin-bottom:1rem;">
+          <button onclick="MoodleUI.openRubricsManager()" class="back-btn" style="background:none;border:none;cursor:pointer;color:var(--primary);font-size:0.9rem;">← 返回列表</button>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+          <div>
+            <h2 style="margin:0 0 0.25rem;">${r.name || '未命名'}</h2>
+            <p style="margin:0;color:var(--gray-400);">${r.description || ''}</p>
+          </div>
+          <div style="display:flex;gap:0.5rem;">
+            <button onclick="MoodleUI.duplicateRubric('${rubricId}')" class="btn-sm btn-secondary">複製</button>
+            <button onclick="MoodleUI.deleteRubric('${rubricId}')" class="btn-sm" style="background:#fee2e2;color:#dc2626;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;">刪除</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;font-size:0.9rem;">
+            <thead>
+              <tr style="background:var(--gray-100);">
+                <th style="padding:10px;text-align:left;border:1px solid var(--gray-200);">準則</th>
+                <th style="padding:10px;text-align:left;border:1px solid var(--gray-200);">描述</th>
+                <th style="padding:10px;text-align:center;border:1px solid var(--gray-200);">分數</th>
+                <th style="padding:10px;text-align:left;border:1px solid var(--gray-200);">等級</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${criteria.map(c => `
+                <tr>
+                  <td style="padding:10px;border:1px solid var(--gray-200);font-weight:600;">${c.name || ''}</td>
+                  <td style="padding:10px;border:1px solid var(--gray-200);">${c.description || ''}</td>
+                  <td style="padding:10px;text-align:center;border:1px solid var(--gray-200);">${c.maxScore || c.points || 0}</td>
+                  <td style="padding:10px;border:1px solid var(--gray-200);">
+                    ${(c.levels || []).map(l => `<span style="display:inline-block;margin:2px;padding:2px 6px;background:var(--gray-100);border-radius:4px;font-size:0.8rem;">${l.name}: ${l.score || l.points || 0}</span>`).join(' ')}
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+        <div style="margin-top:1rem;padding:1rem;background:var(--gray-50);border-radius:8px;">
+          <strong>最高分數：</strong>${r.maxScore || 0} ｜ <strong>狀態：</strong>${r.status === 'active' ? '啟用' : '草稿'}
+        </div>`;
+    } catch (error) {
+      console.error('View rubric detail error:', error);
+      container.innerHTML = '<div class="error">載入失敗</div>';
+    }
+  },
+
+  openCreateRubricModal() {
+    const modal = document.createElement('div');
+    modal.id = 'createRubricModal';
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+      <div class="modal-content modal-lg">
+        <div class="modal-header">
+          <h3>建立評量標準</h3>
+          <button onclick="MoodleUI.closeModal('createRubricModal')" class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>名稱 *</label>
+            <input type="text" id="rubricName" placeholder="評量標準名稱">
+          </div>
+          <div class="form-group">
+            <label>描述</label>
+            <textarea id="rubricDescription" rows="2" placeholder="評量標準描述"></textarea>
+          </div>
+          <div class="form-group">
+            <label>狀態</label>
+            <select id="rubricStatus"><option value="draft">草稿</option><option value="active">啟用</option></select>
+          </div>
+          <h4>評分準則</h4>
+          <div id="rubricCriteriaList">
+            <div class="rubric-criterion-item" style="border:1px solid var(--gray-200);border-radius:8px;padding:1rem;margin-bottom:0.75rem;">
+              <div class="form-row">
+                <div class="form-group" style="flex:1"><label>準則名稱</label><input type="text" class="criterion-name" placeholder="例如：內容品質"></div>
+                <div class="form-group" style="flex:1"><label>最高分數</label><input type="number" class="criterion-score" value="25" min="0"></div>
+                <button type="button" onclick="this.closest('.rubric-criterion-item').remove()" style="align-self:flex-end;background:none;border:none;color:#dc2626;cursor:pointer;font-size:1.2rem;padding:6px;">×</button>
+              </div>
+              <div class="form-group"><label>描述</label><input type="text" class="criterion-desc" placeholder="準則描述"></div>
+              <div class="criterion-levels" style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+                <div style="background:var(--gray-50);padding:6px 8px;border-radius:4px;font-size:0.85rem;">
+                  <input type="text" class="level-name" value="優秀" style="width:50px;border:none;background:transparent;font-size:0.85rem;">
+                  <input type="number" class="level-score" value="25" min="0" style="width:40px;border:none;background:transparent;font-size:0.85rem;">
+                </div>
+                <div style="background:var(--gray-50);padding:6px 8px;border-radius:4px;font-size:0.85rem;">
+                  <input type="text" class="level-name" value="良好" style="width:50px;border:none;background:transparent;font-size:0.85rem;">
+                  <input type="number" class="level-score" value="18" min="0" style="width:40px;border:none;background:transparent;font-size:0.85rem;">
+                </div>
+                <div style="background:var(--gray-50);padding:6px 8px;border-radius:4px;font-size:0.85rem;">
+                  <input type="text" class="level-name" value="待改進" style="width:50px;border:none;background:transparent;font-size:0.85rem;">
+                  <input type="number" class="level-score" value="10" min="0" style="width:40px;border:none;background:transparent;font-size:0.85rem;">
+                </div>
+              </div>
+            </div>
+          </div>
+          <button onclick="MoodleUI.addRubricCriterion()" class="btn-sm btn-secondary" style="margin-top:0.5rem;">+ 新增準則</button>
+        </div>
+        <div class="modal-footer">
+          <button onclick="MoodleUI.closeModal('createRubricModal')" class="btn-secondary">取消</button>
+          <button onclick="MoodleUI.saveRubric()" class="btn-primary">建立</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    modal.onclick = (e) => { if (e.target === modal) this.closeModal('createRubricModal'); };
+  },
+
+  addRubricCriterion() {
+    const list = document.getElementById('rubricCriteriaList');
+    if (!list) return;
+    const item = document.createElement('div');
+    item.className = 'rubric-criterion-item';
+    item.style = 'border:1px solid var(--gray-200);border-radius:8px;padding:1rem;margin-bottom:0.75rem;';
+    item.innerHTML = `
+      <div class="form-row">
+        <div class="form-group" style="flex:1"><label>準則名稱</label><input type="text" class="criterion-name" placeholder="準則名稱"></div>
+        <div class="form-group" style="flex:1"><label>最高分數</label><input type="number" class="criterion-score" value="25" min="0"></div>
+        <button type="button" onclick="this.closest('.rubric-criterion-item').remove()" style="align-self:flex-end;background:none;border:none;color:#dc2626;cursor:pointer;font-size:1.2rem;padding:6px;">×</button>
+      </div>
+      <div class="form-group"><label>描述</label><input type="text" class="criterion-desc" placeholder="準則描述"></div>
+      <div class="criterion-levels" style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+        <div style="background:var(--gray-50);padding:6px 8px;border-radius:4px;font-size:0.85rem;">
+          <input type="text" class="level-name" value="優秀" style="width:50px;border:none;background:transparent;font-size:0.85rem;">
+          <input type="number" class="level-score" value="25" min="0" style="width:40px;border:none;background:transparent;font-size:0.85rem;">
+        </div>
+        <div style="background:var(--gray-50);padding:6px 8px;border-radius:4px;font-size:0.85rem;">
+          <input type="text" class="level-name" value="良好" style="width:50px;border:none;background:transparent;font-size:0.85rem;">
+          <input type="number" class="level-score" value="18" min="0" style="width:40px;border:none;background:transparent;font-size:0.85rem;">
+        </div>
+        <div style="background:var(--gray-50);padding:6px 8px;border-radius:4px;font-size:0.85rem;">
+          <input type="text" class="level-name" value="待改進" style="width:50px;border:none;background:transparent;font-size:0.85rem;">
+          <input type="number" class="level-score" value="10" min="0" style="width:40px;border:none;background:transparent;font-size:0.85rem;">
+        </div>
+      </div>`;
+    list.appendChild(item);
+  },
+
+  async saveRubric() {
+    const name = document.getElementById('rubricName')?.value?.trim();
+    if (!name) { showToast('請填寫名稱'); return; }
+    const items = document.querySelectorAll('.rubric-criterion-item');
+    const criteria = [];
+    items.forEach(item => {
+      const cName = item.querySelector('.criterion-name')?.value?.trim();
+      if (!cName) return;
+      const levels = [];
+      item.querySelectorAll('.criterion-levels > div').forEach(ld => {
+        levels.push({ name: ld.querySelector('.level-name')?.value || '', score: parseInt(ld.querySelector('.level-score')?.value) || 0 });
+      });
+      criteria.push({
+        name: cName,
+        description: item.querySelector('.criterion-desc')?.value || '',
+        maxScore: parseInt(item.querySelector('.criterion-score')?.value) || 0,
+        levels
+      });
+    });
+    try {
+      const result = await API.rubrics.create({
+        name,
+        description: document.getElementById('rubricDescription')?.value || '',
+        status: document.getElementById('rubricStatus')?.value || 'draft',
+        criteria
+      });
+      if (result.success) {
+        showToast('評量標準建立成功');
+        this.closeModal('createRubricModal');
+        this.openRubricsManager();
+      } else { showToast(result.error || '建立失敗'); }
+    } catch (error) {
+      console.error('Save rubric error:', error);
+      showToast('建立評量標準失敗');
+    }
+  },
+
+  async deleteRubric(rubricId) {
+    if (!confirm('確定要刪除此評量標準？')) return;
+    try {
+      const result = await API.rubrics.delete(rubricId);
+      if (result.success) { showToast('已刪除'); this.openRubricsManager(); }
+      else { showToast(result.error || '刪除失敗'); }
+    } catch (error) { showToast('刪除失敗'); }
+  },
+
+  async duplicateRubric(rubricId) {
+    try {
+      const result = await API.rubrics.duplicate(rubricId);
+      if (result.success) { showToast('已複製'); this.openRubricsManager(); }
+      else { showToast(result.error || '複製失敗'); }
+    } catch (error) { showToast('複製失敗'); }
+  },
+
+  openCreateRubricFromTemplate() {
+    const templates = this._rubricsTemplates || [];
+    const modal = document.createElement('div');
+    modal.id = 'rubricTemplateModal';
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>從範本建立</h3>
+          <button onclick="MoodleUI.closeModal('rubricTemplateModal')" class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          ${templates.map(t => `
+            <div style="padding:1rem;border:1px solid var(--gray-200);border-radius:8px;margin-bottom:0.75rem;cursor:pointer;"
+                 onclick="MoodleUI.closeModal('rubricTemplateModal');MoodleUI.duplicateRubric('${t.rubricId || t.id}')">
+              <h4 style="margin:0 0 0.25rem;">${t.name || '範本'}</h4>
+              <p style="margin:0;font-size:0.85rem;color:var(--gray-400);">${t.description || ''}</p>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    modal.onclick = (e) => { if (e.target === modal) this.closeModal('rubricTemplateModal'); };
+  },
+
+  /**
+   * 徽章系統
+   */
+  currentBadgesFilter: 'all',
+
+  async openBadges() {
+    const container = document.getElementById('badgesContent');
+    if (!container) return;
+    showView('badges');
+    container.innerHTML = '<div class="loading">載入中...</div>';
+    try {
+      const [badgesResult, statsResult] = await Promise.all([
+        API.badges.list(),
+        API.badges.getStats()
+      ]);
+      const badges = badgesResult.success ? (Array.isArray(badgesResult.data) ? badgesResult.data : (badgesResult.data?.badges || [])) : [];
+      const stats = statsResult.success ? statsResult.data : {};
+      this._badgesData = badges;
+      this._badgesStats = stats;
+      this.renderBadgesPage(container, badges, stats);
+    } catch (error) {
+      console.error('Open badges error:', error);
+      container.innerHTML = '<div class="error">載入徽章系統失敗</div>';
+    }
+  },
+
+  renderBadgesPage(container, badges, stats) {
+    const filtered = this.currentBadgesFilter === 'all' ? badges :
+      badges.filter(b => b.status === this.currentBadgesFilter || b.type === this.currentBadgesFilter);
+
+    container.innerHTML = `
+      <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+        <h2 style="margin:0;">徽章管理</h2>
+        <button onclick="MoodleUI.openCreateBadgeModal()" class="btn-primary">+ 建立徽章</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:1rem;margin-bottom:1.5rem;">
+        <div style="padding:1rem;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border-radius:8px;">
+          <div style="font-size:1.8rem;font-weight:700;">${stats.totalBadges || badges.length}</div>
+          <div style="font-size:0.85rem;opacity:0.9;">總徽章數</div>
+        </div>
+        <div style="padding:1rem;background:linear-gradient(135deg,#f093fb,#f5576c);color:#fff;border-radius:8px;">
+          <div style="font-size:1.8rem;font-weight:700;">${stats.activeBadges || 0}</div>
+          <div style="font-size:0.85rem;opacity:0.9;">啟用中</div>
+        </div>
+        <div style="padding:1rem;background:linear-gradient(135deg,#4facfe,#00f2fe);color:#fff;border-radius:8px;">
+          <div style="font-size:1.8rem;font-weight:700;">${stats.totalIssued || 0}</div>
+          <div style="font-size:0.85rem;opacity:0.9;">已頒發</div>
+        </div>
+      </div>
+      <div class="filter-tabs" style="display:flex;gap:0.5rem;margin-bottom:1.5rem;">
+        ${['all','active','draft','course','site'].map(f => `
+          <button class="btn-sm ${this.currentBadgesFilter === f ? 'btn-primary' : 'btn-secondary'}"
+                  onclick="MoodleUI.currentBadgesFilter='${f}';MoodleUI.renderBadgesPage(document.getElementById('badgesContent'),MoodleUI._badgesData,MoodleUI._badgesStats)">
+            ${{all:'全部',active:'啟用',draft:'草稿',course:'課程',site:'全站'}[f]}
+          </button>
+        `).join('')}
+      </div>
+      <div class="card-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:1rem;">
+        ${filtered.length === 0 ? '<p style="color:var(--gray-400);grid-column:1/-1;text-align:center;padding:3rem;">尚無徽章</p>' :
+          filtered.map(b => `
+            <div class="card" style="padding:1.5rem;border:1px solid var(--gray-200);border-radius:8px;cursor:pointer;text-align:center;"
+                 onclick="MoodleUI.viewBadgeDetail('${b.badgeId || b.id}')">
+              <div style="width:64px;height:64px;margin:0 auto 1rem;background:${b.color || '#f59e0b'};border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.8rem;">
+                ${b.icon || '🏆'}
+              </div>
+              <h3 style="margin:0 0 0.5rem;font-size:1rem;">${b.name || '未命名'}</h3>
+              <span style="padding:2px 8px;border-radius:4px;font-size:0.75rem;background:${b.status === 'active' ? '#dcfce7;color:#166534' : '#fef3c7;color:#92400e'};">
+                ${b.status === 'active' ? '啟用' : '草稿'}
+              </span>
+              <div style="margin-top:0.75rem;font-size:0.85rem;color:var(--gray-400);">
+                <span>類型：${{course:'課程',site:'全站',manual:'手動'}[b.type] || b.type || '—'}</span>
+                <span style="margin-left:0.5rem;">已頒發：${b.issuedCount || 0}</span>
+              </div>
+            </div>
+          `).join('')}
+      </div>`;
+  },
+
+  async viewBadgeDetail(badgeId) {
+    const container = document.getElementById('badgesContent');
+    if (!container) return;
+    container.innerHTML = '<div class="loading">載入中...</div>';
+    try {
+      const [badgeResult, recipientsResult] = await Promise.all([
+        API.badges.get(badgeId),
+        API.badges.getRecipients(badgeId)
+      ]);
+      if (!badgeResult.success) { container.innerHTML = '<div class="error">載入失敗</div>'; return; }
+      const b = badgeResult.data;
+      const recipients = recipientsResult.success ? (Array.isArray(recipientsResult.data) ? recipientsResult.data : (recipientsResult.data?.recipients || [])) : [];
+
+      container.innerHTML = `
+        <div style="margin-bottom:1rem;">
+          <button onclick="MoodleUI.openBadges()" class="back-btn" style="background:none;border:none;cursor:pointer;color:var(--primary);font-size:0.9rem;">← 返回列表</button>
+        </div>
+        <div style="display:flex;gap:2rem;margin-bottom:2rem;">
+          <div style="width:120px;height:120px;background:${b.color || '#f59e0b'};border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:3rem;flex-shrink:0;">
+            ${b.icon || '🏆'}
+          </div>
+          <div style="flex:1;">
+            <h2 style="margin:0 0 0.5rem;">${b.name || '未命名'}</h2>
+            <p style="margin:0 0 0.5rem;color:var(--gray-400);">${b.description || '無描述'}</p>
+            <div style="display:flex;gap:1rem;font-size:0.9rem;">
+              <span>類型：${{course:'課程',site:'全站',manual:'手動'}[b.type] || b.type || '—'}</span>
+              <span>狀態：${b.status === 'active' ? '啟用' : '草稿'}</span>
+              <span>已頒發：${b.issuedCount || 0}</span>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:0.5rem;">
+            <button onclick="MoodleUI.openIssueBadgeModal('${badgeId}')" class="btn-primary btn-sm">頒發徽章</button>
+            <button onclick="MoodleUI.deleteBadge('${badgeId}')" class="btn-sm" style="background:#fee2e2;color:#dc2626;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;">刪除</button>
+          </div>
+        </div>
+        ${(b.criteria || []).length > 0 ? `
+          <div style="margin-bottom:1.5rem;padding:1rem;background:var(--gray-50);border-radius:8px;">
+            <h4 style="margin:0 0 0.75rem;">取得條件</h4>
+            <ul style="margin:0;padding-left:1.5rem;">${b.criteria.map(c => `<li>${c.description || c.type || '條件'}</li>`).join('')}</ul>
+          </div>
+        ` : ''}
+        <h3>獲獎者（${recipients.length}）</h3>
+        ${recipients.length === 0 ? '<p style="color:var(--gray-400);">尚無獲獎者</p>' : `
+          <div style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;font-size:0.9rem;">
+              <thead><tr style="background:var(--gray-100);">
+                <th style="padding:8px;text-align:left;border:1px solid var(--gray-200);">使用者</th>
+                <th style="padding:8px;text-align:left;border:1px solid var(--gray-200);">頒發日期</th>
+                <th style="padding:8px;text-align:center;border:1px solid var(--gray-200);">操作</th>
+              </tr></thead>
+              <tbody>
+                ${recipients.map(r => `
+                  <tr>
+                    <td style="padding:8px;border:1px solid var(--gray-200);">${r.userName || r.userId || '—'}</td>
+                    <td style="padding:8px;border:1px solid var(--gray-200);">${this.formatDate(r.issuedAt || r.createdAt, 'datetime')}</td>
+                    <td style="padding:8px;text-align:center;border:1px solid var(--gray-200);">
+                      <button onclick="MoodleUI.revokeBadge('${badgeId}','${r.userId}')" class="btn-sm" style="background:#fee2e2;color:#dc2626;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:0.8rem;">撤銷</button>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `}`;
+    } catch (error) {
+      console.error('View badge detail error:', error);
+      container.innerHTML = '<div class="error">載入失敗</div>';
+    }
+  },
+
+  openCreateBadgeModal() {
+    const modal = document.createElement('div');
+    modal.id = 'createBadgeModal';
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+      <div class="modal-content modal-lg">
+        <div class="modal-header">
+          <h3>建立徽章</h3>
+          <button onclick="MoodleUI.closeModal('createBadgeModal')" class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>徽章名稱 *</label>
+            <input type="text" id="badgeName" placeholder="輸入徽章名稱">
+          </div>
+          <div class="form-group">
+            <label>描述</label>
+            <textarea id="badgeDescription" rows="2" placeholder="徽章描述"></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>圖示</label>
+              <select id="badgeIcon">
+                <option value="🏆">🏆 獎盃</option><option value="⭐">⭐ 星星</option>
+                <option value="🎓">🎓 畢業帽</option><option value="🏅">🏅 獎牌</option>
+                <option value="💎">💎 鑽石</option><option value="🌟">🌟 閃星</option>
+                <option value="📚">📚 書籍</option><option value="🎯">🎯 靶心</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>類型</label>
+              <select id="badgeType">
+                <option value="course">課程徽章</option><option value="site">全站徽章</option><option value="manual">手動頒發</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>狀態</label>
+            <select id="badgeStatus"><option value="draft">草稿</option><option value="active">啟用</option></select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button onclick="MoodleUI.closeModal('createBadgeModal')" class="btn-secondary">取消</button>
+          <button onclick="MoodleUI.saveBadge()" class="btn-primary">建立徽章</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    modal.onclick = (e) => { if (e.target === modal) this.closeModal('createBadgeModal'); };
+  },
+
+  async saveBadge() {
+    const name = document.getElementById('badgeName')?.value?.trim();
+    if (!name) { showToast('請填寫名稱'); return; }
+    try {
+      const result = await API.badges.create({
+        name,
+        description: document.getElementById('badgeDescription')?.value || '',
+        icon: document.getElementById('badgeIcon')?.value || '🏆',
+        type: document.getElementById('badgeType')?.value || 'course',
+        status: document.getElementById('badgeStatus')?.value || 'draft'
+      });
+      if (result.success) {
+        showToast('徽章建立成功');
+        this.closeModal('createBadgeModal');
+        this.openBadges();
+      } else { showToast(result.error || '建立失敗'); }
+    } catch (error) { showToast('建立徽章失敗'); }
+  },
+
+  openIssueBadgeModal(badgeId) {
+    const modal = document.createElement('div');
+    modal.id = 'issueBadgeModal';
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>頒發徽章</h3>
+          <button onclick="MoodleUI.closeModal('issueBadgeModal')" class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>使用者 ID（多個以逗號分隔）</label>
+            <input type="text" id="issueBadgeUserIds" placeholder="例如：user1, user2">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button onclick="MoodleUI.closeModal('issueBadgeModal')" class="btn-secondary">取消</button>
+          <button onclick="MoodleUI.issueBadge('${badgeId}')" class="btn-primary">頒發</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    modal.onclick = (e) => { if (e.target === modal) this.closeModal('issueBadgeModal'); };
+  },
+
+  async issueBadge(badgeId) {
+    const userIdsStr = document.getElementById('issueBadgeUserIds')?.value?.trim();
+    if (!userIdsStr) { showToast('請輸入使用者 ID'); return; }
+    const userIds = userIdsStr.split(',').map(s => s.trim()).filter(Boolean);
+    try {
+      const result = await API.badges.issue(badgeId, { userIds });
+      if (result.success) {
+        showToast(`已頒發給 ${result.data?.issued || userIds.length} 位使用者`);
+        this.closeModal('issueBadgeModal');
+        this.viewBadgeDetail(badgeId);
+      } else { showToast(result.error || '頒發失敗'); }
+    } catch (error) { showToast('頒發失敗'); }
+  },
+
+  async revokeBadge(badgeId, userId) {
+    if (!confirm('確定要撤銷此徽章？')) return;
+    try {
+      const result = await API.badges.revoke(badgeId, userId);
+      if (result.success) { showToast('已撤銷'); this.viewBadgeDetail(badgeId); }
+      else { showToast(result.error || '撤銷失敗'); }
+    } catch (error) { showToast('撤銷失敗'); }
+  },
+
+  async deleteBadge(badgeId) {
+    if (!confirm('確定要刪除此徽章？')) return;
+    try {
+      const result = await API.badges.delete(badgeId);
+      if (result.success) { showToast('已刪除'); this.openBadges(); }
+      else { showToast(result.error || '刪除失敗'); }
+    } catch (error) { showToast('刪除失敗'); }
+  },
+
+  /**
+   * 學習路徑
+   */
+  async openLearningPaths() {
+    const container = document.getElementById('learningPathsContent');
+    if (!container) return;
+    showView('learningPaths');
+    container.innerHTML = '<div class="loading">載入中...</div>';
+    try {
+      const result = await API.learningPaths.list();
+      const paths = result.success ? (Array.isArray(result.data) ? result.data : (result.data?.paths || [])) : [];
+      this._learningPathsData = paths;
+      this.renderLearningPathsPage(container, paths);
+    } catch (error) {
+      console.error('Open learning paths error:', error);
+      container.innerHTML = '<div class="error">載入學習路徑失敗</div>';
+    }
+  },
+
+  renderLearningPathsPage(container, paths) {
+    const difficultyLabels = { beginner: '初級', intermediate: '中級', advanced: '高級' };
+    const difficultyColors = { beginner: '#dcfce7', intermediate: '#fef3c7', advanced: '#fee2e2' };
+    const difficultyText = { beginner: '#166534', intermediate: '#92400e', advanced: '#dc2626' };
+
+    container.innerHTML = `
+      <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+        <h2 style="margin:0;">學習路徑</h2>
+        <button onclick="MoodleUI.openCreateLearningPathModal()" class="btn-primary">+ 建立學習路徑</button>
+      </div>
+      <div class="card-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1rem;">
+        ${paths.length === 0 ? '<p style="color:var(--gray-400);grid-column:1/-1;text-align:center;padding:3rem;">尚無學習路徑</p>' :
+          paths.map(p => `
+            <div class="card" style="padding:1.5rem;border:1px solid var(--gray-200);border-radius:8px;cursor:pointer;"
+                 onclick="MoodleUI.viewLearningPathDetail('${p.pathId || p.id}')">
+              <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:0.75rem;">
+                <h3 style="margin:0;font-size:1.1rem;">${p.name || p.title || '未命名'}</h3>
+                <span style="padding:2px 8px;border-radius:4px;font-size:0.75rem;background:${difficultyColors[p.difficulty] || '#f3f4f6'};color:${difficultyText[p.difficulty] || '#374151'};">
+                  ${difficultyLabels[p.difficulty] || p.difficulty || '—'}
+                </span>
+              </div>
+              <p style="margin:0 0 0.75rem;color:var(--gray-400);font-size:0.9rem;">${p.description || '無描述'}</p>
+              <div style="display:flex;gap:1rem;font-size:0.85rem;color:var(--gray-400);">
+                <span>課程：${(p.courses || []).length}</span>
+                <span>時長：${p.duration || '—'}</span>
+                <span>已報名：${p.enrolledCount || 0}</span>
+              </div>
+              ${p.progress != null ? `
+                <div style="margin-top:0.75rem;">
+                  <div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:4px;">
+                    <span>進度</span><span>${Math.round(p.progress)}%</span>
+                  </div>
+                  <div style="height:6px;background:var(--gray-200);border-radius:3px;overflow:hidden;">
+                    <div style="height:100%;width:${p.progress}%;background:var(--primary);border-radius:3px;"></div>
+                  </div>
+                </div>
+              ` : ''}
+            </div>
+          `).join('')}
+      </div>`;
+  },
+
+  async viewLearningPathDetail(pathId) {
+    const container = document.getElementById('learningPathsContent');
+    if (!container) return;
+    container.innerHTML = '<div class="loading">載入中...</div>';
+    try {
+      const [pathResult, reportResult] = await Promise.all([
+        API.learningPaths.get(pathId),
+        API.learningPaths.getReport(pathId).catch(() => ({ success: false }))
+      ]);
+      if (!pathResult.success) { container.innerHTML = '<div class="error">載入失敗</div>'; return; }
+      const p = pathResult.data;
+      const report = reportResult.success ? reportResult.data : {};
+      const courses = p.courses || [];
+      const progress = p.userProgress || p.progress;
+
+      container.innerHTML = `
+        <div style="margin-bottom:1rem;">
+          <button onclick="MoodleUI.openLearningPaths()" class="back-btn" style="background:none;border:none;cursor:pointer;color:var(--primary);font-size:0.9rem;">← 返回列表</button>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:1.5rem;">
+          <div>
+            <h2 style="margin:0 0 0.5rem;">${p.name || p.title || '未命名'}</h2>
+            <p style="margin:0;color:var(--gray-400);">${p.description || ''}</p>
+          </div>
+          <div style="display:flex;gap:0.5rem;">
+            <button onclick="MoodleUI.enrollLearningPath('${pathId}')" class="btn-primary btn-sm">報名</button>
+            <button onclick="MoodleUI.deleteLearningPath('${pathId}')" class="btn-sm" style="background:#fee2e2;color:#dc2626;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;">刪除</button>
+          </div>
+        </div>
+        ${progress != null ? `
+          <div style="margin-bottom:1.5rem;padding:1rem;background:var(--gray-50);border-radius:8px;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+              <span>整體進度</span><span>${Math.round(typeof progress === 'object' ? progress.overallProgress || 0 : progress)}%</span>
+            </div>
+            <div style="height:8px;background:var(--gray-200);border-radius:4px;overflow:hidden;">
+              <div style="height:100%;width:${typeof progress === 'object' ? progress.overallProgress || 0 : progress}%;background:var(--primary);border-radius:4px;"></div>
+            </div>
+          </div>
+        ` : ''}
+        <h3 style="margin-bottom:1rem;">課程序列（${courses.length} 門）</h3>
+        <div style="position:relative;padding-left:2rem;">
+          ${courses.map((c, idx) => `
+            <div style="display:flex;align-items:start;margin-bottom:1.5rem;position:relative;">
+              <div style="position:absolute;left:-2rem;width:28px;height:28px;background:${c.completed ? 'var(--primary)' : 'var(--gray-300)'};color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.8rem;font-weight:600;">
+                ${c.completed ? '✓' : idx + 1}
+              </div>
+              ${idx < courses.length - 1 ? `<div style="position:absolute;left:calc(-2rem + 13px);top:28px;width:2px;height:calc(100% + 0.5rem);background:var(--gray-200);"></div>` : ''}
+              <div style="flex:1;padding:1rem;border:1px solid var(--gray-200);border-radius:8px;margin-left:0.5rem;${c.completed ? 'border-color:var(--primary);background:#f0f9ff;' : ''}">
+                <h4 style="margin:0 0 0.25rem;">${c.title || c.name || '課程 ' + (idx + 1)}</h4>
+                <p style="margin:0;font-size:0.85rem;color:var(--gray-400);">${c.description || ''}</p>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+        ${report.totalEnrolled ? `
+          <div style="margin-top:1.5rem;padding:1rem;background:var(--gray-50);border-radius:8px;">
+            <h4 style="margin:0 0 0.5rem;">統計</h4>
+            <div style="display:flex;gap:2rem;font-size:0.9rem;">
+              <span>總報名：${report.totalEnrolled}</span>
+              <span>完成率：${report.completionRate ? Math.round(report.completionRate) + '%' : '—'}</span>
+            </div>
+          </div>
+        ` : ''}`;
+    } catch (error) {
+      console.error('View learning path detail error:', error);
+      container.innerHTML = '<div class="error">載入失敗</div>';
+    }
+  },
+
+  async openCreateLearningPathModal() {
+    let courseOptions = '';
+    try {
+      const result = await API.courses.list();
+      const courses = result.success ? (Array.isArray(result.data) ? result.data : (result.data?.courses || [])) : [];
+      courses.forEach(c => {
+        courseOptions += `<option value="${c.courseId || c.id}">${c.title || c.name}</option>`;
+      });
+    } catch (e) { /* ignore */ }
+
+    const modal = document.createElement('div');
+    modal.id = 'createLearningPathModal';
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+      <div class="modal-content modal-lg">
+        <div class="modal-header">
+          <h3>建立學習路徑</h3>
+          <button onclick="MoodleUI.closeModal('createLearningPathModal')" class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>路徑名稱 *</label>
+            <input type="text" id="lpName" placeholder="學習路徑名稱">
+          </div>
+          <div class="form-group">
+            <label>描述</label>
+            <textarea id="lpDescription" rows="2" placeholder="學習路徑描述"></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>難度</label>
+              <select id="lpDifficulty">
+                <option value="beginner">初級</option>
+                <option value="intermediate">中級</option>
+                <option value="advanced">高級</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>預估時長</label>
+              <input type="text" id="lpDuration" placeholder="例如：20 小時">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>選擇課程（按住 Ctrl/Cmd 多選）</label>
+            <select id="lpCourses" multiple style="min-height:120px;">
+              ${courseOptions}
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button onclick="MoodleUI.closeModal('createLearningPathModal')" class="btn-secondary">取消</button>
+          <button onclick="MoodleUI.saveLearningPath()" class="btn-primary">建立</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    modal.onclick = (e) => { if (e.target === modal) this.closeModal('createLearningPathModal'); };
+  },
+
+  async saveLearningPath() {
+    const name = document.getElementById('lpName')?.value?.trim();
+    if (!name) { showToast('請填寫名稱'); return; }
+    const select = document.getElementById('lpCourses');
+    const courseIds = select ? Array.from(select.selectedOptions).map(o => o.value) : [];
+    try {
+      const result = await API.learningPaths.create({
+        name,
+        description: document.getElementById('lpDescription')?.value || '',
+        difficulty: document.getElementById('lpDifficulty')?.value || 'beginner',
+        duration: document.getElementById('lpDuration')?.value || '',
+        courseIds
+      });
+      if (result.success) {
+        showToast('學習路徑建立成功');
+        this.closeModal('createLearningPathModal');
+        this.openLearningPaths();
+      } else { showToast(result.error || '建立失敗'); }
+    } catch (error) { showToast('建立學習路徑失敗'); }
+  },
+
+  async enrollLearningPath(pathId) {
+    try {
+      const result = await API.learningPaths.enroll(pathId);
+      if (result.success) { showToast('報名成功'); this.viewLearningPathDetail(pathId); }
+      else { showToast(result.error || '報名失敗'); }
+    } catch (error) { showToast('報名失敗'); }
+  },
+
+  async deleteLearningPath(pathId) {
+    if (!confirm('確定要刪除此學習路徑？')) return;
+    try {
+      const result = await API.learningPaths.delete(pathId);
+      if (result.success) { showToast('已刪除'); this.openLearningPaths(); }
+      else { showToast(result.error || '刪除失敗'); }
+    } catch (error) { showToast('刪除失敗'); }
+  },
+
+  /**
+   * 稽核日誌
+   */
+  currentAuditFilters: { eventType: '', severity: '', page: 1 },
+
+  async openAuditLogs() {
+    const container = document.getElementById('auditLogsContent');
+    if (!container) return;
+    showView('auditLogs');
+    container.innerHTML = '<div class="loading">載入中...</div>';
+    try {
+      const [logsResult, eventTypesResult, statsResult] = await Promise.all([
+        API.auditLogs.list(this.currentAuditFilters),
+        API.auditLogs.getEventTypes(),
+        API.auditLogs.getStats()
+      ]);
+      const logs = logsResult.success ? (Array.isArray(logsResult.data) ? logsResult.data : (logsResult.data?.logs || [])) : [];
+      const eventTypes = eventTypesResult.success ? (Array.isArray(eventTypesResult.data) ? eventTypesResult.data : (eventTypesResult.data?.eventTypes || [])) : [];
+      const stats = statsResult.success ? statsResult.data : {};
+      const pagination = logsResult.data?.pagination || {};
+      this._auditEventTypes = eventTypes;
+      this.renderAuditLogsPage(container, logs, eventTypes, stats, pagination);
+    } catch (error) {
+      console.error('Open audit logs error:', error);
+      container.innerHTML = '<div class="error">載入稽核日誌失敗</div>';
+    }
+  },
+
+  renderAuditLogsPage(container, logs, eventTypes, stats, pagination) {
+    const severityColors = { info: '#3b82f6', warning: '#f59e0b', error: '#ef4444', critical: '#dc2626' };
+    const severityLabels = { info: '資訊', warning: '警告', error: '錯誤', critical: '嚴重' };
+
+    container.innerHTML = `
+      <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+        <h2 style="margin:0;">稽核日誌</h2>
+        <div style="display:flex;gap:0.5rem;">
+          <button onclick="MoodleUI.exportAuditLogs('csv')" class="btn-secondary btn-sm">匯出 CSV</button>
+          <button onclick="MoodleUI.exportAuditLogs('json')" class="btn-secondary btn-sm">匯出 JSON</button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:1rem;margin-bottom:1.5rem;">
+        <div style="padding:1rem;background:var(--gray-50);border-radius:8px;text-align:center;">
+          <div style="font-size:1.5rem;font-weight:700;">${stats.totalLogs || logs.length}</div>
+          <div style="font-size:0.8rem;color:var(--gray-400);">總記錄數</div>
+        </div>
+        ${Object.entries(stats.severityCounts || {}).map(([sev, count]) => `
+          <div style="padding:1rem;background:var(--gray-50);border-radius:8px;text-align:center;">
+            <div style="font-size:1.5rem;font-weight:700;color:${severityColors[sev] || '#333'};">${count}</div>
+            <div style="font-size:0.8rem;color:var(--gray-400);">${severityLabels[sev] || sev}</div>
+          </div>
+        `).join('')}
+      </div>
+      <div style="display:flex;gap:1rem;margin-bottom:1rem;flex-wrap:wrap;align-items:end;">
+        <div class="form-group" style="margin:0;min-width:150px;">
+          <label style="font-size:0.8rem;">事件類型</label>
+          <select id="auditFilterType" onchange="MoodleUI.filterAuditLogs()" style="font-size:0.9rem;padding:6px;">
+            <option value="">全部</option>
+            ${eventTypes.map(et => `<option value="${et.type || et}" ${this.currentAuditFilters.eventType === (et.type || et) ? 'selected' : ''}>${et.label || et.name || et}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group" style="margin:0;min-width:120px;">
+          <label style="font-size:0.8rem;">嚴重度</label>
+          <select id="auditFilterSeverity" onchange="MoodleUI.filterAuditLogs()" style="font-size:0.9rem;padding:6px;">
+            <option value="">全部</option>
+            <option value="info" ${this.currentAuditFilters.severity === 'info' ? 'selected' : ''}>資訊</option>
+            <option value="warning" ${this.currentAuditFilters.severity === 'warning' ? 'selected' : ''}>警告</option>
+            <option value="error" ${this.currentAuditFilters.severity === 'error' ? 'selected' : ''}>錯誤</option>
+            <option value="critical" ${this.currentAuditFilters.severity === 'critical' ? 'selected' : ''}>嚴重</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin:0;min-width:140px;">
+          <label style="font-size:0.8rem;">開始日期</label>
+          <input type="date" id="auditFilterStartDate" onchange="MoodleUI.filterAuditLogs()" style="font-size:0.9rem;padding:6px;">
+        </div>
+        <div class="form-group" style="margin:0;min-width:140px;">
+          <label style="font-size:0.8rem;">結束日期</label>
+          <input type="date" id="auditFilterEndDate" onchange="MoodleUI.filterAuditLogs()" style="font-size:0.9rem;padding:6px;">
+        </div>
+      </div>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
+          <thead>
+            <tr style="background:var(--gray-100);">
+              <th style="padding:8px;text-align:left;border:1px solid var(--gray-200);">時間</th>
+              <th style="padding:8px;text-align:left;border:1px solid var(--gray-200);">事件類型</th>
+              <th style="padding:8px;text-align:left;border:1px solid var(--gray-200);">使用者</th>
+              <th style="padding:8px;text-align:left;border:1px solid var(--gray-200);">IP</th>
+              <th style="padding:8px;text-align:left;border:1px solid var(--gray-200);">描述</th>
+              <th style="padding:8px;text-align:center;border:1px solid var(--gray-200);">嚴重度</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${logs.length === 0 ? '<tr><td colspan="6" style="padding:2rem;text-align:center;color:var(--gray-400);border:1px solid var(--gray-200);">無記錄</td></tr>' :
+              logs.map(log => `
+                <tr>
+                  <td style="padding:8px;border:1px solid var(--gray-200);white-space:nowrap;">${this.formatDate(log.createdAt || log.timestamp, 'datetime')}</td>
+                  <td style="padding:8px;border:1px solid var(--gray-200);">${log.eventType || '—'}</td>
+                  <td style="padding:8px;border:1px solid var(--gray-200);">${log.userName || log.userId || '—'}</td>
+                  <td style="padding:8px;border:1px solid var(--gray-200);">${log.ipAddress || log.ip || '—'}</td>
+                  <td style="padding:8px;border:1px solid var(--gray-200);">${log.description || log.message || '—'}</td>
+                  <td style="padding:8px;text-align:center;border:1px solid var(--gray-200);">
+                    <span style="padding:2px 8px;border-radius:4px;font-size:0.75rem;color:#fff;background:${severityColors[log.severity] || '#6b7280'};">
+                      ${severityLabels[log.severity] || log.severity || '—'}
+                    </span>
+                  </td>
+                </tr>
+              `).join('')}
+          </tbody>
+        </table>
+      </div>
+      ${pagination.totalPages > 1 ? `
+        <div style="display:flex;justify-content:center;gap:0.5rem;margin-top:1rem;">
+          ${this.currentAuditFilters.page > 1 ? `<button onclick="MoodleUI.currentAuditFilters.page--;MoodleUI.openAuditLogs()" class="btn-sm btn-secondary">上一頁</button>` : ''}
+          <span style="padding:6px 12px;font-size:0.9rem;">第 ${pagination.page || this.currentAuditFilters.page} / ${pagination.totalPages} 頁</span>
+          ${(pagination.page || this.currentAuditFilters.page) < pagination.totalPages ? `<button onclick="MoodleUI.currentAuditFilters.page++;MoodleUI.openAuditLogs()" class="btn-sm btn-secondary">下一頁</button>` : ''}
+        </div>
+      ` : ''}`;
+  },
+
+  filterAuditLogs() {
+    this.currentAuditFilters.eventType = document.getElementById('auditFilterType')?.value || '';
+    this.currentAuditFilters.severity = document.getElementById('auditFilterSeverity')?.value || '';
+    this.currentAuditFilters.startDate = document.getElementById('auditFilterStartDate')?.value || '';
+    this.currentAuditFilters.endDate = document.getElementById('auditFilterEndDate')?.value || '';
+    this.currentAuditFilters.page = 1;
+    this.openAuditLogs();
+  },
+
+  async exportAuditLogs(format) {
+    try {
+      const result = await API.auditLogs.export({ ...this.currentAuditFilters, format });
+      if (result.success && result.data) {
+        const content = format === 'csv' ? result.data : JSON.stringify(result.data, null, 2);
+        const mimeType = format === 'csv' ? 'text/csv' : 'application/json';
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `audit_logs_${new Date().toISOString().split('T')[0]}.${format}`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('已匯出');
+      } else { showToast('匯出失敗'); }
+    } catch (error) {
+      console.error('Export audit logs error:', error);
+      showToast('匯出失敗');
+    }
+  },
+
+  /**
+   * H5P 管理
+   */
+  currentH5pFilter: 'all',
+
+  async openH5pManager() {
+    const container = document.getElementById('h5pManagerContent');
+    if (!container) return;
+    showView('h5pManager');
+    container.innerHTML = '<div class="loading">載入中...</div>';
+    try {
+      const [contentResult, typesResult] = await Promise.all([
+        API.h5p.list(),
+        API.h5p.getTypes()
+      ]);
+      const contents = contentResult.success ? (Array.isArray(contentResult.data) ? contentResult.data : (contentResult.data?.contents || [])) : [];
+      const types = typesResult.success ? (Array.isArray(typesResult.data) ? typesResult.data : (typesResult.data?.types || [])) : [];
+      this._h5pData = contents;
+      this._h5pTypes = types;
+      this.renderH5pPage(container, contents, types);
+    } catch (error) {
+      console.error('Open H5P manager error:', error);
+      container.innerHTML = '<div class="error">載入 H5P 內容失敗</div>';
+    }
+  },
+
+  renderH5pPage(container, contents, types) {
+    const filtered = this.currentH5pFilter === 'all' ? contents :
+      contents.filter(c => c.contentType === this.currentH5pFilter || c.status === this.currentH5pFilter);
+    const typeIcons = { 'Interactive Video': '🎬', 'Course Presentation': '📊', 'Quiz': '❓', 'Drag and Drop': '🎯', 'Fill in the Blanks': '✏️', 'Dialog Cards': '🃏', 'Timeline': '📅', 'Flashcards': '🗂️' };
+
+    container.innerHTML = `
+      <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+        <h2 style="margin:0;">H5P 互動內容</h2>
+        <button onclick="MoodleUI.openCreateH5pModal()" class="btn-primary">+ 建立 H5P 內容</button>
+      </div>
+      <div class="filter-tabs" style="display:flex;gap:0.5rem;margin-bottom:1.5rem;flex-wrap:wrap;">
+        <button class="btn-sm ${this.currentH5pFilter === 'all' ? 'btn-primary' : 'btn-secondary'}"
+                onclick="MoodleUI.currentH5pFilter='all';MoodleUI.renderH5pPage(document.getElementById('h5pManagerContent'),MoodleUI._h5pData,MoodleUI._h5pTypes)">全部</button>
+        <button class="btn-sm ${this.currentH5pFilter === 'published' ? 'btn-primary' : 'btn-secondary'}"
+                onclick="MoodleUI.currentH5pFilter='published';MoodleUI.renderH5pPage(document.getElementById('h5pManagerContent'),MoodleUI._h5pData,MoodleUI._h5pTypes)">已發佈</button>
+        <button class="btn-sm ${this.currentH5pFilter === 'draft' ? 'btn-primary' : 'btn-secondary'}"
+                onclick="MoodleUI.currentH5pFilter='draft';MoodleUI.renderH5pPage(document.getElementById('h5pManagerContent'),MoodleUI._h5pData,MoodleUI._h5pTypes)">草稿</button>
+        ${types.slice(0, 5).map(t => {
+          const typeName = t.name || t.type || t;
+          return `<button class="btn-sm ${this.currentH5pFilter === typeName ? 'btn-primary' : 'btn-secondary'}"
+                onclick="MoodleUI.currentH5pFilter='${typeName}';MoodleUI.renderH5pPage(document.getElementById('h5pManagerContent'),MoodleUI._h5pData,MoodleUI._h5pTypes)">${typeName}</button>`;
+        }).join('')}
+      </div>
+      <div class="card-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;">
+        ${filtered.length === 0 ? '<p style="color:var(--gray-400);grid-column:1/-1;text-align:center;padding:3rem;">尚無 H5P 內容</p>' :
+          filtered.map(c => `
+            <div class="card" style="padding:1.5rem;border:1px solid var(--gray-200);border-radius:8px;cursor:pointer;"
+                 onclick="MoodleUI.viewH5pDetail('${c.contentId || c.id}')">
+              <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.75rem;">
+                <span style="font-size:1.5rem;">${typeIcons[c.contentType] || '📦'}</span>
+                <div style="flex:1;">
+                  <h3 style="margin:0;font-size:1rem;">${c.title || '未命名'}</h3>
+                  <span style="font-size:0.8rem;color:var(--gray-400);">${c.contentType || '—'}</span>
+                </div>
+                <span style="padding:2px 8px;border-radius:4px;font-size:0.7rem;background:${c.status === 'published' ? '#dcfce7;color:#166534' : '#fef3c7;color:#92400e'};">
+                  ${c.status === 'published' ? '已發佈' : '草稿'}
+                </span>
+              </div>
+              <div style="display:flex;gap:1rem;font-size:0.8rem;color:var(--gray-400);">
+                <span>瀏覽：${c.viewCount || 0}</span>
+                <span>嘗試：${c.attemptCount || 0}</span>
+              </div>
+            </div>
+          `).join('')}
+      </div>`;
+  },
+
+  async viewH5pDetail(contentId) {
+    const container = document.getElementById('h5pManagerContent');
+    if (!container) return;
+    container.innerHTML = '<div class="loading">載入中...</div>';
+    try {
+      const [contentResult, reportResult, embedResult] = await Promise.all([
+        API.h5p.get(contentId),
+        API.h5p.getReport(contentId).catch(() => ({ success: false })),
+        API.h5p.getEmbed(contentId).catch(() => ({ success: false }))
+      ]);
+      if (!contentResult.success) { container.innerHTML = '<div class="error">載入失敗</div>'; return; }
+      const c = contentResult.data;
+      const report = reportResult.success ? reportResult.data : {};
+      const embed = embedResult.success ? embedResult.data : {};
+
+      container.innerHTML = `
+        <div style="margin-bottom:1rem;">
+          <button onclick="MoodleUI.openH5pManager()" class="back-btn" style="background:none;border:none;cursor:pointer;color:var(--primary);font-size:0.9rem;">← 返回列表</button>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:1.5rem;">
+          <div>
+            <h2 style="margin:0 0 0.25rem;">${c.title || '未命名'}</h2>
+            <p style="margin:0;color:var(--gray-400);">${c.contentType || ''} — ${c.description || ''}</p>
+          </div>
+          <div style="display:flex;gap:0.5rem;">
+            <button onclick="MoodleUI.duplicateH5pContent('${contentId}')" class="btn-sm btn-secondary">複製</button>
+            <button onclick="MoodleUI.deleteH5pContent('${contentId}')" class="btn-sm" style="background:#fee2e2;color:#dc2626;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;">刪除</button>
+          </div>
+        </div>
+        ${embed.embedCode || embed.html ? `
+          <div style="margin-bottom:1.5rem;padding:1rem;background:var(--gray-50);border-radius:8px;">
+            <h4 style="margin:0 0 0.5rem;">預覽</h4>
+            <div style="border:1px solid var(--gray-200);border-radius:4px;min-height:200px;background:#fff;padding:1rem;">
+              ${embed.embedCode || embed.html || '<p style="color:var(--gray-400);text-align:center;">無法預覽</p>'}
+            </div>
+          </div>
+        ` : ''}
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:1rem;margin-bottom:1.5rem;">
+          <div style="padding:1rem;background:var(--gray-50);border-radius:8px;text-align:center;">
+            <div style="font-size:1.5rem;font-weight:700;">${report.totalAttempts || c.attemptCount || 0}</div>
+            <div style="font-size:0.8rem;color:var(--gray-400);">總嘗試</div>
+          </div>
+          <div style="padding:1rem;background:var(--gray-50);border-radius:8px;text-align:center;">
+            <div style="font-size:1.5rem;font-weight:700;">${report.uniqueUsers || 0}</div>
+            <div style="font-size:0.8rem;color:var(--gray-400);">使用者</div>
+          </div>
+          <div style="padding:1rem;background:var(--gray-50);border-radius:8px;text-align:center;">
+            <div style="font-size:1.5rem;font-weight:700;">${report.averageScore != null ? Math.round(report.averageScore) + '%' : '—'}</div>
+            <div style="font-size:0.8rem;color:var(--gray-400);">平均分數</div>
+          </div>
+          <div style="padding:1rem;background:var(--gray-50);border-radius:8px;text-align:center;">
+            <div style="font-size:1.5rem;font-weight:700;">${c.viewCount || 0}</div>
+            <div style="font-size:0.8rem;color:var(--gray-400);">瀏覽數</div>
+          </div>
+        </div>`;
+    } catch (error) {
+      console.error('View H5P detail error:', error);
+      container.innerHTML = '<div class="error">載入失敗</div>';
+    }
+  },
+
+  async openCreateH5pModal() {
+    const types = this._h5pTypes || [];
+    let courseOptions = '<option value="">不指定</option>';
+    try {
+      const result = await API.courses.list();
+      const courses = result.success ? (Array.isArray(result.data) ? result.data : (result.data?.courses || [])) : [];
+      courses.forEach(c => { courseOptions += `<option value="${c.courseId || c.id}">${c.title || c.name}</option>`; });
+    } catch (e) { /* ignore */ }
+
+    const modal = document.createElement('div');
+    modal.id = 'createH5pModal';
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+      <div class="modal-content modal-lg">
+        <div class="modal-header">
+          <h3>建立 H5P 內容</h3>
+          <button onclick="MoodleUI.closeModal('createH5pModal')" class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>內容類型 *</label>
+            <select id="h5pContentType">
+              ${types.length > 0 ?
+                types.map(t => `<option value="${t.type || t.name || t}">${t.name || t.type || t}</option>`).join('') :
+                `<option value="Interactive Video">互動影片</option>
+                 <option value="Course Presentation">課程簡報</option>
+                 <option value="Quiz">測驗</option>
+                 <option value="Drag and Drop">拖放題</option>
+                 <option value="Fill in the Blanks">填空題</option>
+                 <option value="Dialog Cards">對話卡片</option>`}
+            </select>
+          </div>
+          <div class="form-group">
+            <label>標題 *</label>
+            <input type="text" id="h5pTitle" placeholder="內容標題">
+          </div>
+          <div class="form-group">
+            <label>描述</label>
+            <textarea id="h5pDescription" rows="2" placeholder="內容描述"></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>所屬課程</label>
+              <select id="h5pCourse">${courseOptions}</select>
+            </div>
+            <div class="form-group">
+              <label>狀態</label>
+              <select id="h5pStatus"><option value="draft">草稿</option><option value="published">已發佈</option></select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button onclick="MoodleUI.closeModal('createH5pModal')" class="btn-secondary">取消</button>
+          <button onclick="MoodleUI.saveH5pContent()" class="btn-primary">建立</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    modal.onclick = (e) => { if (e.target === modal) this.closeModal('createH5pModal'); };
+  },
+
+  async saveH5pContent() {
+    const title = document.getElementById('h5pTitle')?.value?.trim();
+    if (!title) { showToast('請填寫標題'); return; }
+    try {
+      const result = await API.h5p.create({
+        title,
+        contentType: document.getElementById('h5pContentType')?.value || 'Interactive Video',
+        description: document.getElementById('h5pDescription')?.value || '',
+        courseId: document.getElementById('h5pCourse')?.value || undefined,
+        status: document.getElementById('h5pStatus')?.value || 'draft'
+      });
+      if (result.success) {
+        showToast('H5P 內容建立成功');
+        this.closeModal('createH5pModal');
+        this.openH5pManager();
+      } else { showToast(result.error || '建立失敗'); }
+    } catch (error) { showToast('建立 H5P 內容失敗'); }
+  },
+
+  async duplicateH5pContent(contentId) {
+    try {
+      const result = await API.h5p.duplicate(contentId);
+      if (result.success) { showToast('已複製'); this.openH5pManager(); }
+      else { showToast(result.error || '複製失敗'); }
+    } catch (error) { showToast('複製失敗'); }
+  },
+
+  async deleteH5pContent(contentId) {
+    if (!confirm('確定要刪除此 H5P 內容？')) return;
+    try {
+      const result = await API.h5p.delete(contentId);
+      if (result.success) { showToast('已刪除'); this.openH5pManager(); }
+      else { showToast(result.error || '刪除失敗'); }
+    } catch (error) { showToast('刪除失敗'); }
+  },
+
+  /**
+   * LTI 管理
+   */
+  async openLtiManager() {
+    const container = document.getElementById('ltiManagerContent');
+    if (!container) return;
+    showView('ltiManager');
+    container.innerHTML = '<div class="loading">載入中...</div>';
+    try {
+      const result = await API.ltiTools.list();
+      const tools = result.success ? (Array.isArray(result.data) ? result.data : (result.data?.tools || [])) : [];
+      this._ltiToolsData = tools;
+      this.renderLtiPage(container, tools);
+    } catch (error) {
+      console.error('Open LTI manager error:', error);
+      container.innerHTML = '<div class="error">載入 LTI 工具失敗</div>';
+    }
+  },
+
+  renderLtiPage(container, tools) {
+    container.innerHTML = `
+      <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+        <h2 style="margin:0;">LTI 外部工具</h2>
+        <button onclick="MoodleUI.openRegisterLtiToolModal()" class="btn-primary">+ 註冊 LTI 工具</button>
+      </div>
+      <div class="card-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1rem;">
+        ${tools.length === 0 ? '<p style="color:var(--gray-400);grid-column:1/-1;text-align:center;padding:3rem;">尚無 LTI 工具</p>' :
+          tools.map(t => `
+            <div class="card" style="padding:1.5rem;border:1px solid var(--gray-200);border-radius:8px;cursor:pointer;"
+                 onclick="MoodleUI.viewLtiToolDetail('${t.toolId || t.id}')">
+              <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:0.75rem;">
+                <h3 style="margin:0;font-size:1.1rem;">${t.name || '未命名'}</h3>
+                <div style="display:flex;gap:0.25rem;">
+                  <span style="padding:2px 8px;border-radius:4px;font-size:0.7rem;background:#e0e7ff;color:#3730a3;">
+                    LTI ${t.ltiVersion || t.version || '1.1'}
+                  </span>
+                  <span style="padding:2px 8px;border-radius:4px;font-size:0.7rem;background:${t.status === 'active' ? '#dcfce7;color:#166534' : '#fef3c7;color:#92400e'};">
+                    ${t.status === 'active' ? '啟用' : '停用'}
+                  </span>
+                </div>
+              </div>
+              <p style="margin:0 0 0.5rem;color:var(--gray-400);font-size:0.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                ${t.toolUrl || t.launchUrl || t.url || '—'}
+              </p>
+              <p style="margin:0;font-size:0.85rem;color:var(--gray-400);">${t.description || ''}</p>
+            </div>
+          `).join('')}
+      </div>`;
+  },
+
+  async viewLtiToolDetail(toolId) {
+    const container = document.getElementById('ltiManagerContent');
+    if (!container) return;
+    container.innerHTML = '<div class="loading">載入中...</div>';
+    try {
+      const [toolResult, gradesResult] = await Promise.all([
+        API.ltiTools.get(toolId),
+        API.ltiTools.getGrades(toolId).catch(() => ({ success: false }))
+      ]);
+      if (!toolResult.success) { container.innerHTML = '<div class="error">載入失敗</div>'; return; }
+      const t = toolResult.data;
+      const grades = gradesResult.success ? (Array.isArray(gradesResult.data) ? gradesResult.data : (gradesResult.data?.grades || [])) : [];
+
+      container.innerHTML = `
+        <div style="margin-bottom:1rem;">
+          <button onclick="MoodleUI.openLtiManager()" class="back-btn" style="background:none;border:none;cursor:pointer;color:var(--primary);font-size:0.9rem;">← 返回列表</button>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:1.5rem;">
+          <div>
+            <h2 style="margin:0 0 0.25rem;">${t.name || '未命名'}</h2>
+            <p style="margin:0;color:var(--gray-400);">${t.description || ''}</p>
+          </div>
+          <div style="display:flex;gap:0.5rem;">
+            <button onclick="MoodleUI.launchLtiTool('${toolId}')" class="btn-primary btn-sm">啟動</button>
+            <button onclick="MoodleUI.deleteLtiTool('${toolId}')" class="btn-sm" style="background:#fee2e2;color:#dc2626;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;">刪除</button>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem;">
+          <div style="padding:1rem;background:var(--gray-50);border-radius:8px;">
+            <h4 style="margin:0 0 0.75rem;">工具設定</h4>
+            <div style="font-size:0.9rem;">
+              <p><strong>啟動 URL：</strong><span style="word-break:break-all;">${t.toolUrl || t.launchUrl || t.url || '—'}</span></p>
+              <p><strong>版本：</strong>LTI ${t.ltiVersion || t.version || '1.1'}</p>
+              <p><strong>Consumer Key：</strong>${t.consumerKey || '—'}</p>
+              <p><strong>狀態：</strong>${t.status === 'active' ? '啟用' : '停用'}</p>
+              ${t.customParameters ? `<p><strong>自訂參數：</strong>${typeof t.customParameters === 'string' ? t.customParameters : JSON.stringify(t.customParameters)}</p>` : ''}
+            </div>
+          </div>
+          <div style="padding:1rem;background:var(--gray-50);border-radius:8px;">
+            <h4 style="margin:0 0 0.75rem;">隱私設定</h4>
+            <div style="font-size:0.9rem;">
+              <p><strong>分享姓名：</strong>${t.shareName !== false ? '是' : '否'}</p>
+              <p><strong>分享 Email：</strong>${t.shareEmail !== false ? '是' : '否'}</p>
+              <p><strong>接受成績：</strong>${t.acceptGrades !== false ? '是' : '否'}</p>
+            </div>
+          </div>
+        </div>
+        ${grades.length > 0 ? `
+          <h3>成績記錄（${grades.length}）</h3>
+          <div style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
+              <thead><tr style="background:var(--gray-100);">
+                <th style="padding:8px;text-align:left;border:1px solid var(--gray-200);">使用者</th>
+                <th style="padding:8px;text-align:center;border:1px solid var(--gray-200);">分數</th>
+                <th style="padding:8px;text-align:left;border:1px solid var(--gray-200);">日期</th>
+              </tr></thead>
+              <tbody>
+                ${grades.map(g => `
+                  <tr>
+                    <td style="padding:8px;border:1px solid var(--gray-200);">${g.userName || g.userId || '—'}</td>
+                    <td style="padding:8px;text-align:center;border:1px solid var(--gray-200);">${g.score != null ? g.score : '—'}</td>
+                    <td style="padding:8px;border:1px solid var(--gray-200);">${this.formatDate(g.createdAt || g.timestamp, 'datetime')}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        ` : ''}`;
+    } catch (error) {
+      console.error('View LTI tool detail error:', error);
+      container.innerHTML = '<div class="error">載入失敗</div>';
+    }
+  },
+
+  openRegisterLtiToolModal() {
+    const modal = document.createElement('div');
+    modal.id = 'registerLtiToolModal';
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+      <div class="modal-content modal-lg">
+        <div class="modal-header">
+          <h3>註冊 LTI 工具</h3>
+          <button onclick="MoodleUI.closeModal('registerLtiToolModal')" class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>工具名稱 *</label>
+            <input type="text" id="ltiToolName" placeholder="外部工具名稱">
+          </div>
+          <div class="form-group">
+            <label>描述</label>
+            <textarea id="ltiToolDescription" rows="2" placeholder="工具描述"></textarea>
+          </div>
+          <div class="form-group">
+            <label>啟動 URL *</label>
+            <input type="url" id="ltiToolUrl" placeholder="https://example.com/lti/launch">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Consumer Key</label>
+              <input type="text" id="ltiConsumerKey" placeholder="Consumer Key">
+            </div>
+            <div class="form-group">
+              <label>Shared Secret</label>
+              <input type="password" id="ltiConsumerSecret" placeholder="Shared Secret">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>LTI 版本</label>
+              <select id="ltiVersion">
+                <option value="1.1">LTI 1.1</option>
+                <option value="1.3">LTI 1.3</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>狀態</label>
+              <select id="ltiToolStatus"><option value="active">啟用</option><option value="inactive">停用</option></select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>自訂參數（每行一個，格式：key=value）</label>
+            <textarea id="ltiCustomParams" rows="2" placeholder="key1=value1&#10;key2=value2"></textarea>
+          </div>
+          <h4>隱私設定</h4>
+          <div style="display:flex;gap:1.5rem;">
+            <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.9rem;">
+              <input type="checkbox" id="ltiShareName" checked> 分享姓名
+            </label>
+            <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.9rem;">
+              <input type="checkbox" id="ltiShareEmail" checked> 分享 Email
+            </label>
+            <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.9rem;">
+              <input type="checkbox" id="ltiAcceptGrades" checked> 接受成績
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button onclick="MoodleUI.closeModal('registerLtiToolModal')" class="btn-secondary">取消</button>
+          <button onclick="MoodleUI.saveLtiTool()" class="btn-primary">註冊工具</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    modal.onclick = (e) => { if (e.target === modal) this.closeModal('registerLtiToolModal'); };
+  },
+
+  async saveLtiTool() {
+    const name = document.getElementById('ltiToolName')?.value?.trim();
+    const launchUrl = document.getElementById('ltiToolUrl')?.value?.trim();
+    if (!name || !launchUrl) { showToast('請填寫名稱和啟動 URL'); return; }
+    const customParamsText = document.getElementById('ltiCustomParams')?.value || '';
+    const customParameters = {};
+    customParamsText.split('\n').forEach(line => {
+      const [key, ...rest] = line.split('=');
+      if (key?.trim()) customParameters[key.trim()] = rest.join('=').trim();
+    });
+    try {
+      const result = await API.ltiTools.create({
+        name,
+        description: document.getElementById('ltiToolDescription')?.value || '',
+        toolUrl: launchUrl,
+        consumerKey: document.getElementById('ltiConsumerKey')?.value || '',
+        consumerSecret: document.getElementById('ltiConsumerSecret')?.value || '',
+        ltiVersion: document.getElementById('ltiVersion')?.value || '1.1',
+        status: document.getElementById('ltiToolStatus')?.value || 'active',
+        customParameters: Object.keys(customParameters).length > 0 ? customParameters : undefined,
+        shareName: document.getElementById('ltiShareName')?.checked,
+        shareEmail: document.getElementById('ltiShareEmail')?.checked,
+        acceptGrades: document.getElementById('ltiAcceptGrades')?.checked
+      });
+      if (result.success) {
+        showToast('LTI 工具註冊成功');
+        this.closeModal('registerLtiToolModal');
+        this.openLtiManager();
+      } else { showToast(result.error || '註冊失敗'); }
+    } catch (error) { showToast('註冊 LTI 工具失敗'); }
+  },
+
+  async launchLtiTool(toolId) {
+    try {
+      const result = await API.ltiTools.launch(toolId);
+      if (result.success && result.data) {
+        const launch = result.data;
+        if (launch.launchUrl) {
+          window.open(launch.launchUrl, '_blank');
+        } else {
+          showToast('啟動資訊不完整');
+        }
+      } else { showToast(result.error || '啟動失敗'); }
+    } catch (error) { showToast('啟動 LTI 工具失敗'); }
+  },
+
+  async deleteLtiTool(toolId) {
+    if (!confirm('確定要刪除此 LTI 工具？')) return;
+    try {
+      const result = await API.ltiTools.delete(toolId);
+      if (result.success) { showToast('已刪除'); this.openLtiManager(); }
+      else { showToast(result.error || '刪除失敗'); }
+    } catch (error) { showToast('刪除失敗'); }
+  },
+
+  /**
+   * SCORM 管理
+   */
+  currentScormFilter: 'all',
+
+  async openScormManager() {
+    const container = document.getElementById('scormManagerContent');
+    if (!container) return;
+    showView('scormManager');
+    container.innerHTML = '<div class="loading">載入中...</div>';
+    try {
+      const result = await API.scorm.list();
+      const packages = result.success ? (Array.isArray(result.data) ? result.data : (result.data?.packages || [])) : [];
+      this._scormData = packages;
+      this.renderScormPage(container, packages);
+    } catch (error) {
+      console.error('Open SCORM manager error:', error);
+      container.innerHTML = '<div class="error">載入 SCORM 套件失敗</div>';
+    }
+  },
+
+  renderScormPage(container, packages) {
+    const filtered = this.currentScormFilter === 'all' ? packages :
+      packages.filter(p => p.status === this.currentScormFilter);
+
+    container.innerHTML = `
+      <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+        <h2 style="margin:0;">SCORM 套件管理</h2>
+        <button onclick="MoodleUI.openCreateScormModal()" class="btn-primary">+ 建立 SCORM 套件</button>
+      </div>
+      <div class="filter-tabs" style="display:flex;gap:0.5rem;margin-bottom:1.5rem;">
+        ${['all','active','draft','archived'].map(f => `
+          <button class="btn-sm ${this.currentScormFilter === f ? 'btn-primary' : 'btn-secondary'}"
+                  onclick="MoodleUI.currentScormFilter='${f}';MoodleUI.renderScormPage(document.getElementById('scormManagerContent'),MoodleUI._scormData)">
+            ${{all:'全部',active:'啟用',draft:'草稿',archived:'已封存'}[f]}
+          </button>
+        `).join('')}
+      </div>
+      <div class="card-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1rem;">
+        ${filtered.length === 0 ? '<p style="color:var(--gray-400);grid-column:1/-1;text-align:center;padding:3rem;">尚無 SCORM 套件</p>' :
+          filtered.map(p => `
+            <div class="card" style="padding:1.5rem;border:1px solid var(--gray-200);border-radius:8px;cursor:pointer;"
+                 onclick="MoodleUI.viewScormDetail('${p.packageId || p.id}')">
+              <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:0.75rem;">
+                <h3 style="margin:0;font-size:1.1rem;">${p.title || p.name || '未命名'}</h3>
+                <div style="display:flex;gap:0.25rem;">
+                  <span style="padding:2px 8px;border-radius:4px;font-size:0.7rem;background:#e0e7ff;color:#3730a3;">
+                    SCORM ${p.version || p.scormVersion || '1.2'}
+                  </span>
+                  <span style="padding:2px 8px;border-radius:4px;font-size:0.7rem;background:${p.status === 'active' ? '#dcfce7;color:#166534' : '#fef3c7;color:#92400e'};">
+                    ${p.status === 'active' ? '啟用' : p.status === 'archived' ? '已封存' : '草稿'}
+                  </span>
+                </div>
+              </div>
+              <p style="margin:0 0 0.5rem;color:var(--gray-400);font-size:0.85rem;">${p.description || ''}</p>
+              <div style="display:flex;gap:1rem;font-size:0.8rem;color:var(--gray-400);">
+                <span>課程：${p.courseName || p.courseId || '—'}</span>
+                <span>完成率：${p.completionRate != null ? Math.round(p.completionRate) + '%' : '—'}</span>
+              </div>
+            </div>
+          `).join('')}
+      </div>`;
+  },
+
+  async viewScormDetail(packageId) {
+    const container = document.getElementById('scormManagerContent');
+    if (!container) return;
+    container.innerHTML = '<div class="loading">載入中...</div>';
+    try {
+      const [pkgResult, reportResult, attemptsResult] = await Promise.all([
+        API.scorm.get(packageId),
+        API.scorm.getReport(packageId).catch(() => ({ success: false })),
+        API.scorm.getAttempts(packageId).catch(() => ({ success: false }))
+      ]);
+      if (!pkgResult.success) { container.innerHTML = '<div class="error">載入失敗</div>'; return; }
+      const p = pkgResult.data;
+      const report = reportResult.success ? reportResult.data : {};
+      const attempts = attemptsResult.success ? (Array.isArray(attemptsResult.data) ? attemptsResult.data : (attemptsResult.data?.attempts || [])) : [];
+
+      container.innerHTML = `
+        <div style="margin-bottom:1rem;">
+          <button onclick="MoodleUI.openScormManager()" class="back-btn" style="background:none;border:none;cursor:pointer;color:var(--primary);font-size:0.9rem;">← 返回列表</button>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:1.5rem;">
+          <div>
+            <h2 style="margin:0 0 0.25rem;">${p.title || p.name || '未命名'}</h2>
+            <p style="margin:0;color:var(--gray-400);">SCORM ${p.version || p.scormVersion || '1.2'} — ${p.description || ''}</p>
+          </div>
+          <div style="display:flex;gap:0.5rem;">
+            <button onclick="MoodleUI.launchScormPackage('${packageId}')" class="btn-primary btn-sm">啟動</button>
+            <button onclick="MoodleUI.deleteScormPackage('${packageId}')" class="btn-sm" style="background:#fee2e2;color:#dc2626;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;">刪除</button>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:1rem;margin-bottom:1.5rem;">
+          <div style="padding:1rem;background:var(--gray-50);border-radius:8px;text-align:center;">
+            <div style="font-size:1.5rem;font-weight:700;">${report.totalAttempts || attempts.length}</div>
+            <div style="font-size:0.8rem;color:var(--gray-400);">總嘗試</div>
+          </div>
+          <div style="padding:1rem;background:var(--gray-50);border-radius:8px;text-align:center;">
+            <div style="font-size:1.5rem;font-weight:700;">${report.completionRate != null ? Math.round(report.completionRate) + '%' : '—'}</div>
+            <div style="font-size:0.8rem;color:var(--gray-400);">完成率</div>
+          </div>
+          <div style="padding:1rem;background:var(--gray-50);border-radius:8px;text-align:center;">
+            <div style="font-size:1.5rem;font-weight:700;">${report.passRate != null ? Math.round(report.passRate) + '%' : '—'}</div>
+            <div style="font-size:0.8rem;color:var(--gray-400);">通過率</div>
+          </div>
+          <div style="padding:1rem;background:var(--gray-50);border-radius:8px;text-align:center;">
+            <div style="font-size:1.5rem;font-weight:700;">${report.averageScore != null ? Math.round(report.averageScore) : '—'}</div>
+            <div style="font-size:0.8rem;color:var(--gray-400);">平均分數</div>
+          </div>
+        </div>
+        <div style="padding:1rem;background:var(--gray-50);border-radius:8px;margin-bottom:1.5rem;">
+          <h4 style="margin:0 0 0.5rem;">套件設定</h4>
+          <div style="display:flex;gap:2rem;font-size:0.9rem;">
+            <span><strong>評分方式：</strong>${p.gradingMethod || p.gradeMethod || '最高分'}</span>
+            <span><strong>最大嘗試：</strong>${p.maxAttempts || '無限'}</span>
+          </div>
+        </div>
+        ${attempts.length > 0 ? `
+          <h3>嘗試記錄</h3>
+          <div style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
+              <thead><tr style="background:var(--gray-100);">
+                <th style="padding:8px;text-align:left;border:1px solid var(--gray-200);">嘗試</th>
+                <th style="padding:8px;text-align:center;border:1px solid var(--gray-200);">狀態</th>
+                <th style="padding:8px;text-align:center;border:1px solid var(--gray-200);">分數</th>
+                <th style="padding:8px;text-align:left;border:1px solid var(--gray-200);">開始時間</th>
+              </tr></thead>
+              <tbody>
+                ${attempts.map((a, idx) => `
+                  <tr>
+                    <td style="padding:8px;border:1px solid var(--gray-200);">#${idx + 1}</td>
+                    <td style="padding:8px;text-align:center;border:1px solid var(--gray-200);">
+                      <span style="padding:2px 8px;border-radius:4px;font-size:0.75rem;background:${a.completionStatus === 'completed' ? '#dcfce7;color:#166534' : '#fef3c7;color:#92400e'};">
+                        ${a.completionStatus || a.status || '進行中'}
+                      </span>
+                    </td>
+                    <td style="padding:8px;text-align:center;border:1px solid var(--gray-200);">${a.score != null ? a.score : '—'}</td>
+                    <td style="padding:8px;border:1px solid var(--gray-200);">${this.formatDate(a.startedAt || a.createdAt, 'datetime')}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        ` : ''}`;
+    } catch (error) {
+      console.error('View SCORM detail error:', error);
+      container.innerHTML = '<div class="error">載入失敗</div>';
+    }
+  },
+
+  async openCreateScormModal() {
+    let courseOptions = '<option value="">不指定</option>';
+    try {
+      const result = await API.courses.list();
+      const courses = result.success ? (Array.isArray(result.data) ? result.data : (result.data?.courses || [])) : [];
+      courses.forEach(c => { courseOptions += `<option value="${c.courseId || c.id}">${c.title || c.name}</option>`; });
+    } catch (e) { /* ignore */ }
+
+    const modal = document.createElement('div');
+    modal.id = 'createScormModal';
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+      <div class="modal-content modal-lg">
+        <div class="modal-header">
+          <h3>建立 SCORM 套件</h3>
+          <button onclick="MoodleUI.closeModal('createScormModal')" class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>標題 *</label>
+            <input type="text" id="scormTitle" placeholder="SCORM 套件標題">
+          </div>
+          <div class="form-group">
+            <label>描述</label>
+            <textarea id="scormDescription" rows="2" placeholder="套件描述"></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>所屬課程</label>
+              <select id="scormCourse">${courseOptions}</select>
+            </div>
+            <div class="form-group">
+              <label>SCORM 版本</label>
+              <select id="scormVersion">
+                <option value="1.2">SCORM 1.2</option>
+                <option value="2004">SCORM 2004</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>評分方式</label>
+              <select id="scormGrading">
+                <option value="highest">最高分</option>
+                <option value="average">平均</option>
+                <option value="first">首次</option>
+                <option value="last">最後一次</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>最大嘗試次數</label>
+              <input type="number" id="scormMaxAttempts" value="0" min="0" placeholder="0 = 無限">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button onclick="MoodleUI.closeModal('createScormModal')" class="btn-secondary">取消</button>
+          <button onclick="MoodleUI.saveScormPackage()" class="btn-primary">建立</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    modal.onclick = (e) => { if (e.target === modal) this.closeModal('createScormModal'); };
+  },
+
+  async saveScormPackage() {
+    const name = document.getElementById('scormTitle')?.value?.trim();
+    const courseId = document.getElementById('scormCourse')?.value;
+    if (!name) { showToast('請填寫標題'); return; }
+    if (!courseId) { showToast('請選擇課程'); return; }
+    try {
+      const result = await API.scorm.create({
+        name,
+        description: document.getElementById('scormDescription')?.value || '',
+        courseId,
+        version: document.getElementById('scormVersion')?.value || '1.2',
+        gradingMethod: document.getElementById('scormGrading')?.value || 'highest',
+        maxAttempts: parseInt(document.getElementById('scormMaxAttempts')?.value) || 0
+      });
+      if (result.success) {
+        showToast('SCORM 套件建立成功');
+        this.closeModal('createScormModal');
+        this.openScormManager();
+      } else { showToast(result.error || '建立失敗'); }
+    } catch (error) { showToast('建立 SCORM 套件失敗'); }
+  },
+
+  async launchScormPackage(packageId) {
+    try {
+      const result = await API.scorm.launch(packageId);
+      if (result.success && result.data) {
+        showToast('SCORM 套件已啟動');
+        this.viewScormDetail(packageId);
+      } else { showToast(result.error || '啟動失敗'); }
+    } catch (error) { showToast('啟動失敗'); }
+  },
+
+  async deleteScormPackage(packageId) {
+    if (!confirm('確定要刪除此 SCORM 套件？')) return;
+    try {
+      const result = await API.scorm.delete(packageId);
+      if (result.success) { showToast('已刪除'); this.openScormManager(); }
+      else { showToast(result.error || '刪除失敗'); }
+    } catch (error) { showToast('刪除失敗'); }
+  },
+
+  /**
+   * 建立課程 Modal
+   */
+  async showCreateCourseModal() {
+    let categoryOptions = '<option value="">-- 選擇分類 --</option>';
+    try {
+      const catResult = await API.courseCategories.list();
+      if (catResult.success && catResult.data) {
+        const cats = Array.isArray(catResult.data) ? catResult.data : (catResult.data.categories || []);
+        cats.forEach(c => {
+          categoryOptions += `<option value="${c.categoryId || c.id}">${c.name}</option>`;
+        });
+      }
+    } catch (e) { /* ignore */ }
+
+    const modal = document.createElement('div');
+    modal.id = 'createCourseModal';
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+      <div class="modal-content modal-lg">
+        <div class="modal-header">
+          <h3>建立課程</h3>
+          <button onclick="MoodleUI.closeModal('createCourseModal')" class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>課程名稱 *</label>
+            <input type="text" id="newCourseTitle" placeholder="輸入課程名稱">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>簡稱 *</label>
+              <input type="text" id="newCourseShortName" placeholder="例如：MATH101">
+            </div>
+            <div class="form-group">
+              <label>分類</label>
+              <select id="newCourseCategory">${categoryOptions}</select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>描述</label>
+            <textarea id="newCourseDescription" rows="3" placeholder="課程描述"></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>課程格式</label>
+              <select id="newCourseFormat">
+                <option value="topics">主題格式</option>
+                <option value="weekly">每週格式</option>
+                <option value="social">社交格式</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>可見性</label>
+              <select id="newCourseVisibility">
+                <option value="visible">可見</option>
+                <option value="hidden">隱藏</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>開始日期</label>
+              <input type="date" id="newCourseStartDate">
+            </div>
+            <div class="form-group">
+              <label>結束日期</label>
+              <input type="date" id="newCourseEndDate">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>報名密鑰（選填）</label>
+            <input type="text" id="newCourseEnrollKey" placeholder="設定後學生需輸入密鑰才能報名">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button onclick="MoodleUI.closeModal('createCourseModal')" class="btn-secondary">取消</button>
+          <button onclick="MoodleUI.saveNewCourse()" class="btn-primary">建立課程</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    modal.onclick = (e) => { if (e.target === modal) this.closeModal('createCourseModal'); };
+  },
+
+  async saveNewCourse() {
+    const title = document.getElementById('newCourseTitle')?.value?.trim();
+    const shortName = document.getElementById('newCourseShortName')?.value?.trim();
+    if (!title || !shortName) { showToast('請填寫課程名稱和簡稱'); return; }
+    try {
+      const result = await API.courses.create({
+        title,
+        shortName,
+        description: document.getElementById('newCourseDescription')?.value || '',
+        categoryId: document.getElementById('newCourseCategory')?.value || undefined,
+        format: document.getElementById('newCourseFormat')?.value || 'topics',
+        visibility: document.getElementById('newCourseVisibility')?.value || 'visible',
+        startDate: document.getElementById('newCourseStartDate')?.value || undefined,
+        endDate: document.getElementById('newCourseEndDate')?.value || undefined,
+        enrollmentKey: document.getElementById('newCourseEnrollKey')?.value || undefined
+      });
+      if (result.success) {
+        showToast('課程建立成功');
+        this.closeModal('createCourseModal');
+        if (typeof this.loadCourses === 'function') this.loadCourses();
+      } else {
+        showToast(result.error || '建立課程失敗');
+      }
+    } catch (error) {
+      console.error('Create course error:', error);
+      showToast('建立課程失敗');
+    }
+  },
+
+  /**
+   * 建立作業 Modal
+   */
+  async showCreateAssignmentModal() {
+    let courseOptions = '<option value="">-- 選擇課程 --</option>';
+    try {
+      const result = await API.courses.list();
+      if (result.success && result.data) {
+        const courses = Array.isArray(result.data) ? result.data : (result.data.courses || []);
+        courses.forEach(c => {
+          courseOptions += `<option value="${c.courseId || c.id}">${c.title || c.name}</option>`;
+        });
+      }
+    } catch (e) { /* ignore */ }
+
+    const modal = document.createElement('div');
+    modal.id = 'createAssignmentModal';
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+      <div class="modal-content modal-lg">
+        <div class="modal-header">
+          <h3>建立作業</h3>
+          <button onclick="MoodleUI.closeModal('createAssignmentModal')" class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>作業標題 *</label>
+            <input type="text" id="newAssignmentTitle" placeholder="輸入作業標題">
+          </div>
+          <div class="form-group">
+            <label>所屬課程 *</label>
+            <select id="newAssignmentCourse">${courseOptions}</select>
+          </div>
+          <div class="form-group">
+            <label>描述</label>
+            <textarea id="newAssignmentDescription" rows="3" placeholder="作業說明與要求"></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>截止日期</label>
+              <input type="datetime-local" id="newAssignmentDueDate">
+            </div>
+            <div class="form-group">
+              <label>最高分數</label>
+              <input type="number" id="newAssignmentMaxScore" value="100" min="0">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>提交類型</label>
+              <select id="newAssignmentSubmitType">
+                <option value="text">線上文字</option>
+                <option value="file">檔案上傳</option>
+                <option value="both">文字與檔案</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>允許遲交</label>
+              <select id="newAssignmentLateSubmit">
+                <option value="true">允許</option>
+                <option value="false">不允許</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button onclick="MoodleUI.closeModal('createAssignmentModal')" class="btn-secondary">取消</button>
+          <button onclick="MoodleUI.saveNewAssignment()" class="btn-primary">建立作業</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    modal.onclick = (e) => { if (e.target === modal) this.closeModal('createAssignmentModal'); };
+  },
+
+  async saveNewAssignment() {
+    const title = document.getElementById('newAssignmentTitle')?.value?.trim();
+    const courseId = document.getElementById('newAssignmentCourse')?.value;
+    if (!title || !courseId) { showToast('請填寫標題並選擇課程'); return; }
+    try {
+      const result = await API.assignments.create({
+        title,
+        courseId,
+        description: document.getElementById('newAssignmentDescription')?.value || '',
+        dueDate: document.getElementById('newAssignmentDueDate')?.value || undefined,
+        maxScore: parseInt(document.getElementById('newAssignmentMaxScore')?.value) || 100,
+        submissionType: document.getElementById('newAssignmentSubmitType')?.value || 'text',
+        allowLateSubmission: document.getElementById('newAssignmentLateSubmit')?.value === 'true'
+      });
+      if (result.success) {
+        showToast('作業建立成功');
+        this.closeModal('createAssignmentModal');
+        if (typeof this.loadAssignments === 'function') this.loadAssignments();
+      } else {
+        showToast(result.error || '建立作業失敗');
+      }
+    } catch (error) {
+      console.error('Create assignment error:', error);
+      showToast('建立作業失敗');
+    }
+  },
+
+  /**
+   * 建立測驗 Modal
+   */
+  async showCreateQuizModal() {
+    let courseOptions = '<option value="">-- 選擇課程 --</option>';
+    try {
+      const result = await API.courses.list();
+      if (result.success && result.data) {
+        const courses = Array.isArray(result.data) ? result.data : (result.data.courses || []);
+        courses.forEach(c => {
+          courseOptions += `<option value="${c.courseId || c.id}">${c.title || c.name}</option>`;
+        });
+      }
+    } catch (e) { /* ignore */ }
+
+    const modal = document.createElement('div');
+    modal.id = 'createQuizModal';
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+      <div class="modal-content modal-lg">
+        <div class="modal-header">
+          <h3>建立測驗</h3>
+          <button onclick="MoodleUI.closeModal('createQuizModal')" class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>測驗標題 *</label>
+            <input type="text" id="newQuizTitle" placeholder="輸入測驗標題">
+          </div>
+          <div class="form-group">
+            <label>所屬課程 *</label>
+            <select id="newQuizCourse">${courseOptions}</select>
+          </div>
+          <div class="form-group">
+            <label>描述</label>
+            <textarea id="newQuizDescription" rows="3" placeholder="測驗說明"></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>時間限制（分鐘）</label>
+              <input type="number" id="newQuizTimeLimit" value="60" min="0">
+            </div>
+            <div class="form-group">
+              <label>最大嘗試次數</label>
+              <input type="number" id="newQuizMaxAttempts" value="1" min="1">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>開放日期</label>
+              <input type="datetime-local" id="newQuizOpenDate">
+            </div>
+            <div class="form-group">
+              <label>關閉日期</label>
+              <input type="datetime-local" id="newQuizCloseDate">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button onclick="MoodleUI.closeModal('createQuizModal')" class="btn-secondary">取消</button>
+          <button onclick="MoodleUI.saveNewQuiz()" class="btn-primary">建立測驗</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    modal.onclick = (e) => { if (e.target === modal) this.closeModal('createQuizModal'); };
+  },
+
+  async saveNewQuiz() {
+    const title = document.getElementById('newQuizTitle')?.value?.trim();
+    const courseId = document.getElementById('newQuizCourse')?.value;
+    if (!title || !courseId) { showToast('請填寫標題並選擇課程'); return; }
+    try {
+      const result = await API.quizzes.create({
+        title,
+        courseId,
+        description: document.getElementById('newQuizDescription')?.value || '',
+        timeLimit: parseInt(document.getElementById('newQuizTimeLimit')?.value) || 60,
+        maxAttempts: parseInt(document.getElementById('newQuizMaxAttempts')?.value) || 1,
+        openDate: document.getElementById('newQuizOpenDate')?.value || undefined,
+        closeDate: document.getElementById('newQuizCloseDate')?.value || undefined
+      });
+      if (result.success) {
+        showToast('測驗建立成功');
+        this.closeModal('createQuizModal');
+        if (typeof this.loadQuizzes === 'function') this.loadQuizzes();
+      } else {
+        showToast(result.error || '建立測驗失敗');
+      }
+    } catch (error) {
+      console.error('Create quiz error:', error);
+      showToast('建立測驗失敗');
+    }
+  },
+
+  /**
+   * 建立公告 Modal
+   */
+  async showCreateAnnouncementModal() {
+    let courseOptions = '<option value="">全站公告（不限課程）</option>';
+    try {
+      const result = await API.courses.list();
+      if (result.success && result.data) {
+        const courses = Array.isArray(result.data) ? result.data : (result.data.courses || []);
+        courses.forEach(c => {
+          courseOptions += `<option value="${c.courseId || c.id}">${c.title || c.name}</option>`;
+        });
+      }
+    } catch (e) { /* ignore */ }
+
+    const modal = document.createElement('div');
+    modal.id = 'createAnnouncementModal';
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+      <div class="modal-content modal-lg">
+        <div class="modal-header">
+          <h3>建立公告</h3>
+          <button onclick="MoodleUI.closeModal('createAnnouncementModal')" class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>公告標題 *</label>
+            <input type="text" id="newAnnouncementTitle" placeholder="輸入公告標題">
+          </div>
+          <div class="form-group">
+            <label>公告內容 *</label>
+            <textarea id="newAnnouncementContent" rows="5" placeholder="輸入公告內容"></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>優先級</label>
+              <select id="newAnnouncementPriority">
+                <option value="low">低</option>
+                <option value="normal" selected>一般</option>
+                <option value="high">高</option>
+                <option value="urgent">緊急</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>課程（選填）</label>
+              <select id="newAnnouncementCourse">${courseOptions}</select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>到期日（選填）</label>
+            <input type="date" id="newAnnouncementExpiry">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button onclick="MoodleUI.closeModal('createAnnouncementModal')" class="btn-secondary">取消</button>
+          <button onclick="MoodleUI.saveNewAnnouncement()" class="btn-primary">發佈公告</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    modal.onclick = (e) => { if (e.target === modal) this.closeModal('createAnnouncementModal'); };
+  },
+
+  async saveNewAnnouncement() {
+    const title = document.getElementById('newAnnouncementTitle')?.value?.trim();
+    const content = document.getElementById('newAnnouncementContent')?.value?.trim();
+    if (!title || !content) { showToast('請填寫標題和內容'); return; }
+    try {
+      const result = await API.admin.createAnnouncement({
+        title,
+        content,
+        priority: document.getElementById('newAnnouncementPriority')?.value || 'normal',
+        courseId: document.getElementById('newAnnouncementCourse')?.value || undefined,
+        expiresAt: document.getElementById('newAnnouncementExpiry')?.value || undefined
+      });
+      if (result.success) {
+        showToast('公告發佈成功');
+        this.closeModal('createAnnouncementModal');
+      } else {
+        showToast(result.error || '發佈公告失敗');
+      }
+    } catch (error) {
+      console.error('Create announcement error:', error);
+      showToast('發佈公告失敗');
+    }
+  },
+
+  /**
+   * 更新麵包屑導航
+   */
+  updateBreadcrumb(viewName) {
+    // 靜默處理 — 麵包屑由各視圖自行管理
+  },
+
+  /**
+   * 初始化學生儀表板
+   */
+  initStudentDashboard() {
+    // 靜默處理 — 儀表板由 app.js 管理
+  },
+
+  /**
+   * 初始化教師儀表板
+   */
+  initTeacherDashboard() {
+    // 靜默處理 — 儀表板由 app.js 管理
+  },
+
+  /**
+   * 格式化日期
+   */
+  formatDate(dateStr, format) {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    const pad = n => String(n).padStart(2, '0');
+    const date = `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())}`;
+    if (format === 'datetime') {
+      return `${date} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+    return date;
+  },
+
+  // ======== Course Settings ========
+  async openCourseSettings(courseId) {
+    try {
+      const result = await API.courses.get(courseId);
+      if (!result.success) { showToast('無法載入課程設定'); return; }
+      const c = result.data;
+      this.createModal('courseSettingsModal', '課程設定', `
+        <form onsubmit="event.preventDefault(); MoodleUI.saveCourseSettings('${courseId}')">
+          <div class="form-group">
+            <label>課程名稱</label>
+            <input type="text" id="cs_title" value="${c.title || ''}" required>
+          </div>
+          <div class="form-group">
+            <label>簡稱</label>
+            <input type="text" id="cs_shortName" value="${c.shortName || ''}">
+          </div>
+          <div class="form-group">
+            <label>描述</label>
+            <textarea id="cs_description" rows="3">${c.description || ''}</textarea>
+          </div>
+          <div class="form-group">
+            <label>分類</label>
+            <input type="text" id="cs_category" value="${c.category || ''}">
+          </div>
+          <div class="form-group">
+            <label>課程格式</label>
+            <select id="cs_format">
+              <option value="topics" ${c.format === 'topics' ? 'selected' : ''}>主題式</option>
+              <option value="weeks" ${c.format === 'weeks' ? 'selected' : ''}>週次式</option>
+              <option value="social" ${c.format === 'social' ? 'selected' : ''}>社群式</option>
+              <option value="singleactivity" ${c.format === 'singleactivity' ? 'selected' : ''}>單活動</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>開始日期</label>
+              <input type="date" id="cs_startDate" value="${c.startDate ? c.startDate.split('T')[0] : ''}">
+            </div>
+            <div class="form-group">
+              <label>結束日期</label>
+              <input type="date" id="cs_endDate" value="${c.endDate ? c.endDate.split('T')[0] : ''}">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>報名密碼</label>
+            <input type="text" id="cs_enrollmentKey" value="${c.enrollmentKey || ''}">
+          </div>
+          <div class="form-group">
+            <label>人數上限</label>
+            <input type="number" id="cs_maxEnrollment" value="${c.maxEnrollment || ''}">
+          </div>
+          <div class="form-group">
+            <label>
+              <input type="checkbox" id="cs_visible" ${c.visible !== false ? 'checked' : ''}> 對學生可見
+            </label>
+          </div>
+          <div class="form-actions">
+            <button type="button" onclick="MoodleUI.closeModal('courseSettingsModal')" class="btn-secondary">取消</button>
+            <button type="submit" class="btn-primary">儲存設定</button>
+          </div>
+        </form>
+      `);
+    } catch (error) {
+      showToast('載入課程設定失敗');
+    }
+  },
+
+  async saveCourseSettings(courseId) {
+    const data = {
+      title: document.getElementById('cs_title').value,
+      shortName: document.getElementById('cs_shortName').value,
+      description: document.getElementById('cs_description').value,
+      category: document.getElementById('cs_category').value,
+      format: document.getElementById('cs_format').value,
+      startDate: document.getElementById('cs_startDate').value || null,
+      endDate: document.getElementById('cs_endDate').value || null,
+      enrollmentKey: document.getElementById('cs_enrollmentKey').value,
+      maxEnrollment: document.getElementById('cs_maxEnrollment').value ? parseInt(document.getElementById('cs_maxEnrollment').value) : null,
+      visible: document.getElementById('cs_visible').checked
+    };
+    try {
+      const result = await API.courses.update(courseId, data);
+      if (result.success) {
+        showToast('課程設定已儲存');
+        this.closeModal('courseSettingsModal');
+        this.openCourse(courseId);
+      } else {
+        showToast(result.message || '儲存失敗');
+      }
+    } catch (error) {
+      showToast('儲存課程設定失敗');
+    }
+  },
+
+  // ======== Edit Section ========
+  async editSection(courseId, sectionId) {
+    try {
+      const courseResult = await API.courses.get(courseId);
+      const sections = courseResult.data?.sections || [];
+      const section = sections.find(s => s.sectionId === sectionId);
+      if (!section) { showToast('找不到此章節'); return; }
+
+      this.createModal('editSectionModal', '編輯章節', `
+        <form onsubmit="event.preventDefault(); MoodleUI.saveSection('${courseId}', '${sectionId}')">
+          <div class="form-group">
+            <label>章節名稱</label>
+            <input type="text" id="es_name" value="${section.name || ''}" required>
+          </div>
+          <div class="form-group">
+            <label>摘要</label>
+            <textarea id="es_summary" rows="3">${section.summary || ''}</textarea>
+          </div>
+          <div class="form-group">
+            <label>
+              <input type="checkbox" id="es_visible" ${section.visible !== false ? 'checked' : ''}> 對學生可見
+            </label>
+          </div>
+          <div class="form-actions">
+            <button type="button" onclick="MoodleUI.closeModal('editSectionModal')" class="btn-secondary">取消</button>
+            <button type="submit" class="btn-primary">儲存</button>
+          </div>
+        </form>
+      `);
+    } catch (error) {
+      showToast('載入章節資料失敗');
+    }
+  },
+
+  async saveSection(courseId, sectionId) {
+    const data = {
+      name: document.getElementById('es_name').value,
+      summary: document.getElementById('es_summary').value,
+      visible: document.getElementById('es_visible').checked
+    };
+    try {
+      const result = await API.courseSections.update(courseId, sectionId, data);
+      if (result.success) {
+        showToast('章節已更新');
+        this.closeModal('editSectionModal');
+        this.openCourse(courseId);
+      } else {
+        showToast(result.message || '更新失敗');
+      }
+    } catch (error) {
+      showToast('更新章節失敗');
+    }
+  },
+
+  // ======== Edit Activity ========
+  async editActivity(courseId, sectionId, activityId) {
+    try {
+      const result = await API.courseActivities.get(courseId, activityId);
+      if (!result.success) { showToast('無法載入活動'); return; }
+      const a = result.data;
+
+      this.createModal('editActivityModal', '編輯活動', `
+        <form onsubmit="event.preventDefault(); MoodleUI.saveActivity('${courseId}', '${activityId}')">
+          <div class="form-group">
+            <label>活動名稱</label>
+            <input type="text" id="ea_name" value="${a.name || ''}" required>
+          </div>
+          <div class="form-group">
+            <label>描述</label>
+            <textarea id="ea_description" rows="3">${a.description || ''}</textarea>
+          </div>
+          ${a.type === 'assignment' || a.type === 'quiz' ? `
+            <div class="form-group">
+              <label>截止日期</label>
+              <input type="datetime-local" id="ea_dueDate" value="${a.dueDate ? a.dueDate.slice(0, 16) : ''}">
+            </div>
+          ` : ''}
+          ${a.type === 'url' ? `
+            <div class="form-group">
+              <label>網址</label>
+              <input type="url" id="ea_url" value="${a.url || ''}">
+            </div>
+          ` : ''}
+          ${a.type === 'page' ? `
+            <div class="form-group">
+              <label>頁面內容</label>
+              <textarea id="ea_content" rows="6">${a.content || ''}</textarea>
+            </div>
+          ` : ''}
+          <div class="form-group">
+            <label>
+              <input type="checkbox" id="ea_visible" ${a.visible !== false ? 'checked' : ''}> 對學生可見
+            </label>
+          </div>
+          <div class="form-actions">
+            <button type="button" onclick="MoodleUI.closeModal('editActivityModal')" class="btn-secondary">取消</button>
+            <button type="submit" class="btn-primary">儲存</button>
+          </div>
+        </form>
+      `);
+    } catch (error) {
+      showToast('載入活動資料失敗');
+    }
+  },
+
+  async saveActivity(courseId, activityId) {
+    const data = {
+      name: document.getElementById('ea_name').value,
+      description: document.getElementById('ea_description').value,
+      visible: document.getElementById('ea_visible').checked
+    };
+    const dueDate = document.getElementById('ea_dueDate');
+    if (dueDate) data.dueDate = dueDate.value ? new Date(dueDate.value).toISOString() : null;
+    const url = document.getElementById('ea_url');
+    if (url) data.url = url.value;
+    const content = document.getElementById('ea_content');
+    if (content) data.content = content.value;
+
+    try {
+      const result = await API.courseActivities.update(courseId, activityId, data);
+      if (result.success) {
+        showToast('活動已更新');
+        this.closeModal('editActivityModal');
+        this.openCourse(courseId);
+      } else {
+        showToast(result.message || '更新失敗');
+      }
+    } catch (error) {
+      showToast('更新活動失敗');
+    }
+  },
+
+  // ======== Delete Activity ========
+  async deleteActivity(courseId, sectionId, activityId) {
+    if (!confirm('確定要刪除此活動嗎？此操作無法復原。')) return;
+    try {
+      const result = await API.courseActivities.delete(courseId, activityId);
+      if (result.success) {
+        showToast('活動已刪除');
+        this.openCourse(courseId);
+      } else {
+        showToast(result.message || '刪除失敗');
+      }
+    } catch (error) {
+      showToast('刪除活動失敗');
+    }
+  },
+
+  // ======== Grade Settings Alias ========
+  openGradeSettings(courseId) {
+    this.openGradeSettingsModal(courseId);
+  },
+
+  // ======== Multi-select Quiz Answer Handler ========
+  selectMultipleAnswer(index) {
+    if (!this.currentQuizAttempt) return;
+    const q = this.currentQuizAttempt.questions[this.currentQuestionIndex];
+    if (!q) return;
+    if (!Array.isArray(q.answer)) q.answer = [];
+    const pos = q.answer.indexOf(index);
+    if (pos >= 0) {
+      q.answer.splice(pos, 1);
+    } else {
+      q.answer.push(index);
+    }
+    // Update visual state
+    const labels = document.querySelectorAll('.question-option');
+    labels.forEach(label => {
+      const checkbox = label.querySelector('input[type="checkbox"]');
+      if (checkbox) {
+        const val = parseInt(checkbox.value);
+        label.classList.toggle('selected', q.answer.includes(val));
+      }
+    });
+  },
+
+  // ======== Sort Gradebook ========
+  sortGradebook(column) {
+    const table = document.querySelector('.gradebook-table.editable tbody');
+    if (!table) return;
+    const rows = Array.from(table.querySelectorAll('tr'));
+
+    // Toggle sort direction
+    this._gradebookSortDir = this._gradebookSortDir === 'asc' ? 'desc' : 'asc';
+    const dir = this._gradebookSortDir === 'asc' ? 1 : -1;
+
+    rows.sort((a, b) => {
+      if (column === 'name') {
+        const nameA = a.querySelector('.student-col')?.textContent?.trim() || '';
+        const nameB = b.querySelector('.student-col')?.textContent?.trim() || '';
+        return dir * nameA.localeCompare(nameB, 'zh-TW');
+      } else if (column === 'total') {
+        const totalA = parseFloat(a.querySelector('.total-col')?.textContent) || 0;
+        const totalB = parseFloat(b.querySelector('.total-col')?.textContent) || 0;
+        return dir * (totalA - totalB);
+      }
+      return 0;
+    });
+
+    rows.forEach(row => table.appendChild(row));
+    showToast(`已依${column === 'name' ? '姓名' : '總成績'}${this._gradebookSortDir === 'asc' ? '升冪' : '降冪'}排序`);
+  },
+
+  // ======== Edit Grade Category ========
+  async editGradeCategory(courseId, categoryId) {
+    try {
+      const result = await API.gradebookEnhanced.getCategories(courseId);
+      const categories = result.success ? result.data : [];
+      const cat = categories.find(c => c.categoryId === categoryId);
+      if (!cat) { showToast('找不到此類別'); return; }
+
+      this.createModal('editGradeCatModal', '編輯成績類別', `
+        <form onsubmit="event.preventDefault(); MoodleUI.saveGradeCategory('${courseId}', '${categoryId}')">
+          <div class="form-group">
+            <label>類別名稱</label>
+            <input type="text" id="egc_name" value="${cat.name || ''}" required>
+          </div>
+          <div class="form-group">
+            <label>權重 (%)</label>
+            <input type="number" id="egc_weight" value="${cat.weight || 0}" min="0" max="100">
+          </div>
+          <div class="form-actions">
+            <button type="button" onclick="MoodleUI.closeModal('editGradeCatModal')" class="btn-secondary">取消</button>
+            <button type="submit" class="btn-primary">儲存</button>
+          </div>
+        </form>
+      `);
+    } catch (error) {
+      showToast('載入類別失敗');
+    }
+  },
+
+  async saveGradeCategory(courseId, categoryId) {
+    const data = {
+      name: document.getElementById('egc_name').value,
+      weight: parseFloat(document.getElementById('egc_weight').value) || 0
+    };
+    try {
+      const result = await API.gradebookEnhanced.updateCategory(courseId, categoryId, data);
+      if (result.success) {
+        showToast('類別已更新');
+        this.closeModal('editGradeCatModal');
+        this.openGradeCategoryModal(courseId);
+      } else {
+        showToast(result.message || '更新失敗');
+      }
+    } catch (error) {
+      showToast('更新類別失敗');
+    }
+  },
+
+  // ======== Edit Question ========
+  async editQuestion(questionId) {
+    try {
+      const result = await API.questionBank.get(questionId);
+      if (!result.success) { showToast('無法載入題目'); return; }
+      const q = result.data;
+
+      this.createModal('editQuestionModal', '編輯題目', `
+        <form onsubmit="event.preventDefault(); MoodleUI.saveEditedQuestion('${questionId}')">
+          <div class="form-group">
+            <label>題目類型</label>
+            <input type="text" value="${{multiple_choice:'選擇題', true_false:'是非題', short_answer:'簡答題', fill_blank:'填空題', essay:'申論題'}[q.type] || q.type}" disabled>
+          </div>
+          <div class="form-group">
+            <label>題目內容</label>
+            <textarea id="eq_text" rows="3" required>${q.questionText || ''}</textarea>
+          </div>
+          ${q.type === 'multiple_choice' ? `
+            <div class="form-group">
+              <label>選項（每行一個）</label>
+              <textarea id="eq_options" rows="4">${(q.options || []).join('\\n')}</textarea>
+            </div>
+            <div class="form-group">
+              <label>正確答案索引（從 0 開始）</label>
+              <input type="number" id="eq_correct" value="${q.correctAnswer ?? ''}" min="0">
+            </div>
+          ` : ''}
+          ${q.type === 'true_false' ? `
+            <div class="form-group">
+              <label>正確答案</label>
+              <select id="eq_correct_tf">
+                <option value="true" ${q.correctAnswer === true ? 'selected' : ''}>是 (True)</option>
+                <option value="false" ${q.correctAnswer === false ? 'selected' : ''}>否 (False)</option>
+              </select>
+            </div>
+          ` : ''}
+          <div class="form-row">
+            <div class="form-group">
+              <label>分數</label>
+              <input type="number" id="eq_points" value="${q.points || 1}" min="1">
+            </div>
+            <div class="form-group">
+              <label>難度</label>
+              <select id="eq_difficulty">
+                <option value="easy" ${q.difficulty === 'easy' ? 'selected' : ''}>簡單</option>
+                <option value="medium" ${q.difficulty === 'medium' ? 'selected' : ''}>中等</option>
+                <option value="hard" ${q.difficulty === 'hard' ? 'selected' : ''}>困難</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>標籤（逗號分隔）</label>
+            <input type="text" id="eq_tags" value="${(q.tags || []).join(', ')}">
+          </div>
+          <div class="form-actions">
+            <button type="button" onclick="MoodleUI.closeModal('editQuestionModal')" class="btn-secondary">取消</button>
+            <button type="submit" class="btn-primary">儲存</button>
+          </div>
+        </form>
+      `);
+    } catch (error) {
+      showToast('載入題目失敗');
+    }
+  },
+
+  async saveEditedQuestion(questionId) {
+    const data = {
+      questionText: document.getElementById('eq_text').value,
+      points: parseInt(document.getElementById('eq_points').value) || 1,
+      difficulty: document.getElementById('eq_difficulty').value,
+      tags: document.getElementById('eq_tags').value.split(',').map(t => t.trim()).filter(Boolean)
+    };
+    const optionsEl = document.getElementById('eq_options');
+    if (optionsEl) data.options = optionsEl.value.split('\\n').filter(Boolean);
+    const correctEl = document.getElementById('eq_correct');
+    if (correctEl) data.correctAnswer = parseInt(correctEl.value);
+    const correctTfEl = document.getElementById('eq_correct_tf');
+    if (correctTfEl) data.correctAnswer = correctTfEl.value === 'true';
+
+    try {
+      const result = await API.questionBank.update(questionId, data);
+      if (result.success) {
+        showToast('題目已更新');
+        this.closeModal('editQuestionModal');
+        this.openQuestionBank();
+      } else {
+        showToast(result.message || '更新失敗');
+      }
+    } catch (error) {
+      showToast('更新題目失敗');
+    }
+  },
+
+  // ======== Preview Question ========
+  async previewQuestion(questionId) {
+    try {
+      const result = await API.questionBank.get(questionId);
+      if (!result.success) { showToast('無法載入題目'); return; }
+      const q = result.data;
+      const typeNames = {multiple_choice:'選擇題', true_false:'是非題', short_answer:'簡答題', fill_blank:'填空題', essay:'申論題'};
+
+      let optionsHtml = '';
+      if (q.type === 'multiple_choice' && q.options) {
+        optionsHtml = '<ul class="preview-options">' + q.options.map((opt, i) =>
+          `<li class="${i === q.correctAnswer ? 'correct-answer' : ''}">${String.fromCharCode(65+i)}. ${opt} ${i === q.correctAnswer ? '✓' : ''}</li>`
+        ).join('') + '</ul>';
+      } else if (q.type === 'true_false') {
+        optionsHtml = `<p>正確答案：${q.correctAnswer ? '是 (True)' : '否 (False)'}</p>`;
+      }
+
+      this.createModal('previewQuestionModal', '題目預覽', `
+        <div class="question-preview">
+          <div class="preview-meta">
+            <span class="badge">${typeNames[q.type] || q.type}</span>
+            <span class="badge">${q.points || 1} 分</span>
+            <span class="badge difficulty-${q.difficulty || 'medium'}">${{easy:'簡單',medium:'中等',hard:'困難'}[q.difficulty] || '中等'}</span>
+          </div>
+          <div class="preview-text"><strong>題目：</strong>${q.questionText}</div>
+          ${optionsHtml}
+          ${q.tags?.length ? '<div class="preview-tags">' + q.tags.map(t => '<span class="tag">' + t + '</span>').join('') + '</div>' : ''}
+        </div>
+      `);
+    } catch (error) {
+      showToast('載入題目預覽失敗');
+    }
+  },
+
+  // ======== Import Questions ========
+  openImportQuestionsModal() {
+    this.createModal('importQuestionsModal', '匯入題目', `
+      <form onsubmit="event.preventDefault(); MoodleUI.importQuestions()">
+        <div class="form-group">
+          <label>匯入格式</label>
+          <select id="iq_format">
+            <option value="json">JSON</option>
+            <option value="csv">CSV</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>題目資料</label>
+          <textarea id="iq_data" rows="10" placeholder='JSON 範例：[{"questionText":"...", "type":"multiple_choice", "options":["A","B","C","D"], "correctAnswer":0}]'></textarea>
+        </div>
+        <div class="form-group">
+          <label>目標類別（選填）</label>
+          <input type="text" id="iq_category" placeholder="分類名稱">
+        </div>
+        <div class="form-actions">
+          <button type="button" onclick="MoodleUI.closeModal('importQuestionsModal')" class="btn-secondary">取消</button>
+          <button type="submit" class="btn-primary">匯入</button>
+        </div>
+      </form>
+    `);
+  },
+
+  async importQuestions() {
+    const format = document.getElementById('iq_format').value;
+    const rawData = document.getElementById('iq_data').value.trim();
+    const category = document.getElementById('iq_category').value.trim();
+    if (!rawData) { showToast('請輸入題目資料'); return; }
+
+    try {
+      let questions;
+      if (format === 'json') {
+        questions = JSON.parse(rawData);
+      } else {
+        questions = rawData;
+      }
+      const result = await API.questionBank.import({ format, questions, category: category || undefined });
+      if (result.success) {
+        showToast(`成功匯入 ${result.data?.imported || ''} 題`);
+        this.closeModal('importQuestionsModal');
+        this.openQuestionBank();
+      } else {
+        showToast(result.message || '匯入失敗');
+      }
+    } catch (error) {
+      showToast('匯入失敗：' + (error.message || '資料格式錯誤'));
+    }
+  },
+
+  // ======== Manage Question Categories ========
+  async openCategoryManageModal() {
+    try {
+      const result = await API.questionBank.getCategories();
+      const categories = result.success ? (result.data || []) : [];
+
+      this.createModal('categoryManageModal', '管理題目類別', `
+        <div class="category-list">
+          ${categories.map(cat => `
+            <div class="category-item" style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #eee">
+              <span>${cat.name} (${cat.questionCount || 0} 題)</span>
+              <button onclick="MoodleUI.deleteQuestionCategory('${cat.categoryId}')" class="btn-sm btn-danger">刪除</button>
+            </div>
+          `).join('')}
+          ${categories.length === 0 ? '<p class="empty-list">尚無類別</p>' : ''}
+        </div>
+        <hr>
+        <form onsubmit="event.preventDefault(); MoodleUI.createQuestionCategory()" style="margin-top:12px">
+          <div class="form-group">
+            <label>新增類別</label>
+            <div style="display:flex;gap:8px">
+              <input type="text" id="newQCatName" placeholder="類別名稱" required style="flex:1">
+              <button type="submit" class="btn-primary">新增</button>
+            </div>
+          </div>
+        </form>
+      `);
+    } catch (error) {
+      showToast('載入類別失敗');
+    }
+  },
+
+  async createQuestionCategory() {
+    const name = document.getElementById('newQCatName').value.trim();
+    if (!name) return;
+    try {
+      const result = await API.questionBank.createCategory({ name });
+      if (result.success) {
+        showToast('類別已建立');
+        this.openCategoryManageModal();
+      } else {
+        showToast(result.message || '建立失敗');
+      }
+    } catch (error) {
+      showToast('建立類別失敗');
+    }
+  },
+
+  async deleteQuestionCategory(categoryId) {
+    if (!confirm('確定要刪除此類別嗎？')) return;
+    try {
+      const result = await API.questionBank.deleteCategory(categoryId);
+      if (result.success) {
+        showToast('類別已刪除');
+        this.openCategoryManageModal();
+      } else {
+        showToast(result.message || '刪除失敗');
+      }
+    } catch (error) {
+      showToast('刪除類別失敗');
+    }
+  },
+
+  // ======== Edit Role ========
+  async editRole(roleId) {
+    try {
+      const [roleResult, capResult] = await Promise.all([
+        API.roles.get(roleId),
+        API.roles.getCapabilities()
+      ]);
+      if (!roleResult.success) { showToast('無法載入角色'); return; }
+      const role = roleResult.data;
+      const allCapabilities = capResult.success ? capResult.data : [];
+
+      this.createModal('editRoleModal', '編輯角色', `
+        <form onsubmit="event.preventDefault(); MoodleUI.saveRole('${roleId}')">
+          <div class="form-group">
+            <label>角色名稱</label>
+            <input type="text" id="er_name" value="${role.name || ''}" required>
+          </div>
+          <div class="form-group">
+            <label>描述</label>
+            <textarea id="er_description" rows="2">${role.description || ''}</textarea>
+          </div>
+          <div class="form-group">
+            <label>權限能力</label>
+            <div class="capabilities-checkboxes" style="max-height:300px;overflow-y:auto">
+              ${allCapabilities.map(cap => `
+                <label style="display:block;padding:4px 0">
+                  <input type="checkbox" name="capabilities" value="${cap}"
+                    ${(role.capabilities || []).includes(cap) ? 'checked' : ''}> ${cap}
+                </label>
+              `).join('')}
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="button" onclick="MoodleUI.closeModal('editRoleModal')" class="btn-secondary">取消</button>
+            <button type="submit" class="btn-primary">儲存</button>
+          </div>
+        </form>
+      `);
+    } catch (error) {
+      showToast('載入角色失敗');
+    }
+  },
+
+  async saveRole(roleId) {
+    const capabilities = Array.from(document.querySelectorAll('input[name="capabilities"]:checked')).map(cb => cb.value);
+    const data = {
+      name: document.getElementById('er_name').value,
+      description: document.getElementById('er_description').value,
+      capabilities
+    };
+    try {
+      const result = await API.roles.update(roleId, data);
+      if (result.success) {
+        showToast('角色已更新');
+        this.closeModal('editRoleModal');
+        this.openRolesManagement();
+      } else {
+        showToast(result.message || '更新失敗');
+      }
+    } catch (error) {
+      showToast('更新角色失敗');
+    }
   },
 
   /**
@@ -7376,3073 +7515,6 @@ const MoodleUI = {
     } catch (error) {
       // 靜默失敗
     }
-  },
-
-  // ==================== 課程群組管理 (Moodle Group Mode) ====================
-
-  /**
-   * 群組模式常量
-   */
-  GROUP_MODES: {
-    NOGROUPS: 0,        // 無群組
-    SEPARATEGROUPS: 1,  // 分開群組
-    VISIBLEGROUPS: 2    // 可見群組
-  },
-
-  /**
-   * 群組模式名稱
-   */
-  getGroupModeName(mode) {
-    const names = {
-      0: '無群組',
-      1: '分開群組',
-      2: '可見群組'
-    };
-    return names[mode] || '無群組';
-  },
-
-  /**
-   * 群組模式說明
-   */
-  getGroupModeDescription(mode) {
-    const descriptions = {
-      0: '課程不使用群組功能',
-      1: '學生只能看到自己群組的成員和活動',
-      2: '學生可以看到其他群組，但只能在自己群組中互動'
-    };
-    return descriptions[mode] || '';
-  },
-
-  /**
-   * 開啟群組管理頁面
-   */
-  async openGroupsManager(courseId = null) {
-    const cid = courseId || this.currentCourseId;
-    if (!cid) {
-      showToast('請先選擇課程');
-      return;
-    }
-
-    try {
-      const result = await API.courseGroups.getOverview(cid);
-      if (!result.success) {
-        showToast(result.message || '載入群組失敗');
-        return;
-      }
-
-      this.renderGroupsManager(cid, result.data);
-      showView('groupsManager');
-    } catch (error) {
-      console.error('Load groups error:', error);
-      showToast('載入群組管理失敗');
-    }
-  },
-
-  /**
-   * 渲染群組管理頁面
-   */
-  renderGroupsManager(courseId, data) {
-    const container = document.getElementById('groupsManagerContent');
-    if (!container) return;
-
-    const groupModeHtml = `
-      <div class="group-mode-selector">
-        <label>群組模式:</label>
-        <select id="groupModeSelect" onchange="MoodleUI.updateGroupMode('${courseId}', parseInt(this.value))">
-          <option value="0" ${data.groupMode === 0 ? 'selected' : ''}>無群組</option>
-          <option value="1" ${data.groupMode === 1 ? 'selected' : ''}>分開群組</option>
-          <option value="2" ${data.groupMode === 2 ? 'selected' : ''}>可見群組</option>
-        </select>
-        <p class="mode-description">${this.getGroupModeDescription(data.groupMode)}</p>
-        <label class="checkbox-label">
-          <input type="checkbox" id="groupModeForced" ${data.groupModeForced ? 'checked' : ''}
-                 onchange="MoodleUI.updateGroupModeForced('${courseId}', this.checked)">
-          強制群組模式（套用至所有活動）
-        </label>
-      </div>
-    `;
-
-    const statsHtml = `
-      <div class="groups-stats">
-        <div class="stat-card">
-          <span class="stat-value">${data.totalStudents}</span>
-          <span class="stat-label">總學生數</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-value">${data.totalGroups}</span>
-          <span class="stat-label">群組數量</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-value">${data.groupedStudents}</span>
-          <span class="stat-label">已分組</span>
-        </div>
-        <div class="stat-card warning">
-          <span class="stat-value">${data.ungroupedStudents}</span>
-          <span class="stat-label">未分組</span>
-        </div>
-      </div>
-    `;
-
-    const actionsHtml = `
-      <div class="groups-actions">
-        <button class="btn-primary" onclick="MoodleUI.showCreateGroupModal('${courseId}')">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-          </svg>
-          新增群組
-        </button>
-        <button class="btn-secondary" onclick="MoodleUI.showAutoCreateGroupsModal('${courseId}')">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
-            <circle cx="9" cy="7" r="4"/>
-            <path d="M23 21v-2a4 4 0 00-3-3.87"/>
-            <path d="M16 3.13a4 4 0 010 7.75"/>
-          </svg>
-          自動建立群組
-        </button>
-      </div>
-    `;
-
-    const groupsListHtml = `
-      <div class="groups-list">
-        <h3>群組列表</h3>
-        ${data.groups.length === 0 ? `
-          <div class="empty-state">
-            <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
-              <circle cx="9" cy="7" r="4"/>
-              <path d="M23 21v-2a4 4 0 00-3-3.87"/>
-              <path d="M16 3.13a4 4 0 010 7.75"/>
-            </svg>
-            <p>尚未建立任何群組</p>
-          </div>
-        ` : data.groups.map(group => `
-          <div class="group-card" data-group-id="${group.groupId}">
-            <div class="group-header">
-              <h4>${group.name}</h4>
-              <span class="member-count">${group.memberCount || 0} 位成員</span>
-            </div>
-            ${group.description ? `<p class="group-description">${group.description}</p>` : ''}
-            <div class="group-members">
-              ${(group.members || []).slice(0, 5).map(m => `
-                <div class="member-avatar" title="${m.displayName}">
-                  ${m.displayName.charAt(0)}
-                </div>
-              `).join('')}
-              ${(group.members || []).length > 5 ? `<span class="more-members">+${group.members.length - 5}</span>` : ''}
-            </div>
-            <div class="group-actions">
-              <button onclick="MoodleUI.showGroupMembers('${courseId}', '${group.groupId}', '${group.name}')" class="btn-sm">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
-                  <circle cx="9" cy="7" r="4"/>
-                </svg>
-                管理成員
-              </button>
-              <button onclick="MoodleUI.showEditGroupModal('${courseId}', '${group.groupId}')" class="btn-sm">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
-                  <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                </svg>
-                編輯
-              </button>
-              <button onclick="MoodleUI.deleteGroup('${courseId}', '${group.groupId}')" class="btn-sm btn-danger">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-                </svg>
-                刪除
-              </button>
-            </div>
-          </div>
-        `).join('')}
-      </div>
-    `;
-
-    const ungroupedHtml = data.ungrouped && data.ungrouped.length > 0 ? `
-      <div class="ungrouped-students">
-        <h3>未分組學生 (${data.ungrouped.length})</h3>
-        <div class="ungrouped-list">
-          ${data.ungrouped.map(s => `
-            <div class="ungrouped-student">
-              <div class="student-avatar">${s.displayName.charAt(0)}</div>
-              <div class="student-info">
-                <span class="student-name">${s.displayName}</span>
-                <span class="student-email">${s.email}</span>
-              </div>
-              <button onclick="MoodleUI.showAssignToGroupModal('${courseId}', '${s.userId}', '${s.displayName}')" class="btn-sm btn-primary">
-                分配到群組
-              </button>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-    ` : '';
-
-    container.innerHTML = `
-      <div class="groups-manager-container">
-        <div class="page-header">
-          <button onclick="MoodleUI.openCourse('${courseId}')" class="btn-back">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M19 12H5M12 19l-7-7 7-7"/>
-            </svg>
-            返回課程
-          </button>
-          <h1>群組管理</h1>
-        </div>
-
-        ${groupModeHtml}
-        ${statsHtml}
-        ${actionsHtml}
-        ${groupsListHtml}
-        ${ungroupedHtml}
-      </div>
-    `;
-  },
-
-  /**
-   * 更新群組模式
-   */
-  async updateGroupMode(courseId, mode) {
-    try {
-      const result = await API.courseGroups.updateSettings(courseId, { groupMode: mode });
-      if (result.success) {
-        showToast(`已切換為「${this.getGroupModeName(mode)}」模式`);
-        // 更新說明文字
-        const desc = document.querySelector('.mode-description');
-        if (desc) desc.textContent = this.getGroupModeDescription(mode);
-      } else {
-        showToast(result.message || '更新失敗');
-      }
-    } catch (error) {
-      console.error('Update group mode error:', error);
-      showToast('更新群組模式失敗');
-    }
-  },
-
-  /**
-   * 更新強制群組模式
-   */
-  async updateGroupModeForced(courseId, forced) {
-    try {
-      const result = await API.courseGroups.updateSettings(courseId, { groupModeForced: forced });
-      if (result.success) {
-        showToast(forced ? '已啟用強制群組模式' : '已停用強制群組模式');
-      } else {
-        showToast(result.message || '更新失敗');
-      }
-    } catch (error) {
-      console.error('Update group mode forced error:', error);
-      showToast('更新失敗');
-    }
-  },
-
-  /**
-   * 顯示建立群組對話框
-   */
-  showCreateGroupModal(courseId) {
-    const modal = document.createElement('div');
-    modal.id = 'createGroupModal';
-    modal.className = 'modal-overlay active';
-    modal.innerHTML = `
-      <div class="modal-content" style="max-width: 500px;">
-        <div class="modal-header">
-          <h2>建立新群組</h2>
-          <button class="modal-close" onclick="MoodleUI.closeModal('createGroupModal')">×</button>
-        </div>
-        <div class="modal-body">
-          <div class="form-group">
-            <label>群組名稱 *</label>
-            <input type="text" id="newGroupName" placeholder="輸入群組名稱" required>
-          </div>
-          <div class="form-group">
-            <label>群組說明</label>
-            <textarea id="newGroupDescription" rows="3" placeholder="選填：群組說明"></textarea>
-          </div>
-          <div class="form-group">
-            <label>識別碼</label>
-            <input type="text" id="newGroupIdNumber" placeholder="選填：外部識別碼（如班級代碼）">
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn-secondary" onclick="MoodleUI.closeModal('createGroupModal')">取消</button>
-          <button class="btn-primary" onclick="MoodleUI.createGroup('${courseId}')">建立群組</button>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(modal);
-  },
-
-  /**
-   * 建立群組
-   */
-  async createGroup(courseId) {
-    const name = document.getElementById('newGroupName').value.trim();
-    const description = document.getElementById('newGroupDescription').value.trim();
-    const idNumber = document.getElementById('newGroupIdNumber').value.trim();
-
-    if (!name) {
-      showToast('請輸入群組名稱');
-      return;
-    }
-
-    try {
-      const result = await API.courseGroups.create(courseId, { name, description, idNumber });
-      if (result.success) {
-        showToast('群組建立成功');
-        this.closeModal('createGroupModal');
-        await this.openGroupsManager(courseId);
-      } else {
-        showToast(result.message || '建立失敗');
-      }
-    } catch (error) {
-      console.error('Create group error:', error);
-      showToast('建立群組失敗');
-    }
-  },
-
-  /**
-   * 顯示自動建立群組對話框
-   */
-  showAutoCreateGroupsModal(courseId) {
-    const modal = document.createElement('div');
-    modal.id = 'autoCreateGroupsModal';
-    modal.className = 'modal-overlay active';
-    modal.innerHTML = `
-      <div class="modal-content" style="max-width: 500px;">
-        <div class="modal-header">
-          <h2>自動建立群組</h2>
-          <button class="modal-close" onclick="MoodleUI.closeModal('autoCreateGroupsModal')">×</button>
-        </div>
-        <div class="modal-body">
-          <p class="info-text">系統將根據課程報名學生自動建立群組並均勻分配。</p>
-          <div class="form-group">
-            <label>群組數量 *</label>
-            <input type="number" id="autoGroupCount" min="2" max="50" value="4" placeholder="2-50">
-          </div>
-          <div class="form-group">
-            <label>群組名稱前綴</label>
-            <input type="text" id="autoGroupPrefix" value="群組" placeholder="群組">
-          </div>
-          <p class="hint-text">例如：群組 1、群組 2、群組 3...</p>
-        </div>
-        <div class="modal-footer">
-          <button class="btn-secondary" onclick="MoodleUI.closeModal('autoCreateGroupsModal')">取消</button>
-          <button class="btn-primary" onclick="MoodleUI.autoCreateGroups('${courseId}')">自動建立</button>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(modal);
-  },
-
-  /**
-   * 自動建立群組
-   */
-  async autoCreateGroups(courseId) {
-    const groupCount = parseInt(document.getElementById('autoGroupCount').value);
-    const groupNamePrefix = document.getElementById('autoGroupPrefix').value.trim() || '群組';
-
-    if (!groupCount || groupCount < 2) {
-      showToast('群組數量至少需要 2');
-      return;
-    }
-
-    try {
-      const result = await API.courseGroups.autoCreate(courseId, groupCount, groupNamePrefix);
-      if (result.success) {
-        showToast(result.message || '群組建立成功');
-        this.closeModal('autoCreateGroupsModal');
-        await this.openGroupsManager(courseId);
-      } else {
-        showToast(result.message || '建立失敗');
-      }
-    } catch (error) {
-      console.error('Auto create groups error:', error);
-      showToast('自動建立群組失敗');
-    }
-  },
-
-  /**
-   * 顯示編輯群組對話框
-   */
-  async showEditGroupModal(courseId, groupId) {
-    try {
-      const result = await API.courseGroups.get(courseId, groupId);
-      if (!result.success) {
-        showToast('載入群組資訊失敗');
-        return;
-      }
-
-      const group = result.data;
-      const modal = document.createElement('div');
-      modal.id = 'editGroupModal';
-      modal.className = 'modal-overlay active';
-      modal.innerHTML = `
-        <div class="modal-content" style="max-width: 500px;">
-          <div class="modal-header">
-            <h2>編輯群組</h2>
-            <button class="modal-close" onclick="MoodleUI.closeModal('editGroupModal')">×</button>
-          </div>
-          <div class="modal-body">
-            <div class="form-group">
-              <label>群組名稱 *</label>
-              <input type="text" id="editGroupName" value="${group.name || ''}" required>
-            </div>
-            <div class="form-group">
-              <label>群組說明</label>
-              <textarea id="editGroupDescription" rows="3">${group.description || ''}</textarea>
-            </div>
-            <div class="form-group">
-              <label>識別碼</label>
-              <input type="text" id="editGroupIdNumber" value="${group.idNumber || ''}">
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button class="btn-secondary" onclick="MoodleUI.closeModal('editGroupModal')">取消</button>
-            <button class="btn-primary" onclick="MoodleUI.updateGroup('${courseId}', '${groupId}')">儲存變更</button>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(modal);
-    } catch (error) {
-      console.error('Load group error:', error);
-      showToast('載入群組資訊失敗');
-    }
-  },
-
-  /**
-   * 更新群組
-   */
-  async updateGroup(courseId, groupId) {
-    const name = document.getElementById('editGroupName').value.trim();
-    const description = document.getElementById('editGroupDescription').value.trim();
-    const idNumber = document.getElementById('editGroupIdNumber').value.trim();
-
-    if (!name) {
-      showToast('請輸入群組名稱');
-      return;
-    }
-
-    try {
-      const result = await API.courseGroups.update(courseId, groupId, { name, description, idNumber });
-      if (result.success) {
-        showToast('群組已更新');
-        this.closeModal('editGroupModal');
-        await this.openGroupsManager(courseId);
-      } else {
-        showToast(result.message || '更新失敗');
-      }
-    } catch (error) {
-      console.error('Update group error:', error);
-      showToast('更新群組失敗');
-    }
-  },
-
-  /**
-   * 刪除群組
-   */
-  async deleteGroup(courseId, groupId) {
-    if (!confirm('確定要刪除此群組嗎？群組內的成員將變為未分組狀態。')) {
-      return;
-    }
-
-    try {
-      const result = await API.courseGroups.delete(courseId, groupId);
-      if (result.success) {
-        showToast('群組已刪除');
-        await this.openGroupsManager(courseId);
-      } else {
-        showToast(result.message || '刪除失敗');
-      }
-    } catch (error) {
-      console.error('Delete group error:', error);
-      showToast('刪除群組失敗');
-    }
-  },
-
-  /**
-   * 顯示群組成員管理
-   */
-  async showGroupMembers(courseId, groupId, groupName) {
-    try {
-      const [membersResult, overviewResult] = await Promise.all([
-        API.courseGroups.getMembers(courseId, groupId),
-        API.courseGroups.getOverview(courseId)
-      ]);
-
-      if (!membersResult.success) {
-        showToast('載入成員失敗');
-        return;
-      }
-
-      const members = membersResult.data || [];
-      const ungrouped = overviewResult.data?.ungrouped || [];
-
-      const modal = document.createElement('div');
-      modal.id = 'groupMembersModal';
-      modal.className = 'modal-overlay active';
-      modal.innerHTML = `
-        <div class="modal-content" style="max-width: 700px; max-height: 80vh;">
-          <div class="modal-header">
-            <h2>${groupName} - 成員管理</h2>
-            <button class="modal-close" onclick="MoodleUI.closeModal('groupMembersModal')">×</button>
-          </div>
-          <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
-            <div class="members-section">
-              <h3>群組成員 (${members.length})</h3>
-              ${members.length === 0 ? '<p class="empty-text">尚無成員</p>' : `
-                <div class="members-list">
-                  ${members.map(m => `
-                    <div class="member-item">
-                      <div class="member-avatar">${m.displayName.charAt(0)}</div>
-                      <div class="member-info">
-                        <span class="member-name">${m.displayName}</span>
-                        <span class="member-email">${m.email}</span>
-                      </div>
-                      <button onclick="MoodleUI.removeFromGroup('${courseId}', '${groupId}', '${m.userId}')" class="btn-sm btn-danger">
-                        移除
-                      </button>
-                    </div>
-                  `).join('')}
-                </div>
-              `}
-            </div>
-
-            ${ungrouped.length > 0 ? `
-              <div class="add-members-section">
-                <h3>新增成員</h3>
-                <p class="hint-text">以下是尚未分組的學生：</p>
-                <div class="available-students">
-                  ${ungrouped.map(s => `
-                    <div class="student-item" data-user-id="${s.userId}">
-                      <input type="checkbox" id="add_${s.userId}" value="${s.userId}">
-                      <label for="add_${s.userId}">
-                        <div class="student-avatar">${s.displayName.charAt(0)}</div>
-                        <span>${s.displayName}</span>
-                      </label>
-                    </div>
-                  `).join('')}
-                </div>
-                <button class="btn-primary" onclick="MoodleUI.addSelectedToGroup('${courseId}', '${groupId}')">
-                  新增選取的學生
-                </button>
-              </div>
-            ` : '<p class="info-text">所有學生都已分配到群組</p>'}
-          </div>
-          <div class="modal-footer">
-            <button class="btn-secondary" onclick="MoodleUI.closeModal('groupMembersModal')">關閉</button>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(modal);
-    } catch (error) {
-      console.error('Load group members error:', error);
-      showToast('載入成員失敗');
-    }
-  },
-
-  /**
-   * 從群組移除成員
-   */
-  async removeFromGroup(courseId, groupId, userId) {
-    if (!confirm('確定要將此成員從群組中移除嗎？')) {
-      return;
-    }
-
-    try {
-      const result = await API.courseGroups.removeMember(courseId, groupId, userId);
-      if (result.success) {
-        showToast('成員已移除');
-        this.closeModal('groupMembersModal');
-        await this.openGroupsManager(courseId);
-      } else {
-        showToast(result.message || '移除失敗');
-      }
-    } catch (error) {
-      console.error('Remove member error:', error);
-      showToast('移除成員失敗');
-    }
-  },
-
-  /**
-   * 新增選取的學生到群組
-   */
-  async addSelectedToGroup(courseId, groupId) {
-    const checkboxes = document.querySelectorAll('.available-students input[type="checkbox"]:checked');
-    const userIds = Array.from(checkboxes).map(cb => cb.value);
-
-    if (userIds.length === 0) {
-      showToast('請選擇要新增的學生');
-      return;
-    }
-
-    try {
-      const result = await API.courseGroups.addMembers(courseId, groupId, userIds);
-      if (result.success) {
-        showToast(result.message || '成員已新增');
-        this.closeModal('groupMembersModal');
-        await this.openGroupsManager(courseId);
-      } else {
-        showToast(result.message || '新增失敗');
-      }
-    } catch (error) {
-      console.error('Add members error:', error);
-      showToast('新增成員失敗');
-    }
-  },
-
-  /**
-   * 顯示分配學生到群組的對話框
-   */
-  async showAssignToGroupModal(courseId, userId, userName) {
-    try {
-      const result = await API.courseGroups.list(courseId);
-      if (!result.success) {
-        showToast('載入群組失敗');
-        return;
-      }
-
-      const groups = result.data || [];
-      if (groups.length === 0) {
-        showToast('請先建立群組');
-        return;
-      }
-
-      const modal = document.createElement('div');
-      modal.id = 'assignToGroupModal';
-      modal.className = 'modal-overlay active';
-      modal.innerHTML = `
-        <div class="modal-content" style="max-width: 400px;">
-          <div class="modal-header">
-            <h2>分配到群組</h2>
-            <button class="modal-close" onclick="MoodleUI.closeModal('assignToGroupModal')">×</button>
-          </div>
-          <div class="modal-body">
-            <p>將 <strong>${userName}</strong> 分配到：</p>
-            <div class="group-select-list">
-              ${groups.map(g => `
-                <div class="group-select-item" onclick="MoodleUI.assignToGroup('${courseId}', '${g.groupId}', '${userId}')">
-                  <span class="group-name">${g.name}</span>
-                  <span class="member-count">${g.memberCount || 0} 位成員</span>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button class="btn-secondary" onclick="MoodleUI.closeModal('assignToGroupModal')">取消</button>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(modal);
-    } catch (error) {
-      console.error('Load groups error:', error);
-      showToast('載入群組失敗');
-    }
-  },
-
-  /**
-   * 分配學生到群組
-   */
-  async assignToGroup(courseId, groupId, userId) {
-    try {
-      const result = await API.courseGroups.addMembers(courseId, groupId, [userId]);
-      if (result.success) {
-        showToast('學生已分配到群組');
-        this.closeModal('assignToGroupModal');
-        await this.openGroupsManager(courseId);
-      } else {
-        showToast(result.message || '分配失敗');
-      }
-    } catch (error) {
-      console.error('Assign to group error:', error);
-      showToast('分配失敗');
-    }
-  },
-
-  /**
-   * 學生查看自己的群組
-   */
-  async viewMyGroups(courseId) {
-    try {
-      const result = await API.courseGroups.getMyGroups(courseId);
-      if (!result.success) {
-        showToast('載入群組資訊失敗');
-        return;
-      }
-
-      const groups = result.data || [];
-
-      const modal = document.createElement('div');
-      modal.id = 'myGroupsModal';
-      modal.className = 'modal-overlay active';
-      modal.innerHTML = `
-        <div class="modal-content" style="max-width: 500px;">
-          <div class="modal-header">
-            <h2>我的群組</h2>
-            <button class="modal-close" onclick="MoodleUI.closeModal('myGroupsModal')">×</button>
-          </div>
-          <div class="modal-body">
-            ${groups.length === 0 ? `
-              <div class="empty-state">
-                <p>您尚未被分配到任何群組</p>
-              </div>
-            ` : groups.map(g => `
-              <div class="my-group-card">
-                <h4>${g.name}</h4>
-                ${g.description ? `<p>${g.description}</p>` : ''}
-                <div class="group-meta">
-                  <span>${g.memberCount} 位成員</span>
-                  <span>加入時間：${MoodleUI.formatDate(g.joinedAt)}</span>
-                </div>
-                <button onclick="MoodleUI.viewGroupMembersList('${courseId}', '${g.groupId}', '${g.name}')" class="btn-sm">
-                  查看成員
-                </button>
-              </div>
-            `).join('')}
-          </div>
-          <div class="modal-footer">
-            <button class="btn-secondary" onclick="MoodleUI.closeModal('myGroupsModal')">關閉</button>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(modal);
-    } catch (error) {
-      console.error('Load my groups error:', error);
-      showToast('載入群組資訊失敗');
-    }
-  },
-
-  /**
-   * 查看群組成員列表（學生視角）
-   */
-  async viewGroupMembersList(courseId, groupId, groupName) {
-    try {
-      const result = await API.courseGroups.getMembers(courseId, groupId);
-      if (!result.success) {
-        showToast('載入成員失敗');
-        return;
-      }
-
-      const members = result.data || [];
-      this.closeModal('myGroupsModal');
-
-      const modal = document.createElement('div');
-      modal.id = 'groupMembersListModal';
-      modal.className = 'modal-overlay active';
-      modal.innerHTML = `
-        <div class="modal-content" style="max-width: 500px;">
-          <div class="modal-header">
-            <h2>${groupName} - 成員</h2>
-            <button class="modal-close" onclick="MoodleUI.closeModal('groupMembersListModal')">×</button>
-          </div>
-          <div class="modal-body">
-            ${members.length === 0 ? '<p>尚無成員</p>' : `
-              <div class="members-list-view">
-                ${members.map(m => `
-                  <div class="member-list-item">
-                    <div class="member-avatar">${m.displayName.charAt(0)}</div>
-                    <div class="member-details">
-                      <span class="member-name">${m.displayName}</span>
-                      <span class="member-role">${m.role === 'student' ? '學生' : m.role}</span>
-                    </div>
-                  </div>
-                `).join('')}
-              </div>
-            `}
-          </div>
-          <div class="modal-footer">
-            <button class="btn-secondary" onclick="MoodleUI.closeModal('groupMembersListModal')">關閉</button>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(modal);
-    } catch (error) {
-      console.error('Load members error:', error);
-      showToast('載入成員失敗');
-    }
-  },
-
-  // ===== 防作弊系統 =====
-
-  // 防作弊監控狀態
-  antiCheatMonitor: {
-    active: false,
-    quizId: null,
-    attemptId: null,
-    focusLossCount: 0,
-    copyAttempts: 0,
-    pasteAttempts: 0,
-    tabSwitches: 0,
-    rightClickAttempts: 0,
-    startTime: null,
-    eventListeners: {}
-  },
-
-  /**
-   * 開啟防作弊設定管理
-   */
-  async openAntiCheatSettings(quizId) {
-    try {
-      const result = await API.quizzes.antiCheat.getSettings(quizId);
-
-      const settings = result.success ? result.data : {
-        enabled: false,
-        shuffleQuestions: false,
-        shuffleAnswers: false,
-        blockCopyPaste: false,
-        blockRightClick: false,
-        monitorFocusLoss: false,
-        lockBrowser: false,
-        requirePassword: false,
-        password: '',
-        ipRestriction: false,
-        allowedIps: [],
-        maxAttemptTime: null,
-        preventBacktrack: false,
-        webcamProctoring: false
-      };
-
-      const modal = document.createElement('div');
-      modal.id = 'antiCheatSettingsModal';
-      modal.className = 'modal-overlay active';
-      modal.innerHTML = `
-        <div class="modal-content anti-cheat-settings-modal">
-          <div class="modal-header">
-            <h2><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> 防作弊設定</h2>
-            <button class="modal-close" onclick="MoodleUI.closeModal('antiCheatSettingsModal')">×</button>
-          </div>
-          <div class="modal-body">
-            <div class="anti-cheat-section">
-              <h3>基本設定</h3>
-              <div class="anti-cheat-toggle">
-                <label class="toggle-switch">
-                  <input type="checkbox" id="acEnabled" ${settings.enabled ? 'checked' : ''}>
-                  <span class="toggle-slider"></span>
-                </label>
-                <div class="toggle-info">
-                  <span class="toggle-label">啟用防作弊</span>
-                  <span class="toggle-desc">開啟此功能以啟用所有防作弊措施</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="anti-cheat-section">
-              <h3>題目設定</h3>
-              <div class="anti-cheat-toggle">
-                <label class="toggle-switch">
-                  <input type="checkbox" id="acShuffleQuestions" ${settings.shuffleQuestions ? 'checked' : ''}>
-                  <span class="toggle-slider"></span>
-                </label>
-                <div class="toggle-info">
-                  <span class="toggle-label">隨機題目順序</span>
-                  <span class="toggle-desc">每個學生看到的題目順序不同</span>
-                </div>
-              </div>
-              <div class="anti-cheat-toggle">
-                <label class="toggle-switch">
-                  <input type="checkbox" id="acShuffleAnswers" ${settings.shuffleAnswers ? 'checked' : ''}>
-                  <span class="toggle-slider"></span>
-                </label>
-                <div class="toggle-info">
-                  <span class="toggle-label">隨機選項順序</span>
-                  <span class="toggle-desc">選擇題的選項順序隨機排列</span>
-                </div>
-              </div>
-              <div class="anti-cheat-toggle">
-                <label class="toggle-switch">
-                  <input type="checkbox" id="acPreventBacktrack" ${settings.preventBacktrack ? 'checked' : ''}>
-                  <span class="toggle-slider"></span>
-                </label>
-                <div class="toggle-info">
-                  <span class="toggle-label">禁止返回上一題</span>
-                  <span class="toggle-desc">學生無法回到已作答的題目</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="anti-cheat-section">
-              <h3>行為監控</h3>
-              <div class="anti-cheat-toggle">
-                <label class="toggle-switch">
-                  <input type="checkbox" id="acBlockCopyPaste" ${settings.blockCopyPaste ? 'checked' : ''}>
-                  <span class="toggle-slider"></span>
-                </label>
-                <div class="toggle-info">
-                  <span class="toggle-label">禁止複製/貼上</span>
-                  <span class="toggle-desc">防止學生複製題目或貼上答案</span>
-                </div>
-              </div>
-              <div class="anti-cheat-toggle">
-                <label class="toggle-switch">
-                  <input type="checkbox" id="acBlockRightClick" ${settings.blockRightClick ? 'checked' : ''}>
-                  <span class="toggle-slider"></span>
-                </label>
-                <div class="toggle-info">
-                  <span class="toggle-label">禁止右鍵選單</span>
-                  <span class="toggle-desc">防止使用右鍵選單</span>
-                </div>
-              </div>
-              <div class="anti-cheat-toggle">
-                <label class="toggle-switch">
-                  <input type="checkbox" id="acMonitorFocusLoss" ${settings.monitorFocusLoss ? 'checked' : ''}>
-                  <span class="toggle-slider"></span>
-                </label>
-                <div class="toggle-info">
-                  <span class="toggle-label">監控焦點離開</span>
-                  <span class="toggle-desc">記錄學生切換分頁/視窗的行為</span>
-                </div>
-              </div>
-              <div class="anti-cheat-toggle">
-                <label class="toggle-switch">
-                  <input type="checkbox" id="acLockBrowser" ${settings.lockBrowser ? 'checked' : ''}>
-                  <span class="toggle-slider"></span>
-                </label>
-                <div class="toggle-info">
-                  <span class="toggle-label">鎖定瀏覽器</span>
-                  <span class="toggle-desc">要求全螢幕模式作答（可被跳過）</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="anti-cheat-section">
-              <h3>進階監控</h3>
-              <div class="anti-cheat-toggle">
-                <label class="toggle-switch">
-                  <input type="checkbox" id="acWebcamProctoring" ${settings.webcamProctoring ? 'checked' : ''}>
-                  <span class="toggle-slider"></span>
-                </label>
-                <div class="toggle-info">
-                  <span class="toggle-label">視訊監控</span>
-                  <span class="toggle-desc">要求開啟視訊鏡頭並定期擷取畫面</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="anti-cheat-section">
-              <h3>存取控制</h3>
-              <div class="anti-cheat-toggle">
-                <label class="toggle-switch">
-                  <input type="checkbox" id="acRequirePassword" ${settings.requirePassword ? 'checked' : ''} onchange="document.getElementById('acPasswordField').style.display = this.checked ? 'block' : 'none'">
-                  <span class="toggle-slider"></span>
-                </label>
-                <div class="toggle-info">
-                  <span class="toggle-label">需要密碼</span>
-                  <span class="toggle-desc">學生須輸入密碼才能開始測驗</span>
-                </div>
-              </div>
-              <div id="acPasswordField" class="form-group" style="display: ${settings.requirePassword ? 'block' : 'none'}; margin-left: 50px;">
-                <input type="password" id="acPassword" value="${settings.password || ''}" placeholder="輸入測驗密碼">
-              </div>
-
-              <div class="anti-cheat-toggle">
-                <label class="toggle-switch">
-                  <input type="checkbox" id="acIpRestriction" ${settings.ipRestriction ? 'checked' : ''} onchange="document.getElementById('acIpField').style.display = this.checked ? 'block' : 'none'">
-                  <span class="toggle-slider"></span>
-                </label>
-                <div class="toggle-info">
-                  <span class="toggle-label">IP 限制</span>
-                  <span class="toggle-desc">限制只有特定 IP 位址才能作答</span>
-                </div>
-              </div>
-              <div id="acIpField" class="form-group" style="display: ${settings.ipRestriction ? 'block' : 'none'}; margin-left: 50px;">
-                <textarea id="acAllowedIps" rows="3" placeholder="每行一個 IP 位址或 CIDR 範圍">${(settings.allowedIps || []).join('\n')}</textarea>
-              </div>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button class="btn-secondary" onclick="MoodleUI.closeModal('antiCheatSettingsModal')">取消</button>
-            <button class="btn-primary" onclick="MoodleUI.saveAntiCheatSettings('${quizId}')">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-              儲存設定
-            </button>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(modal);
-    } catch (error) {
-      console.error('Load anti-cheat settings error:', error);
-      showToast('載入防作弊設定失敗');
-    }
-  },
-
-  /**
-   * 儲存防作弊設定
-   */
-  async saveAntiCheatSettings(quizId) {
-    try {
-      const settings = {
-        enabled: document.getElementById('acEnabled').checked,
-        shuffleQuestions: document.getElementById('acShuffleQuestions').checked,
-        shuffleAnswers: document.getElementById('acShuffleAnswers').checked,
-        preventBacktrack: document.getElementById('acPreventBacktrack').checked,
-        blockCopyPaste: document.getElementById('acBlockCopyPaste').checked,
-        blockRightClick: document.getElementById('acBlockRightClick').checked,
-        monitorFocusLoss: document.getElementById('acMonitorFocusLoss').checked,
-        lockBrowser: document.getElementById('acLockBrowser').checked,
-        webcamProctoring: document.getElementById('acWebcamProctoring').checked,
-        requirePassword: document.getElementById('acRequirePassword').checked,
-        password: document.getElementById('acPassword').value,
-        ipRestriction: document.getElementById('acIpRestriction').checked,
-        allowedIps: document.getElementById('acAllowedIps').value.split('\n').filter(ip => ip.trim())
-      };
-
-      const result = await API.quizzes.antiCheat.updateSettings(quizId, settings);
-      if (result.success) {
-        showToast('防作弊設定已儲存');
-        this.closeModal('antiCheatSettingsModal');
-      } else {
-        showToast(result.message || '儲存失敗');
-      }
-    } catch (error) {
-      console.error('Save anti-cheat settings error:', error);
-      showToast('儲存失敗');
-    }
-  },
-
-  /**
-   * 初始化防作弊監控
-   */
-  initAntiCheatMonitor(quizId, attemptId, settings) {
-    // 重置監控狀態
-    this.antiCheatMonitor = {
-      active: true,
-      quizId,
-      attemptId,
-      focusLossCount: 0,
-      copyAttempts: 0,
-      pasteAttempts: 0,
-      tabSwitches: 0,
-      rightClickAttempts: 0,
-      startTime: Date.now(),
-      eventListeners: {},
-      settings
-    };
-
-    const monitor = this.antiCheatMonitor;
-
-    // 監控焦點離開
-    if (settings.monitorFocusLoss) {
-      const handleVisibilityChange = () => {
-        if (document.hidden) {
-          monitor.tabSwitches++;
-          this.recordBehaviorEvent('tab_switch', { count: monitor.tabSwitches });
-          this.showAntiCheatWarning('偵測到切換分頁');
-        }
-      };
-      const handleBlur = () => {
-        monitor.focusLossCount++;
-        this.recordBehaviorEvent('focus_loss', { count: monitor.focusLossCount });
-        this.showAntiCheatWarning('偵測到視窗失焦');
-      };
-      document.addEventListener('visibilitychange', handleVisibilityChange);
-      window.addEventListener('blur', handleBlur);
-      monitor.eventListeners.visibilitychange = handleVisibilityChange;
-      monitor.eventListeners.blur = handleBlur;
-    }
-
-    // 禁止複製貼上
-    if (settings.blockCopyPaste) {
-      const handleCopy = (e) => {
-        e.preventDefault();
-        monitor.copyAttempts++;
-        this.recordBehaviorEvent('copy_attempt', { count: monitor.copyAttempts });
-        this.showAntiCheatWarning('複製功能已禁用');
-      };
-      const handlePaste = (e) => {
-        e.preventDefault();
-        monitor.pasteAttempts++;
-        this.recordBehaviorEvent('paste_attempt', { count: monitor.pasteAttempts });
-        this.showAntiCheatWarning('貼上功能已禁用');
-      };
-      const handleCut = (e) => {
-        e.preventDefault();
-        this.showAntiCheatWarning('剪下功能已禁用');
-      };
-      document.addEventListener('copy', handleCopy);
-      document.addEventListener('paste', handlePaste);
-      document.addEventListener('cut', handleCut);
-      monitor.eventListeners.copy = handleCopy;
-      monitor.eventListeners.paste = handlePaste;
-      monitor.eventListeners.cut = handleCut;
-    }
-
-    // 禁止右鍵
-    if (settings.blockRightClick) {
-      const handleContextMenu = (e) => {
-        e.preventDefault();
-        monitor.rightClickAttempts++;
-        this.recordBehaviorEvent('right_click_attempt', { count: monitor.rightClickAttempts });
-        this.showAntiCheatWarning('右鍵選單已禁用');
-      };
-      document.addEventListener('contextmenu', handleContextMenu);
-      monitor.eventListeners.contextmenu = handleContextMenu;
-    }
-
-    // 鎖定瀏覽器（全螢幕）
-    if (settings.lockBrowser) {
-      this.requestFullScreen();
-      const handleFullScreenChange = () => {
-        if (!document.fullscreenElement) {
-          this.recordBehaviorEvent('fullscreen_exit', {});
-          this.showAntiCheatWarning('偵測到離開全螢幕模式');
-          setTimeout(() => this.requestFullScreen(), 2000);
-        }
-      };
-      document.addEventListener('fullscreenchange', handleFullScreenChange);
-      monitor.eventListeners.fullscreenchange = handleFullScreenChange;
-    }
-
-    // 視訊監控
-    if (settings.webcamProctoring) {
-      this.initWebcamProctoring();
-    }
-
-    // 禁止鍵盤快捷鍵
-    const handleKeyDown = (e) => {
-      // Ctrl+C, Ctrl+V, Ctrl+X, Ctrl+A, F12, Ctrl+Shift+I
-      if ((e.ctrlKey || e.metaKey) && ['c', 'v', 'x', 'a', 'p'].includes(e.key.toLowerCase())) {
-        if (settings.blockCopyPaste) {
-          e.preventDefault();
-          this.showAntiCheatWarning('鍵盤快捷鍵已禁用');
-        }
-      }
-      if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I')) {
-        e.preventDefault();
-        this.recordBehaviorEvent('devtools_attempt', {});
-        this.showAntiCheatWarning('開發者工具已禁用');
-      }
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    monitor.eventListeners.keydown = handleKeyDown;
-
-    console.log('防作弊監控已啟動', settings);
-  },
-
-  /**
-   * 停止防作弊監控
-   */
-  stopAntiCheatMonitor() {
-    const monitor = this.antiCheatMonitor;
-    if (!monitor.active) return;
-
-    // 移除所有事件監聽器
-    Object.entries(monitor.eventListeners).forEach(([event, handler]) => {
-      if (event === 'blur') {
-        window.removeEventListener(event, handler);
-      } else {
-        document.removeEventListener(event, handler);
-      }
-    });
-
-    // 停止視訊監控
-    if (this.webcamStream) {
-      this.webcamStream.getTracks().forEach(track => track.stop());
-      this.webcamStream = null;
-    }
-
-    // 離開全螢幕
-    if (document.fullscreenElement) {
-      document.exitFullscreen().catch(() => {});
-    }
-
-    this.antiCheatMonitor.active = false;
-    console.log('防作弊監控已停止');
-  },
-
-  /**
-   * 記錄行為事件
-   */
-  async recordBehaviorEvent(eventType, eventData) {
-    const monitor = this.antiCheatMonitor;
-    if (!monitor.active || !monitor.quizId || !monitor.attemptId) return;
-
-    try {
-      await API.quizzes.antiCheat.recordBehavior(monitor.quizId, monitor.attemptId, {
-        type: eventType,
-        data: eventData,
-        timestamp: new Date().toISOString()
-      });
-    } catch (error) {
-      console.error('Record behavior error:', error);
-    }
-  },
-
-  /**
-   * 顯示防作弊警告
-   */
-  showAntiCheatWarning(message) {
-    // 移除舊警告
-    const existing = document.querySelector('.anti-cheat-warning');
-    if (existing) existing.remove();
-
-    const warning = document.createElement('div');
-    warning.className = 'anti-cheat-warning';
-    warning.innerHTML = `
-      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-        <line x1="12" y1="9" x2="12" y2="13"/>
-        <line x1="12" y1="17" x2="12.01" y2="17"/>
-      </svg>
-      <span>${message}</span>
-    `;
-    document.body.appendChild(warning);
-
-    setTimeout(() => warning.remove(), 3000);
-  },
-
-  /**
-   * 請求全螢幕
-   */
-  requestFullScreen() {
-    const elem = document.documentElement;
-    if (elem.requestFullscreen) {
-      elem.requestFullscreen().catch(() => {
-        console.log('無法進入全螢幕');
-      });
-    } else if (elem.webkitRequestFullscreen) {
-      elem.webkitRequestFullscreen();
-    } else if (elem.msRequestFullscreen) {
-      elem.msRequestFullscreen();
-    }
-  },
-
-  webcamStream: null,
-  webcamInterval: null,
-
-  /**
-   * 初始化視訊監控
-   */
-  async initWebcamProctoring() {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      this.webcamStream = stream;
-
-      // 建立視訊預覽元素
-      let videoPreview = document.getElementById('webcamPreview');
-      if (!videoPreview) {
-        videoPreview = document.createElement('div');
-        videoPreview.id = 'webcamPreview';
-        videoPreview.className = 'webcam-preview';
-        videoPreview.innerHTML = `
-          <video id="webcamVideo" autoplay muted></video>
-          <div class="webcam-status">
-            <span class="webcam-dot"></span>
-            監控中
-          </div>
-        `;
-        document.body.appendChild(videoPreview);
-      }
-
-      const video = document.getElementById('webcamVideo');
-      video.srcObject = stream;
-
-      // 每 30 秒擷取一次畫面
-      this.webcamInterval = setInterval(() => {
-        this.captureWebcamScreenshot();
-      }, 30000);
-
-      // 初始擷取
-      setTimeout(() => this.captureWebcamScreenshot(), 2000);
-
-    } catch (error) {
-      console.error('Webcam access error:', error);
-      this.recordBehaviorEvent('webcam_denied', { error: error.message });
-      showToast('無法存取視訊鏡頭，監控功能受限');
-    }
-  },
-
-  /**
-   * 擷取視訊畫面
-   */
-  async captureWebcamScreenshot() {
-    const video = document.getElementById('webcamVideo');
-    if (!video || !this.webcamStream) return;
-
-    try {
-      const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth || 640;
-      canvas.height = video.videoHeight || 480;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, 0, 0);
-
-      const imageData = canvas.toDataURL('image/jpeg', 0.5);
-
-      const monitor = this.antiCheatMonitor;
-      if (monitor.active && monitor.quizId && monitor.attemptId) {
-        await API.quizzes.antiCheat.uploadScreenshot(monitor.quizId, monitor.attemptId, imageData);
-      }
-    } catch (error) {
-      console.error('Capture screenshot error:', error);
-    }
-  },
-
-  /**
-   * 顯示測驗密碼輸入框
-   */
-  showQuizPasswordPrompt(quizId) {
-    return new Promise((resolve, reject) => {
-      const modal = document.createElement('div');
-      modal.id = 'quizPasswordModal';
-      modal.className = 'modal-overlay active';
-      modal.innerHTML = `
-        <div class="modal-content" style="max-width: 400px;">
-          <div class="modal-header">
-            <h2><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> 需要密碼</h2>
-          </div>
-          <div class="modal-body">
-            <p>此測驗需要輸入密碼才能開始</p>
-            <div class="form-group">
-              <input type="password" id="quizPasswordInput" placeholder="輸入測驗密碼" onkeypress="if(event.key==='Enter') document.getElementById('submitQuizPassword').click()">
-            </div>
-            <p id="passwordError" class="error-text" style="display: none; color: var(--terracotta-dark);">密碼錯誤，請重試</p>
-          </div>
-          <div class="modal-footer">
-            <button class="btn-secondary" onclick="MoodleUI.closeModal('quizPasswordModal'); MoodleUI.quizPasswordReject && MoodleUI.quizPasswordReject();">取消</button>
-            <button id="submitQuizPassword" class="btn-primary" onclick="MoodleUI.verifyQuizPassword('${quizId}')">確認</button>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(modal);
-
-      this.quizPasswordResolve = resolve;
-      this.quizPasswordReject = reject;
-
-      setTimeout(() => document.getElementById('quizPasswordInput').focus(), 100);
-    });
-  },
-
-  /**
-   * 驗證測驗密碼
-   */
-  async verifyQuizPassword(quizId) {
-    const password = document.getElementById('quizPasswordInput').value;
-    if (!password) {
-      document.getElementById('passwordError').style.display = 'block';
-      document.getElementById('passwordError').textContent = '請輸入密碼';
-      return;
-    }
-
-    try {
-      const result = await API.quizzes.antiCheat.verifyPassword(quizId, password);
-      if (result.success && result.data.valid) {
-        this.closeModal('quizPasswordModal');
-        if (this.quizPasswordResolve) {
-          this.quizPasswordResolve(true);
-        }
-      } else {
-        document.getElementById('passwordError').style.display = 'block';
-        document.getElementById('passwordError').textContent = '密碼錯誤，請重試';
-      }
-    } catch (error) {
-      console.error('Verify password error:', error);
-      document.getElementById('passwordError').style.display = 'block';
-      document.getElementById('passwordError').textContent = '驗證失敗，請重試';
-    }
-  },
-
-  /**
-   * 開啟監控報告（教師）
-   */
-  async openProctoringReport(quizId, attemptId) {
-    try {
-      const result = await API.quizzes.antiCheat.getProctoringReport(quizId, attemptId);
-      if (!result.success) {
-        showToast('載入監控報告失敗');
-        return;
-      }
-
-      const report = result.data;
-      const riskClass = report.riskLevel === 'high' ? 'risk-high' :
-                        report.riskLevel === 'medium' ? 'risk-medium' : 'risk-low';
-
-      const modal = document.createElement('div');
-      modal.id = 'proctoringReportModal';
-      modal.className = 'modal-overlay active';
-      modal.innerHTML = `
-        <div class="modal-content proctoring-report-modal">
-          <div class="modal-header">
-            <h2><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> 監控報告</h2>
-            <button class="modal-close" onclick="MoodleUI.closeModal('proctoringReportModal')">×</button>
-          </div>
-          <div class="modal-body">
-            <div class="proctoring-summary">
-              <div class="risk-badge ${riskClass}">
-                ${report.riskLevel === 'high' ? '高風險' : report.riskLevel === 'medium' ? '中等風險' : '低風險'}
-              </div>
-              <div class="suspicious-score">
-                可疑分數: <strong>${report.suspiciousScore || 0}</strong>
-              </div>
-            </div>
-
-            <div class="proctoring-stats">
-              <h4>行為統計</h4>
-              <div class="stats-grid">
-                <div class="stat-item">
-                  <span class="stat-label">切換分頁</span>
-                  <span class="stat-value">${report.tabSwitches || 0} 次</span>
-                </div>
-                <div class="stat-item">
-                  <span class="stat-label">視窗失焦</span>
-                  <span class="stat-value">${report.focusLossCount || 0} 次</span>
-                </div>
-                <div class="stat-item">
-                  <span class="stat-label">複製嘗試</span>
-                  <span class="stat-value">${report.copyAttempts || 0} 次</span>
-                </div>
-                <div class="stat-item">
-                  <span class="stat-label">貼上嘗試</span>
-                  <span class="stat-value">${report.pasteAttempts || 0} 次</span>
-                </div>
-                <div class="stat-item">
-                  <span class="stat-label">右鍵嘗試</span>
-                  <span class="stat-value">${report.rightClickAttempts || 0} 次</span>
-                </div>
-                <div class="stat-item">
-                  <span class="stat-label">全螢幕離開</span>
-                  <span class="stat-value">${report.fullscreenExits || 0} 次</span>
-                </div>
-              </div>
-            </div>
-
-            ${report.flags && report.flags.length > 0 ? `
-              <div class="proctoring-flags">
-                <h4>警告標記</h4>
-                <ul>
-                  ${report.flags.map(f => `<li class="flag-item">${f}</li>`).join('')}
-                </ul>
-              </div>
-            ` : ''}
-
-            ${report.screenshots && report.screenshots.length > 0 ? `
-              <div class="proctoring-screenshots">
-                <h4>視訊截圖 (${report.screenshots.length} 張)</h4>
-                <div class="screenshots-grid">
-                  ${report.screenshots.slice(0, 6).map((s, i) => `
-                    <div class="screenshot-item" onclick="MoodleUI.viewScreenshot('${s.url}')">
-                      <img src="${s.url}" alt="截圖 ${i + 1}">
-                      <span class="screenshot-time">${MoodleUI.formatDate(s.timestamp, 'time')}</span>
-                    </div>
-                  `).join('')}
-                </div>
-                ${report.screenshots.length > 6 ? `<p class="more-screenshots">還有 ${report.screenshots.length - 6} 張截圖...</p>` : ''}
-              </div>
-            ` : ''}
-
-            ${report.events && report.events.length > 0 ? `
-              <div class="proctoring-events">
-                <h4>事件時間軸</h4>
-                <div class="events-timeline">
-                  ${report.events.slice(0, 20).map(e => `
-                    <div class="event-item">
-                      <span class="event-time">${MoodleUI.formatDate(e.timestamp, 'time')}</span>
-                      <span class="event-type">${this.getEventTypeName(e.type)}</span>
-                    </div>
-                  `).join('')}
-                </div>
-              </div>
-            ` : ''}
-          </div>
-          <div class="modal-footer">
-            <button class="btn-secondary" onclick="MoodleUI.closeModal('proctoringReportModal')">關閉</button>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(modal);
-    } catch (error) {
-      console.error('Load proctoring report error:', error);
-      showToast('載入監控報告失敗');
-    }
-  },
-
-  /**
-   * 獲取事件類型名稱
-   */
-  getEventTypeName(type) {
-    const names = {
-      'tab_switch': '切換分頁',
-      'focus_loss': '視窗失焦',
-      'copy_attempt': '複製嘗試',
-      'paste_attempt': '貼上嘗試',
-      'right_click_attempt': '右鍵嘗試',
-      'fullscreen_exit': '離開全螢幕',
-      'devtools_attempt': '開發者工具',
-      'webcam_denied': '拒絕視訊',
-      'screenshot_captured': '擷取截圖'
-    };
-    return names[type] || type;
-  },
-
-  /**
-   * 查看截圖大圖
-   */
-  viewScreenshot(url) {
-    const modal = document.createElement('div');
-    modal.id = 'screenshotViewModal';
-    modal.className = 'modal-overlay active';
-    modal.style.background = 'rgba(0,0,0,0.9)';
-    modal.innerHTML = `
-      <div class="screenshot-view">
-        <button class="modal-close" onclick="MoodleUI.closeModal('screenshotViewModal')" style="position: fixed; top: 20px; right: 20px; color: white; font-size: 36px; background: none; border: none; cursor: pointer;">×</button>
-        <img src="${url}" style="max-width: 90vw; max-height: 90vh; object-fit: contain;">
-      </div>
-    `;
-    modal.onclick = (e) => {
-      if (e.target === modal) this.closeModal('screenshotViewModal');
-    };
-    document.body.appendChild(modal);
-  },
-
-  // ===== 審計日誌系統 =====
-
-  /**
-   * 開啟審計日誌管理界面（管理員）
-   */
-  async openAuditLogs() {
-    const container = document.getElementById('auditLogsContent');
-    if (!container) return;
-
-    container.innerHTML = `
-      <div class="audit-logs-page">
-        <div class="page-header">
-          <h1>
-            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14 2 14 8 20 8"/>
-              <line x1="16" y1="13" x2="8" y2="13"/>
-              <line x1="16" y1="17" x2="8" y2="17"/>
-              <polyline points="10 9 9 9 8 9"/>
-            </svg>
-            系統審計日誌
-          </h1>
-          <div class="header-actions">
-            <button class="btn-secondary" onclick="MoodleUI.exportAuditLogs()">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              匯出 CSV
-            </button>
-            <button class="btn-secondary" onclick="MoodleUI.showAuditStats()">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-              查看統計
-            </button>
-          </div>
-        </div>
-
-        <div class="audit-filters">
-          <div class="filter-row">
-            <div class="filter-group">
-              <label>事件類型</label>
-              <select id="auditEventType" onchange="MoodleUI.loadAuditLogs()">
-                <option value="">全部</option>
-                <optgroup label="用戶">
-                  <option value="user_login">登入</option>
-                  <option value="user_logout">登出</option>
-                  <option value="user_register">註冊</option>
-                  <option value="user_update">更新資料</option>
-                  <option value="user_delete">刪除用戶</option>
-                </optgroup>
-                <optgroup label="課程">
-                  <option value="course_create">建立課程</option>
-                  <option value="course_update">更新課程</option>
-                  <option value="course_delete">刪除課程</option>
-                  <option value="course_enroll">報名課程</option>
-                  <option value="course_unenroll">退出課程</option>
-                </optgroup>
-                <optgroup label="作業">
-                  <option value="assignment_create">建立作業</option>
-                  <option value="assignment_submit">提交作業</option>
-                  <option value="assignment_grade">評分作業</option>
-                </optgroup>
-                <optgroup label="測驗">
-                  <option value="quiz_create">建立測驗</option>
-                  <option value="quiz_attempt_start">開始測驗</option>
-                  <option value="quiz_attempt_submit">提交測驗</option>
-                </optgroup>
-                <optgroup label="系統">
-                  <option value="system_config_update">更新設定</option>
-                  <option value="role_create">建立角色</option>
-                  <option value="role_update">更新角色</option>
-                  <option value="data_export">資料匯出</option>
-                  <option value="bulk_operation">批量操作</option>
-                </optgroup>
-                <optgroup label="安全">
-                  <option value="security_failed_login">登入失敗</option>
-                  <option value="security_suspicious_activity">可疑活動</option>
-                </optgroup>
-              </select>
-            </div>
-            <div class="filter-group">
-              <label>嚴重等級</label>
-              <select id="auditSeverity" onchange="MoodleUI.loadAuditLogs()">
-                <option value="">全部</option>
-                <option value="info">一般</option>
-                <option value="warning">警告</option>
-                <option value="error">錯誤</option>
-                <option value="critical">嚴重</option>
-              </select>
-            </div>
-            <div class="filter-group">
-              <label>開始日期</label>
-              <input type="date" id="auditStartDate" onchange="MoodleUI.loadAuditLogs()">
-            </div>
-            <div class="filter-group">
-              <label>結束日期</label>
-              <input type="date" id="auditEndDate" onchange="MoodleUI.loadAuditLogs()">
-            </div>
-            <div class="filter-group">
-              <label>搜尋</label>
-              <input type="text" id="auditSearch" placeholder="搜尋用戶、描述..." onkeyup="if(event.key==='Enter') MoodleUI.searchAuditLogs()">
-            </div>
-            <button class="btn-primary" onclick="MoodleUI.searchAuditLogs()">搜尋</button>
-          </div>
-        </div>
-
-        <div class="audit-logs-container" id="auditLogsContainer">
-          <div class="loading">載入中...</div>
-        </div>
-      </div>
-    `;
-
-    // 設定預設日期範圍（最近 7 天）
-    const endDate = new Date();
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - 7);
-    document.getElementById('auditEndDate').value = endDate.toISOString().split('T')[0];
-    document.getElementById('auditStartDate').value = startDate.toISOString().split('T')[0];
-
-    await this.loadAuditLogs();
-  },
-
-  /**
-   * 載入審計日誌
-   */
-  async loadAuditLogs() {
-    const container = document.getElementById('auditLogsContainer');
-    if (!container) return;
-
-    container.innerHTML = '<div class="loading">載入中...</div>';
-
-    try {
-      const filters = {
-        eventType: document.getElementById('auditEventType')?.value || '',
-        severity: document.getElementById('auditSeverity')?.value || '',
-        startDate: document.getElementById('auditStartDate')?.value || '',
-        endDate: document.getElementById('auditEndDate')?.value || '',
-        limit: 100
-      };
-
-      const result = await API.auditLogs.list(filters);
-
-      if (!result.success) {
-        container.innerHTML = '<div class="empty-state">載入審計日誌失敗</div>';
-        return;
-      }
-
-      const logs = result.data.logs || [];
-
-      if (logs.length === 0) {
-        container.innerHTML = '<div class="empty-state">沒有找到審計日誌</div>';
-        return;
-      }
-
-      container.innerHTML = `
-        <table class="data-table audit-table">
-          <thead>
-            <tr>
-              <th>時間</th>
-              <th>用戶</th>
-              <th>事件類型</th>
-              <th>目標</th>
-              <th>說明</th>
-              <th>等級</th>
-              <th>IP</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${logs.map(log => `
-              <tr class="severity-${log.severity}">
-                <td class="log-time">${MoodleUI.formatDate(log.createdAt, 'datetime')}</td>
-                <td class="log-user">
-                  <span class="user-name">${log.userName || '-'}</span>
-                  <span class="user-email">${log.userEmail || ''}</span>
-                </td>
-                <td class="log-event">
-                  <span class="event-badge ${this.getEventCategory(log.eventType)}">${this.getEventTypeName(log.eventType)}</span>
-                </td>
-                <td class="log-target">${log.targetName || log.targetType || '-'}</td>
-                <td class="log-desc">${log.description || '-'}</td>
-                <td class="log-severity">
-                  <span class="severity-badge ${log.severity}">${this.getSeverityName(log.severity)}</span>
-                </td>
-                <td class="log-ip">${log.ipAddress || '-'}</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-        ${result.data.lastKey ? `
-          <div class="load-more">
-            <button class="btn-secondary" onclick="MoodleUI.loadMoreAuditLogs('${result.data.lastKey}')">載入更多</button>
-          </div>
-        ` : ''}
-      `;
-    } catch (error) {
-      console.error('Load audit logs error:', error);
-      container.innerHTML = '<div class="empty-state">載入審計日誌失敗</div>';
-    }
-  },
-
-  /**
-   * 搜尋審計日誌
-   */
-  async searchAuditLogs() {
-    const query = document.getElementById('auditSearch')?.value?.trim();
-    if (!query) {
-      return this.loadAuditLogs();
-    }
-
-    const container = document.getElementById('auditLogsContainer');
-    if (!container) return;
-
-    container.innerHTML = '<div class="loading">搜尋中...</div>';
-
-    try {
-      const filters = {
-        startDate: document.getElementById('auditStartDate')?.value || '',
-        endDate: document.getElementById('auditEndDate')?.value || ''
-      };
-
-      const result = await API.auditLogs.search(query, filters);
-
-      if (!result.success || !result.data.logs.length) {
-        container.innerHTML = '<div class="empty-state">沒有找到符合的日誌</div>';
-        return;
-      }
-
-      const logs = result.data.logs;
-      container.innerHTML = `
-        <div class="search-results-info">找到 ${logs.length} 筆結果</div>
-        <table class="data-table audit-table">
-          <thead>
-            <tr>
-              <th>時間</th>
-              <th>用戶</th>
-              <th>事件類型</th>
-              <th>目標</th>
-              <th>說明</th>
-              <th>等級</th>
-              <th>IP</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${logs.map(log => `
-              <tr class="severity-${log.severity}">
-                <td class="log-time">${MoodleUI.formatDate(log.createdAt, 'datetime')}</td>
-                <td class="log-user">
-                  <span class="user-name">${log.userName || '-'}</span>
-                  <span class="user-email">${log.userEmail || ''}</span>
-                </td>
-                <td class="log-event">
-                  <span class="event-badge ${this.getEventCategory(log.eventType)}">${this.getEventTypeName(log.eventType)}</span>
-                </td>
-                <td class="log-target">${log.targetName || log.targetType || '-'}</td>
-                <td class="log-desc">${log.description || '-'}</td>
-                <td class="log-severity">
-                  <span class="severity-badge ${log.severity}">${this.getSeverityName(log.severity)}</span>
-                </td>
-                <td class="log-ip">${log.ipAddress || '-'}</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      `;
-    } catch (error) {
-      console.error('Search audit logs error:', error);
-      container.innerHTML = '<div class="empty-state">搜尋失敗</div>';
-    }
-  },
-
-  /**
-   * 獲取事件類型名稱
-   */
-  getAuditEventTypeName(type) {
-    const names = {
-      'user_login': '用戶登入',
-      'user_logout': '用戶登出',
-      'user_register': '用戶註冊',
-      'user_update': '更新資料',
-      'user_delete': '刪除用戶',
-      'user_password_change': '修改密碼',
-      'course_create': '建立課程',
-      'course_update': '更新課程',
-      'course_delete': '刪除課程',
-      'course_enroll': '報名課程',
-      'course_unenroll': '退出課程',
-      'course_role_assign': '分配角色',
-      'assignment_create': '建立作業',
-      'assignment_update': '更新作業',
-      'assignment_submit': '提交作業',
-      'assignment_grade': '評分作業',
-      'quiz_create': '建立測驗',
-      'quiz_update': '更新測驗',
-      'quiz_attempt_start': '開始測驗',
-      'quiz_attempt_submit': '提交測驗',
-      'grade_update': '更新成績',
-      'grade_override': '覆蓋成績',
-      'grade_export': '匯出成績',
-      'file_upload': '上傳檔案',
-      'file_download': '下載檔案',
-      'file_delete': '刪除檔案',
-      'system_config_update': '更新設定',
-      'role_create': '建立角色',
-      'role_update': '更新角色',
-      'role_delete': '刪除角色',
-      'security_failed_login': '登入失敗',
-      'security_suspicious_activity': '可疑活動',
-      'data_export': '資料匯出',
-      'bulk_operation': '批量操作'
-    };
-    return names[type] || type;
-  },
-
-  /**
-   * 獲取事件類別
-   */
-  getEventCategory(type) {
-    if (type.startsWith('user_')) return 'category-user';
-    if (type.startsWith('course_')) return 'category-course';
-    if (type.startsWith('assignment_')) return 'category-assignment';
-    if (type.startsWith('quiz_')) return 'category-quiz';
-    if (type.startsWith('grade_')) return 'category-grade';
-    if (type.startsWith('file_')) return 'category-file';
-    if (type.startsWith('security_')) return 'category-security';
-    if (type.startsWith('system_') || type.startsWith('role_')) return 'category-system';
-    return 'category-other';
-  },
-
-  /**
-   * 獲取嚴重等級名稱
-   */
-  getSeverityName(severity) {
-    const names = {
-      'info': '一般',
-      'warning': '警告',
-      'error': '錯誤',
-      'critical': '嚴重'
-    };
-    return names[severity] || severity;
-  },
-
-  /**
-   * 顯示審計統計
-   */
-  async showAuditStats() {
-    try {
-      const result = await API.auditLogs.getStats(30);
-
-      if (!result.success) {
-        showToast('載入統計失敗');
-        return;
-      }
-
-      const stats = result.data;
-
-      const modal = document.createElement('div');
-      modal.id = 'auditStatsModal';
-      modal.className = 'modal-overlay active';
-      modal.innerHTML = `
-        <div class="modal-content audit-stats-modal" style="max-width: 800px;">
-          <div class="modal-header">
-            <h2>
-              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="18" y1="20" x2="18" y2="10"/>
-                <line x1="12" y1="20" x2="12" y2="4"/>
-                <line x1="6" y1="20" x2="6" y2="14"/>
-              </svg>
-              審計日誌統計（${stats.period}）
-            </h2>
-            <button class="modal-close" onclick="MoodleUI.closeModal('auditStatsModal')">×</button>
-          </div>
-          <div class="modal-body">
-            <div class="stats-overview">
-              <div class="stat-card">
-                <span class="stat-number">${stats.totalLogs}</span>
-                <span class="stat-label">總事件數</span>
-              </div>
-              <div class="stat-card severity-info">
-                <span class="stat-number">${stats.severityCounts.info || 0}</span>
-                <span class="stat-label">一般</span>
-              </div>
-              <div class="stat-card severity-warning">
-                <span class="stat-number">${stats.severityCounts.warning || 0}</span>
-                <span class="stat-label">警告</span>
-              </div>
-              <div class="stat-card severity-error">
-                <span class="stat-number">${stats.severityCounts.error || 0}</span>
-                <span class="stat-label">錯誤</span>
-              </div>
-              <div class="stat-card severity-critical">
-                <span class="stat-number">${stats.severityCounts.critical || 0}</span>
-                <span class="stat-label">嚴重</span>
-              </div>
-            </div>
-
-            <div class="stats-sections">
-              <div class="stats-section">
-                <h4>熱門事件類型</h4>
-                <div class="top-events">
-                  ${stats.topEvents.map(e => `
-                    <div class="event-row">
-                      <span class="event-name">${this.getAuditEventTypeName(e.type)}</span>
-                      <span class="event-count">${e.count}</span>
-                    </div>
-                  `).join('')}
-                </div>
-              </div>
-
-              <div class="stats-section">
-                <h4>最活躍用戶</h4>
-                <div class="top-users">
-                  ${stats.topUsers.map(u => `
-                    <div class="user-row">
-                      <span class="user-name">${u.userName || '未知用戶'}</span>
-                      <span class="user-count">${u.count} 筆</span>
-                    </div>
-                  `).join('')}
-                </div>
-              </div>
-            </div>
-
-            <div class="daily-chart">
-              <h4>每日事件趨勢</h4>
-              <div class="chart-bars">
-                ${Object.entries(stats.dailyCounts).slice(-14).map(([date, count]) => {
-                  const maxCount = Math.max(...Object.values(stats.dailyCounts));
-                  const height = maxCount > 0 ? (count / maxCount) * 100 : 0;
-                  return `
-                    <div class="chart-bar-container">
-                      <div class="chart-bar" style="height: ${height}%" title="${date}: ${count}"></div>
-                      <span class="chart-label">${date.slice(5)}</span>
-                    </div>
-                  `;
-                }).join('')}
-              </div>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button class="btn-secondary" onclick="MoodleUI.closeModal('auditStatsModal')">關閉</button>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(modal);
-    } catch (error) {
-      console.error('Show audit stats error:', error);
-      showToast('載入統計失敗');
-    }
-  },
-
-  /**
-   * 匯出審計日誌
-   */
-  async exportAuditLogs() {
-    try {
-      const filters = {
-        eventType: document.getElementById('auditEventType')?.value || '',
-        startDate: document.getElementById('auditStartDate')?.value || '',
-        endDate: document.getElementById('auditEndDate')?.value || ''
-      };
-
-      // 獲取當前 token
-      const token = localStorage.getItem('authToken');
-      const url = API.auditLogs.exportLogs(filters, 'csv');
-
-      // 創建隱藏的 iframe 來下載
-      const iframe = document.createElement('iframe');
-      iframe.style.display = 'none';
-      iframe.src = url + `&token=${token}`;
-      document.body.appendChild(iframe);
-
-      setTimeout(() => {
-        document.body.removeChild(iframe);
-      }, 5000);
-
-      showToast('正在匯出審計日誌...');
-    } catch (error) {
-      console.error('Export audit logs error:', error);
-      showToast('匯出失敗');
-    }
-  },
-
-  /**
-   * 開啟測驗監控摘要（教師）
-   */
-  async openProctoringsSummary(quizId) {
-    try {
-      const result = await API.quizzes.antiCheat.getProctoringsSummary(quizId);
-      if (!result.success) {
-        showToast('載入監控摘要失敗');
-        return;
-      }
-
-      const summary = result.data;
-
-      const modal = document.createElement('div');
-      modal.id = 'proctoringsSummaryModal';
-      modal.className = 'modal-overlay active';
-      modal.innerHTML = `
-        <div class="modal-content proctoring-summary-modal" style="max-width: 900px;">
-          <div class="modal-header">
-            <h2><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> 測驗監控摘要</h2>
-            <button class="modal-close" onclick="MoodleUI.closeModal('proctoringsSummaryModal')">×</button>
-          </div>
-          <div class="modal-body">
-            <div class="summary-overview">
-              <div class="summary-stat">
-                <span class="stat-number">${summary.totalAttempts || 0}</span>
-                <span class="stat-label">總作答數</span>
-              </div>
-              <div class="summary-stat risk-high">
-                <span class="stat-number">${summary.highRiskCount || 0}</span>
-                <span class="stat-label">高風險</span>
-              </div>
-              <div class="summary-stat risk-medium">
-                <span class="stat-number">${summary.mediumRiskCount || 0}</span>
-                <span class="stat-label">中等風險</span>
-              </div>
-              <div class="summary-stat risk-low">
-                <span class="stat-number">${summary.lowRiskCount || 0}</span>
-                <span class="stat-label">低風險</span>
-              </div>
-            </div>
-
-            <div class="attempts-table-container">
-              <table class="data-table proctoring-table">
-                <thead>
-                  <tr>
-                    <th>學生</th>
-                    <th>嘗試時間</th>
-                    <th>分數</th>
-                    <th>風險等級</th>
-                    <th>可疑分數</th>
-                    <th>操作</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${(summary.attempts || []).map(a => {
-                    const riskClass = a.riskLevel === 'high' ? 'risk-high' :
-                                      a.riskLevel === 'medium' ? 'risk-medium' : 'risk-low';
-                    return `
-                      <tr>
-                        <td>${a.studentName || '未知'}</td>
-                        <td>${MoodleUI.formatDate(a.startedAt, 'datetime')}</td>
-                        <td>${a.score !== undefined ? a.score : '-'}</td>
-                        <td><span class="risk-badge ${riskClass}">${a.riskLevel === 'high' ? '高' : a.riskLevel === 'medium' ? '中' : '低'}</span></td>
-                        <td>${a.suspiciousScore || 0}</td>
-                        <td>
-                          <button class="btn-sm btn-secondary" onclick="MoodleUI.openProctoringReport('${quizId}', '${a.attemptId}')">
-                            查看詳情
-                          </button>
-                        </td>
-                      </tr>
-                    `;
-                  }).join('')}
-                </tbody>
-              </table>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button class="btn-secondary" onclick="MoodleUI.closeModal('proctoringsSummaryModal')">關閉</button>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(modal);
-    } catch (error) {
-      console.error('Load proctoring summary error:', error);
-      showToast('載入監控摘要失敗');
-    }
-  },
-
-  // ==================== SCORM 管理 ====================
-
-  /**
-   * 開啟 SCORM 管理頁面
-   */
-  async openScormManager() {
-    const container = document.getElementById('scormManagerContent');
-    if (!container) return;
-
-    container.innerHTML = '<div class="loading-container"><div class="loading-spinner"></div><p>載入 SCORM 內容中...</p></div>';
-
-    try {
-      const result = await API.scorm.list();
-      const packages = result.success ? result.data : [];
-
-      container.innerHTML = `
-        <div class="scorm-manager-page">
-          <div class="page-header">
-            <h1>
-              <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-                <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
-                <line x1="12" y1="22.08" x2="12" y2="12"/>
-              </svg>
-              SCORM 學習包管理
-            </h1>
-            <div class="header-actions">
-              <button class="btn-primary" onclick="MoodleUI.openCreateScormModal()">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                新增 SCORM 包
-              </button>
-            </div>
-          </div>
-
-          <div class="scorm-info-banner">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-            <p>SCORM（Sharable Content Object Reference Model）是電子學習內容的國際標準，支援 SCORM 1.2 和 SCORM 2004 格式。</p>
-          </div>
-
-          <div class="scorm-list">
-            ${packages.length === 0 ? `
-              <div class="empty-state">
-                <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-                </svg>
-                <h3>尚無 SCORM 學習包</h3>
-                <p>點擊「新增 SCORM 包」開始上傳您的 SCORM 內容</p>
-              </div>
-            ` : packages.map(pkg => `
-              <div class="scorm-card" data-package-id="${pkg.packageId}">
-                <div class="scorm-card-header">
-                  <div class="scorm-icon">
-                    <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-                    </svg>
-                  </div>
-                  <div class="scorm-info">
-                    <h3>${pkg.name}</h3>
-                    <span class="scorm-version">${pkg.version === 'scorm_2004' ? 'SCORM 2004' : 'SCORM 1.2'}</span>
-                  </div>
-                  <span class="status-badge ${pkg.status}">${pkg.status === 'active' ? '啟用中' : '已停用'}</span>
-                </div>
-                <p class="scorm-description">${pkg.description || '無描述'}</p>
-                <div class="scorm-meta">
-                  <span><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M2 12h20"/></svg> 最大嘗試: ${pkg.maxAttempts || '無限制'}</span>
-                  <span><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg> ${MoodleUI.formatDate(pkg.createdAt)}</span>
-                </div>
-                <div class="scorm-actions">
-                  <button class="btn-secondary btn-sm" onclick="MoodleUI.launchScorm('${pkg.packageId}')">
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                    啟動
-                  </button>
-                  <button class="btn-secondary btn-sm" onclick="MoodleUI.viewScormReport('${pkg.packageId}')">
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-                    報告
-                  </button>
-                  <button class="btn-secondary btn-sm" onclick="MoodleUI.editScorm('${pkg.packageId}')">
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    編輯
-                  </button>
-                </div>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-      `;
-    } catch (error) {
-      console.error('Load SCORM packages error:', error);
-      container.innerHTML = '<div class="error-state"><p>載入 SCORM 內容失敗</p></div>';
-    }
-  },
-
-  /**
-   * 開啟新增 SCORM 模態框
-   */
-  openCreateScormModal() {
-    const modal = document.createElement('div');
-    modal.id = 'createScormModal';
-    modal.className = 'modal-overlay active';
-    modal.innerHTML = `
-      <div class="modal-content" style="max-width: 600px;">
-        <div class="modal-header">
-          <h2>新增 SCORM 學習包</h2>
-          <button class="modal-close" onclick="MoodleUI.closeModal('createScormModal')">&times;</button>
-        </div>
-        <div class="modal-body">
-          <form id="createScormForm">
-            <div class="form-group">
-              <label>名稱 <span class="required">*</span></label>
-              <input type="text" name="name" required placeholder="輸入 SCORM 包名稱">
-            </div>
-            <div class="form-group">
-              <label>描述</label>
-              <textarea name="description" rows="3" placeholder="輸入描述"></textarea>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label>SCORM 版本</label>
-                <select name="version">
-                  <option value="scorm_2004">SCORM 2004</option>
-                  <option value="scorm_1.2">SCORM 1.2</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>最大嘗試次數</label>
-                <input type="number" name="maxAttempts" value="0" min="0" placeholder="0 = 無限制">
-              </div>
-            </div>
-            <div class="form-group">
-              <label>入口 URL <span class="required">*</span></label>
-              <input type="url" name="entryUrl" required placeholder="https://example.com/scorm/index.html">
-            </div>
-            <div class="form-group">
-              <label>計分方式</label>
-              <select name="gradingMethod">
-                <option value="highest">最高分</option>
-                <option value="average">平均分</option>
-                <option value="first">首次嘗試</option>
-                <option value="last">最後嘗試</option>
-              </select>
-            </div>
-          </form>
-        </div>
-        <div class="modal-footer">
-          <button class="btn-secondary" onclick="MoodleUI.closeModal('createScormModal')">取消</button>
-          <button class="btn-primary" onclick="MoodleUI.saveScorm()">儲存</button>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(modal);
-  },
-
-  /**
-   * 儲存 SCORM 包
-   */
-  async saveScorm() {
-    const form = document.getElementById('createScormForm');
-    const formData = new FormData(form);
-
-    const data = {
-      name: formData.get('name'),
-      description: formData.get('description'),
-      version: formData.get('version'),
-      maxAttempts: parseInt(formData.get('maxAttempts')) || 0,
-      entryUrl: formData.get('entryUrl'),
-      gradingMethod: formData.get('gradingMethod')
-    };
-
-    try {
-      const result = await API.scorm.create(data);
-      if (result.success) {
-        showToast('SCORM 包創建成功');
-        this.closeModal('createScormModal');
-        this.openScormManager();
-      } else {
-        showToast(result.message || '創建失敗');
-      }
-    } catch (error) {
-      console.error('Save SCORM error:', error);
-      showToast('創建失敗');
-    }
-  },
-
-  /**
-   * 啟動 SCORM 包
-   */
-  async launchScorm(packageId) {
-    try {
-      const result = await API.scorm.launch(packageId);
-      if (result.success) {
-        const { launchUrl, params } = result.data;
-
-        // 創建表單並提交
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = launchUrl;
-        form.target = '_blank';
-
-        Object.entries(params).forEach(([key, value]) => {
-          const input = document.createElement('input');
-          input.type = 'hidden';
-          input.name = key;
-          input.value = value;
-          form.appendChild(input);
-        });
-
-        document.body.appendChild(form);
-        form.submit();
-        document.body.removeChild(form);
-      } else {
-        showToast(result.message || '啟動失敗');
-      }
-    } catch (error) {
-      console.error('Launch SCORM error:', error);
-      showToast('啟動失敗');
-    }
-  },
-
-  /**
-   * 查看 SCORM 報告
-   */
-  async viewScormReport(packageId) {
-    try {
-      const result = await API.scorm.getReport(packageId);
-      if (!result.success) {
-        showToast('載入報告失敗');
-        return;
-      }
-
-      const { stats, attempts } = result.data;
-
-      const modal = document.createElement('div');
-      modal.id = 'scormReportModal';
-      modal.className = 'modal-overlay active';
-      modal.innerHTML = `
-        <div class="modal-content" style="max-width: 800px;">
-          <div class="modal-header">
-            <h2>SCORM 報告</h2>
-            <button class="modal-close" onclick="MoodleUI.closeModal('scormReportModal')">&times;</button>
-          </div>
-          <div class="modal-body">
-            <div class="stats-grid">
-              <div class="stat-card">
-                <div class="stat-value">${stats.totalAttempts}</div>
-                <div class="stat-label">總嘗試次數</div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-value">${stats.uniqueUsers}</div>
-                <div class="stat-label">參與人數</div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-value">${stats.completionRate}%</div>
-                <div class="stat-label">完成率</div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-value">${stats.averageScore}</div>
-                <div class="stat-label">平均分數</div>
-              </div>
-            </div>
-
-            <h3 style="margin: 1.5rem 0 1rem;">最近嘗試</h3>
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>用戶</th>
-                  <th>狀態</th>
-                  <th>分數</th>
-                  <th>時間</th>
-                  <th>日期</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${attempts.slice(0, 10).map(a => `
-                  <tr>
-                    <td>${a.userId}</td>
-                    <td><span class="status-badge ${a.status}">${a.status}</span></td>
-                    <td>${a.score !== null ? a.score : '-'}</td>
-                    <td>${Math.round((a.totalTime || 0) / 60)} 分鐘</td>
-                    <td>${MoodleUI.formatDate(a.startedAt, 'datetime')}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>
-          <div class="modal-footer">
-            <button class="btn-secondary" onclick="MoodleUI.closeModal('scormReportModal')">關閉</button>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(modal);
-    } catch (error) {
-      console.error('View SCORM report error:', error);
-      showToast('載入報告失敗');
-    }
-  },
-
-  // ==================== LTI 管理 ====================
-
-  /**
-   * 開啟 LTI 外部工具管理頁面
-   */
-  async openLtiManager() {
-    const container = document.getElementById('ltiManagerContent');
-    if (!container) return;
-
-    container.innerHTML = '<div class="loading-container"><div class="loading-spinner"></div><p>載入外部工具中...</p></div>';
-
-    try {
-      const result = await API.lti.getTools();
-      const tools = result.success ? result.data : [];
-
-      container.innerHTML = `
-        <div class="lti-manager-page">
-          <div class="page-header">
-            <h1>
-              <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
-                <line x1="8" y1="21" x2="16" y2="21"/>
-                <line x1="12" y1="17" x2="12" y2="21"/>
-              </svg>
-              LTI 外部工具
-            </h1>
-            <div class="header-actions">
-              <button class="btn-secondary" onclick="MoodleUI.showLtiConfig()">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                平台配置
-              </button>
-              <button class="btn-primary" onclick="MoodleUI.openCreateLtiModal()">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                新增外部工具
-              </button>
-            </div>
-          </div>
-
-          <div class="lti-info-banner">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-            <p>LTI（Learning Tools Interoperability）允許您整合第三方學習工具，如 Turnitin、Khan Academy、Google Docs 等。</p>
-          </div>
-
-          <div class="lti-tools-grid">
-            ${tools.length === 0 ? `
-              <div class="empty-state">
-                <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
-                  <line x1="8" y1="21" x2="16" y2="21"/>
-                  <line x1="12" y1="17" x2="12" y2="21"/>
-                </svg>
-                <h3>尚無外部工具</h3>
-                <p>點擊「新增外部工具」開始整合第三方學習工具</p>
-              </div>
-            ` : tools.map(tool => `
-              <div class="lti-tool-card" data-tool-id="${tool.toolId}">
-                <div class="tool-icon">
-                  ${tool.iconUrl ? `<img src="${tool.iconUrl}" alt="${tool.name}">` : `
-                    <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5">
-                      <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
-                    </svg>
-                  `}
-                </div>
-                <div class="tool-info">
-                  <h3>${tool.name}</h3>
-                  <p>${tool.description || '無描述'}</p>
-                  <div class="tool-meta">
-                    <span class="lti-version">LTI ${tool.version}</span>
-                    <span class="status-badge ${tool.status}">${tool.status === 'active' ? '啟用' : '停用'}</span>
-                    ${tool.isGlobal ? '<span class="global-badge">全站</span>' : ''}
-                  </div>
-                </div>
-                <div class="tool-actions">
-                  <button class="btn-primary btn-sm" onclick="MoodleUI.launchLtiTool('${tool.toolId}')">啟動</button>
-                  <button class="btn-secondary btn-sm" onclick="MoodleUI.editLtiTool('${tool.toolId}')">編輯</button>
-                </div>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-      `;
-    } catch (error) {
-      console.error('Load LTI tools error:', error);
-      container.innerHTML = '<div class="error-state"><p>載入外部工具失敗</p></div>';
-    }
-  },
-
-  /**
-   * 顯示 LTI 平台配置
-   */
-  async showLtiConfig() {
-    try {
-      const result = await API.lti.getConfig();
-      if (!result.success) {
-        showToast('載入配置失敗');
-        return;
-      }
-
-      const config = result.data;
-
-      const modal = document.createElement('div');
-      modal.id = 'ltiConfigModal';
-      modal.className = 'modal-overlay active';
-      modal.innerHTML = `
-        <div class="modal-content" style="max-width: 600px;">
-          <div class="modal-header">
-            <h2>LTI 平台配置</h2>
-            <button class="modal-close" onclick="MoodleUI.closeModal('ltiConfigModal')">&times;</button>
-          </div>
-          <div class="modal-body">
-            <p style="color: var(--gray-600); margin-bottom: 1rem;">將以下資訊提供給外部工具提供商進行配置：</p>
-
-            <div class="config-section">
-              <h4>平台資訊</h4>
-              <div class="config-item">
-                <label>平台名稱</label>
-                <div class="config-value">${config.platform.name}</div>
-              </div>
-              <div class="config-item">
-                <label>平台 GUID</label>
-                <div class="config-value">${config.platform.guid}</div>
-              </div>
-            </div>
-
-            <div class="config-section">
-              <h4>LTI 1.1 端點</h4>
-              <div class="config-item">
-                <label>啟動 URL</label>
-                <div class="config-value copyable" onclick="MoodleUI.copyToClipboard('${config.lti11.launchUrl}')">${config.lti11.launchUrl}</div>
-              </div>
-              <div class="config-item">
-                <label>成績回傳 URL</label>
-                <div class="config-value copyable" onclick="MoodleUI.copyToClipboard('${config.lti11.outcomesUrl}')">${config.lti11.outcomesUrl}</div>
-              </div>
-            </div>
-
-            <div class="config-section">
-              <h4>LTI 1.3 端點</h4>
-              <div class="config-item">
-                <label>發行者 (Issuer)</label>
-                <div class="config-value copyable" onclick="MoodleUI.copyToClipboard('${config.lti13.issuer}')">${config.lti13.issuer}</div>
-              </div>
-              <div class="config-item">
-                <label>JWKS URI</label>
-                <div class="config-value copyable" onclick="MoodleUI.copyToClipboard('${config.lti13.jwksUri}')">${config.lti13.jwksUri}</div>
-              </div>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button class="btn-secondary" onclick="MoodleUI.closeModal('ltiConfigModal')">關閉</button>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(modal);
-    } catch (error) {
-      console.error('Show LTI config error:', error);
-      showToast('載入配置失敗');
-    }
-  },
-
-  /**
-   * 開啟新增 LTI 工具模態框
-   */
-  openCreateLtiModal() {
-    const modal = document.createElement('div');
-    modal.id = 'createLtiModal';
-    modal.className = 'modal-overlay active';
-    modal.innerHTML = `
-      <div class="modal-content" style="max-width: 600px;">
-        <div class="modal-header">
-          <h2>新增外部工具</h2>
-          <button class="modal-close" onclick="MoodleUI.closeModal('createLtiModal')">&times;</button>
-        </div>
-        <div class="modal-body">
-          <form id="createLtiForm">
-            <div class="form-group">
-              <label>工具名稱 <span class="required">*</span></label>
-              <input type="text" name="name" required placeholder="例如：Turnitin">
-            </div>
-            <div class="form-group">
-              <label>描述</label>
-              <textarea name="description" rows="2" placeholder="工具描述"></textarea>
-            </div>
-            <div class="form-group">
-              <label>工具 URL <span class="required">*</span></label>
-              <input type="url" name="toolUrl" required placeholder="https://tool.example.com/lti">
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label>LTI 版本</label>
-                <select name="version">
-                  <option value="1.3">LTI 1.3</option>
-                  <option value="1.1">LTI 1.1</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>隱私級別</label>
-                <select name="privacyLevel">
-                  <option value="anonymous">匿名</option>
-                  <option value="name">僅姓名</option>
-                  <option value="email">包含 Email</option>
-                  <option value="public">完整資訊</option>
-                </select>
-              </div>
-            </div>
-            <div class="form-group">
-              <label>啟動方式</label>
-              <select name="launchContainer">
-                <option value="window">新視窗</option>
-                <option value="embed">嵌入頁面</option>
-                <option value="iframe">iFrame</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="checkbox-label">
-                <input type="checkbox" name="allowGradePassback" checked>
-                允許成績回傳
-              </label>
-            </div>
-          </form>
-        </div>
-        <div class="modal-footer">
-          <button class="btn-secondary" onclick="MoodleUI.closeModal('createLtiModal')">取消</button>
-          <button class="btn-primary" onclick="MoodleUI.saveLtiTool()">儲存</button>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(modal);
-  },
-
-  /**
-   * 儲存 LTI 工具
-   */
-  async saveLtiTool() {
-    const form = document.getElementById('createLtiForm');
-    const formData = new FormData(form);
-
-    const data = {
-      name: formData.get('name'),
-      description: formData.get('description'),
-      toolUrl: formData.get('toolUrl'),
-      version: formData.get('version'),
-      privacyLevel: formData.get('privacyLevel'),
-      launchContainer: formData.get('launchContainer'),
-      allowGradePassback: form.querySelector('[name="allowGradePassback"]').checked
-    };
-
-    try {
-      const result = await API.lti.createTool(data);
-      if (result.success) {
-        showToast('外部工具創建成功');
-        this.closeModal('createLtiModal');
-        this.openLtiManager();
-      } else {
-        showToast(result.message || '創建失敗');
-      }
-    } catch (error) {
-      console.error('Save LTI tool error:', error);
-      showToast('創建失敗');
-    }
-  },
-
-  /**
-   * 啟動 LTI 工具
-   */
-  async launchLtiTool(toolId) {
-    try {
-      const result = await API.lti.launch(toolId);
-      if (result.success) {
-        const { launchUrl, params, launchContainer } = result.data;
-
-        if (launchContainer === 'window') {
-          // 創建表單並在新視窗提交
-          const form = document.createElement('form');
-          form.method = 'POST';
-          form.action = launchUrl;
-          form.target = '_blank';
-
-          Object.entries(params).forEach(([key, value]) => {
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = key;
-            input.value = value;
-            form.appendChild(input);
-          });
-
-          document.body.appendChild(form);
-          form.submit();
-          document.body.removeChild(form);
-        } else {
-          showToast('嵌入式啟動暫不支援');
-        }
-      } else {
-        showToast(result.message || '啟動失敗');
-      }
-    } catch (error) {
-      console.error('Launch LTI tool error:', error);
-      showToast('啟動失敗');
-    }
-  },
-
-  // ==================== H5P 管理 ====================
-
-  /**
-   * 開啟 H5P 互動內容管理頁面
-   */
-  async openH5pManager() {
-    const container = document.getElementById('h5pManagerContent');
-    if (!container) return;
-
-    container.innerHTML = '<div class="loading-container"><div class="loading-spinner"></div><p>載入 H5P 內容中...</p></div>';
-
-    try {
-      const [contentsResult, typesResult] = await Promise.all([
-        API.h5p.list(),
-        API.h5p.getTypes()
-      ]);
-
-      const contents = contentsResult.success ? contentsResult.data : [];
-      const types = typesResult.success ? typesResult.data : [];
-
-      container.innerHTML = `
-        <div class="h5p-manager-page">
-          <div class="page-header">
-            <h1>
-              <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2">
-                <polygon points="12 2 2 7 12 12 22 7 12 2"/>
-                <polyline points="2 17 12 22 22 17"/>
-                <polyline points="2 12 12 17 22 12"/>
-              </svg>
-              H5P 互動內容
-            </h1>
-            <div class="header-actions">
-              <button class="btn-primary" onclick="MoodleUI.openCreateH5pModal()">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                創建 H5P 內容
-              </button>
-            </div>
-          </div>
-
-          <div class="h5p-info-banner">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-            <p>H5P 是一個開源的互動內容創建工具，支援互動影片、測驗、簡報、遊戲等多種內容類型。</p>
-          </div>
-
-          <div class="h5p-type-filter">
-            <span>內容類型：</span>
-            <select id="h5pTypeFilter" onchange="MoodleUI.filterH5pContent()">
-              <option value="">全部</option>
-              ${types.map(t => `<option value="${t.id}">${t.name}</option>`).join('')}
-            </select>
-          </div>
-
-          <div class="h5p-contents-grid">
-            ${contents.length === 0 ? `
-              <div class="empty-state">
-                <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <polygon points="12 2 2 7 12 12 22 7 12 2"/>
-                  <polyline points="2 17 12 22 22 17"/>
-                  <polyline points="2 12 12 17 22 12"/>
-                </svg>
-                <h3>尚無 H5P 內容</h3>
-                <p>點擊「創建 H5P 內容」開始製作互動學習內容</p>
-              </div>
-            ` : contents.map(content => `
-              <div class="h5p-content-card" data-content-id="${content.contentId}" data-type="${content.contentType}">
-                <div class="h5p-card-preview">
-                  <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <polygon points="12 2 2 7 12 12 22 7 12 2"/>
-                    <polyline points="2 17 12 22 22 17"/>
-                    <polyline points="2 12 12 17 22 12"/>
-                  </svg>
-                </div>
-                <div class="h5p-card-body">
-                  <h3>${content.title}</h3>
-                  <span class="h5p-type-badge">${this.getH5pTypeName(content.contentType)}</span>
-                  <p>${content.description || '無描述'}</p>
-                  <div class="h5p-card-meta">
-                    <span><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> ${content.viewCount || 0}</span>
-                    <span><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> ${content.attemptCount || 0}</span>
-                  </div>
-                </div>
-                <div class="h5p-card-actions">
-                  <button class="btn-primary btn-sm" onclick="MoodleUI.previewH5p('${content.contentId}')">預覽</button>
-                  <button class="btn-secondary btn-sm" onclick="MoodleUI.editH5p('${content.contentId}')">編輯</button>
-                  <button class="btn-secondary btn-sm" onclick="MoodleUI.viewH5pReport('${content.contentId}')">報告</button>
-                </div>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-      `;
-    } catch (error) {
-      console.error('Load H5P contents error:', error);
-      container.innerHTML = '<div class="error-state"><p>載入 H5P 內容失敗</p></div>';
-    }
-  },
-
-  /**
-   * 獲取 H5P 類型名稱
-   */
-  getH5pTypeName(type) {
-    const typeNames = {
-      'H5P.InteractiveVideo': '互動影片',
-      'H5P.CoursePresentation': '課程簡報',
-      'H5P.QuestionSet': '題組測驗',
-      'H5P.DragQuestion': '拖放問答',
-      'H5P.Blanks': '填空題',
-      'H5P.MarkTheWords': '標記詞彙',
-      'H5P.MultiChoice': '選擇題',
-      'H5P.TrueFalse': '是非題',
-      'H5P.DragText': '拖放文字',
-      'H5P.Summary': '摘要活動',
-      'H5P.Timeline': '時間軸',
-      'H5P.ImageHotspots': '圖片熱點',
-      'H5P.Accordion': '手風琴',
-      'H5P.Dialogcards': '對話卡片',
-      'H5P.Flashcards': '閃卡',
-      'H5P.MemoryGame': '記憶遊戲',
-      'H5P.BranchingScenario': '分支情境',
-      'H5P.ThreeImage': '虛擬導覽',
-      'H5P.Column': '內容組合'
-    };
-    return typeNames[type] || type.replace('H5P.', '');
-  },
-
-  /**
-   * 開啟創建 H5P 模態框
-   */
-  async openCreateH5pModal() {
-    let types = [];
-    try {
-      const result = await API.h5p.getTypes();
-      types = result.success ? result.data : [];
-    } catch (error) {
-      console.error('Load H5P types error:', error);
-    }
-
-    const modal = document.createElement('div');
-    modal.id = 'createH5pModal';
-    modal.className = 'modal-overlay active';
-    modal.innerHTML = `
-      <div class="modal-content" style="max-width: 600px;">
-        <div class="modal-header">
-          <h2>創建 H5P 互動內容</h2>
-          <button class="modal-close" onclick="MoodleUI.closeModal('createH5pModal')">&times;</button>
-        </div>
-        <div class="modal-body">
-          <form id="createH5pForm">
-            <div class="form-group">
-              <label>標題 <span class="required">*</span></label>
-              <input type="text" name="title" required placeholder="輸入內容標題">
-            </div>
-            <div class="form-group">
-              <label>內容類型 <span class="required">*</span></label>
-              <select name="contentType" required>
-                <option value="">選擇內容類型</option>
-                ${types.map(t => `<option value="${t.id}">${t.name} - ${t.description}</option>`).join('')}
-              </select>
-            </div>
-            <div class="form-group">
-              <label>描述</label>
-              <textarea name="description" rows="3" placeholder="輸入內容描述"></textarea>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label>最高分數</label>
-                <input type="number" name="maxScore" min="0" placeholder="自動計算">
-              </div>
-              <div class="form-group">
-                <label>嵌入方式</label>
-                <select name="embedType">
-                  <option value="iframe">iFrame</option>
-                  <option value="div">Div 容器</option>
-                </select>
-              </div>
-            </div>
-            <div class="form-group">
-              <label class="checkbox-label">
-                <input type="checkbox" name="showFrame" checked>
-                顯示框架
-              </label>
-              <label class="checkbox-label">
-                <input type="checkbox" name="showCopyright" checked>
-                顯示版權資訊
-              </label>
-            </div>
-          </form>
-        </div>
-        <div class="modal-footer">
-          <button class="btn-secondary" onclick="MoodleUI.closeModal('createH5pModal')">取消</button>
-          <button class="btn-primary" onclick="MoodleUI.saveH5p()">創建</button>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(modal);
-  },
-
-  /**
-   * 儲存 H5P 內容
-   */
-  async saveH5p() {
-    const form = document.getElementById('createH5pForm');
-    const formData = new FormData(form);
-
-    const data = {
-      title: formData.get('title'),
-      contentType: formData.get('contentType'),
-      description: formData.get('description'),
-      maxScore: formData.get('maxScore') ? parseInt(formData.get('maxScore')) : null,
-      embedType: formData.get('embedType'),
-      showFrame: form.querySelector('[name="showFrame"]').checked,
-      showCopyright: form.querySelector('[name="showCopyright"]').checked
-    };
-
-    if (!data.title || !data.contentType) {
-      showToast('請填寫必填欄位');
-      return;
-    }
-
-    try {
-      const result = await API.h5p.create(data);
-      if (result.success) {
-        showToast('H5P 內容創建成功');
-        this.closeModal('createH5pModal');
-        this.openH5pManager();
-      } else {
-        showToast(result.message || '創建失敗');
-      }
-    } catch (error) {
-      console.error('Save H5P error:', error);
-      showToast('創建失敗');
-    }
-  },
-
-  /**
-   * 預覽 H5P 內容
-   */
-  async previewH5p(contentId) {
-    try {
-      const result = await API.h5p.getEmbed(contentId);
-      if (result.success) {
-        const { embedUrl, embedCode } = result.data;
-
-        const modal = document.createElement('div');
-        modal.id = 'h5pPreviewModal';
-        modal.className = 'modal-overlay active';
-        modal.innerHTML = `
-          <div class="modal-content" style="max-width: 900px; height: 80vh;">
-            <div class="modal-header">
-              <h2>H5P 預覽</h2>
-              <button class="modal-close" onclick="MoodleUI.closeModal('h5pPreviewModal')">&times;</button>
-            </div>
-            <div class="modal-body" style="height: calc(100% - 120px); padding: 0;">
-              <iframe src="${embedUrl}" style="width: 100%; height: 100%; border: none;"></iframe>
-            </div>
-            <div class="modal-footer">
-              <button class="btn-secondary" onclick="MoodleUI.copyToClipboard(\`${embedCode.replace(/`/g, '\\`')}\`); showToast('嵌入代碼已複製');">複製嵌入代碼</button>
-              <button class="btn-secondary" onclick="MoodleUI.closeModal('h5pPreviewModal')">關閉</button>
-            </div>
-          </div>
-        `;
-        document.body.appendChild(modal);
-
-        // 記錄瀏覽
-        API.h5p.recordView(contentId);
-      } else {
-        showToast('載入預覽失敗');
-      }
-    } catch (error) {
-      console.error('Preview H5P error:', error);
-      showToast('載入預覽失敗');
-    }
-  },
-
-  /**
-   * 查看 H5P 報告
-   */
-  async viewH5pReport(contentId) {
-    try {
-      const result = await API.h5p.getReport(contentId);
-      if (!result.success) {
-        showToast('載入報告失敗');
-        return;
-      }
-
-      const { content, stats, recentAttempts } = result.data;
-
-      const modal = document.createElement('div');
-      modal.id = 'h5pReportModal';
-      modal.className = 'modal-overlay active';
-      modal.innerHTML = `
-        <div class="modal-content" style="max-width: 800px;">
-          <div class="modal-header">
-            <h2>${content.title} - 報告</h2>
-            <button class="modal-close" onclick="MoodleUI.closeModal('h5pReportModal')">&times;</button>
-          </div>
-          <div class="modal-body">
-            <div class="stats-grid">
-              <div class="stat-card">
-                <div class="stat-value">${stats.totalAttempts}</div>
-                <div class="stat-label">總嘗試次數</div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-value">${stats.uniqueUsers}</div>
-                <div class="stat-label">參與人數</div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-value">${Math.round(stats.averageScore * 100)}%</div>
-                <div class="stat-label">平均分數</div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-value">${stats.completionRate}%</div>
-                <div class="stat-label">完成率</div>
-              </div>
-            </div>
-
-            <h3 style="margin: 1.5rem 0 1rem;">分數分佈</h3>
-            <div class="score-distribution">
-              ${Object.entries(stats.scoreDistribution).map(([range, count]) => `
-                <div class="distribution-bar">
-                  <span class="range">${range}%</span>
-                  <div class="bar-container">
-                    <div class="bar" style="width: ${stats.totalAttempts ? (count / stats.totalAttempts * 100) : 0}%"></div>
-                  </div>
-                  <span class="count">${count}</span>
-                </div>
-              `).join('')}
-            </div>
-
-            <h3 style="margin: 1.5rem 0 1rem;">最近嘗試</h3>
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>用戶</th>
-                  <th>分數</th>
-                  <th>完成</th>
-                  <th>時間</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${recentAttempts.map(a => `
-                  <tr>
-                    <td>${a.userId}</td>
-                    <td>${a.scaledScore !== null ? Math.round(a.scaledScore * 100) + '%' : '-'}</td>
-                    <td>${a.completed ? '是' : '否'}</td>
-                    <td>${new Date(a.createdAt).toLocaleString('zh-TW')}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>
-          <div class="modal-footer">
-            <button class="btn-secondary" onclick="MoodleUI.closeModal('h5pReportModal')">關閉</button>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(modal);
-    } catch (error) {
-      console.error('View H5P report error:', error);
-      showToast('載入報告失敗');
-    }
-  },
-
-  /**
-   * 過濾 H5P 內容
-   */
-  filterH5pContent() {
-    const filter = document.getElementById('h5pTypeFilter').value;
-    const cards = document.querySelectorAll('.h5p-content-card');
-
-    cards.forEach(card => {
-      if (!filter || card.dataset.type === filter) {
-        card.style.display = '';
-      } else {
-        card.style.display = 'none';
-      }
-    });
-  },
-
-  /**
-   * 複製到剪貼簿
-   */
-  copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(() => {
-      showToast('已複製到剪貼簿');
-    }).catch(() => {
-      showToast('複製失敗');
-    });
   }
 };
 

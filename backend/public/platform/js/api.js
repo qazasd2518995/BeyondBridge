@@ -5,8 +5,9 @@
 
 const API = {
   // API 基礎 URL（自動偵測環境）
+  // 自動偵測 API URL（使用當前頁面的 origin）
   baseUrl: window.location.hostname === 'localhost'
-    ? 'http://localhost:3000/api'
+    ? `${window.location.origin}/api`
     : '/api',
 
   // Token 管理
@@ -272,17 +273,52 @@ const API = {
   courses: {
     async list(filters = {}) {
       const params = new URLSearchParams(filters).toString();
-      return API.request(`/courses?${params}`);
+      return API.request(`/courses${params ? '?' + params : ''}`);
     },
 
     async get(courseId) {
       return API.request(`/courses/${courseId}`);
     },
 
-    async enroll(courseId) {
-      return API.request(`/courses/${courseId}/enroll`, {
-        method: 'POST'
+    async create(data) {
+      return API.request('/courses', {
+        method: 'POST',
+        body: data
       });
+    },
+
+    async update(courseId, data) {
+      return API.request(`/courses/${courseId}`, {
+        method: 'PUT',
+        body: data
+      });
+    },
+
+    async delete(courseId) {
+      return API.request(`/courses/${courseId}`, {
+        method: 'DELETE'
+      });
+    },
+
+    async getMyCourses() {
+      return API.request('/courses/my');
+    },
+
+    async enroll(courseId, enrollmentKey = null) {
+      return API.request(`/courses/${courseId}/enroll`, {
+        method: 'POST',
+        body: enrollmentKey ? { enrollmentKey } : {}
+      });
+    },
+
+    async unenroll(courseId) {
+      return API.request(`/courses/${courseId}/enroll`, {
+        method: 'DELETE'
+      });
+    },
+
+    async getParticipants(courseId) {
+      return API.request(`/courses/${courseId}/participants`);
     },
 
     async getProgress(courseId) {
@@ -296,8 +332,8 @@ const API = {
       });
     },
 
-    async completeUnit(courseId, unitId) {
-      return API.request(`/courses/${courseId}/units/${unitId}/complete`, {
+    async completeActivity(courseId, activityId) {
+      return API.request(`/courses/${courseId}/activities/${activityId}/complete`, {
         method: 'POST'
       });
     }
@@ -462,104 +498,6 @@ const API = {
 
     async getAnalytics() {
       return API.request('/admin/analytics/overview');
-    },
-
-    // ===== 系統監控 API =====
-    systemHealth: {
-      async get() {
-        return API.request('/admin/system/health');
-      },
-      async getErrors(filters = {}) {
-        const params = new URLSearchParams(filters).toString();
-        return API.request(`/admin/system/errors?${params}`);
-      }
-    },
-
-    // ===== 數據匯出 API =====
-    export: {
-      async users(options = {}) {
-        return API.request('/admin/export/users', {
-          method: 'POST',
-          body: options
-        });
-      },
-      async courses(options = {}) {
-        return API.request('/admin/export/courses', {
-          method: 'POST',
-          body: options
-        });
-      },
-      async licenses(options = {}) {
-        return API.request('/admin/export/licenses', {
-          method: 'POST',
-          body: options
-        });
-      }
-    },
-
-    // ===== 報表 API =====
-    reports: {
-      async generate(type, dateRange, options = {}) {
-        return API.request('/admin/reports/generate', {
-          method: 'POST',
-          body: { type, dateRange, ...options }
-        });
-      }
-    },
-
-    // ===== 自動化規則 API =====
-    automation: {
-      async getRules() {
-        return API.request('/admin/automation/rules');
-      },
-      async createRule(data) {
-        return API.request('/admin/automation/rules', {
-          method: 'POST',
-          body: data
-        });
-      },
-      async updateRule(ruleId, data) {
-        return API.request(`/admin/automation/rules/${ruleId}`, {
-          method: 'PUT',
-          body: data
-        });
-      },
-      async deleteRule(ruleId) {
-        return API.request(`/admin/automation/rules/${ruleId}`, {
-          method: 'DELETE'
-        });
-      },
-      async toggleRule(ruleId) {
-        return API.request(`/admin/automation/rules/${ruleId}/toggle`, {
-          method: 'PUT'
-        });
-      }
-    },
-
-    // ===== 用戶活動分析 API =====
-    analytics: {
-      async getUserActivity(dateRange = '30d', groupBy = 'day') {
-        return API.request(`/admin/analytics/user-activity?range=${dateRange}&groupBy=${groupBy}`);
-      },
-      async getUserDetail(userId) {
-        return API.request(`/admin/analytics/user/${userId}`);
-      }
-    },
-
-    // ===== 批量操作 API =====
-    batch: {
-      async updateUsers(userIds, updates) {
-        return API.request('/admin/users/batch/update', {
-          method: 'PUT',
-          body: { userIds, updates }
-        });
-      },
-      async deleteUsers(userIds) {
-        return API.request('/admin/users/batch/delete', {
-          method: 'DELETE',
-          body: { userIds }
-        });
-      }
     }
   },
 
@@ -752,7 +690,7 @@ const API = {
     },
 
     async getTags() {
-      return API.request('/discussions/meta/tags');
+      return API.request('/discussions/tags');
     },
 
     async search(query, filters = {}) {
@@ -791,21 +729,8 @@ const API = {
       return API.request(`/quizzes/${quizId}`);
     },
 
-    async start(quizId) {
-      return API.request(`/quizzes/${quizId}/start`, {
-        method: 'POST'
-      });
-    },
-
-    async answer(quizId, attemptId, data) {
-      return API.request(`/quizzes/${quizId}/attempts/${attemptId}/answer`, {
-        method: 'PUT',
-        body: data
-      });
-    },
-
-    async submit(quizId, attemptId, answers, timeSpent = 0) {
-      return API.request(`/quizzes/${quizId}/attempts/${attemptId}/submit`, {
+    async submit(quizId, answers, timeSpent = 0) {
+      return API.request(`/quizzes/${quizId}/submit`, {
         method: 'POST',
         body: { answers, timeSpent }
       });
@@ -846,108 +771,35 @@ const API = {
       });
     },
 
-    // ===== 防作弊設定 API =====
-    antiCheat: {
-      // 獲取防作弊設定
-      async getSettings(quizId) {
-        return API.request(`/quizzes/${quizId}/settings/anti-cheat`);
-      },
-
-      // 更新防作弊設定
-      async updateSettings(quizId, settings) {
-        return API.request(`/quizzes/${quizId}/settings/anti-cheat`, {
-          method: 'PUT',
-          body: settings
-        });
-      },
-
-      // 記錄行為事件
-      async recordBehavior(quizId, attemptId, event) {
-        return API.request(`/quizzes/${quizId}/attempts/${attemptId}/behavior`, {
-          method: 'POST',
-          body: event
-        });
-      },
-
-      // 驗證測驗密碼
-      async verifyPassword(quizId, password) {
-        return API.request(`/quizzes/${quizId}/verify-password`, {
-          method: 'POST',
-          body: { password }
-        });
-      },
-
-      // 上傳監控截圖
-      async uploadScreenshot(quizId, attemptId, imageData) {
-        return API.request(`/quizzes/${quizId}/attempts/${attemptId}/screenshot`, {
-          method: 'POST',
-          body: { imageData }
-        });
-      },
-
-      // 獲取監控報告
-      async getProctoringReport(quizId, attemptId) {
-        return API.request(`/quizzes/${quizId}/attempts/${attemptId}/proctoring-report`);
-      },
-
-      // 獲取測驗監控摘要
-      async getProctoringsSummary(quizId) {
-        return API.request(`/quizzes/${quizId}/proctoring-summary`);
-      }
-    }
-  },
-
-  // ===== Moodle 課程 API =====
-  courses: {
-    async list(filters = {}) {
-      const params = new URLSearchParams(filters).toString();
-      return API.request(`/courses${params ? '?' + params : ''}`);
+    // 作答流程
+    async start(quizId) {
+      return API.request(`/quizzes/${quizId}/start`, { method: 'POST' });
     },
 
-    async get(courseId) {
-      return API.request(`/courses/${courseId}`);
-    },
-
-    async create(data) {
-      return API.request('/courses', {
-        method: 'POST',
-        body: data
-      });
-    },
-
-    async update(courseId, data) {
-      return API.request(`/courses/${courseId}`, {
+    async answer(quizId, attemptId, data) {
+      return API.request(`/quizzes/${quizId}/attempts/${attemptId}/answer`, {
         method: 'PUT',
         body: data
       });
     },
 
-    async delete(courseId) {
-      return API.request(`/courses/${courseId}`, {
-        method: 'DELETE'
-      });
-    }
-  },
-
-  // ===== 課程註冊 API =====
-  courseEnrollment: {
-    async enroll(courseId, enrollmentKey = null) {
-      return API.request(`/courses/${courseId}/enroll`, {
+    async submitAttempt(quizId, attemptId, answers) {
+      return API.request(`/quizzes/${quizId}/attempts/${attemptId}/submit`, {
         method: 'POST',
-        body: enrollmentKey ? { enrollmentKey } : {}
+        body: { answers }
       });
     },
 
-    async unenroll(courseId) {
-      return API.request(`/courses/${courseId}/unenroll`, {
-        method: 'POST'
-      });
+    async reviewAttempt(quizId, attemptId) {
+      return API.request(`/quizzes/${quizId}/attempts/${attemptId}/review`);
     },
 
-    async getParticipants(courseId) {
-      return API.request(`/courses/${courseId}/participants`);
+    async getResults(quizId) {
+      return API.request(`/quizzes/${quizId}/results`);
     }
   },
+
+  // (courses API 已合併至上方)
 
   // ===== 課程區段 API =====
   courseSections: {
@@ -983,9 +835,30 @@ const API = {
     }
   },
 
+  // ===== 課程活動 API =====
+  courseActivities: {
+    async get(courseId, activityId) {
+      return API.request(`/courses/${courseId}/activities/${activityId}`);
+    },
+
+    async update(courseId, activityId, data) {
+      return API.request(`/courses/${courseId}/activities/${activityId}`, {
+        method: 'PUT',
+        body: data
+      });
+    },
+
+    async delete(courseId, activityId) {
+      return API.request(`/courses/${courseId}/activities/${activityId}`, {
+        method: 'DELETE'
+      });
+    }
+  },
+
   // ===== 成績簿 API =====
   gradebook: {
     async getCourseGradebook(courseId) {
+      if (!courseId) return { success: false, error: 'MISSING_COURSE_ID' };
       return API.request(`/gradebook/courses/${courseId}`);
     },
 
@@ -993,14 +866,51 @@ const API = {
       return API.request(`/gradebook/my${courseId ? '?courseId=' + courseId : ''}`);
     },
 
-    async updateGrade(courseId, userId, itemId, data) {
-      return API.request(`/gradebook/courses/${courseId}/users/${userId}/items/${itemId}`, {
+    async updateGrade(courseId, itemId, data) {
+      if (!courseId) return { success: false, error: 'MISSING_COURSE_ID' };
+      return API.request(`/gradebook/courses/${courseId}/items/${itemId}/grades`, {
+        method: 'PUT',
+        body: data
+      });
+    },
+
+    async getStudentGrades(courseId, studentId) {
+      if (!courseId) return { success: false, error: 'MISSING_COURSE_ID' };
+      return API.request(`/gradebook/courses/${courseId}/students/${studentId}`);
+    },
+
+    async getScales() {
+      return API.request('/gradebook/scales');
+    },
+
+    async getItems(courseId) {
+      if (!courseId) return { success: false, error: 'MISSING_COURSE_ID' };
+      return API.request(`/gradebook/courses/${courseId}/items`);
+    },
+
+    async createItem(courseId, data) {
+      if (!courseId) return { success: false, error: 'MISSING_COURSE_ID' };
+      return API.request(`/gradebook/courses/${courseId}/items`, {
+        method: 'POST',
+        body: data
+      });
+    },
+
+    async getSettings(courseId) {
+      if (!courseId) return { success: false, error: 'MISSING_COURSE_ID' };
+      return API.request(`/gradebook/courses/${courseId}/settings`);
+    },
+
+    async updateSettings(courseId, data) {
+      if (!courseId) return { success: false, error: 'MISSING_COURSE_ID' };
+      return API.request(`/gradebook/courses/${courseId}/settings`, {
         method: 'PUT',
         body: data
       });
     },
 
     async exportGrades(courseId, format = 'csv') {
+      if (!courseId) return { success: false, error: 'MISSING_COURSE_ID' };
       return API.request(`/gradebook/courses/${courseId}/export?format=${format}`);
     }
   },
@@ -1008,7 +918,7 @@ const API = {
   // ===== 作業 API =====
   assignments: {
     async list(courseId) {
-      return API.request(`/assignments?courseId=${courseId}`);
+      return API.request(courseId ? `/assignments?courseId=${courseId}` : '/assignments');
     },
 
     async get(assignmentId) {
@@ -1046,18 +956,52 @@ const API = {
       return API.request(`/assignments/${assignmentId}/submissions`);
     },
 
-    async gradeSubmission(assignmentId, submissionId, data) {
-      return API.request(`/assignments/${assignmentId}/submissions/${submissionId}/grade`, {
-        method: 'PUT',
+    async gradeSubmission(assignmentId, studentId, data) {
+      return API.request(`/assignments/${assignmentId}/submissions/${studentId}/grade`, {
+        method: 'POST',
         body: data
       });
+    },
+
+    async getSubmission(assignmentId, submissionId) {
+      return API.request(`/assignments/${assignmentId}/submissions/${submissionId}`);
+    },
+
+    async extend(assignmentId, data) {
+      return API.request(`/assignments/${assignmentId}/extend`, {
+        method: 'POST',
+        body: data
+      });
+    },
+
+    async downloadAll(assignmentId) {
+      return API.request(`/assignments/${assignmentId}/download-all`);
+    },
+
+    async exportGrades(assignmentId) {
+      return API.request(`/assignments/${assignmentId}/export-grades`);
+    },
+
+    async bulkGrade(assignmentId, grades) {
+      return API.request(`/assignments/${assignmentId}/bulk-grade`, {
+        method: 'POST',
+        body: { grades }
+      });
+    },
+
+    async getSubmissionStats(assignmentId) {
+      return API.request(`/assignments/${assignmentId}/submission-stats`);
+    },
+
+    async getMy() {
+      return API.request('/assignments/my');
     }
   },
 
   // ===== 討論區 API =====
   forums: {
     async list(courseId) {
-      return API.request(`/forums?courseId=${courseId}`);
+      return API.request(courseId ? `/forums?courseId=${courseId}` : '/forums');
     },
 
     async get(forumId) {
@@ -1087,6 +1031,17 @@ const API = {
         method: 'POST',
         body: data
       });
+    },
+
+    // moodle-ui.js 使用的別名
+    async reply(forumId, discussionId, data) {
+      return this.replyToDiscussion(forumId, discussionId, data);
+    },
+
+    async likePost(forumId, discussionId, postId) {
+      return API.request(`/forums/${forumId}/discussions/${discussionId}/posts/${postId}/like`, {
+        method: 'POST'
+      });
     }
   },
 
@@ -1098,21 +1053,38 @@ const API = {
     },
 
     async createEvent(data) {
-      return API.request('/calendar', {
+      return API.request('/calendar/events', {
         method: 'POST',
         body: data
       });
     },
 
     async updateEvent(eventId, data) {
-      return API.request(`/calendar/${eventId}`, {
+      return API.request(`/calendar/events/${eventId}`, {
         method: 'PUT',
         body: data
       });
     },
 
     async deleteEvent(eventId) {
-      return API.request(`/calendar/${eventId}`, {
+      return API.request(`/calendar/events/${eventId}`, {
+        method: 'DELETE'
+      });
+    },
+
+    async getCourseEvents(courseId) {
+      return API.request(`/calendar/courses/${courseId}/events`);
+    },
+
+    async createCourseEvent(courseId, data) {
+      return API.request(`/calendar/courses/${courseId}/events`, {
+        method: 'POST',
+        body: data
+      });
+    },
+
+    async deleteCourseEvent(courseId, eventId) {
+      return API.request(`/calendar/courses/${courseId}/events/${eventId}`, {
         method: 'DELETE'
       });
     },
@@ -1143,8 +1115,31 @@ const API = {
       });
     },
 
+    async deleteAllRead() {
+      return API.request('/notifications/', {
+        method: 'DELETE'
+      });
+    },
+
+    async delete(notificationId) {
+      return API.request(`/notifications/${notificationId}`, {
+        method: 'DELETE'
+      });
+    },
+
     async getUnreadCount() {
       return API.request('/notifications/count');
+    },
+
+    async getPreferences() {
+      return API.request('/notifications/preferences');
+    },
+
+    async updatePreferences(data) {
+      return API.request('/notifications/preferences', {
+        method: 'PUT',
+        body: data
+      });
     }
   },
 
@@ -1313,21 +1308,16 @@ const API = {
     },
 
     async export(filters = {}) {
-      const params = new URLSearchParams(filters).toString();
-      return API.request(`/questionbank/export${params ? '?' + params : ''}`);
-    },
-
-    async addToQuiz(quizId, questionIds) {
-      return API.request(`/quizzes/${quizId}/add-from-bank`, {
+      return API.request('/questionbank/export', {
         method: 'POST',
-        body: { questionIds }
+        body: filters
       });
     },
 
-    async addRandomToQuiz(quizId, categoryId, count, tags = []) {
-      return API.request(`/quizzes/${quizId}/add-random`, {
+    async addToQuiz(quizId, questionIds) {
+      return API.request('/questionbank/add-to-quiz', {
         method: 'POST',
-        body: { categoryId, count, tags }
+        body: { quizId, questionIds }
       });
     }
   },
@@ -1335,10 +1325,12 @@ const API = {
   // ===== 課程完成 API =====
   courseCompletion: {
     async getSettings(courseId) {
+      if (!courseId) return { success: false, error: 'MISSING_COURSE_ID' };
       return API.request(`/course-completion/${courseId}/settings`);
     },
 
     async updateSettings(courseId, data) {
+      if (!courseId) return { success: false, error: 'MISSING_COURSE_ID' };
       return API.request(`/course-completion/${courseId}/settings`, {
         method: 'PUT',
         body: data
@@ -1346,16 +1338,19 @@ const API = {
     },
 
     async getStatus(courseId) {
+      if (!courseId) return { success: false, error: 'MISSING_COURSE_ID' };
       return API.request(`/course-completion/${courseId}/status`);
     },
 
     async selfMark(courseId) {
+      if (!courseId) return { success: false, error: 'MISSING_COURSE_ID' };
       return API.request(`/course-completion/${courseId}/self-mark`, {
         method: 'POST'
       });
     },
 
     async manualMark(courseId, userId, completed) {
+      if (!courseId) return { success: false, error: 'MISSING_COURSE_ID' };
       return API.request(`/course-completion/${courseId}/manual-mark`, {
         method: 'POST',
         body: { userId, completed }
@@ -1363,13 +1358,8 @@ const API = {
     },
 
     async getReport(courseId) {
+      if (!courseId) return { success: false, error: 'MISSING_COURSE_ID' };
       return API.request(`/course-completion/${courseId}/report`);
-    },
-
-    async checkCompletion(courseId) {
-      return API.request(`/course-completion/${courseId}/check`, {
-        method: 'POST'
-      });
     }
   },
 
@@ -1403,25 +1393,23 @@ const API = {
       });
     },
 
-    async reorder(categoryId, newParentId, position) {
+    async reorder(categoryId, data) {
       return API.request(`/course-categories/${categoryId}/reorder`, {
         method: 'PUT',
-        body: { newParentId, position }
+        body: data
       });
-    },
-
-    async getTree() {
-      return API.request('/course-categories/tree');
     }
   },
 
   // ===== 成績簿增強 API =====
   gradebookEnhanced: {
     async getCategories(courseId) {
+      if (!courseId) return { success: false, error: 'MISSING_COURSE_ID' };
       return API.request(`/gradebook/courses/${courseId}/categories`);
     },
 
     async createCategory(courseId, data) {
+      if (!courseId) return { success: false, error: 'MISSING_COURSE_ID' };
       return API.request(`/gradebook/courses/${courseId}/categories`, {
         method: 'POST',
         body: data
@@ -1429,6 +1417,7 @@ const API = {
     },
 
     async updateCategory(courseId, categoryId, data) {
+      if (!courseId) return { success: false, error: 'MISSING_COURSE_ID' };
       return API.request(`/gradebook/courses/${courseId}/categories/${categoryId}`, {
         method: 'PUT',
         body: data
@@ -1436,16 +1425,19 @@ const API = {
     },
 
     async deleteCategory(courseId, categoryId) {
+      if (!courseId) return { success: false, error: 'MISSING_COURSE_ID' };
       return API.request(`/gradebook/courses/${courseId}/categories/${categoryId}`, {
         method: 'DELETE'
       });
     },
 
     async getSettings(courseId) {
+      if (!courseId) return { success: false, error: 'MISSING_COURSE_ID' };
       return API.request(`/gradebook/courses/${courseId}/settings`);
     },
 
     async updateSettings(courseId, data) {
+      if (!courseId) return { success: false, error: 'MISSING_COURSE_ID' };
       return API.request(`/gradebook/courses/${courseId}/settings`, {
         method: 'PUT',
         body: data
@@ -1453,10 +1445,12 @@ const API = {
     },
 
     async exportGrades(courseId, format = 'csv') {
+      if (!courseId) return { success: false, error: 'MISSING_COURSE_ID' };
       return API.request(`/gradebook/courses/${courseId}/export?format=${format}`);
     },
 
     async batchUpdateGrades(courseId, grades) {
+      if (!courseId) return { success: false, error: 'MISSING_COURSE_ID' };
       return API.request(`/gradebook/courses/${courseId}/batch`, {
         method: 'PUT',
         body: { grades }
@@ -1464,339 +1458,318 @@ const API = {
     }
   },
 
-  // ===== 學習路徑 API =====
-  learningPaths: {
-    async list() {
-      return API.request('/learning-paths');
+  // ===== 評量標準 API =====
+  rubrics: {
+    async list(filters = {}) {
+      const params = new URLSearchParams(filters).toString();
+      return API.request(`/rubrics${params ? '?' + params : ''}`);
     },
-
-    async get(pathId) {
-      return API.request(`/learning-paths/${pathId}`);
+    async get(rubricId) {
+      return API.request(`/rubrics/${rubricId}`);
     },
-
+    async getTemplates() {
+      return API.request('/rubrics/templates');
+    },
     async create(data) {
-      return API.request('/learning-paths', {
-        method: 'POST',
-        body: data
-      });
+      return API.request('/rubrics', { method: 'POST', body: data });
     },
-
-    async update(pathId, data) {
-      return API.request(`/learning-paths/${pathId}`, {
-        method: 'PUT',
-        body: data
-      });
+    async update(rubricId, data) {
+      return API.request(`/rubrics/${rubricId}`, { method: 'PUT', body: data });
     },
-
-    async delete(pathId) {
-      return API.request(`/learning-paths/${pathId}`, {
-        method: 'DELETE'
-      });
+    async delete(rubricId) {
+      return API.request(`/rubrics/${rubricId}`, { method: 'DELETE' });
     },
-
-    async enroll(pathId) {
-      return API.request(`/learning-paths/${pathId}/enroll`, {
-        method: 'POST'
-      });
+    async duplicate(rubricId) {
+      return API.request(`/rubrics/${rubricId}/duplicate`, { method: 'POST' });
     },
-
-    async unenroll(pathId) {
-      return API.request(`/learning-paths/${pathId}/enroll`, {
-        method: 'DELETE'
-      });
+    async grade(rubricId, data) {
+      return API.request(`/rubrics/${rubricId}/grade`, { method: 'POST', body: data });
     },
-
-    async getProgress(pathId) {
-      return API.request(`/learning-paths/${pathId}/progress`);
+    async getGrading(rubricId, submissionId) {
+      return API.request(`/rubrics/${rubricId}/gradings/${submissionId}`);
     },
-
-    async getReport(pathId) {
-      return API.request(`/learning-paths/${pathId}/report`);
+    async attach(rubricId, data) {
+      return API.request(`/rubrics/${rubricId}/attach`, { method: 'PUT', body: data });
     },
-
-    async getPrerequisites(courseId) {
-      return API.request(`/learning-paths/courses/${courseId}/prerequisites`);
-    },
-
-    async updatePrerequisites(courseId, requirements) {
-      return API.request(`/learning-paths/courses/${courseId}/prerequisites`, {
-        method: 'PUT',
-        body: { requirements }
-      });
-    },
-
-    async checkPrerequisites(courseId) {
-      return API.request(`/learning-paths/courses/${courseId}/check-prerequisites`, {
-        method: 'POST'
-      });
+    async detach(rubricId, assignmentId) {
+      return API.request(`/rubrics/${rubricId}/detach/${assignmentId}`, { method: 'DELETE' });
     }
   },
 
-  // ===== 徽章系統 API =====
+  // ===== 徽章 API =====
   badges: {
     async list(filters = {}) {
       const params = new URLSearchParams(filters).toString();
       return API.request(`/badges${params ? '?' + params : ''}`);
     },
-
     async get(badgeId) {
       return API.request(`/badges/${badgeId}`);
     },
-
     async create(data) {
-      return API.request('/badges', {
-        method: 'POST',
-        body: data
-      });
+      return API.request('/badges', { method: 'POST', body: data });
     },
-
     async update(badgeId, data) {
-      return API.request(`/badges/${badgeId}`, {
-        method: 'PUT',
-        body: data
-      });
+      return API.request(`/badges/${badgeId}`, { method: 'PUT', body: data });
     },
-
     async delete(badgeId) {
-      return API.request(`/badges/${badgeId}`, {
-        method: 'DELETE'
-      });
+      return API.request(`/badges/${badgeId}`, { method: 'DELETE' });
     },
-
-    async issue(badgeId, userIds, message = '') {
-      return API.request(`/badges/${badgeId}/issue`, {
-        method: 'POST',
-        body: { userIds, message }
-      });
+    async issue(badgeId, data) {
+      return API.request(`/badges/${badgeId}/issue`, { method: 'POST', body: data });
     },
-
-    async revoke(badgeId, userId, reason = '') {
-      return API.request(`/badges/${badgeId}/revoke/${userId}`, {
-        method: 'DELETE',
-        body: { reason }
-      });
+    async revoke(badgeId, userId) {
+      return API.request(`/badges/${badgeId}/revoke/${userId}`, { method: 'DELETE' });
     },
-
-    async getMyBadges() {
+    async getMyCollection() {
       return API.request('/badges/my/collection');
     },
-
     async getUserBadges(userId) {
       return API.request(`/badges/users/${userId}`);
     },
-
-    async updateDisplayBadges(badgeIds) {
-      return API.request('/badges/my/display', {
-        method: 'PUT',
-        body: { badgeIds }
-      });
+    async updateDisplay(data) {
+      return API.request('/badges/my/display', { method: 'PUT', body: data });
     },
-
-    async getRecipients(badgeId, page = 1, limit = 20) {
-      return API.request(`/badges/${badgeId}/recipients?page=${page}&limit=${limit}`);
+    async getRecipients(badgeId, filters = {}) {
+      const params = new URLSearchParams(filters).toString();
+      return API.request(`/badges/${badgeId}/recipients${params ? '?' + params : ''}`);
     },
-
     async getStats() {
       return API.request('/badges/stats/overview');
     }
   },
 
-  // ===== 評分標準 (Rubrics) API =====
-  rubrics: {
-    async getTemplates() {
-      return API.request('/rubrics/templates');
-    },
-
+  // ===== 學習路徑 API =====
+  learningPaths: {
     async list(filters = {}) {
       const params = new URLSearchParams(filters).toString();
-      return API.request(`/rubrics${params ? '?' + params : ''}`);
+      return API.request(`/learning-paths${params ? '?' + params : ''}`);
     },
-
-    async get(rubricId) {
-      return API.request(`/rubrics/${rubricId}`);
+    async get(pathId) {
+      return API.request(`/learning-paths/${pathId}`);
     },
-
     async create(data) {
-      return API.request('/rubrics', {
-        method: 'POST',
-        body: data
-      });
+      return API.request('/learning-paths', { method: 'POST', body: data });
     },
-
-    async update(rubricId, data) {
-      return API.request(`/rubrics/${rubricId}`, {
-        method: 'PUT',
-        body: data
-      });
+    async update(pathId, data) {
+      return API.request(`/learning-paths/${pathId}`, { method: 'PUT', body: data });
     },
-
-    async delete(rubricId) {
-      return API.request(`/rubrics/${rubricId}`, {
-        method: 'DELETE'
-      });
+    async delete(pathId) {
+      return API.request(`/learning-paths/${pathId}`, { method: 'DELETE' });
     },
-
-    async duplicate(rubricId, data) {
-      return API.request(`/rubrics/${rubricId}/duplicate`, {
-        method: 'POST',
-        body: data
-      });
+    async enroll(pathId) {
+      return API.request(`/learning-paths/${pathId}/enroll`, { method: 'POST' });
     },
-
-    async grade(rubricId, submissionId, criteriaScores, feedback = '') {
-      return API.request(`/rubrics/${rubricId}/grade`, {
-        method: 'POST',
-        body: { submissionId, criteriaScores, feedback }
-      });
+    async unenroll(pathId) {
+      return API.request(`/learning-paths/${pathId}/enroll`, { method: 'DELETE' });
     },
-
-    async getGrading(rubricId, submissionId) {
-      return API.request(`/rubrics/${rubricId}/gradings/${submissionId}`);
+    async getProgress(pathId) {
+      return API.request(`/learning-paths/${pathId}/progress`);
     },
-
-    async attachToAssignment(rubricId, assignmentId) {
-      return API.request(`/rubrics/${rubricId}/attach`, {
-        method: 'PUT',
-        body: { assignmentId }
-      });
+    async getPrerequisites(courseId) {
+      return API.request(`/learning-paths/courses/${courseId}/prerequisites`);
     },
-
-    async detachFromAssignment(rubricId, assignmentId) {
-      return API.request(`/rubrics/${rubricId}/detach/${assignmentId}`, {
-        method: 'DELETE'
-      });
+    async updatePrerequisites(courseId, data) {
+      return API.request(`/learning-paths/courses/${courseId}/prerequisites`, { method: 'PUT', body: data });
+    },
+    async checkPrerequisites(courseId) {
+      return API.request(`/learning-paths/courses/${courseId}/check-prerequisites`, { method: 'POST' });
+    },
+    async getReport(pathId) {
+      return API.request(`/learning-paths/${pathId}/report`);
     }
   },
 
-  // ===== 論壇增強 API =====
-  forumsEnhanced: {
-    async getSubscription(forumId) {
-      return API.request(`/forums/${forumId}/subscription`);
+  // ===== 稽核日誌 API =====
+  auditLogs: {
+    async list(filters = {}) {
+      const params = new URLSearchParams(filters).toString();
+      return API.request(`/audit-logs${params ? '?' + params : ''}`);
     },
-
-    async subscribe(forumId, options = {}) {
-      return API.request(`/forums/${forumId}/subscribe`, {
-        method: 'POST',
-        body: options
-      });
+    async getStats() {
+      return API.request('/audit-logs/stats');
     },
-
-    async unsubscribe(forumId) {
-      return API.request(`/forums/${forumId}/subscribe`, {
-        method: 'DELETE'
-      });
+    async getUserLogs(userId) {
+      return API.request(`/audit-logs/user/${userId}`);
     },
-
-    async subscribeDiscussion(forumId, discussionId) {
-      return API.request(`/forums/${forumId}/discussions/${discussionId}/subscribe`, {
-        method: 'POST'
-      });
+    async getEventTypes() {
+      return API.request('/audit-logs/event-types');
     },
-
-    async unsubscribeDiscussion(forumId, discussionId) {
-      return API.request(`/forums/${forumId}/discussions/${discussionId}/subscribe`, {
-        method: 'DELETE'
-      });
+    async export(filters = {}) {
+      const params = new URLSearchParams(filters).toString();
+      return API.request(`/audit-logs/export${params ? '?' + params : ''}`);
     },
-
-    async getUnread(forumId) {
-      return API.request(`/forums/${forumId}/unread`);
+    async create(data) {
+      return API.request('/audit-logs', { method: 'POST', body: data });
     },
-
-    async markForumRead(forumId) {
-      return API.request(`/forums/${forumId}/mark-read`, {
-        method: 'POST'
-      });
+    async cleanup(days) {
+      return API.request('/audit-logs/cleanup', { method: 'DELETE', body: { days } });
     },
-
-    async markDiscussionRead(forumId, discussionId) {
-      return API.request(`/forums/${forumId}/discussions/${discussionId}/mark-read`, {
-        method: 'POST'
-      });
-    },
-
-    async ratePost(forumId, discussionId, postId, rating) {
-      return API.request(`/forums/${forumId}/discussions/${discussionId}/posts/${postId}/rate`, {
-        method: 'POST',
-        body: { rating }
-      });
-    },
-
-    async getPostRatings(forumId, discussionId, postId) {
-      return API.request(`/forums/${forumId}/discussions/${discussionId}/posts/${postId}/ratings`);
-    },
-
-    async pinDiscussion(forumId, discussionId) {
-      return API.request(`/forums/${forumId}/discussions/${discussionId}/pin`, {
-        method: 'POST'
-      });
-    },
-
-    async unpinDiscussion(forumId, discussionId) {
-      return API.request(`/forums/${forumId}/discussions/${discussionId}/pin`, {
-        method: 'DELETE'
-      });
-    },
-
-    async lockDiscussion(forumId, discussionId, reason = '') {
-      return API.request(`/forums/${forumId}/discussions/${discussionId}/lock`, {
-        method: 'POST',
-        body: { reason }
-      });
-    },
-
-    async unlockDiscussion(forumId, discussionId) {
-      return API.request(`/forums/${forumId}/discussions/${discussionId}/lock`, {
-        method: 'DELETE'
-      });
+    async search(filters = {}) {
+      const params = new URLSearchParams(filters).toString();
+      return API.request(`/audit-logs/search${params ? '?' + params : ''}`);
     }
   },
 
-  // ===== 課程群組 API =====
+  // ===== H5P API =====
+  h5p: {
+    async list(filters = {}) {
+      const params = new URLSearchParams(filters).toString();
+      return API.request(`/h5p${params ? '?' + params : ''}`);
+    },
+    async getTypes() {
+      return API.request('/h5p/types');
+    },
+    async get(contentId) {
+      return API.request(`/h5p/${contentId}`);
+    },
+    async create(data) {
+      return API.request('/h5p', { method: 'POST', body: data });
+    },
+    async update(contentId, data) {
+      return API.request(`/h5p/${contentId}`, { method: 'PUT', body: data });
+    },
+    async delete(contentId) {
+      return API.request(`/h5p/${contentId}`, { method: 'DELETE' });
+    },
+    async view(contentId) {
+      return API.request(`/h5p/${contentId}/view`, { method: 'POST' });
+    },
+    async attempt(contentId, data) {
+      return API.request(`/h5p/${contentId}/attempt`, { method: 'POST', body: data });
+    },
+    async getAttempts(contentId) {
+      return API.request(`/h5p/${contentId}/attempts`);
+    },
+    async getReport(contentId) {
+      return API.request(`/h5p/${contentId}/report`);
+    },
+    async getEmbed(contentId) {
+      return API.request(`/h5p/${contentId}/embed`);
+    },
+    async duplicate(contentId) {
+      return API.request(`/h5p/${contentId}/duplicate`, { method: 'POST' });
+    }
+  },
+
+  // ===== SCORM API =====
+  scorm: {
+    async list(filters = {}) {
+      const params = new URLSearchParams(filters).toString();
+      return API.request(`/scorm${params ? '?' + params : ''}`);
+    },
+    async get(packageId) {
+      return API.request(`/scorm/${packageId}`);
+    },
+    async create(data) {
+      return API.request('/scorm', { method: 'POST', body: data });
+    },
+    async update(packageId, data) {
+      return API.request(`/scorm/${packageId}`, { method: 'PUT', body: data });
+    },
+    async delete(packageId) {
+      return API.request(`/scorm/${packageId}`, { method: 'DELETE' });
+    },
+    async launch(packageId) {
+      return API.request(`/scorm/${packageId}/launch`, { method: 'POST' });
+    },
+    async getRuntime(packageId, attemptId) {
+      return API.request(`/scorm/${packageId}/runtime/${attemptId}`);
+    },
+    async updateRuntime(packageId, attemptId, data) {
+      return API.request(`/scorm/${packageId}/runtime/${attemptId}`, { method: 'PUT', body: data });
+    },
+    async commit(packageId, attemptId) {
+      return API.request(`/scorm/${packageId}/commit/${attemptId}`, { method: 'POST' });
+    },
+    async finish(packageId, attemptId) {
+      return API.request(`/scorm/${packageId}/finish/${attemptId}`, { method: 'POST' });
+    },
+    async getAttempts(packageId) {
+      return API.request(`/scorm/${packageId}/attempts`);
+    },
+    async getReport(packageId) {
+      return API.request(`/scorm/${packageId}/report`);
+    }
+  },
+
+  // ===== LTI 工具 API =====
+  ltiTools: {
+    async list(filters = {}) {
+      const params = new URLSearchParams(filters).toString();
+      return API.request(`/lti/tools${params ? '?' + params : ''}`);
+    },
+    async get(toolId) {
+      return API.request(`/lti/tools/${toolId}`);
+    },
+    async create(data) {
+      return API.request('/lti/tools', { method: 'POST', body: data });
+    },
+    async update(toolId, data) {
+      return API.request(`/lti/tools/${toolId}`, { method: 'PUT', body: data });
+    },
+    async delete(toolId) {
+      return API.request(`/lti/tools/${toolId}`, { method: 'DELETE' });
+    },
+    async launch(toolId) {
+      return API.request(`/lti/tools/${toolId}/launch`, { method: 'POST' });
+    },
+    async getGrades(toolId) {
+      return API.request(`/lti/tools/${toolId}/grades`);
+    },
+    async getConfig() {
+      return API.request('/lti/config');
+    }
+  },
+
+  // ===== 教師 API =====
+  teachers: {
+    async getAlerts() {
+      return API.request('/teachers/alerts');
+    },
+
+    async dismissAlert(alertId) {
+      return API.request(`/teachers/alerts/${alertId}/dismiss`, { method: 'POST' });
+    },
+
+    async getDashboard() {
+      return API.request('/teachers/dashboard');
+    },
+
+    async getStudentProgress(courseId) {
+      return API.request(`/teachers/courses/${courseId}/progress`);
+    },
+
+    async getAtRiskStudents(courseId) {
+      return API.request(`/teachers/courses/${courseId}/at-risk`);
+    }
+  },
+
+  // ===== 課程分組 API =====
   courseGroups: {
-    // 群組模式常量
-    GROUP_MODES: {
-      NOGROUPS: 0,        // 無群組模式
-      SEPARATEGROUPS: 1,  // 分開群組（學生只看自己群組）
-      VISIBLEGROUPS: 2    // 可見群組（學生可看其他群組但只能在自己群組互動）
-    },
-
     async list(courseId) {
       return API.request(`/courses/${courseId}/groups`);
     },
 
-    async get(courseId, groupId) {
-      return API.request(`/courses/${courseId}/groups/${groupId}`);
-    },
-
     async create(courseId, data) {
-      return API.request(`/courses/${courseId}/groups`, {
-        method: 'POST',
-        body: data
-      });
+      return API.request(`/courses/${courseId}/groups`, { method: 'POST', body: data });
     },
 
     async update(courseId, groupId, data) {
-      return API.request(`/courses/${courseId}/groups/${groupId}`, {
-        method: 'PUT',
-        body: data
-      });
+      return API.request(`/courses/${courseId}/groups/${groupId}`, { method: 'PUT', body: data });
     },
 
     async delete(courseId, groupId) {
-      return API.request(`/courses/${courseId}/groups/${groupId}`, {
-        method: 'DELETE'
-      });
+      return API.request(`/courses/${courseId}/groups/${groupId}`, { method: 'DELETE' });
     },
 
     async getMembers(courseId, groupId) {
       return API.request(`/courses/${courseId}/groups/${groupId}/members`);
     },
 
-    async addMembers(courseId, groupId, userIds) {
+    async addMember(courseId, groupId, userId) {
       return API.request(`/courses/${courseId}/groups/${groupId}/members`, {
         method: 'POST',
-        body: { userIds }
+        body: { userId }
       });
     },
 
@@ -1810,431 +1783,39 @@ const API = {
       return API.request(`/courses/${courseId}/group-settings`);
     },
 
-    async updateSettings(courseId, settings) {
-      return API.request(`/courses/${courseId}/group-settings`, {
-        method: 'PUT',
-        body: settings
-      });
+    async updateSettings(courseId, data) {
+      return API.request(`/courses/${courseId}/group-settings`, { method: 'PUT', body: data });
     },
 
     async getMyGroups(courseId) {
       return API.request(`/courses/${courseId}/my-groups`);
     },
 
+    async autoCreate(courseId, data) {
+      return API.request(`/courses/${courseId}/auto-create-groups`, { method: 'POST', body: data });
+    },
+
     async getOverview(courseId) {
       return API.request(`/courses/${courseId}/group-overview`);
-    },
-
-    async autoCreate(courseId, groupCount, groupNamePrefix = '群組') {
-      return API.request(`/courses/${courseId}/auto-create-groups`, {
-        method: 'POST',
-        body: { groupCount, groupNamePrefix }
-      });
     }
   },
 
-  // ===== 審計日誌 API =====
-  auditLogs: {
-    // 事件類型常量
-    EVENT_TYPES: {
-      USER_LOGIN: 'user_login',
-      USER_LOGOUT: 'user_logout',
-      USER_REGISTER: 'user_register',
-      USER_UPDATE: 'user_update',
-      USER_DELETE: 'user_delete',
-      COURSE_CREATE: 'course_create',
-      COURSE_UPDATE: 'course_update',
-      COURSE_DELETE: 'course_delete',
-      COURSE_ENROLL: 'course_enroll',
-      COURSE_UNENROLL: 'course_unenroll',
-      ASSIGNMENT_CREATE: 'assignment_create',
-      ASSIGNMENT_UPDATE: 'assignment_update',
-      ASSIGNMENT_SUBMIT: 'assignment_submit',
-      ASSIGNMENT_GRADE: 'assignment_grade',
-      QUIZ_CREATE: 'quiz_create',
-      QUIZ_UPDATE: 'quiz_update',
-      QUIZ_ATTEMPT_START: 'quiz_attempt_start',
-      QUIZ_ATTEMPT_SUBMIT: 'quiz_attempt_submit',
-      GRADE_UPDATE: 'grade_update',
-      FILE_UPLOAD: 'file_upload',
-      FILE_DOWNLOAD: 'file_download',
-      FILE_DELETE: 'file_delete',
-      SYSTEM_CONFIG_UPDATE: 'system_config_update',
-      ROLE_CREATE: 'role_create',
-      ROLE_UPDATE: 'role_update',
-      SECURITY_FAILED_LOGIN: 'security_failed_login',
-      DATA_EXPORT: 'data_export',
-      BULK_OPERATION: 'bulk_operation'
+  // ===== 課程報告 API =====
+  courseReports: {
+    async getParticipation(courseId) {
+      return API.request(`/courses/${courseId}/participation-report`);
     },
 
-    SEVERITY_LEVELS: {
-      INFO: 'info',
-      WARNING: 'warning',
-      ERROR: 'error',
-      CRITICAL: 'critical'
+    async getActivityReport(courseId) {
+      return API.request(`/courses/${courseId}/activity-report`);
     },
 
-    // 獲取審計日誌列表
-    async list(filters = {}) {
-      const params = new URLSearchParams();
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== '') {
-          params.append(key, value);
-        }
-      });
-      return API.request(`/audit-logs?${params.toString()}`);
+    async getGradeAnalysis(courseId) {
+      return API.request(`/courses/${courseId}/grade-analysis`);
     },
 
-    // 獲取審計統計
-    async getStats(days = 7) {
-      return API.request(`/audit-logs/stats?days=${days}`);
-    },
-
-    // 獲取用戶審計日誌
-    async getUserLogs(userId, limit = 50) {
-      return API.request(`/audit-logs/user/${userId}?limit=${limit}`);
-    },
-
-    // 獲取事件類型列表
-    async getEventTypes() {
-      return API.request('/audit-logs/event-types');
-    },
-
-    // 搜尋審計日誌
-    async search(query, filters = {}) {
-      const params = new URLSearchParams({ query, ...filters });
-      return API.request(`/audit-logs/search?${params.toString()}`);
-    },
-
-    // 匯出審計日誌
-    async exportLogs(filters = {}, format = 'csv') {
-      const params = new URLSearchParams({ ...filters, format });
-      // 直接返回 URL，讓前端處理下載
-      return `${API.BASE_URL}/audit-logs/export?${params.toString()}`;
-    },
-
-    // 記錄審計事件
-    async log(eventType, data = {}) {
-      return API.request('/audit-logs', {
-        method: 'POST',
-        body: { eventType, ...data }
-      });
-    },
-
-    // 清理舊日誌
-    async cleanup(keepDays = 90) {
-      return API.request(`/audit-logs/cleanup?keepDays=${keepDays}`, {
-        method: 'DELETE'
-      });
-    }
-  },
-
-  // ==================== SCORM API ====================
-  scorm: {
-    // 獲取 SCORM 包列表
-    async list(filters = {}) {
-      const params = new URLSearchParams();
-      if (filters.courseId) params.append('courseId', filters.courseId);
-      if (filters.status) params.append('status', filters.status);
-      if (filters.limit) params.append('limit', filters.limit);
-      return API.request(`/scorm?${params.toString()}`);
-    },
-
-    // 獲取單個 SCORM 包
-    async get(packageId) {
-      return API.request(`/scorm/${packageId}`);
-    },
-
-    // 創建 SCORM 包
-    async create(data) {
-      return API.request('/scorm', {
-        method: 'POST',
-        body: JSON.stringify(data)
-      });
-    },
-
-    // 更新 SCORM 包
-    async update(packageId, data) {
-      return API.request(`/scorm/${packageId}`, {
-        method: 'PUT',
-        body: JSON.stringify(data)
-      });
-    },
-
-    // 啟動 SCORM 包
-    async launch(packageId, data = {}) {
-      return API.request(`/scorm/${packageId}/launch`, {
-        method: 'POST',
-        body: JSON.stringify(data)
-      });
-    },
-
-    // 獲取運行時數據
-    async getRuntime(packageId, attemptId) {
-      return API.request(`/scorm/${packageId}/runtime/${attemptId}`);
-    },
-
-    // 更新運行時數據
-    async setRuntime(packageId, attemptId, element, value) {
-      return API.request(`/scorm/${packageId}/runtime/${attemptId}`, {
-        method: 'PUT',
-        body: JSON.stringify({ element, value })
-      });
-    },
-
-    // 提交數據
-    async commit(packageId, attemptId) {
-      return API.request(`/scorm/${packageId}/commit/${attemptId}`, {
-        method: 'POST'
-      });
-    },
-
-    // 結束會話
-    async finish(packageId, attemptId) {
-      return API.request(`/scorm/${packageId}/finish/${attemptId}`, {
-        method: 'POST'
-      });
-    },
-
-    // 獲取嘗試記錄
-    async getAttempts(packageId, userId = null) {
-      const params = userId ? `?userId=${userId}` : '';
-      return API.request(`/scorm/${packageId}/attempts${params}`);
-    },
-
-    // 獲取報告
-    async getReport(packageId) {
-      return API.request(`/scorm/${packageId}/report`);
-    },
-
-    // 刪除 SCORM 包
-    async delete(packageId) {
-      return API.request(`/scorm/${packageId}`, {
-        method: 'DELETE'
-      });
-    }
-  },
-
-  // ==================== LTI API ====================
-  lti: {
-    // 獲取工具列表
-    async getTools(filters = {}) {
-      const params = new URLSearchParams();
-      if (filters.courseId) params.append('courseId', filters.courseId);
-      if (filters.status) params.append('status', filters.status);
-      return API.request(`/lti/tools?${params.toString()}`);
-    },
-
-    // 獲取單個工具
-    async getTool(toolId) {
-      return API.request(`/lti/tools/${toolId}`);
-    },
-
-    // 創建工具
-    async createTool(data) {
-      return API.request('/lti/tools', {
-        method: 'POST',
-        body: JSON.stringify(data)
-      });
-    },
-
-    // 更新工具
-    async updateTool(toolId, data) {
-      return API.request(`/lti/tools/${toolId}`, {
-        method: 'PUT',
-        body: JSON.stringify(data)
-      });
-    },
-
-    // 啟動工具
-    async launch(toolId, data = {}) {
-      return API.request(`/lti/tools/${toolId}/launch`, {
-        method: 'POST',
-        body: JSON.stringify(data)
-      });
-    },
-
-    // 獲取成績
-    async getGrades(toolId, filters = {}) {
-      const params = new URLSearchParams();
-      if (filters.userId) params.append('userId', filters.userId);
-      if (filters.resourceId) params.append('resourceId', filters.resourceId);
-      return API.request(`/lti/tools/${toolId}/grades?${params.toString()}`);
-    },
-
-    // 刪除工具
-    async deleteTool(toolId) {
-      return API.request(`/lti/tools/${toolId}`, {
-        method: 'DELETE'
-      });
-    },
-
-    // 獲取平台配置
-    async getConfig() {
-      return API.request('/lti/config');
-    }
-  },
-
-  // ==================== H5P API ====================
-  h5p: {
-    // 獲取內容列表
-    async list(filters = {}) {
-      const params = new URLSearchParams();
-      if (filters.courseId) params.append('courseId', filters.courseId);
-      if (filters.contentType) params.append('contentType', filters.contentType);
-      if (filters.status) params.append('status', filters.status);
-      if (filters.limit) params.append('limit', filters.limit);
-      return API.request(`/h5p?${params.toString()}`);
-    },
-
-    // 獲取可用內容類型
-    async getTypes() {
-      return API.request('/h5p/types');
-    },
-
-    // 獲取單個內容
-    async get(contentId) {
-      return API.request(`/h5p/${contentId}`);
-    },
-
-    // 創建內容
-    async create(data) {
-      return API.request('/h5p', {
-        method: 'POST',
-        body: JSON.stringify(data)
-      });
-    },
-
-    // 更新內容
-    async update(contentId, data) {
-      return API.request(`/h5p/${contentId}`, {
-        method: 'PUT',
-        body: JSON.stringify(data)
-      });
-    },
-
-    // 記錄瀏覽
-    async recordView(contentId) {
-      return API.request(`/h5p/${contentId}/view`, {
-        method: 'POST'
-      });
-    },
-
-    // 提交嘗試結果
-    async submitAttempt(contentId, data) {
-      return API.request(`/h5p/${contentId}/attempt`, {
-        method: 'POST',
-        body: JSON.stringify(data)
-      });
-    },
-
-    // 獲取嘗試記錄
-    async getAttempts(contentId, userId = null) {
-      const params = userId ? `?userId=${userId}` : '';
-      return API.request(`/h5p/${contentId}/attempts${params}`);
-    },
-
-    // 獲取報告
-    async getReport(contentId) {
-      return API.request(`/h5p/${contentId}/report`);
-    },
-
-    // 獲取嵌入代碼
-    async getEmbed(contentId) {
-      return API.request(`/h5p/${contentId}/embed`);
-    },
-
-    // 刪除內容
-    async delete(contentId) {
-      return API.request(`/h5p/${contentId}`, {
-        method: 'DELETE'
-      });
-    },
-
-    // 複製內容
-    async duplicate(contentId, data = {}) {
-      return API.request(`/h5p/${contentId}/duplicate`, {
-        method: 'POST',
-        body: JSON.stringify(data)
-      });
-    }
-  },
-
-  // ===== 即時客服 Chat API =====
-  chat: {
-    // 獲取聊天室列表
-    async getRooms() {
-      return API.request('/chat/rooms');
-    },
-
-    // 創建新聊天室
-    async createRoom(data = {}) {
-      return API.request('/chat/rooms', {
-        method: 'POST',
-        body: data
-      });
-    },
-
-    // 獲取單一聊天室
-    async getRoom(roomId) {
-      return API.request(`/chat/rooms/${roomId}`);
-    },
-
-    // 獲取聊天室訊息
-    async getMessages(roomId, options = {}) {
-      const params = new URLSearchParams(options).toString();
-      return API.request(`/chat/rooms/${roomId}/messages?${params}`);
-    },
-
-    // 關閉聊天室
-    async closeRoom(roomId) {
-      return API.request(`/chat/rooms/${roomId}/close`, {
-        method: 'PUT'
-      });
-    },
-
-    // 獲取客服狀態
-    async getStatus() {
-      return API.request('/chat/status');
-    },
-
-    // 管理員：獲取所有聊天室
-    async adminGetRooms(filters = {}) {
-      const params = new URLSearchParams(filters).toString();
-      return API.request(`/chat/admin/rooms?${params}`);
-    },
-
-    // 管理員：認領聊天室
-    async adminClaimRoom(roomId) {
-      return API.request(`/chat/admin/rooms/${roomId}/claim`, {
-        method: 'PUT'
-      });
-    },
-
-    // 管理員：獲取統計
-    async adminGetStats() {
-      return API.request('/chat/admin/stats');
-    }
-  },
-
-  // ===== 教師功能 API =====
-  teachers: {
-    // 獲取學生預警列表
-    async getAlerts() {
-      return API.request('/teachers/alerts');
-    },
-
-    // 標記預警為已處理
-    async dismissAlert(alertId, note = '') {
-      return API.request(`/teachers/alerts/${alertId}/dismiss`, {
-        method: 'POST',
-        body: { note }
-      });
-    },
-
-    // 獲取教師儀表板統計
-    async getDashboard() {
-      return API.request('/teachers/dashboard');
+    async exportReport(courseId, type = 'grades') {
+      return API.request(`/courses/${courseId}/export-report?type=${type}`);
     }
   }
 };

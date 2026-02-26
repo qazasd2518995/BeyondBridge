@@ -9,9 +9,9 @@ const express = require('express');
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
-const { docClient, TABLE_NAME, putItem, getItem, queryItems, updateItem } = require('../utils/db');
+const { docClient, TABLE_NAME, putItem, getItem } = require('../utils/db');
 const { authMiddleware, adminMiddleware } = require('../utils/auth');
-const { QueryCommand } = require('@aws-sdk/lib-dynamodb');
+const { QueryCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
 
 // LTI 版本
 const LTI_VERSIONS = {
@@ -94,10 +94,7 @@ router.get('/tools/:toolId', authMiddleware, async (req, res) => {
   try {
     const { toolId } = req.params;
 
-    const result = await getItem({
-      PK: 'LTI_TOOL',
-      SK: `TOOL#${toolId}`
-    });
+    const result = await getItem('LTI_TOOL', `TOOL#${toolId}`);
 
     if (!result) {
       return res.status(404).json({
@@ -133,14 +130,20 @@ router.post('/tools', adminMiddleware, async (req, res) => {
       description,
       toolUrl,
       version = LTI_VERSIONS.LTI_13,
+      ltiVersion,  // 別名，優先使用
       courseId = null, // null = 全站可用
       consumerKey,
       consumerSecret,
+      // LTI 1.3 特有欄位
       clientId,
       deploymentId,
       platformId,
       publicKeysetUrl,
+      publicKey,  // 直接提供的公鑰（替代 JWKS URL）
       loginUrl,
+      oidcLoginUrl,  // 別名，LTI 1.3 OIDC 登入 URL
+      targetLinkUri,  // LTI 1.3 啟動目標 URI
+      deepLinkingUrl,  // Deep Linking 內容選擇 URL
       redirectUris = [],
       customParameters = {},
       iconUrl = null,
@@ -148,7 +151,13 @@ router.post('/tools', adminMiddleware, async (req, res) => {
       allowGradePassback = true,
       allowMembershipService = false,
       allowContentSelection = false,
-      launchContainer = 'window' // window, embed, iframe
+      launchContainer = 'window', // window, embed, iframe
+      // LTI 1.3 服務配置
+      services = {
+        ags: { enabled: true, scopes: ['score', 'lineitem', 'result'] },
+        nrps: { enabled: false, scopes: ['contextmembership.readonly'] },
+        deepLinking: { enabled: true }
+      }
     } = req.body;
 
     if (!name || !toolUrl) {
@@ -161,9 +170,16 @@ router.post('/tools', adminMiddleware, async (req, res) => {
     const toolId = uuidv4();
     const now = new Date().toISOString();
 
+    // 決定最終的 LTI 版本
+    const finalVersion = ltiVersion || version;
+
     // 生成 LTI 1.1 密鑰（如果未提供）
     const finalConsumerKey = consumerKey || `bb_${toolId.slice(0, 8)}`;
     const finalConsumerSecret = consumerSecret || crypto.randomBytes(32).toString('hex');
+
+    // LTI 1.3：自動生成 clientId 和 deploymentId（如果未提供）
+    const finalClientId = clientId || uuidv4();
+    const finalDeploymentId = deploymentId || `deploy_${toolId.slice(0, 8)}`;
 
     const tool = {
       PK: 'LTI_TOOL',
@@ -172,16 +188,23 @@ router.post('/tools', adminMiddleware, async (req, res) => {
       name,
       description,
       toolUrl,
-      version,
+      version: finalVersion,
+      ltiVersion: finalVersion,  // 雙重存儲，確保相容性
       courseId,
       isGlobal: courseId === null,
+      // LTI 1.1
       consumerKey: finalConsumerKey,
       consumerSecret: finalConsumerSecret,
-      clientId,
-      deploymentId,
-      platformId,
+      // LTI 1.3
+      clientId: finalClientId,
+      deploymentId: finalDeploymentId,
+      platformId: platformId || process.env.LTI_PLATFORM_ISSUER || 'https://beyondbridge.edu',
       publicKeysetUrl,
+      publicKey,
       loginUrl,
+      oidcLoginUrl: oidcLoginUrl || loginUrl,  // 兼容兩個欄位名
+      targetLinkUri: targetLinkUri || toolUrl,
+      deepLinkingUrl,
       redirectUris,
       customParameters,
       iconUrl,
@@ -190,6 +213,7 @@ router.post('/tools', adminMiddleware, async (req, res) => {
       allowMembershipService,
       allowContentSelection,
       launchContainer,
+      services,
       status: 'active',
       createdBy: req.user.userId,
       createdAt: now,
@@ -224,10 +248,7 @@ router.put('/tools/:toolId', adminMiddleware, async (req, res) => {
     const { toolId } = req.params;
     const updates = req.body;
 
-    const existing = await getItem({
-      PK: 'LTI_TOOL',
-      SK: `TOOL#${toolId}`
-    });
+    const existing = await getItem('LTI_TOOL', `TOOL#${toolId}`);
 
     if (!existing) {
       return res.status(404).json({
@@ -238,11 +259,12 @@ router.put('/tools/:toolId', adminMiddleware, async (req, res) => {
 
     // 允許更新的欄位
     const allowedFields = [
-      'name', 'description', 'toolUrl', 'version', 'courseId',
+      'name', 'description', 'toolUrl', 'version', 'ltiVersion', 'courseId',
       'customParameters', 'iconUrl', 'privacyLevel',
       'allowGradePassback', 'allowMembershipService',
       'allowContentSelection', 'launchContainer', 'status',
-      'loginUrl', 'redirectUris', 'publicKeysetUrl'
+      'loginUrl', 'oidcLoginUrl', 'targetLinkUri', 'deepLinkingUrl',
+      'redirectUris', 'publicKeysetUrl', 'publicKey', 'services'
     ];
 
     const updateExpression = [];
@@ -268,14 +290,13 @@ router.put('/tools/:toolId', adminMiddleware, async (req, res) => {
     expressionAttributeNames['#updatedAt'] = 'updatedAt';
     expressionAttributeValues[':updatedAt'] = new Date().toISOString();
 
-    await updateItem({
-      PK: 'LTI_TOOL',
-      SK: `TOOL#${toolId}`
-    }, {
+    await docClient.send(new UpdateCommand({
+      TableName: TABLE_NAME,
+      Key: { PK: 'LTI_TOOL', SK: `TOOL#${toolId}` },
       UpdateExpression: `SET ${updateExpression.join(', ')}`,
       ExpressionAttributeNames: expressionAttributeNames,
       ExpressionAttributeValues: expressionAttributeValues
-    });
+    }));
 
     res.json({
       success: true,
@@ -299,10 +320,7 @@ router.post('/tools/:toolId/launch', authMiddleware, async (req, res) => {
     const { toolId } = req.params;
     const { courseId, resourceId, returnUrl } = req.body;
 
-    const tool = await getItem({
-      PK: 'LTI_TOOL',
-      SK: `TOOL#${toolId}`
-    });
+    const tool = await getItem('LTI_TOOL', `TOOL#${toolId}`);
 
     if (!tool) {
       return res.status(404).json({
@@ -453,10 +471,7 @@ router.post('/outcomes', async (req, res) => {
     const [launchId, userId, resourceId] = resultSourcedid.split('::');
 
     // 驗證啟動記錄
-    const launch = await getItem({
-      PK: 'LTI_LAUNCH',
-      SK: `LAUNCH#${launchId}`
-    });
+    const launch = await getItem('LTI_LAUNCH', `LAUNCH#${launchId}`);
 
     if (!launch) {
       return res.status(400).send(generateOutcomeResponse('failure', 'Invalid launch'));
@@ -535,17 +550,16 @@ router.delete('/tools/:toolId', adminMiddleware, async (req, res) => {
   try {
     const { toolId } = req.params;
 
-    await updateItem({
-      PK: 'LTI_TOOL',
-      SK: `TOOL#${toolId}`
-    }, {
+    await docClient.send(new UpdateCommand({
+      TableName: TABLE_NAME,
+      Key: { PK: 'LTI_TOOL', SK: `TOOL#${toolId}` },
       UpdateExpression: 'SET #status = :status, deletedAt = :now',
       ExpressionAttributeNames: { '#status': 'status' },
       ExpressionAttributeValues: {
         ':status': 'deleted',
         ':now': new Date().toISOString()
       }
-    });
+    }));
 
     res.json({
       success: true,
