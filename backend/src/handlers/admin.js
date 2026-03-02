@@ -796,6 +796,149 @@ router.put('/licenses/:id/approve', async (req, res) => {
 });
 
 /**
+ * POST /api/admin/licenses/grant
+ * 管理員主動授權教材給老師
+ */
+router.post('/licenses/grant', async (req, res) => {
+  try {
+    const { userId, resourceId, licenseType = 'personal', expiryMonths, notes } = req.body;
+
+    if (!userId || !resourceId) {
+      return res.status(400).json({
+        success: false,
+        error: 'MISSING_FIELDS',
+        message: '請指定用戶和資源'
+      });
+    }
+
+    // 驗證資源存在
+    const resource = await db.getItem(`RES#${resourceId}`, 'META');
+    if (!resource) {
+      return res.status(404).json({
+        success: false,
+        error: 'RESOURCE_NOT_FOUND',
+        message: '找不到此資源'
+      });
+    }
+
+    // 驗證用戶存在
+    const user = await db.getUser(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'USER_NOT_FOUND',
+        message: '找不到此用戶'
+      });
+    }
+
+    // 檢查是否已有此資源的 active 授權
+    const existingLicenses = await db.getUserLicenses(userId);
+    const hasActive = existingLicenses.some(
+      lic => lic.resourceId === resourceId && lic.status === 'active'
+    );
+    if (hasActive) {
+      return res.status(409).json({
+        success: false,
+        error: 'ALREADY_LICENSED',
+        message: '此用戶已擁有該資源的有效授權'
+      });
+    }
+
+    // 建立授權
+    const licenseId = db.generateId('lic');
+    const now = new Date().toISOString();
+    const expiryDate = new Date();
+    if (expiryMonths && expiryMonths > 0) {
+      expiryDate.setMonth(expiryDate.getMonth() + expiryMonths);
+    } else {
+      // 永久：設定 100 年
+      expiryDate.setFullYear(expiryDate.getFullYear() + 100);
+    }
+
+    const licenseItem = {
+      PK: `LIC#${licenseId}`,
+      SK: 'META',
+      GSI1PK: `USER#${userId}`,
+      GSI1SK: `LIC#${licenseId}`,
+      GSI2PK: 'STATUS#active',
+      GSI2SK: expiryDate.toISOString(),
+      entityType: 'LICENSE',
+      createdAt: now,
+
+      licenseId,
+      resourceId,
+      resourceTitle: resource.title,
+      resourceType: resource.type,
+
+      userId,
+      licenseType,
+      seatCount: licenseType === 'institutional' ? 50 : 1,
+
+      startDate: now,
+      expiryDate: expiryDate.toISOString(),
+      status: 'active',
+
+      notes: notes || '',
+      accessCount: 0,
+      lastAccessedAt: null,
+      orderId: null,
+
+      grantedBy: req.user.userId,
+      grantedAt: now,
+      approvedAt: now,
+      approvedBy: req.user.userId,
+      updatedAt: now
+    };
+
+    await db.putItem(licenseItem);
+
+    // 建立用戶-授權關聯
+    const userLicenseItem = {
+      PK: `USER#${userId}`,
+      SK: `LIC#${licenseId}`,
+      GSI1PK: `RES#${resourceId}`,
+      GSI1SK: `USER#${userId}`,
+      entityType: 'USER_LICENSE',
+      createdAt: now,
+
+      licenseId,
+      resourceId,
+      resourceTitle: resource.title,
+      expiryDate: expiryDate.toISOString(),
+      status: 'active'
+    };
+
+    await db.putItem(userLicenseItem);
+
+    // 更新用戶配額
+    await db.updateItem(`USER#${userId}`, 'PROFILE', {
+      licenseUsed: (user.licenseUsed || 0) + 1
+    });
+
+    res.status(201).json({
+      success: true,
+      message: '授權已成功建立',
+      data: {
+        licenseId,
+        resourceId,
+        resourceTitle: resource.title,
+        userId,
+        status: 'active',
+        expiryDate: expiryDate.toISOString()
+      }
+    });
+
+  } catch (error) {
+    console.error('Grant license error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'GRANT_FAILED',
+      message: '授權建立失敗'
+    });
+  }
+});
+
+/**
  * GET /api/admin/analytics/overview
  * 平台分析概覽
  */

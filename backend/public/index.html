@@ -9,16 +9,16 @@
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Noto+Serif+TC:wght@400;600;700&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
     <style>
         :root {
-            --olive-deep: #3D4A2D;
-            --olive: #4A5D23;
-            --olive-light: #6B7F3A;
-            --cream: #F7F3EB;
-            --cream-dark: #EDE6D6;
-            --terracotta: #C17A5E;
-            --terracotta-light: #D4967D;
-            --charcoal: #2C2C2C;
-            --sage: #A8B89A;
-            --sand: #D4C5A9;
+            --olive-deep: #1A3A5C;
+            --olive: #2D2B6B;
+            --olive-light: #4A4899;
+            --cream: #F5F7FA;
+            --cream-dark: #E8ECF2;
+            --terracotta: #1A6B4A;
+            --terracotta-light: #3A9B7A;
+            --charcoal: #1E293B;
+            --sage: #8BB8A8;
+            --sand: #C5D0DC;
         }
 
         * {
@@ -73,29 +73,20 @@
         }
 
         nav.scrolled {
-            background: rgba(247, 243, 235, 0.95);
+            background: rgba(245, 247, 250, 0.95);
             backdrop-filter: blur(10px);
             box-shadow: 0 2px 40px rgba(0,0,0,0.05);
         }
 
         .logo {
-            font-family: 'Cormorant Garamond', serif;
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--olive-deep);
             text-decoration: none;
-            letter-spacing: -0.02em;
+            display: flex;
+            align-items: center;
         }
 
-        .logo span {
-            display: block;
-            font-size: 0.75rem;
-            font-family: 'DM Sans', sans-serif;
-            font-weight: 400;
-            letter-spacing: 0.2em;
-            text-transform: uppercase;
-            color: var(--olive-light);
-            margin-top: 2px;
+        .logo img {
+            height: 48px;
+            width: auto;
         }
 
         .nav-links {
@@ -243,7 +234,7 @@
         .btn-primary:hover {
             background: var(--olive-deep);
             transform: translateY(-3px);
-            box-shadow: 0 10px 30px rgba(74, 93, 35, 0.2);
+            box-shadow: 0 10px 30px rgba(45, 43, 107, 0.25);
         }
 
         .btn-secondary {
@@ -366,7 +357,7 @@
             right: -20%;
             width: 600px;
             height: 600px;
-            background: radial-gradient(circle, rgba(168, 184, 154, 0.1) 0%, transparent 70%);
+            background: radial-gradient(circle, rgba(139, 184, 168, 0.1) 0%, transparent 70%);
             pointer-events: none;
         }
 
@@ -420,7 +411,7 @@
         .pain-card p {
             font-size: 0.95rem;
             line-height: 1.8;
-            color: rgba(247, 243, 235, 0.8);
+            color: rgba(245, 247, 250, 0.8);
         }
 
         /* Solution Section */
@@ -743,7 +734,7 @@
 
         .team-desc {
             font-size: 0.9rem;
-            color: rgba(247, 243, 235, 0.8);
+            color: rgba(245, 247, 250, 0.8);
             line-height: 1.6;
         }
 
@@ -812,18 +803,19 @@
         }
 
         .footer-brand .logo {
-            color: var(--cream);
             margin-bottom: 1rem;
             display: inline-block;
         }
 
-        .footer-brand .logo span {
-            color: var(--sage);
+        .footer-brand .logo img {
+            height: 42px;
+            width: auto;
+            filter: brightness(10);
         }
 
         .footer-desc {
             font-size: 0.9rem;
-            color: rgba(247, 243, 235, 0.7);
+            color: rgba(245, 247, 250, 0.7);
             line-height: 1.7;
             margin-top: 1rem;
         }
@@ -844,7 +836,7 @@
         }
 
         .footer-links a {
-            color: rgba(247, 243, 235, 0.7);
+            color: rgba(245, 247, 250, 0.7);
             text-decoration: none;
             font-size: 0.9rem;
             transition: color 0.3s ease;
@@ -860,7 +852,7 @@
             padding-top: 2rem;
             text-align: center;
             font-size: 0.85rem;
-            color: rgba(247, 243, 235, 0.5);
+            color: rgba(245, 247, 250, 0.5);
         }
 
         /* Animations */
@@ -978,8 +970,7 @@
     <!-- Navigation -->
     <nav>
         <a href="#" class="logo">
-            BeyondBridge
-            <span>Build the bridge. Go beyond.</span>
+            <img src="/images/logo-color.png" alt="BeyondBridge - Build The Bridge. Go Beyond.">
         </a>
         <ul class="nav-links">
             <li><a href="#pain-points">市場痛點</a></li>
@@ -1018,26 +1009,26 @@
             </div>
             <svg class="bridge-illustration" viewBox="0 0 500 400" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <!-- Stylized Bridge Illustration -->
-                <path d="M50 300 Q150 280 250 300 Q350 320 450 300" stroke="#3D4A2D" stroke-width="3" fill="none"/>
-                <path d="M50 310 Q150 290 250 310 Q350 330 450 310" stroke="#3D4A2D" stroke-width="2" fill="none"/>
+                <path d="M50 300 Q150 280 250 300 Q350 320 450 300" stroke="#1A3A5C" stroke-width="3" fill="none"/>
+                <path d="M50 310 Q150 290 250 310 Q350 330 450 310" stroke="#1A3A5C" stroke-width="2" fill="none"/>
 
                 <!-- Bridge cables -->
-                <path d="M250 100 L250 300" stroke="#4A5D23" stroke-width="2"/>
-                <path d="M250 100 L100 300" stroke="#4A5D23" stroke-width="1.5"/>
-                <path d="M250 100 L400 300" stroke="#4A5D23" stroke-width="1.5"/>
-                <path d="M250 100 L150 300" stroke="#4A5D23" stroke-width="1"/>
-                <path d="M250 100 L350 300" stroke="#4A5D23" stroke-width="1"/>
-                <path d="M250 100 L200 300" stroke="#4A5D23" stroke-width="1"/>
-                <path d="M250 100 L300 300" stroke="#4A5D23" stroke-width="1"/>
+                <path d="M250 100 L250 300" stroke="#2D2B6B" stroke-width="2"/>
+                <path d="M250 100 L100 300" stroke="#2D2B6B" stroke-width="1.5"/>
+                <path d="M250 100 L400 300" stroke="#2D2B6B" stroke-width="1.5"/>
+                <path d="M250 100 L150 300" stroke="#2D2B6B" stroke-width="1"/>
+                <path d="M250 100 L350 300" stroke="#2D2B6B" stroke-width="1"/>
+                <path d="M250 100 L200 300" stroke="#2D2B6B" stroke-width="1"/>
+                <path d="M250 100 L300 300" stroke="#2D2B6B" stroke-width="1"/>
 
                 <!-- Decorative arches -->
-                <path d="M80 320 Q165 260 250 320" stroke="#6B7F3A" stroke-width="2" fill="none"/>
-                <path d="M250 320 Q335 260 420 320" stroke="#6B7F3A" stroke-width="2" fill="none"/>
+                <path d="M80 320 Q165 260 250 320" stroke="#4A4899" stroke-width="2" fill="none"/>
+                <path d="M250 320 Q335 260 420 320" stroke="#4A4899" stroke-width="2" fill="none"/>
 
                 <!-- Abstract shapes -->
-                <circle cx="100" cy="200" r="40" fill="#A8B89A" opacity="0.5"/>
-                <circle cx="400" cy="180" r="50" fill="#C17A5E" opacity="0.4"/>
-                <circle cx="350" cy="250" r="30" fill="#D4C5A9" opacity="0.6"/>
+                <circle cx="100" cy="200" r="40" fill="#8BB8A8" opacity="0.5"/>
+                <circle cx="400" cy="180" r="50" fill="#1A6B4A" opacity="0.4"/>
+                <circle cx="350" cy="250" r="30" fill="#C5D0DC" opacity="0.6"/>
             </svg>
         </div>
     </section>
@@ -1235,8 +1226,7 @@
         <div class="footer-content">
             <div class="footer-brand">
                 <a href="#" class="logo">
-                    BeyondBridge
-                    <span>Build the bridge. Go beyond.</span>
+                    <img src="/images/logo-white.png" alt="BeyondBridge">
                 </a>
                 <p class="footer-desc">BeyondBridge 致力於以數位創新方式革新傳統知識建材製作與學習內容供應生態。成為臺灣建橋者（教育工作者）與企業培訓主管心中可信賴的「知識之橋」。</p>
             </div>
@@ -1268,7 +1258,7 @@
             </div>
         </div>
         <div class="footer-bottom">
-            <p>&copy; 2025 BeyondBridge. All rights reserved.</p>
+            <p>&copy; 2026 BeyondBridge. All rights reserved.</p>
         </div>
     </footer>
 

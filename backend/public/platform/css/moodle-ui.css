@@ -673,7 +673,7 @@
 .form-group select:focus {
   outline: none;
   border-color: var(--olive);
-  box-shadow: 0 0 0 3px rgba(74, 93, 35, 0.1);
+  box-shadow: 0 0 0 3px rgba(45, 43, 107, 0.1);
 }
 
 .form-row {
@@ -5912,8 +5912,8 @@
   display: flex;
   align-items: flex-start;
   gap: 0.75rem;
-  background: linear-gradient(135deg, var(--olive-muted) 0%, rgba(74, 93, 35, 0.05) 100%);
-  border: 1px solid rgba(74, 93, 35, 0.2);
+  background: linear-gradient(135deg, var(--olive-muted) 0%, rgba(45, 43, 107, 0.05) 100%);
+  border: 1px solid rgba(45, 43, 107, 0.2);
   border-radius: var(--radius-lg);
   padding: 1rem 1.25rem;
   margin-bottom: 1.5rem;

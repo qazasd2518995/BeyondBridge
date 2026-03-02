@@ -8,22 +8,22 @@
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Noto+Serif+TC:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
         :root {
-            /* 品牌主色 - 橄欖綠系列 */
-            --olive-deep: #3D4A2D;
-            --olive: #4A5D23;
-            --olive-light: #6B7F3A;
-            --olive-muted: rgba(74, 93, 35, 0.1);
+            /* 品牌主色 - 深藍系列 */
+            --olive-deep: #1A3A5C;
+            --olive: #2D2B6B;
+            --olive-light: #4A4899;
+            --olive-muted: rgba(45, 43, 107, 0.1);
 
-            /* 輔助色 - 赤土系列 */
-            --terracotta: #C17A5E;
-            --terracotta-light: #D4967D;
-            --terracotta-muted: rgba(193, 122, 94, 0.1);
+            /* 輔助色 - 品牌綠系列 */
+            --terracotta: #1A6B4A;
+            --terracotta-light: #3A9B7A;
+            --terracotta-muted: rgba(26, 107, 74, 0.1);
 
-            /* 中性色 - 奶油/沙色系列 */
-            --cream: #F7F3EB;
-            --cream-dark: #EDE6D6;
-            --sand: #D4C5A9;
-            --sage: #A8B89A;
+            /* 中性色 - 冷灰白系列 */
+            --cream: #F5F7FA;
+            --cream-dark: #E8ECF2;
+            --sand: #C5D0DC;
+            --sage: #8BB8A8;
 
             /* 文字色 */
             --charcoal: #2C2C2C;
@@ -50,11 +50,11 @@
             --radius-2xl: 20px;
 
             /* 陰影規範 */
-            --shadow-sm: 0 2px 8px rgba(61, 74, 45, 0.06);
-            --shadow-md: 0 8px 25px rgba(61, 74, 45, 0.08);
-            --shadow-lg: 0 16px 40px rgba(61, 74, 45, 0.12);
-            --shadow-hover: 0 12px 30px rgba(74, 93, 35, 0.15);
-            --shadow-card: 0 4px 20px rgba(61, 74, 45, 0.08);
+            --shadow-sm: 0 2px 8px rgba(26, 58, 92, 0.06);
+            --shadow-md: 0 8px 25px rgba(26, 58, 92, 0.08);
+            --shadow-lg: 0 16px 40px rgba(26, 58, 92, 0.12);
+            --shadow-hover: 0 12px 30px rgba(45, 43, 107, 0.15);
+            --shadow-card: 0 4px 20px rgba(26, 58, 92, 0.08);
 
             /* 動畫規範 */
             --transition-fast: 0.15s ease;
@@ -85,7 +85,7 @@
         /* Sidebar - 精緻漸層設計 */
         .admin-sidebar {
             width: 280px;
-            background: linear-gradient(180deg, var(--olive-deep) 0%, #2D3A1F 50%, #1F2815 100%);
+            background: linear-gradient(180deg, var(--olive-deep) 0%, #162D4A 50%, #0F1F35 100%);
             color: white;
             position: fixed;
             height: 100vh;
@@ -112,22 +112,18 @@
             background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, transparent 100%);
         }
 
-        .admin-logo h1 {
-            font-family: var(--font-display);
-            font-size: 1.5rem;
-            font-weight: 600;
-            letter-spacing: 0.02em;
-            background: linear-gradient(135deg, #fff 0%, var(--sage) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+        .admin-logo img {
+            height: 38px;
+            width: auto;
+            display: block;
         }
 
         .admin-logo span {
-            font-size: 0.75rem;
-            opacity: 0.6;
+            font-size: 0.7rem;
+            color: var(--sage);
+            opacity: 0.8;
             display: block;
-            margin-top: 0.35rem;
+            margin-top: 0.5rem;
             letter-spacing: 0.05em;
         }
 
@@ -180,7 +176,7 @@
         }
 
         .nav-item.active {
-            background: linear-gradient(135deg, rgba(193, 122, 94, 0.2) 0%, rgba(193, 122, 94, 0.1) 100%);
+            background: linear-gradient(135deg, rgba(26, 107, 74, 0.2) 0%, rgba(26, 107, 74, 0.1) 100%);
             color: white;
         }
 
@@ -208,7 +204,7 @@
             padding: 0.2rem 0.6rem;
             border-radius: 12px;
             font-weight: 600;
-            box-shadow: 0 2px 8px rgba(193, 122, 94, 0.4);
+            box-shadow: 0 2px 8px rgba(26, 107, 74, 0.4);
             animation: pulse 2s infinite;
         }
 
@@ -518,12 +514,12 @@
         .btn-primary {
             background: linear-gradient(135deg, var(--olive) 0%, var(--olive-deep) 100%);
             color: white;
-            box-shadow: 0 4px 15px rgba(74, 93, 35, 0.25);
+            box-shadow: 0 4px 15px rgba(45, 43, 107, 0.25);
         }
 
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(74, 93, 35, 0.35);
+            box-shadow: 0 6px 20px rgba(45, 43, 107, 0.35);
         }
 
         .btn-primary:active {
@@ -760,7 +756,7 @@
             font-weight: 600;
             cursor: pointer;
             transition: var(--transition-base);
-            box-shadow: 0 4px 15px rgba(74, 93, 35, 0.3);
+            box-shadow: 0 4px 15px rgba(45, 43, 107, 0.3);
             position: relative;
             overflow: hidden;
         }
@@ -778,7 +774,7 @@
 
         .login-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(74, 93, 35, 0.4);
+            box-shadow: 0 6px 20px rgba(45, 43, 107, 0.4);
         }
 
         .login-btn:hover::before {
@@ -865,7 +861,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(61, 74, 45, 0.4);
+            background: rgba(26, 58, 92, 0.4);
             backdrop-filter: blur(4px);
             display: none;
             align-items: center;
@@ -1379,7 +1375,7 @@
             align-items: center;
             gap: 1rem;
             padding: 0.75rem 1rem;
-            background: linear-gradient(135deg, var(--olive-muted) 0%, rgba(74, 93, 35, 0.05) 100%);
+            background: linear-gradient(135deg, var(--olive-muted) 0%, rgba(45, 43, 107, 0.05) 100%);
             border: 1px solid var(--olive-light);
             border-radius: var(--radius-md);
             margin-bottom: 1rem;
@@ -1502,7 +1498,7 @@
         }
 
         tr.selected:hover {
-            background: rgba(74, 93, 35, 0.15) !important;
+            background: rgba(45, 43, 107, 0.15) !important;
         }
 
         /* 全選框容器 */
@@ -1843,7 +1839,7 @@
 
         .stat-card-enhanced .stat-icon-wrapper.users { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
         .stat-card-enhanced .stat-icon-wrapper.courses { background: rgba(168, 184, 154, 0.2); color: var(--olive); }
-        .stat-card-enhanced .stat-icon-wrapper.resources { background: rgba(193, 122, 94, 0.1); color: var(--terracotta); }
+        .stat-card-enhanced .stat-icon-wrapper.resources { background: rgba(26, 107, 74, 0.1); color: var(--terracotta); }
         .stat-card-enhanced .stat-icon-wrapper.active { background: rgba(72, 187, 120, 0.1); color: var(--success); }
 
         .stat-card-enhanced .stat-trend {
@@ -2515,7 +2511,7 @@
         <!-- Sidebar -->
         <aside class="admin-sidebar">
             <div class="admin-logo">
-                <h1>BeyondBridge</h1>
+                <img src="/images/logo-white.png" alt="BeyondBridge">
                 <span>管理後台 Admin Panel</span>
             </div>
             <nav class="admin-nav">
@@ -3049,6 +3045,9 @@
             <div id="licensesView" class="admin-view">
                 <div class="admin-header">
                     <h2>授權管理</h2>
+                    <div class="admin-header-actions">
+                        <button class="btn btn-primary" onclick="openGrantLicenseModal()">+ 新增授權</button>
+                    </div>
                 </div>
                 <div class="card">
                     <div class="card-body">
@@ -4310,6 +4309,56 @@
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeModal('createUserModal')">取消</button>
                 <button class="btn btn-primary" onclick="submitCreateUser()">建立用戶</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新增授權 Modal -->
+    <div class="modal-overlay" id="grantLicenseModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>新增授權</h3>
+                <button class="modal-close" onclick="closeModal('grantLicenseModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="grantLicenseForm">
+                    <div class="form-group">
+                        <label>選擇老師 *</label>
+                        <select name="userId" id="grantLicenseUserSelect" class="form-input" required>
+                            <option value="">載入中...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>選擇教材 *</label>
+                        <select name="resourceId" id="grantLicenseResourceSelect" class="form-input" required>
+                            <option value="">載入中...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>授權類型</label>
+                        <select name="licenseType" class="form-input">
+                            <option value="personal">個人授權</option>
+                            <option value="institutional">機構授權</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>授權時長</label>
+                        <select name="expiryMonths" class="form-input">
+                            <option value="6">6 個月</option>
+                            <option value="12" selected>1 年</option>
+                            <option value="24">2 年</option>
+                            <option value="0">永久</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>備註</label>
+                        <textarea name="notes" class="form-input" rows="3" placeholder="選填"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('grantLicenseModal')">取消</button>
+                <button class="btn btn-primary" onclick="submitGrantLicense()">建立授權</button>
             </div>
         </div>
     </div>
@@ -6311,16 +6360,16 @@
                         {
                             label: '累計用戶',
                             data: trendData.map(d => d.total),
-                            borderColor: '#4A5D23',
-                            backgroundColor: 'rgba(74, 93, 35, 0.1)',
+                            borderColor: '#2D2B6B',
+                            backgroundColor: 'rgba(45, 43, 107, 0.1)',
                             fill: true,
                             tension: 0.4
                         },
                         {
                             label: '新增用戶',
                             data: trendData.map(d => d.newUsers),
-                            borderColor: '#C17A5E',
-                            backgroundColor: 'rgba(193, 122, 94, 0.1)',
+                            borderColor: '#1A6B4A',
+                            backgroundColor: 'rgba(26, 107, 74, 0.1)',
                             fill: true,
                             tension: 0.4
                         }
@@ -6351,7 +6400,7 @@
                     labels: labels,
                     datasets: [{
                         data: values,
-                        backgroundColor: ['#4A5D23', '#6B7F3A', '#C17A5E', '#A8B89A'],
+                        backgroundColor: ['#2D2B6B', '#4A4899', '#1A6B4A', '#8BB8A8'],
                         borderWidth: 0
                     }]
                 },
@@ -6384,7 +6433,7 @@
                     datasets: [{
                         label: '教材數量',
                         data: values,
-                        backgroundColor: '#4A5D23',
+                        backgroundColor: '#2D2B6B',
                         borderRadius: 4
                     }]
                 },
@@ -6695,6 +6744,69 @@
             } catch (error) {
                 console.error('Create user error:', error);
                 alert('建立用戶失敗，請稍後再試');
+            }
+        }
+
+        // ========== 新增授權功能 ==========
+        async function openGrantLicenseModal() {
+            document.getElementById('grantLicenseForm').reset();
+            const userSelect = document.getElementById('grantLicenseUserSelect');
+            const resourceSelect = document.getElementById('grantLicenseResourceSelect');
+            userSelect.innerHTML = '<option value="">載入中...</option>';
+            resourceSelect.innerHTML = '<option value="">載入中...</option>';
+            openModal('grantLicenseModal');
+
+            try {
+                const [usersResult, resourcesResult] = await Promise.all([
+                    API.admin.getUsers(),
+                    API.resources.list({ limit: 200 })
+                ]);
+
+                if (usersResult.success && usersResult.data) {
+                    const users = Array.isArray(usersResult.data) ? usersResult.data : (usersResult.data.users || []);
+                    userSelect.innerHTML = '<option value="">請選擇老師</option>' +
+                        users.filter(u => u.role !== 'admin').map(u =>
+                            `<option value="${u.userId}">${u.displayName || u.email} (${u.email})</option>`
+                        ).join('');
+                }
+
+                if (resourcesResult.success && resourcesResult.data) {
+                    const resources = Array.isArray(resourcesResult.data) ? resourcesResult.data : [];
+                    resourceSelect.innerHTML = '<option value="">請選擇教材</option>' +
+                        resources.filter(r => r.status === 'published').map(r =>
+                            `<option value="${r.resourceId}">${r.title}</option>`
+                        ).join('');
+                }
+            } catch (error) {
+                console.error('Load grant license data error:', error);
+                alert('載入資料失敗，請稍後再試');
+            }
+        }
+
+        async function submitGrantLicense() {
+            const form = document.getElementById('grantLicenseForm');
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            if (!data.userId || !data.resourceId) {
+                alert('請選擇老師和教材');
+                return;
+            }
+
+            data.expiryMonths = parseInt(data.expiryMonths, 10);
+
+            try {
+                const result = await API.admin.grantLicense(data);
+                if (result.success) {
+                    closeModal('grantLicenseModal');
+                    loadLicenses();
+                    alert('授權已成功建立！');
+                } else {
+                    alert(result.message || '授權建立失敗');
+                }
+            } catch (error) {
+                console.error('Grant license error:', error);
+                alert('授權建立失敗，請稍後再試');
             }
         }
 

@@ -471,6 +471,13 @@ const API = {
       });
     },
 
+    async grantLicense(data) {
+      return API.request('/admin/licenses/grant', {
+        method: 'POST',
+        body: data
+      });
+    },
+
     async createAnnouncement(data) {
       return API.request('/announcements', {
         method: 'POST',
