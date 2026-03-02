@@ -105,6 +105,16 @@ async function deleteItem(pk, sk) {
  * 查詢項目（使用 Partition Key）
  */
 async function query(pk, options = {}) {
+  // 支援物件格式呼叫: db.query({ pk: 'X', sk: { begins_with: 'Y' } })
+  if (typeof pk === 'object' && pk !== null && pk.pk) {
+    const obj = pk;
+    pk = obj.pk;
+    options = {};
+    if (obj.sk && obj.sk.begins_with) {
+      options.skPrefix = obj.sk.begins_with;
+    }
+  }
+
   const params = {
     TableName: TABLE_NAME,
     KeyConditionExpression: 'PK = :pk',
