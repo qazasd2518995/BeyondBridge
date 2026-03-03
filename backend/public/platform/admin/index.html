@@ -6773,7 +6773,7 @@
                     }
                     try {
                         const base64 = await fileToBase64(file);
-                        const uploadResult = await API.request('/api/files/upload', {
+                        const uploadResult = await API.request('/files/upload', {
                             method: 'POST',
                             body: JSON.stringify({
                                 filename: file.name,
