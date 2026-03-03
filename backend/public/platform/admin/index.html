@@ -6205,7 +6205,7 @@
 
         async function loadResources() {
             try {
-                const result = await API.resources.list({ limit: 100 });
+                const result = await API.resources.list({ limit: 100, status: 'all' });
                 const tbody = document.getElementById('resourcesTableBody');
                 if (result.success && result.data.length > 0) {
                     allResources = result.data;

@@ -19,7 +19,7 @@ router.get('/', optionalAuthMiddleware, async (req, res) => {
 
     if (category) {
       resources = await db.getResourcesByCategory(category);
-    } else if (status) {
+    } else if (status && status !== 'all') {
       resources = await db.getResourcesByStatus(status);
     } else {
       resources = await db.getAllResources({ limit: parseInt(limit) });
