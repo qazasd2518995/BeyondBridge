@@ -485,7 +485,8 @@ router.post('/resources', async (req, res) => {
   try {
     const {
       title, titleEn, description, type, category, subcategory,
-      gradeLevel, tags, duration, unitCount, price = 0
+      gradeLevel, tags, duration, unitCount, price = 0,
+      contentType, contentUrl, contentEmbed, contentFileName
     } = req.body;
 
     if (!title || !type || !category || !gradeLevel) {
@@ -493,6 +494,25 @@ router.post('/resources', async (req, res) => {
         success: false,
         error: 'MISSING_FIELDS',
         message: '請填寫必要欄位'
+      });
+    }
+
+    // 驗證內容類型
+    const validContentTypes = ['video', 'file', 'webpage', 'embed', 'upload'];
+    if (contentType && !validContentTypes.includes(contentType)) {
+      return res.status(400).json({
+        success: false,
+        error: 'INVALID_CONTENT_TYPE',
+        message: '無效的內容來源類型'
+      });
+    }
+
+    // 驗證 URL 協議安全性
+    if (contentUrl && !/^https?:\/\//.test(contentUrl) && !contentUrl.startsWith('/uploads/')) {
+      return res.status(400).json({
+        success: false,
+        error: 'INVALID_URL',
+        message: '內容 URL 必須以 http:// 或 https:// 開頭'
       });
     }
 
@@ -525,6 +545,10 @@ router.post('/resources', async (req, res) => {
 
       duration: duration || 0,
       unitCount: unitCount || 1,
+      contentType: contentType || null,
+      contentUrl: contentUrl || null,
+      contentEmbed: contentEmbed || null,
+      contentFileName: contentFileName || null,
       s3Location: null,
       thumbnailUrl: null,
 
@@ -575,7 +599,8 @@ router.put('/resources/:id', async (req, res) => {
     const { id } = req.params;
     const allowedFields = [
       'title', 'titleEn', 'description', 'type', 'category', 'subcategory',
-      'gradeLevel', 'tags', 'duration', 'unitCount', 'price', 'thumbnailUrl'
+      'gradeLevel', 'tags', 'duration', 'unitCount', 'price', 'thumbnailUrl',
+      'contentType', 'contentUrl', 'contentEmbed', 'contentFileName'
     ];
 
     const updates = {};
@@ -590,6 +615,25 @@ router.put('/resources/:id', async (req, res) => {
         success: false,
         error: 'NO_UPDATES',
         message: '沒有要更新的欄位'
+      });
+    }
+
+    // 驗證內容類型
+    const validContentTypes = ['video', 'file', 'webpage', 'embed', 'upload'];
+    if (updates.contentType && !validContentTypes.includes(updates.contentType)) {
+      return res.status(400).json({
+        success: false,
+        error: 'INVALID_CONTENT_TYPE',
+        message: '無效的內容來源類型'
+      });
+    }
+
+    // 驗證 URL 協議安全性
+    if (updates.contentUrl && !/^https?:\/\//.test(updates.contentUrl) && !updates.contentUrl.startsWith('/uploads/')) {
+      return res.status(400).json({
+        success: false,
+        error: 'INVALID_URL',
+        message: '內容 URL 必須以 http:// 或 https:// 開頭'
       });
     }
 

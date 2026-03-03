@@ -170,6 +170,10 @@ app.use('/api/h5p', h5pRoutes);
 // 教師功能路由
 app.use('/api/teachers', teacherAlertsRoutes);
 
+// 上傳檔案靜態服務
+const uploadsPath = path.join(__dirname, '../uploads');
+app.use('/uploads', express.static(uploadsPath));
+
 // 靜態檔案服務
 const publicPath = path.join(__dirname, '../public');
 app.use(express.static(publicPath));

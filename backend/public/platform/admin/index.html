@@ -4182,6 +4182,42 @@
                         </div>
                     </div>
 
+                    <!-- 內容來源 -->
+                    <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <h4 style="margin: 0 0 15px 0; font-size: 14px; color: #64748b;">內容來源</h4>
+                        <div class="form-group">
+                            <label>來源類型</label>
+                            <select name="contentType" class="form-input" onchange="toggleContentFields(this.value)">
+                                <option value="">未設定（僅 metadata）</option>
+                                <option value="video">影片（YouTube / Vimeo / MP4 連結）</option>
+                                <option value="file">檔案連結（Google Drive / Dropbox 分享連結）</option>
+                                <option value="webpage">網頁 / 平台連結</option>
+                                <option value="embed">嵌入碼（iframe / HTML）</option>
+                                <option value="upload">直接上傳檔案</option>
+                            </select>
+                        </div>
+                        <div id="contentUrlField" style="display:none;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label id="contentUrlLabel">內容 URL</label>
+                                <input type="url" name="contentUrl" class="form-input" placeholder="https://...">
+                            </div>
+                        </div>
+                        <div id="contentEmbedField" style="display:none;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label>嵌入碼</label>
+                                <textarea name="contentEmbed" class="form-input" rows="4" placeholder='<iframe src="..."></iframe>'></textarea>
+                            </div>
+                        </div>
+                        <div id="contentUploadField" style="display:none;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label>選擇檔案（最大 50MB）</label>
+                                <input type="file" id="resourceFileInput" class="form-input"
+                                       accept=".pdf,.ppt,.pptx,.doc,.docx,.xls,.xlsx,.zip,.mp4,.mp3,.png,.jpg">
+                                <small id="uploadFileInfo" style="color: #64748b; display: block; margin-top: 5px;"></small>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- 定價設定 -->
                     <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
                         <h4 style="margin: 0 0 15px 0; font-size: 14px; color: #64748b;">定價設定</h4>
@@ -6610,12 +6646,39 @@
             }
         }
 
+        function toggleContentFields(type) {
+            const urlField = document.getElementById('contentUrlField');
+            const embedField = document.getElementById('contentEmbedField');
+            const uploadField = document.getElementById('contentUploadField');
+            const urlLabel = document.getElementById('contentUrlLabel');
+            urlField.style.display = 'none';
+            embedField.style.display = 'none';
+            uploadField.style.display = 'none';
+
+            if (type === 'video') {
+                urlLabel.textContent = '影片 URL（YouTube / Vimeo / MP4 連結）';
+                urlField.style.display = 'block';
+            } else if (type === 'file') {
+                urlLabel.textContent = '檔案分享連結（Google Drive / Dropbox）';
+                urlField.style.display = 'block';
+            } else if (type === 'webpage') {
+                urlLabel.textContent = '網頁 URL';
+                urlField.style.display = 'block';
+            } else if (type === 'embed') {
+                embedField.style.display = 'block';
+            } else if (type === 'upload') {
+                uploadField.style.display = 'block';
+            }
+        }
+
         // 開啟新增教材 Modal
         function openCreateResourceModal() {
             document.getElementById('createResourceForm').reset();
             document.getElementById('resourceModalTitle').textContent = '新增教材';
             document.querySelector('#createResourceForm [name="resourceId"]').value = '';
             document.getElementById('priceFieldGroup').style.display = 'block';
+            toggleContentFields('');
+            document.getElementById('uploadFileInfo').textContent = '';
             openModal('createResourceModal');
         }
 
@@ -6644,6 +6707,19 @@
             form.querySelectorAll('[name="targetAudience"]').forEach(cb => {
                 cb.checked = audiences.includes(cb.value);
             });
+
+            // 內容來源
+            form.querySelector('[name="contentType"]').value = resource.contentType || '';
+            toggleContentFields(resource.contentType || '');
+            if (resource.contentUrl) {
+                form.querySelector('[name="contentUrl"]').value = resource.contentUrl;
+            }
+            if (resource.contentEmbed) {
+                form.querySelector('[name="contentEmbed"]').value = resource.contentEmbed;
+            }
+            if (resource.contentType === 'upload' && resource.contentFileName) {
+                document.getElementById('uploadFileInfo').textContent = '已上傳檔案：' + resource.contentFileName;
+            }
 
             togglePriceField(resource.pricingModel || 'license');
             openModal('createResourceModal');
@@ -6678,7 +6754,53 @@
                 status: formData.get('status')
             };
 
+            // 內容來源欄位
+            const contentType = formData.get('contentType') || null;
             const resourceId = formData.get('resourceId');
+            data.contentType = contentType;
+            data.contentUrl = formData.get('contentUrl') || null;
+            data.contentEmbed = formData.get('contentEmbed') || null;
+            data.contentFileName = null;
+
+            // 處理檔案上傳
+            if (contentType === 'upload') {
+                const fileInput = document.getElementById('resourceFileInput');
+                if (fileInput.files.length > 0) {
+                    const file = fileInput.files[0];
+                    if (file.size > 50 * 1024 * 1024) {
+                        alert('檔案大小不能超過 50MB');
+                        return;
+                    }
+                    try {
+                        const base64 = await fileToBase64(file);
+                        const uploadResult = await API.request('/api/files/upload', {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                filename: file.name,
+                                contentType: file.type,
+                                size: file.size,
+                                content: base64,
+                                visibility: 'public'
+                            })
+                        });
+                        if (uploadResult.success) {
+                            data.contentUrl = '/uploads/' + uploadResult.data.storageName;
+                            data.contentFileName = file.name;
+                        } else {
+                            alert('檔案上傳失敗：' + (uploadResult.message || '未知錯誤'));
+                            return;
+                        }
+                    } catch (err) {
+                        alert('檔案上傳失敗：' + err.message);
+                        return;
+                    }
+                } else if (resourceId) {
+                    // 編輯模式且未選擇新檔案，保留原有值
+                    delete data.contentUrl;
+                    delete data.contentFileName;
+                }
+            }
+
             let result;
 
             if (resourceId) {
@@ -6695,6 +6817,18 @@
             } else {
                 alert(result.message || '操作失敗');
             }
+        }
+
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const base64 = reader.result.split(',')[1];
+                    resolve(base64);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
         }
 
         async function submitCreateAnnouncement() {

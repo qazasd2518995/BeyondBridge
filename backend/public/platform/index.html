@@ -4298,10 +4298,19 @@
                     tags.push(...r.tags.slice(0, 2)); // 最多加 2 個自訂標籤
                 }
 
+                const contentBadge = r.contentType ? {
+                    video: '🎬 影片',
+                    file: '📄 檔案',
+                    webpage: '🌐 網頁',
+                    embed: '📦 嵌入',
+                    upload: '📎 附件'
+                }[r.contentType] || '' : '';
+
                 return `
                     <div class="resource-card" onclick="openResourceModal('${r.resourceId}')">
                         <div class="resource-cover" style="background: ${bgColor};">
                             <span class="resource-type-badge">${typeLabel}</span>
+                            ${contentBadge ? `<span style="position:absolute;top:10px;right:10px;background:rgba(0,0,0,0.6);color:#fff;padding:2px 8px;border-radius:12px;font-size:0.75rem;">${contentBadge}</span>` : ''}
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 ${icon}
                             </svg>
@@ -4501,6 +4510,96 @@
         // Modal functions
         let currentResourceId = null;
 
+        function getYouTubeId(url) {
+            const match = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+            return match ? match[1] : null;
+        }
+
+        function getVimeoId(url) {
+            const match = url.match(/vimeo\.com\/(\d+)/);
+            return match ? match[1] : null;
+        }
+
+        function buildResourceContentHtml(resource) {
+            if (!resource.contentType) return '';
+
+            const ct = resource.contentType;
+            const url = resource.contentUrl;
+            const embed = resource.contentEmbed;
+            const fileName = resource.contentFileName;
+            let html = '';
+
+            if (ct === 'video' && url) {
+                const ytId = getYouTubeId(url);
+                const vimeoId = getVimeoId(url);
+                if (ytId) {
+                    html = `<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:8px;margin-bottom:1rem;">
+                        <iframe src="https://www.youtube.com/embed/${ytId}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;" allowfullscreen></iframe>
+                    </div>`;
+                } else if (vimeoId) {
+                    html = `<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:8px;margin-bottom:1rem;">
+                        <iframe src="https://player.vimeo.com/video/${vimeoId}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;" allowfullscreen></iframe>
+                    </div>`;
+                } else {
+                    html = `<div style="margin-bottom:1rem;">
+                        <video controls style="width:100%;border-radius:8px;" src="${url}"></video>
+                    </div>`;
+                }
+            } else if (ct === 'file' && url) {
+                html = `<div style="background:#f0f9ff;border:1px solid #bae6fd;padding:1rem;border-radius:8px;margin-bottom:1rem;display:flex;align-items:center;gap:0.75rem;">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#0284c7" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+                    <div style="flex:1;">
+                        <strong style="color:#0369a1;">${fileName || '教材檔案'}</strong>
+                        <p style="margin:0.25rem 0 0;color:#64748b;font-size:0.85rem;">點擊下方按鈕開啟或下載檔案</p>
+                    </div>
+                    <a href="${url}" target="_blank" rel="noopener noreferrer" style="background:#0284c7;color:#fff;padding:8px 16px;border-radius:6px;text-decoration:none;font-size:0.9rem;white-space:nowrap;">開啟檔案</a>
+                </div>`;
+            } else if (ct === 'webpage' && url) {
+                html = `<div style="background:#f0fdf4;border:1px solid #bbf7d0;padding:1rem;border-radius:8px;margin-bottom:1rem;display:flex;align-items:center;gap:0.75rem;">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#16a34a" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+                    <div style="flex:1;">
+                        <strong style="color:#15803d;">外部教材連結</strong>
+                        <p style="margin:0.25rem 0 0;color:#64748b;font-size:0.85rem;">點擊按鈕前往教材頁面</p>
+                    </div>
+                    <a href="${url}" target="_blank" rel="noopener noreferrer" style="background:#16a34a;color:#fff;padding:8px 16px;border-radius:6px;text-decoration:none;font-size:0.9rem;white-space:nowrap;">前往教材</a>
+                </div>`;
+            } else if (ct === 'embed' && embed) {
+                // Sanitize: only allow iframe tags with safe attributes
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = embed;
+                const iframes = tempDiv.querySelectorAll('iframe');
+                let safeHtml = '';
+                iframes.forEach(iframe => {
+                    const src = iframe.getAttribute('src') || '';
+                    if (src.startsWith('https://') || src.startsWith('http://')) {
+                        const safeIframe = document.createElement('iframe');
+                        safeIframe.src = src;
+                        safeIframe.style.cssText = 'width:100%;min-height:400px;border:none;';
+                        safeIframe.setAttribute('allowfullscreen', '');
+                        if (iframe.getAttribute('width')) safeIframe.width = iframe.getAttribute('width');
+                        if (iframe.getAttribute('height')) safeIframe.height = iframe.getAttribute('height');
+                        safeHtml += safeIframe.outerHTML;
+                    }
+                });
+                if (safeHtml) {
+                    html = `<div style="margin-bottom:1rem;border-radius:8px;overflow:hidden;">${safeHtml}</div>`;
+                } else {
+                    html = `<div style="background:#fef2f2;border:1px solid #fecaca;padding:1rem;border-radius:8px;margin-bottom:1rem;color:#991b1b;">嵌入碼格式不正確，請聯繫管理員</div>`;
+                }
+            } else if (ct === 'upload' && url) {
+                html = `<div style="background:#fef3c7;border:1px solid #fcd34d;padding:1rem;border-radius:8px;margin-bottom:1rem;display:flex;align-items:center;gap:0.75rem;">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#d97706" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    <div style="flex:1;">
+                        <strong style="color:#92400e;">${fileName || '已上傳檔案'}</strong>
+                        <p style="margin:0.25rem 0 0;color:#64748b;font-size:0.85rem;">點擊按鈕下載此檔案</p>
+                    </div>
+                    <a href="${url}" download="${fileName || ''}" style="background:#d97706;color:#fff;padding:8px 16px;border-radius:6px;text-decoration:none;font-size:0.9rem;white-space:nowrap;">下載檔案</a>
+                </div>`;
+            }
+
+            return html;
+        }
+
         function openResourceModal(resourceId) {
             const resource = resources.find(r => r.resourceId === resourceId);
             if (!resource) {
@@ -4540,6 +4639,9 @@
                 </div>
             ` : '';
 
+            // 建立內容呈現區塊
+            const contentHtml = buildResourceContentHtml(resource);
+
             document.getElementById('modalTitle').textContent = resource.title || '教材詳情';
             document.getElementById('modalBody').innerHTML = `
                 <div style="margin-bottom: 1rem;">
@@ -4547,6 +4649,7 @@
                     ${tags.map(t => `<span class="tag">${t}</span>`).join(' ')}
                 </div>
                 <p style="margin-bottom: 1rem; color: var(--gray-500);">${resource.description || '暫無描述'}</p>
+                ${contentHtml}
                 ${ltiNotice}
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
                     <div><strong>作者：</strong>${authorName}</div>
