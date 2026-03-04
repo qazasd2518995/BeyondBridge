@@ -65,6 +65,7 @@ const teacherAlertsRoutes = require('./handlers/teacher-alerts');
 // 中間件
 const stripDbKeysMiddleware = require('./middleware/strip-db-keys');
 const { errorHandler } = require('./middleware/error-handler');
+const languageMiddleware = require('./middleware/language');
 
 // 載入 WebSocket 伺服器
 const { initSocketServer } = require('./realtime/socketServer');
@@ -106,6 +107,7 @@ app.use('/api/auth/', authLimiter);
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(languageMiddleware);
 app.use(stripDbKeysMiddleware);
 
 // 請求日誌（只記錄 API 請求）

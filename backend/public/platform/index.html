@@ -1252,26 +1252,26 @@
             <div class="sidebar-header">
                 <a href="#" class="sidebar-logo" onclick="event.preventDefault(); showView('dashboard'); document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active')); document.querySelector('.nav-item[data-view=dashboard]')?.classList.add('active');">
                     <img src="/images/logo-white.png" alt="BeyondBridge">
-                    <span>教育資源平台</span>
+                    <span data-i18n="sidebar.platformName">教育資源平台</span>
                 </a>
             </div>
 
             <nav class="sidebar-nav">
                 <div class="nav-section">
-                    <div class="nav-section-title">主要功能</div>
+                    <div class="nav-section-title" data-i18n="sidebar.mainFeatures">主要功能</div>
                     <a href="#" class="nav-item active" onclick="showView('dashboard')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
                             <polyline points="9,22 9,12 15,12 15,22"/>
                         </svg>
-                        儀表板
+                        <span data-i18n="sidebar.dashboard">儀表板</span>
                     </a>
                     <a href="#" class="nav-item" onclick="showView('library')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M4 19.5A2.5 2.5 0 016.5 17H20"/>
                             <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>
                         </svg>
-                        知識建材庫
+                        <span data-i18n="sidebar.library">知識建材庫</span>
                         <span class="nav-badge">128</span>
                     </a>
                     <a href="#" class="nav-item" onclick="showView('courses')">
@@ -1280,7 +1280,7 @@
                             <polyline points="2,17 12,22 22,17"/>
                             <polyline points="2,12 12,17 22,12"/>
                         </svg>
-                        我的課程
+                        <span data-i18n="sidebar.myCourses">我的課程</span>
                     </a>
                     <a href="#" class="nav-item" onclick="showView('licenses')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1290,7 +1290,7 @@
                             <line x1="16" y1="17" x2="8" y2="17"/>
                             <polyline points="10,9 9,9 8,9"/>
                         </svg>
-                        授權管理
+                        <span data-i18n="sidebar.licenses">授權管理</span>
                     </a>
                     <a href="#" class="nav-item" onclick="showView('classes')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1299,18 +1299,18 @@
                             <path d="M23 21v-2a4 4 0 00-3-3.87"/>
                             <path d="M16 3.13a4 4 0 010 7.75"/>
                         </svg>
-                        共建團隊
+                        <span data-i18n="sidebar.teams">共建團隊</span>
                     </a>
                 </div>
 
                 <div class="nav-section">
-                    <div class="nav-section-title">學習工具</div>
+                    <div class="nav-section-title" data-i18n="sidebar.learningTools">學習工具</div>
                     <a href="#" class="nav-item" onclick="showView('videos')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polygon points="23,7 16,12 23,17"/>
                             <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
                         </svg>
-                        影音橋段
+                        <span data-i18n="sidebar.videos">影音橋段</span>
                     </a>
                     <a href="#" class="nav-item" onclick="showView('quizzes')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1318,24 +1318,24 @@
                             <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/>
                             <line x1="12" y1="17" x2="12.01" y2="17"/>
                         </svg>
-                        測驗題庫
+                        <span data-i18n="sidebar.quizBank">測驗題庫</span>
                     </a>
                     <a href="#" class="nav-item" onclick="showView('discussions')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
                         </svg>
-                        互動討論
+                        <span data-i18n="sidebar.discussions">互動討論</span>
                     </a>
                 </div>
 
                 <div class="nav-section">
-                    <div class="nav-section-title">課程學習</div>
+                    <div class="nav-section-title" data-i18n="sidebar.courseStudy">課程學習</div>
                     <a href="#" class="nav-item" onclick="showView('moodleCourses'); MoodleUI.loadCourses();">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/>
                             <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>
                         </svg>
-                        課程中心
+                        <span data-i18n="sidebar.courseCenter">課程中心</span>
                     </a>
                     <a href="#" class="nav-item" onclick="showView('moodleAssignments'); MoodleUI.loadAssignments();">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1344,7 +1344,7 @@
                             <line x1="12" y1="18" x2="12" y2="12"/>
                             <line x1="9" y1="15" x2="15" y2="15"/>
                         </svg>
-                        我的作業
+                        <span data-i18n="sidebar.myAssignments">我的作業</span>
                     </a>
                     <a href="#" class="nav-item" onclick="showView('moodleQuizzes'); MoodleUI.loadQuizzes();">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1352,60 +1352,60 @@
                             <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/>
                             <line x1="12" y1="17" x2="12.01" y2="17"/>
                         </svg>
-                        測驗中心
+                        <span data-i18n="sidebar.quizCenter">測驗中心</span>
                     </a>
                     <a href="#" class="nav-item" onclick="showView('moodleForums'); MoodleUI.loadForums();">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
                         </svg>
-                        討論區
+                        <span data-i18n="sidebar.forums">討論區</span>
                     </a>
                     <a href="#" class="nav-item" onclick="showView('moodleGradebook'); MoodleUI.loadGradebook();">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
                             <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
                         </svg>
-                        成績簿
+                        <span data-i18n="sidebar.gradebook">成績簿</span>
                     </a>
                     <a href="#" class="nav-item" onclick="showView('moodleCalendar'); MoodleUI.loadCalendar();">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
                             <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
                         </svg>
-                        行事曆
+                        <span data-i18n="sidebar.calendar">行事曆</span>
                     </a>
                     <a href="#" class="nav-item" onclick="showView('moodleNotifications'); MoodleUI.loadNotifications();">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                             <path d="M13.73 21a2 2 0 01-3.46 0"/>
                         </svg>
-                        通知中心
+                        <span data-i18n="sidebar.notifications">通知中心</span>
                     </a>
                     <a href="#" class="nav-item" onclick="showView('learningPaths'); MoodleUI.openLearningPaths();">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
                         </svg>
-                        學習路徑
+                        <span data-i18n="sidebar.learningPaths">學習路徑</span>
                     </a>
                     <a href="#" class="nav-item" onclick="showView('badges'); MoodleUI.openBadges();">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <circle cx="12" cy="8" r="6"/>
                             <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/>
                         </svg>
-                        成就徽章
+                        <span data-i18n="sidebar.badges">成就徽章</span>
                     </a>
                 </div>
 
                 <!-- 教師專用功能區 -->
                 <div class="nav-section teacher-only-nav" id="teacherNavSection" style="display: none;">
-                    <div class="nav-section-title">教學管理</div>
+                    <div class="nav-section-title" data-i18n="sidebar.teachingMgmt">教學管理</div>
                     <a href="#" class="nav-item" onclick="showView('questionBank'); MoodleUI.openQuestionBank();">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M4 4h16a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2z"/>
                             <path d="M9 9h6M9 13h3"/>
                             <circle cx="16" cy="13" r="1"/>
                         </svg>
-                        題庫管理
+                        <span data-i18n="sidebar.questionBank">題庫管理</span>
                     </a>
                     <a href="#" class="nav-item" onclick="showView('gradebookManagement'); MoodleUI.openGradebookManagement();">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1415,7 +1415,7 @@
                             <line x1="9" y1="3" x2="9" y2="21"/>
                             <line x1="15" y1="3" x2="15" y2="21"/>
                         </svg>
-                        成績簿管理
+                        <span data-i18n="sidebar.gradebookMgmt">成績簿管理</span>
                     </a>
                     <a href="#" class="nav-item" onclick="showView('rubrics'); MoodleUI.openRubricsManager();">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1423,34 +1423,34 @@
                             <path d="M3 9h18M9 3v18"/>
                             <path d="M13 13l2 2 4-4"/>
                         </svg>
-                        評分標準
+                        <span data-i18n="sidebar.rubrics">評分標準</span>
                     </a>
                     <a href="#" class="nav-item" onclick="showView('courseCompletionSettings'); MoodleUI.openCourseCompletionSettings();">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
                             <polyline points="22,4 12,14.01 9,11.01"/>
                         </svg>
-                        課程完成設定
+                        <span data-i18n="sidebar.completionSettings">課程完成設定</span>
                         <span class="nav-badge" id="notificationBadge" style="display: none;">0</span>
                     </a>
                 </div>
 
                 <!-- 管理員專用功能區 -->
                 <div class="nav-section admin-only-nav" id="adminNavSection" style="display: none;">
-                    <div class="nav-section-title">系統管理</div>
+                    <div class="nav-section-title" data-i18n="sidebar.systemAdmin">系統管理</div>
                     <a href="#" class="nav-item" onclick="showView('rolesManagement'); MoodleUI.openRolesManagement();">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/>
                             <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
                         </svg>
-                        角色權限
+                        <span data-i18n="sidebar.roles">角色權限</span>
                     </a>
                     <a href="#" class="nav-item" onclick="showView('courseCategories'); MoodleUI.openCourseCategories();">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>
                             <path d="M12 11v6M9 14h6"/>
                         </svg>
-                        課程類別
+                        <span data-i18n="sidebar.courseCategories">課程類別</span>
                     </a>
                     <a href="#" class="nav-item" onclick="showView('auditLogs'); MoodleUI.openAuditLogs();">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1458,7 +1458,7 @@
                             <path d="M14 2v6h6"/>
                             <path d="M16 13H8M16 17H8M10 9H8"/>
                         </svg>
-                        審計日誌
+                        <span data-i18n="sidebar.auditLogs">審計日誌</span>
                     </a>
                     <a href="#" class="nav-item" onclick="showView('scormManager'); MoodleUI.openScormManager();">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1466,7 +1466,7 @@
                             <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
                             <line x1="12" y1="22.08" x2="12" y2="12"/>
                         </svg>
-                        SCORM 管理
+                        <span data-i18n="sidebar.scorm">SCORM 管理</span>
                     </a>
                     <a href="#" class="nav-item" onclick="showView('ltiManager'); MoodleUI.openLtiManager();">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1476,7 +1476,7 @@
                             <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
                             <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
                         </svg>
-                        LTI 外部工具
+                        <span data-i18n="sidebar.lti">LTI 外部工具</span>
                     </a>
                     <a href="#" class="nav-item" onclick="showView('h5pManager'); MoodleUI.openH5pManager();">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1485,7 +1485,7 @@
                             <line x1="12" y1="17" x2="12" y2="21"/>
                             <path d="M7 8h2v6H7zM11 8h2v6h-2zM15 8h2v6h-2"/>
                         </svg>
-                        H5P 內容
+                        <span data-i18n="sidebar.h5p">H5P 內容</span>
                     </a>
                     <a href="#" class="nav-item" onclick="window.location.href='/admin';">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1494,18 +1494,18 @@
                             <rect x="14" y="12" width="7" height="9"/>
                             <rect x="3" y="16" width="7" height="5"/>
                         </svg>
-                        管理後台
+                        <span data-i18n="sidebar.adminPanel">管理後台</span>
                     </a>
                 </div>
 
                 <div class="nav-section">
-                    <div class="nav-section-title">建橋者檔案</div>
+                    <div class="nav-section-title" data-i18n="sidebar.userProfile">建橋者檔案</div>
                     <a href="#" class="nav-item" onclick="showView('settings')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <circle cx="12" cy="12" r="3"/>
                             <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
                         </svg>
-                        橋樑設定
+                        <span data-i18n="sidebar.settings">橋樑設定</span>
                     </a>
                     <a href="#" class="nav-item" onclick="showView('logout')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1513,7 +1513,7 @@
                             <polyline points="16,17 21,12 16,7"/>
                             <line x1="21" y1="12" x2="9" y2="12"/>
                         </svg>
-                        離開橋樑
+                        <span data-i18n="sidebar.logout">離開橋樑</span>
                     </a>
                 </div>
             </nav>
@@ -1548,7 +1548,7 @@
                             <circle cx="11" cy="11" r="8"/>
                             <line x1="21" y1="21" x2="16.65" y2="16.65"/>
                         </svg>
-                        <input type="text" placeholder="搜尋建材、橋樑...">
+                        <input type="text" data-i18n-placeholder="common.searchPlaceholder" placeholder="搜尋建材、橋樑...">
                     </div>
                     <button class="icon-btn" onclick="toggleNotifications()">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1566,8 +1566,8 @@
                 <div class="dashboard-greeting" id="dashboardGreeting">
                     <div class="greeting-content">
                         <div class="greeting-text">
-                            <h1 id="greetingMessage">你好！</h1>
-                            <p id="greetingSubtext">今天是學習的好日子</p>
+                            <h1 id="greetingMessage" data-i18n="dashboard.greeting">你好！</h1>
+                            <p id="greetingSubtext" data-i18n="dashboard.greetingSubtext">今天是學習的好日子</p>
                         </div>
                         <div class="greeting-stats">
                             <div class="progress-ring-container">
@@ -1579,17 +1579,17 @@
                                     </svg>
                                     <div class="progress-text">
                                         <span class="progress-value" id="progressValue">0%</span>
-                                        <span class="progress-label">總完成率</span>
+                                        <span class="progress-label" data-i18n="dashboard.completionRate">總完成率</span>
                                     </div>
                                 </div>
                             </div>
                             <div class="greeting-stat-item">
                                 <div class="greeting-stat-value" id="greetingCourses">0</div>
-                                <div class="greeting-stat-label">進行中課程</div>
+                                <div class="greeting-stat-label" data-i18n="dashboard.coursesInProgress">進行中課程</div>
                             </div>
                             <div class="greeting-stat-item">
                                 <div class="greeting-stat-value" id="greetingHours">0h</div>
-                                <div class="greeting-stat-label">本週學習</div>
+                                <div class="greeting-stat-label" data-i18n="dashboard.weeklyStudy">本週學習</div>
                             </div>
                         </div>
                     </div>
@@ -1608,7 +1608,7 @@
                                     <line x1="12" y1="8" x2="12" y2="12"/>
                                     <line x1="12" y1="16" x2="12.01" y2="16"/>
                                 </svg>
-                                即將截止
+                                <span data-i18n="dashboard.urgentDeadlines">即將截止</span>
                             </h2>
                             <span class="deadline-count" style="background: var(--terracotta); color: white; padding: 2px 10px; border-radius: 12px; font-size: 0.75rem;" id="deadlineCount">0 項</span>
                         </div>
@@ -1619,7 +1619,7 @@
                                         <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
                                         <polyline points="22,4 12,14.01 9,11.01"/>
                                     </svg>
-                                    <p>太棒了！近期沒有待完成的任務</p>
+                                    <p data-i18n="dashboard.noUrgentTasks">太棒了！近期沒有待完成的任務</p>
                                 </div>
                             </div>
                         </div>
@@ -1640,7 +1640,7 @@
                             <span class="stat-trend up" id="courseTrend">+0%</span>
                         </div>
                         <div class="stat-value" id="statCourseCount">0</div>
-                        <div class="stat-label">進行中課程</div>
+                        <div class="stat-label" data-i18n="dashboard.coursesInProgress">進行中課程</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-header">
@@ -1652,7 +1652,7 @@
                             </div>
                         </div>
                         <div class="stat-value" id="statCompletionRate">0%</div>
-                        <div class="stat-label">平均完成率</div>
+                        <div class="stat-label" data-i18n="dashboard.avgCompletion">平均完成率</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-header">
@@ -1664,7 +1664,7 @@
                             </div>
                         </div>
                         <div class="stat-value" id="statStudyHours">0h</div>
-                        <div class="stat-label">本週學習時數</div>
+                        <div class="stat-label" data-i18n="dashboard.weeklyHours">本週學習時數</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-header">
@@ -1676,7 +1676,7 @@
                             </div>
                         </div>
                         <div class="stat-value" id="statBadgeCount">0</div>
-                        <div class="stat-label">獲得徽章</div>
+                        <div class="stat-label" data-i18n="dashboard.badgesEarned">獲得徽章</div>
                     </div>
                 </div>
 
@@ -1691,9 +1691,9 @@
                                     <svg viewBox="0 0 24 24" fill="none" stroke="var(--olive)" stroke-width="2" style="width: 20px; height: 20px;">
                                         <polygon points="5,3 19,12 5,21"/>
                                     </svg>
-                                    繼續學習
+                                    <span data-i18n="dashboard.continueLearning">繼續學習</span>
                                 </h2>
-                                <a href="#" class="card-action" onclick="showView('moodleCourses'); MoodleUI.loadCourses();">查看全部</a>
+                                <a href="#" class="card-action" data-i18n="common.viewAll" onclick="showView('moodleCourses'); MoodleUI.loadCourses();">查看全部</a>
                             </div>
                             <div class="card-body">
                                 <div class="course-list">
@@ -1702,8 +1702,8 @@
                                             <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/>
                                             <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>
                                         </svg>
-                                        <p>尚無進行中的課程</p>
-                                        <a href="#" onclick="showView('moodleCourses'); MoodleUI.loadCourses();" style="color: var(--olive); text-decoration: underline;">瀏覽課程</a>
+                                        <p data-i18n="dashboard.noCourses">尚無進行中的課程</p>
+                                        <a href="#" data-i18n="dashboard.browseCourses" onclick="showView('moodleCourses'); MoodleUI.loadCourses();" style="color: var(--olive); text-decoration: underline;">瀏覽課程</a>
                                     </div>
                                 </div>
                             </div>
@@ -1717,9 +1717,9 @@
                                         <circle cx="12" cy="8" r="6"/>
                                         <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/>
                                     </svg>
-                                    最近成就
+                                    <span data-i18n="dashboard.recentAchievements">最近成就</span>
                                 </h2>
-                                <a href="#" class="card-action" onclick="showView('badges'); MoodleUI.openBadges();">查看全部</a>
+                                <a href="#" class="card-action" data-i18n="common.viewAll" onclick="showView('badges'); MoodleUI.openBadges();">查看全部</a>
                             </div>
                             <div class="card-body">
                                 <div class="badges-grid" id="recentBadgesList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 1rem;">
@@ -1728,7 +1728,7 @@
                                             <circle cx="12" cy="8" r="6"/>
                                             <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/>
                                         </svg>
-                                        <p>完成課程和作業來獲得徽章！</p>
+                                        <p data-i18n="dashboard.earnBadges">完成課程和作業來獲得徽章！</p>
                                     </div>
                                 </div>
                             </div>
@@ -1746,26 +1746,26 @@
                                         <line x1="12" y1="20" x2="12" y2="4"/>
                                         <line x1="6" y1="20" x2="6" y2="14"/>
                                     </svg>
-                                    學習統計
+                                    <span data-i18n="dashboard.learningStats">學習統計</span>
                                 </h2>
                             </div>
                             <div class="card-body">
                                 <div class="weekly-stats" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                                     <div class="weekly-stat-item" style="background: var(--surface-light); padding: 1rem; border-radius: 8px; text-align: center;">
                                         <div class="weekly-stat-value" style="font-size: 1.5rem; font-weight: 600; color: var(--olive);" id="weeklyCompletedItems">0</div>
-                                        <div class="weekly-stat-label" style="font-size: 0.75rem; color: var(--text-secondary);">本週完成項目</div>
+                                        <div class="weekly-stat-label" style="font-size: 0.75rem; color: var(--text-secondary);" data-i18n="dashboard.weeklyCompleted">本週完成項目</div>
                                     </div>
                                     <div class="weekly-stat-item" style="background: var(--surface-light); padding: 1rem; border-radius: 8px; text-align: center;">
                                         <div class="weekly-stat-value" style="font-size: 1.5rem; font-weight: 600; color: var(--terracotta);" id="weeklyStudyMinutes">0</div>
-                                        <div class="weekly-stat-label" style="font-size: 0.75rem; color: var(--text-secondary);">學習分鐘數</div>
+                                        <div class="weekly-stat-label" style="font-size: 0.75rem; color: var(--text-secondary);" data-i18n="dashboard.studyMinutes">學習分鐘數</div>
                                     </div>
                                     <div class="weekly-stat-item" style="background: var(--surface-light); padding: 1rem; border-radius: 8px; text-align: center;">
                                         <div class="weekly-stat-value" style="font-size: 1.5rem; font-weight: 600; color: var(--blue);" id="weeklyLoginDays">0</div>
-                                        <div class="weekly-stat-label" style="font-size: 0.75rem; color: var(--text-secondary);">連續登入天數</div>
+                                        <div class="weekly-stat-label" style="font-size: 0.75rem; color: var(--text-secondary);" data-i18n="dashboard.loginStreak">連續登入天數</div>
                                     </div>
                                     <div class="weekly-stat-item" style="background: var(--surface-light); padding: 1rem; border-radius: 8px; text-align: center;">
                                         <div class="weekly-stat-value" style="font-size: 1.5rem; font-weight: 600; color: var(--success);" id="weeklyQuizScore">-</div>
-                                        <div class="weekly-stat-label" style="font-size: 0.75rem; color: var(--text-secondary);">平均測驗分數</div>
+                                        <div class="weekly-stat-label" style="font-size: 0.75rem; color: var(--text-secondary);" data-i18n="dashboard.avgQuizScore">平均測驗分數</div>
                                     </div>
                                 </div>
                             </div>
@@ -1774,12 +1774,12 @@
                         <!-- Recent Activity -->
                         <div class="card" style="margin-bottom: 1.5rem;">
                             <div class="card-header">
-                                <h2 class="card-title">最近活動</h2>
+                                <h2 class="card-title" data-i18n="dashboard.recentActivity">最近活動</h2>
                             </div>
                             <div class="card-body">
                                 <div class="activity-list">
                                     <div class="empty-state" style="text-align: center; padding: 1.5rem; color: var(--text-secondary);">
-                                        <p>尚無活動記錄</p>
+                                        <p data-i18n="dashboard.noActivity">尚無活動記錄</p>
                                     </div>
                                 </div>
                             </div>
@@ -1788,7 +1788,7 @@
                         <!-- Quick Actions -->
                         <div class="card">
                             <div class="card-header">
-                                <h2 class="card-title">快速操作</h2>
+                                <h2 class="card-title" data-i18n="dashboard.quickActions">快速操作</h2>
                             </div>
                             <div class="card-body">
                                 <div class="quick-actions" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
@@ -1797,7 +1797,7 @@
                                             <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/>
                                             <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>
                                         </svg>
-                                        <span style="font-size: 0.8rem;">我的課程</span>
+                                        <span style="font-size: 0.8rem;" data-i18n="dashboard.myCourses">我的課程</span>
                                     </a>
                                     <a href="#" class="quick-action-btn" onclick="showView('moodleAssignments'); MoodleUI.loadAssignments();" style="display: flex; flex-direction: column; align-items: center; padding: 1rem; background: var(--surface-light); border-radius: 8px; text-decoration: none; color: var(--text-primary); transition: all 0.2s;">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="var(--terracotta)" stroke-width="2" style="width: 24px; height: 24px; margin-bottom: 0.5rem;">
@@ -1806,7 +1806,7 @@
                                             <line x1="12" y1="18" x2="12" y2="12"/>
                                             <line x1="9" y1="15" x2="15" y2="15"/>
                                         </svg>
-                                        <span style="font-size: 0.8rem;">待交作業</span>
+                                        <span style="font-size: 0.8rem;" data-i18n="dashboard.pendingAssignments">待交作業</span>
                                     </a>
                                     <a href="#" class="quick-action-btn" onclick="showView('moodleQuizzes'); MoodleUI.loadQuizzes();" style="display: flex; flex-direction: column; align-items: center; padding: 1rem; background: var(--surface-light); border-radius: 8px; text-decoration: none; color: var(--text-primary); transition: all 0.2s;">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" style="width: 24px; height: 24px; margin-bottom: 0.5rem;">
@@ -1814,7 +1814,7 @@
                                             <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/>
                                             <line x1="12" y1="17" x2="12.01" y2="17"/>
                                         </svg>
-                                        <span style="font-size: 0.8rem;">待考測驗</span>
+                                        <span style="font-size: 0.8rem;" data-i18n="dashboard.pendingQuizzes">待考測驗</span>
                                     </a>
                                     <a href="#" class="quick-action-btn" onclick="showView('moodleGradebook'); MoodleUI.loadGradebook();" style="display: flex; flex-direction: column; align-items: center; padding: 1rem; background: var(--surface-light); border-radius: 8px; text-decoration: none; color: var(--text-primary); transition: all 0.2s;">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" style="width: 24px; height: 24px; margin-bottom: 0.5rem;">
@@ -1825,7 +1825,7 @@
                                             <line x1="3" y1="12" x2="3.01" y2="12"/>
                                             <line x1="3" y1="18" x2="3.01" y2="18"/>
                                         </svg>
-                                        <span style="font-size: 0.8rem;">我的成績</span>
+                                        <span style="font-size: 0.8rem;" data-i18n="dashboard.myGrades">我的成績</span>
                                     </a>
                                 </div>
                             </div>
@@ -1840,21 +1840,21 @@
                 <div class="dashboard-greeting teacher-greeting" id="teacherDashboardGreeting">
                     <div class="greeting-content">
                         <div class="greeting-text">
-                            <h1 id="teacherGreetingMessage">歡迎回來！</h1>
-                            <p id="teacherGreetingSubtext">今日的教學任務概覽</p>
+                            <h1 id="teacherGreetingMessage" data-i18n="teacher.greeting">歡迎回來！</h1>
+                            <p id="teacherGreetingSubtext" data-i18n="teacher.greetingSubtext">今日的教學任務概覽</p>
                         </div>
                         <div class="greeting-stats">
                             <div class="greeting-stat-item">
                                 <div class="greeting-stat-value" id="teacherPendingGrading">0</div>
-                                <div class="greeting-stat-label">待評分</div>
+                                <div class="greeting-stat-label" data-i18n="teacher.pendingGrading">待評分</div>
                             </div>
                             <div class="greeting-stat-item">
                                 <div class="greeting-stat-value" id="teacherStudentCount">0</div>
-                                <div class="greeting-stat-label">學生數</div>
+                                <div class="greeting-stat-label" data-i18n="teacher.studentCount">學生數</div>
                             </div>
                             <div class="greeting-stat-item">
                                 <div class="greeting-stat-value" id="teacherCourseCount">0</div>
-                                <div class="greeting-stat-label">課程數</div>
+                                <div class="greeting-stat-label" data-i18n="teacher.courseCount">課程數</div>
                             </div>
                         </div>
                     </div>
@@ -1869,26 +1869,26 @@
                                     <circle cx="12" cy="12" r="10"/>
                                     <polyline points="12,6 12,12 16,14"/>
                                 </svg>
-                                待處理事項
+                                <span data-i18n="teacher.pendingTasks">待處理事項</span>
                             </h2>
                         </div>
                         <div class="card-body">
                             <div class="pending-tasks-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem;">
                                 <div class="pending-task-item" style="background: var(--terracotta-light); padding: 1.25rem; border-radius: 12px; text-align: center; cursor: pointer;" onclick="showView('moodleAssignments'); MoodleUI.loadAssignments();">
                                     <div class="pending-task-count" id="pendingAssignments" style="font-size: 2rem; font-weight: 700; color: var(--terracotta);">0</div>
-                                    <div class="pending-task-label" style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.25rem;">待批改作業</div>
+                                    <div class="pending-task-label" style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.25rem;" data-i18n="teacher.pendingAssignments">待批改作業</div>
                                 </div>
                                 <div class="pending-task-item" style="background: var(--blue-light, #E3F2FD); padding: 1.25rem; border-radius: 12px; text-align: center; cursor: pointer;" onclick="showView('moodleQuizzes'); MoodleUI.loadQuizzes();">
                                     <div class="pending-task-count" id="pendingQuizzes" style="font-size: 2rem; font-weight: 700; color: var(--blue, #1976D2);">0</div>
-                                    <div class="pending-task-label" style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.25rem;">待審核測驗</div>
+                                    <div class="pending-task-label" style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.25rem;" data-i18n="teacher.pendingQuizReview">待審核測驗</div>
                                 </div>
                                 <div class="pending-task-item" style="background: var(--sand-light); padding: 1.25rem; border-radius: 12px; text-align: center; cursor: pointer;" onclick="showView('moodleForums'); MoodleUI.loadForums();">
                                     <div class="pending-task-count" id="pendingForums" style="font-size: 2rem; font-weight: 700; color: var(--sand);">0</div>
-                                    <div class="pending-task-label" style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.25rem;">待回覆討論</div>
+                                    <div class="pending-task-label" style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.25rem;" data-i18n="teacher.pendingForumReplies">待回覆討論</div>
                                 </div>
                                 <div class="pending-task-item" style="background: var(--olive-light); padding: 1.25rem; border-radius: 12px; text-align: center; cursor: pointer;" onclick="showView('moodleNotifications'); MoodleUI.loadNotifications();">
                                     <div class="pending-task-count" id="pendingNotifications" style="font-size: 2rem; font-weight: 700; color: var(--olive);">0</div>
-                                    <div class="pending-task-label" style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.25rem;">新通知</div>
+                                    <div class="pending-task-label" style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.25rem;" data-i18n="teacher.newNotifications">新通知</div>
                                 </div>
                             </div>
                         </div>
@@ -1909,7 +1909,7 @@
                             </div>
                         </div>
                         <div class="stat-value" id="teacherTotalStudents">0</div>
-                        <div class="stat-label">總學生數</div>
+                        <div class="stat-label" data-i18n="teacher.totalStudents">總學生數</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-header">
@@ -1922,7 +1922,7 @@
                             </div>
                         </div>
                         <div class="stat-value" id="teacherActiveCourses">0</div>
-                        <div class="stat-label">開設課程</div>
+                        <div class="stat-label" data-i18n="teacher.activeCourses">開設課程</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-header">
@@ -1934,7 +1934,7 @@
                             </div>
                         </div>
                         <div class="stat-value" id="teacherAvgProgress">0%</div>
-                        <div class="stat-label">平均進度</div>
+                        <div class="stat-label" data-i18n="teacher.avgProgress">平均進度</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-header">
@@ -1947,7 +1947,7 @@
                             </div>
                         </div>
                         <div class="stat-value" id="teacherWeeklySubmissions">0</div>
-                        <div class="stat-label">本週新提交</div>
+                        <div class="stat-label" data-i18n="teacher.weeklySubmissions">本週新提交</div>
                     </div>
                 </div>
 
@@ -1963,9 +1963,9 @@
                                         <polyline points="2,17 12,22 22,17"/>
                                         <polyline points="2,12 12,17 22,12"/>
                                     </svg>
-                                    我的課程
+                                    <span data-i18n="teacher.myCourses">我的課程</span>
                                 </h2>
-                                <a href="#" class="card-action" onclick="showView('moodleCourses'); MoodleUI.loadCourses();">管理課程</a>
+                                <a href="#" class="card-action" data-i18n="teacher.manageCourses" onclick="showView('moodleCourses'); MoodleUI.loadCourses();">管理課程</a>
                             </div>
                             <div class="card-body">
                                 <div class="teacher-course-list" id="teacherCourseList">
@@ -1975,8 +1975,8 @@
                                             <polyline points="2,17 12,22 22,17"/>
                                             <polyline points="2,12 12,17 22,12"/>
                                         </svg>
-                                        <p>尚未建立任何課程</p>
-                                        <a href="#" onclick="MoodleUI.showCreateCourseModal();" style="color: var(--olive); text-decoration: underline;">建立第一個課程</a>
+                                        <p data-i18n="teacher.noCourses">尚未建立任何課程</p>
+                                        <a href="#" data-i18n="teacher.createFirstCourse" onclick="MoodleUI.showCreateCourseModal();" style="color: var(--olive); text-decoration: underline;">建立第一個課程</a>
                                     </div>
                                 </div>
                             </div>
@@ -1985,7 +1985,7 @@
                         <!-- Quick Actions for Teachers -->
                         <div class="card">
                             <div class="card-header">
-                                <h2 class="card-title">快捷操作</h2>
+                                <h2 class="card-title" data-i18n="teacher.quickActions">快捷操作</h2>
                             </div>
                             <div class="card-body">
                                 <div class="teacher-quick-actions" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem;">
@@ -1995,7 +1995,7 @@
                                             <line x1="12" y1="12" x2="12" y2="22"/>
                                             <line x1="7" y1="17" x2="17" y2="17"/>
                                         </svg>
-                                        <span style="font-size: 0.9rem; font-weight: 500;">新增課程</span>
+                                        <span style="font-size: 0.9rem; font-weight: 500;" data-i18n="teacher.addCourse">新增課程</span>
                                     </button>
                                     <button class="teacher-action-btn" onclick="MoodleUI.showCreateAssignmentModal();" style="display: flex; align-items: center; gap: 0.75rem; padding: 1rem; background: var(--terracotta-light); border: none; border-radius: 8px; cursor: pointer; text-align: left;">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="var(--terracotta)" stroke-width="2" style="width: 24px; height: 24px; flex-shrink: 0;">
@@ -2004,7 +2004,7 @@
                                             <line x1="12" y1="18" x2="12" y2="12"/>
                                             <line x1="9" y1="15" x2="15" y2="15"/>
                                         </svg>
-                                        <span style="font-size: 0.9rem; font-weight: 500;">新增作業</span>
+                                        <span style="font-size: 0.9rem; font-weight: 500;" data-i18n="teacher.addAssignment">新增作業</span>
                                     </button>
                                     <button class="teacher-action-btn" onclick="MoodleUI.showCreateQuizModal();" style="display: flex; align-items: center; gap: 0.75rem; padding: 1rem; background: var(--blue-light, #E3F2FD); border: none; border-radius: 8px; cursor: pointer; text-align: left;">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="var(--blue, #1976D2)" stroke-width="2" style="width: 24px; height: 24px; flex-shrink: 0;">
@@ -2012,13 +2012,13 @@
                                             <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/>
                                             <line x1="12" y1="17" x2="12.01" y2="17"/>
                                         </svg>
-                                        <span style="font-size: 0.9rem; font-weight: 500;">新增測驗</span>
+                                        <span style="font-size: 0.9rem; font-weight: 500;" data-i18n="teacher.addQuiz">新增測驗</span>
                                     </button>
                                     <button class="teacher-action-btn" onclick="MoodleUI.showCreateAnnouncementModal();" style="display: flex; align-items: center; gap: 0.75rem; padding: 1rem; background: var(--sand-light); border: none; border-radius: 8px; cursor: pointer; text-align: left;">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="var(--sand)" stroke-width="2" style="width: 24px; height: 24px; flex-shrink: 0;">
                                             <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
                                         </svg>
-                                        <span style="font-size: 0.9rem; font-weight: 500;">發布公告</span>
+                                        <span style="font-size: 0.9rem; font-weight: 500;" data-i18n="teacher.postAnnouncement">發布公告</span>
                                     </button>
                                 </div>
                             </div>
@@ -2035,9 +2035,9 @@
                                         <path d="M9 11l3 3L22 4"/>
                                         <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
                                     </svg>
-                                    待評分佇列
+                                    <span data-i18n="teacher.gradingQueue">待評分佇列</span>
                                 </h2>
-                                <a href="#" class="card-action" onclick="showView('moodleAssignments'); MoodleUI.loadAssignments();">查看全部</a>
+                                <a href="#" class="card-action" data-i18n="common.viewAll" onclick="showView('moodleAssignments'); MoodleUI.loadAssignments();">查看全部</a>
                             </div>
                             <div class="card-body" style="padding: 0;">
                                 <div id="gradingQueueList">
@@ -2046,7 +2046,7 @@
                                             <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
                                             <polyline points="22,4 12,14.01 9,11.01"/>
                                         </svg>
-                                        <p>目前沒有待評分的作業</p>
+                                        <p data-i18n="teacher.noGradingTasks">目前沒有待評分的作業</p>
                                     </div>
                                 </div>
                             </div>
@@ -2061,7 +2061,7 @@
                                         <line x1="12" y1="9" x2="12" y2="13"/>
                                         <line x1="12" y1="17" x2="12.01" y2="17"/>
                                     </svg>
-                                    學生狀態警示
+                                    <span data-i18n="teacher.studentAlerts">學生狀態警示</span>
                                 </h2>
                                 <span class="alert-count" id="studentAlertCount" style="background: var(--terracotta); color: white; padding: 2px 10px; border-radius: 12px; font-size: 0.75rem;">0 項</span>
                             </div>
@@ -2072,7 +2072,7 @@
                                             <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
                                             <polyline points="22,4 12,14.01 9,11.01"/>
                                         </svg>
-                                        <p>太好了！目前沒有需要關注的學生</p>
+                                        <p data-i18n="teacher.noStudentAlerts">太好了！目前沒有需要關注的學生</p>
                                     </div>
                                 </div>
                             </div>
@@ -2086,14 +2086,14 @@
                                         <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
                                         <polyline points="14,2 14,8 20,8"/>
                                     </svg>
-                                    最近提交
+                                    <span data-i18n="teacher.recentSubmissions">最近提交</span>
                                 </h2>
-                                <a href="#" class="card-action" onclick="showView('moodleAssignments'); MoodleUI.loadAssignments();">查看全部</a>
+                                <a href="#" class="card-action" data-i18n="common.viewAll" onclick="showView('moodleAssignments'); MoodleUI.loadAssignments();">查看全部</a>
                             </div>
                             <div class="card-body">
                                 <div class="recent-submissions-list" id="recentSubmissionsList">
                                     <div class="empty-state" style="text-align: center; padding: 1.5rem; color: var(--text-secondary);">
-                                        <p>尚無新的提交記錄</p>
+                                        <p data-i18n="teacher.noSubmissions">尚無新的提交記錄</p>
                                     </div>
                                 </div>
                             </div>
@@ -2105,35 +2105,35 @@
             <!-- My Courses View -->
             <div class="dashboard" id="coursesView" style="display: none;">
                 <div id="myCoursesContent">
-                    <div class="loading-indicator">載入中...</div>
+                    <div class="loading-indicator" data-i18n="common.loading">載入中...</div>
                 </div>
             </div>
 
             <!-- License Management View -->
             <div class="dashboard" id="licensesView" style="display: none;">
                 <div id="licensesContent">
-                    <div class="loading-indicator">載入中...</div>
+                    <div class="loading-indicator" data-i18n="common.loading">載入中...</div>
                 </div>
             </div>
 
             <!-- Videos View - 影音橋段 -->
             <div class="dashboard" id="videosView" style="display: none;">
                 <div id="videosContent">
-                    <div class="loading-indicator">載入中...</div>
+                    <div class="loading-indicator" data-i18n="common.loading">載入中...</div>
                 </div>
             </div>
 
             <!-- Quizzes View - 測驗題庫 -->
             <div class="dashboard" id="quizzesView" style="display: none;">
                 <div id="quizzesListContent">
-                    <div class="loading-indicator">載入中...</div>
+                    <div class="loading-indicator" data-i18n="common.loading">載入中...</div>
                 </div>
             </div>
 
             <!-- Discussions View - 互動討論 -->
             <div class="dashboard" id="discussionsView" style="display: none;">
                 <div id="discussionsListContent">
-                    <div class="loading-indicator">載入中...</div>
+                    <div class="loading-indicator" data-i18n="common.loading">載入中...</div>
                 </div>
             </div>
 
@@ -2142,11 +2142,11 @@
                 <!-- Classes Header -->
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
                     <div>
-                        <p style="color: var(--gray-500); font-size: 0.9rem;">管理您搭建的橋隊與探橋者</p>
+                        <p style="color: var(--gray-500); font-size: 0.9rem;" data-i18n="classes.manageDescription">管理您搭建的橋隊與探橋者</p>
                     </div>
                     <button onclick="openCreateClassModal()" style="padding: 0.75rem 1.5rem; background: var(--olive); color: var(--cream); border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 0.5rem;">
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                        搭建新橋
+                        <span data-i18n="classes.createNew">搭建新橋</span>
                     </button>
                 </div>
 
@@ -2160,7 +2160,7 @@
                             <path d="M23 21v-2a4 4 0 00-3-3.87"/>
                             <path d="M16 3.13a4 4 0 010 7.75"/>
                         </svg>
-                        <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">載入中...</p>
+                        <p style="font-size: 1.1rem; margin-bottom: 0.5rem;" data-i18n="common.loading">載入中...</p>
                     </div>
                 </div>
             </div>
@@ -2177,11 +2177,11 @@
                 <!-- Student Classes Header -->
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
                     <div>
-                        <p style="color: var(--gray-500); font-size: 0.9rem;">查看您已加入的橋隊和探橋進度</p>
+                        <p style="color: var(--gray-500); font-size: 0.9rem;" data-i18n="classes.studentDescription">查看您已加入的橋隊和探橋進度</p>
                     </div>
                     <button onclick="openStudentJoinClassModal()" style="padding: 0.75rem 1.5rem; background: var(--olive); color: var(--cream); border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 0.5rem;">
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                        加入新橋隊
+                        <span data-i18n="classes.joinNew">加入新橋隊</span>
                     </button>
                 </div>
 
@@ -2195,7 +2195,7 @@
                             <path d="M23 21v-2a4 4 0 00-3-3.87"/>
                             <path d="M16 3.13a4 4 0 010 7.75"/>
                         </svg>
-                        <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">載入中...</p>
+                        <p style="font-size: 1.1rem; margin-bottom: 0.5rem;" data-i18n="common.loading">載入中...</p>
                     </div>
                 </div>
             </div>
@@ -2204,18 +2204,18 @@
             <div id="studentJoinClassModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;">
                 <div style="width: 90%; max-width: 400px; background: var(--cream); border-radius: 16px; overflow: hidden;">
                     <div style="padding: 1.5rem 2rem; border-bottom: 1px solid var(--gray-200); display: flex; justify-content: space-between; align-items: center;">
-                        <h3 style="font-size: 1.2rem; font-weight: 600;">加入橋隊</h3>
+                        <h3 style="font-size: 1.2rem; font-weight: 600;" data-i18n="classes.joinTitle">加入橋隊</h3>
                         <button onclick="closeStudentJoinClassModal()" style="background: none; border: none; cursor: pointer; padding: 0.5rem;">
                             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                         </button>
                     </div>
                     <div style="padding: 2rem;">
-                        <p style="margin-bottom: 1.25rem; color: var(--gray-600);">請輸入建橋者提供的橋樑通行碼來加入橋隊：</p>
-                        <input type="text" id="studentInviteCodeInput" placeholder="例如：ABC123" maxlength="6" style="width: 100%; padding: 1rem; border: 1px solid var(--gray-200); border-radius: 8px; font-size: 1.5rem; text-align: center; letter-spacing: 0.25rem; text-transform: uppercase;">
+                        <p style="margin-bottom: 1.25rem; color: var(--gray-600);" data-i18n="classes.joinDescription">請輸入建橋者提供的橋樑通行碼來加入橋隊：</p>
+                        <input type="text" id="studentInviteCodeInput" data-i18n-placeholder="classes.inviteCodePlaceholder" placeholder="例如：ABC123" maxlength="6" style="width: 100%; padding: 1rem; border: 1px solid var(--gray-200); border-radius: 8px; font-size: 1.5rem; text-align: center; letter-spacing: 0.25rem; text-transform: uppercase;">
                     </div>
                     <div style="padding: 1rem 2rem; border-top: 1px solid var(--gray-200); display: flex; justify-content: flex-end; gap: 0.75rem;">
-                        <button onclick="closeStudentJoinClassModal()" style="padding: 0.75rem 1.5rem; background: var(--gray-200); border: none; border-radius: 8px; cursor: pointer;">取消</button>
-                        <button onclick="submitStudentJoinClass()" style="padding: 0.75rem 1.5rem; background: var(--olive); color: var(--cream); border: none; border-radius: 8px; cursor: pointer; font-weight: 500;">加入橋隊</button>
+                        <button onclick="closeStudentJoinClassModal()" style="padding: 0.75rem 1.5rem; background: var(--gray-200); border: none; border-radius: 8px; cursor: pointer;" data-i18n="common.cancel">取消</button>
+                        <button onclick="submitStudentJoinClass()" style="padding: 0.75rem 1.5rem; background: var(--olive); color: var(--cream); border: none; border-radius: 8px; cursor: pointer; font-weight: 500;" data-i18n="classes.joinSubmit">加入橋隊</button>
                     </div>
                 </div>
             </div>
@@ -2225,15 +2225,15 @@
                 <!-- Chat Header -->
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                     <div style="display: flex; align-items: center; gap: 1rem;">
-                        <p style="color: var(--gray-500); font-size: 0.9rem;">即時線上客服，專人為您解答問題</p>
+                        <p style="color: var(--gray-500); font-size: 0.9rem;" data-i18n="support.description">即時線上客服，專人為您解答問題</p>
                         <div id="chatAdminStatus" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.25rem 0.75rem; background: var(--gray-100); border-radius: 20px; font-size: 0.85rem;">
                             <span id="chatStatusDot" style="width: 8px; height: 8px; border-radius: 50%; background: var(--gray-400);"></span>
-                            <span id="chatStatusText">檢查中...</span>
+                            <span id="chatStatusText" data-i18n="support.checking">檢查中...</span>
                         </div>
                     </div>
                     <button onclick="startNewChat()" id="newChatBtn" style="padding: 0.75rem 1.5rem; background: var(--olive); color: var(--cream); border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 0.5rem;">
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                        開始對話
+                        <span data-i18n="support.startChat">開始對話</span>
                     </button>
                 </div>
 
@@ -2242,14 +2242,14 @@
                     <!-- Chat List -->
                     <div class="card" style="overflow: hidden; display: flex; flex-direction: column;">
                         <div class="card-header" style="padding: 1rem; border-bottom: 1px solid var(--gray-200);">
-                            <h3 style="font-size: 0.95rem; font-weight: 600;">對話記錄</h3>
+                            <h3 style="font-size: 0.95rem; font-weight: 600;" data-i18n="support.chatHistory">對話記錄</h3>
                         </div>
                         <div id="chatRoomList" style="flex: 1; overflow-y: auto; padding: 0.5rem;">
                             <div style="text-align: center; padding: 2rem 1rem; color: var(--gray-400);">
                                 <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1" style="margin-bottom: 0.5rem; opacity: 0.5;">
                                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                                 </svg>
-                                <p style="font-size: 0.85rem;">尚無對話記錄</p>
+                                <p style="font-size: 0.85rem;" data-i18n="support.noHistory">尚無對話記錄</p>
                             </div>
                         </div>
                     </div>
@@ -2264,12 +2264,12 @@
                                         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--cream)" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                                     </div>
                                     <div>
-                                        <h4 id="chatWindowTitle" style="font-size: 0.95rem; font-weight: 600;">客服對話</h4>
-                                        <p id="chatWindowStatus" style="font-size: 0.8rem; color: var(--gray-500);">等待客服連線...</p>
+                                        <h4 id="chatWindowTitle" style="font-size: 0.95rem; font-weight: 600;" data-i18n="support.chatTitle">客服對話</h4>
+                                        <p id="chatWindowStatus" style="font-size: 0.8rem; color: var(--gray-500);" data-i18n="support.waitingAgent">等待客服連線...</p>
                                     </div>
                                 </div>
                                 <div style="display: flex; gap: 0.5rem;">
-                                    <button onclick="closeChatRoom()" style="padding: 0.5rem 1rem; background: var(--gray-100); border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">結束對話</button>
+                                    <button onclick="closeChatRoom()" style="padding: 0.5rem 1rem; background: var(--gray-100); border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem;" data-i18n="support.endChat">結束對話</button>
                                 </div>
                             </div>
                         </div>
@@ -2280,8 +2280,8 @@
                                 <svg viewBox="0 0 24 24" width="80" height="80" fill="none" stroke="currentColor" stroke-width="1" style="margin-bottom: 1rem; opacity: 0.3;">
                                     <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
                                 </svg>
-                                <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem; color: var(--gray-600);">歡迎使用即時客服</h3>
-                                <p style="font-size: 0.9rem; max-width: 300px;">點擊「開始對話」與我們的客服人員即時交流，或選擇左側的歷史對話繼續</p>
+                                <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem; color: var(--gray-600);" data-i18n="support.welcomeTitle">歡迎使用即時客服</h3>
+                                <p style="font-size: 0.9rem; max-width: 300px;" data-i18n="support.welcomeDescription">點擊「開始對話」與我們的客服人員即時交流，或選擇左側的歷史對話繼續</p>
                             </div>
                         </div>
 
@@ -2293,7 +2293,7 @@
                                     <span style="width: 6px; height: 6px; background: var(--gray-400); border-radius: 50%; animation: typing 1s infinite 0.2s;"></span>
                                     <span style="width: 6px; height: 6px; background: var(--gray-400); border-radius: 50%; animation: typing 1s infinite 0.4s;"></span>
                                 </div>
-                                <span id="typingUser">客服正在輸入...</span>
+                                <span id="typingUser" data-i18n="support.typing">客服正在輸入...</span>
                             </div>
                         </div>
 
@@ -2301,11 +2301,11 @@
                         <div id="chatInputArea" style="display: none; padding: 1rem; border-top: 1px solid var(--gray-200); background: white;">
                             <div style="display: flex; gap: 0.75rem; align-items: flex-end;">
                                 <div style="flex: 1; position: relative;">
-                                    <textarea id="chatMessageInput" placeholder="輸入訊息..." rows="1" style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--gray-300); border-radius: 20px; font-size: 0.95rem; resize: none; max-height: 120px; line-height: 1.4;" onkeydown="handleChatKeyDown(event)" oninput="handleChatInput(this)"></textarea>
+                                    <textarea id="chatMessageInput" data-i18n-placeholder="support.inputPlaceholder" placeholder="輸入訊息..." rows="1" style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--gray-300); border-radius: 20px; font-size: 0.95rem; resize: none; max-height: 120px; line-height: 1.4;" onkeydown="handleChatKeyDown(event)" oninput="handleChatInput(this)"></textarea>
                                 </div>
                                 <button onclick="sendChatMessage()" id="sendMessageBtn" style="padding: 0.75rem 1.25rem; background: var(--olive); color: var(--cream); border: none; border-radius: 20px; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-weight: 500;">
                                     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                                    發送
+                                    <span data-i18n="support.send">發送</span>
                                 </button>
                             </div>
                         </div>
@@ -2317,11 +2317,11 @@
             <div id="chatRatingModal" class="modal-overlay" style="display: none;" onclick="if(event.target === this) closeChatRatingModal()">
                 <div class="modal" style="max-width: 400px;">
                     <div class="modal-header">
-                        <h2 class="modal-title">為本次服務評分</h2>
+                        <h2 class="modal-title" data-i18n="support.rateTitle">為本次服務評分</h2>
                         <button class="modal-close" onclick="closeChatRatingModal()">&times;</button>
                     </div>
                     <div class="modal-body" style="text-align: center;">
-                        <p style="margin-bottom: 1.5rem; color: var(--gray-600);">感謝您使用客服服務！請為本次服務評分：</p>
+                        <p style="margin-bottom: 1.5rem; color: var(--gray-600);" data-i18n="support.rateDescription">感謝您使用客服服務！請為本次服務評分：</p>
                         <div id="ratingStars" style="display: flex; justify-content: center; gap: 0.5rem; margin-bottom: 1.5rem;">
                             <button onclick="setRating(1)" class="rating-star" data-rating="1" style="background: none; border: none; cursor: pointer; font-size: 2rem; color: var(--gray-300); transition: color 0.2s;">★</button>
                             <button onclick="setRating(2)" class="rating-star" data-rating="2" style="background: none; border: none; cursor: pointer; font-size: 2rem; color: var(--gray-300); transition: color 0.2s;">★</button>
@@ -2329,11 +2329,11 @@
                             <button onclick="setRating(4)" class="rating-star" data-rating="4" style="background: none; border: none; cursor: pointer; font-size: 2rem; color: var(--gray-300); transition: color 0.2s;">★</button>
                             <button onclick="setRating(5)" class="rating-star" data-rating="5" style="background: none; border: none; cursor: pointer; font-size: 2rem; color: var(--gray-300); transition: color 0.2s;">★</button>
                         </div>
-                        <textarea id="ratingComment" placeholder="留下您的建議（選填）" rows="3" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 8px; font-size: 0.95rem; resize: none; margin-bottom: 1rem;"></textarea>
+                        <textarea id="ratingComment" data-i18n-placeholder="support.rateCommentPlaceholder" placeholder="留下您的建議（選填）" rows="3" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 8px; font-size: 0.95rem; resize: none; margin-bottom: 1rem;"></textarea>
                     </div>
                     <div style="padding: 1rem 2rem; border-top: 1px solid var(--gray-200); display: flex; justify-content: flex-end; gap: 0.75rem;">
-                        <button onclick="closeChatRatingModal()" style="padding: 0.75rem 1.5rem; background: var(--gray-200); border: none; border-radius: 8px; cursor: pointer;">略過</button>
-                        <button onclick="submitRating()" style="padding: 0.75rem 1.5rem; background: var(--olive); color: var(--cream); border: none; border-radius: 8px; cursor: pointer; font-weight: 500;">提交評分</button>
+                        <button onclick="closeChatRatingModal()" style="padding: 0.75rem 1.5rem; background: var(--gray-200); border: none; border-radius: 8px; cursor: pointer;" data-i18n="support.rateSkip">略過</button>
+                        <button onclick="submitRating()" style="padding: 0.75rem 1.5rem; background: var(--olive); color: var(--cream); border: none; border-radius: 8px; cursor: pointer; font-weight: 500;" data-i18n="support.rateSubmit">提交評分</button>
                     </div>
                 </div>
             </div>
@@ -2348,93 +2348,93 @@
                             <h2 style="font-size: 1.5rem; margin-bottom: 0.25rem;">林建橋者</h2>
                             <p style="opacity: 0.8; margin-bottom: 0.5rem;">teacher.lin@school.edu.tw</p>
                             <div style="display: flex; gap: 1.5rem; font-size: 0.85rem;">
-                                <span><strong>會員等級:</strong> 專業版</span>
-                                <span><strong>加入日期:</strong> 2024/01/15</span>
-                                <span><strong>授權額度:</strong> 50/100</span>
+                                <span><strong data-i18n="settings.memberLevel">會員等級:</strong> <span data-i18n="settings.memberPro">專業版</span></span>
+                                <span><strong data-i18n="settings.joinDate">加入日期:</strong> 2024/01/15</span>
+                                <span><strong data-i18n="settings.licenseQuota">授權額度:</strong> 50/100</span>
                             </div>
                         </div>
-                        <button class="btn-primary" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3);" onclick="showToast('正在上傳大頭貼...')">變更頭像</button>
+                        <button class="btn-primary" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3);" onclick="showToast(t('settings.uploadingAvatar'))" data-i18n="settings.changeAvatar">變更頭像</button>
                     </div>
                 </div>
                 <div class="settings-grid">
                     <div class="card">
-                        <div class="card-header"><h2 class="card-title">建橋者資料</h2></div>
+                        <div class="card-header"><h2 class="card-title" data-i18n="settings.profileTitle">建橋者資料</h2></div>
                         <div class="card-body">
                             <div class="form-group">
-                                <label>姓名</label>
+                                <label data-i18n="settings.name">姓名</label>
                                 <input type="text" class="form-input" id="settingsName" value="">
                             </div>
                             <div class="form-group">
-                                <label>電子郵件</label>
+                                <label data-i18n="settings.email">電子郵件</label>
                                 <input type="email" class="form-input" id="settingsEmail" value="" disabled>
                             </div>
                             <div class="form-group">
-                                <label>學校/機構</label>
+                                <label data-i18n="settings.organization">學校/機構</label>
                                 <input type="text" class="form-input" id="settingsOrganization" value="">
                             </div>
                             <div class="form-group">
-                                <label>角色</label>
+                                <label data-i18n="settings.role">角色</label>
                                 <select class="form-input" id="settingsRole" disabled>
-                                    <option value="educator">建橋者</option>
-                                    <option value="trainer">橋樑工匠</option>
-                                    <option value="creator">知識建築師</option>
-                                    <option value="student">探橋者</option>
+                                    <option value="educator" data-i18n="settings.roleEducator">建橋者</option>
+                                    <option value="trainer" data-i18n="settings.roleTrainer">橋樑工匠</option>
+                                    <option value="creator" data-i18n="settings.roleCreator">知識建築師</option>
+                                    <option value="student" data-i18n="settings.roleStudent">探橋者</option>
                                 </select>
                             </div>
-                            <button class="btn-primary" onclick="saveProfile()">儲存變更</button>
+                            <button class="btn-primary" data-i18n="settings.saveChanges" onclick="saveProfile()">儲存變更</button>
                         </div>
                     </div>
                     <div class="card">
-                        <div class="card-header"><h2 class="card-title">通知設定</h2></div>
+                        <div class="card-header"><h2 class="card-title" data-i18n="settings.notificationsTitle">通知設定</h2></div>
                         <div class="card-body">
                             <div class="toggle-group">
-                                <label><span>新建材上架通知</span><input type="checkbox" id="notifyNewMaterial" checked><span class="toggle"></span></label>
+                                <label><span data-i18n="settings.notifyNewMaterial">新建材上架通知</span><input type="checkbox" id="notifyNewMaterial" checked><span class="toggle"></span></label>
                             </div>
                             <div class="toggle-group">
-                                <label><span>課程進度提醒</span><input type="checkbox" id="notifyProgress" checked><span class="toggle"></span></label>
+                                <label><span data-i18n="settings.notifyProgress">課程進度提醒</span><input type="checkbox" id="notifyProgress" checked><span class="toggle"></span></label>
                             </div>
                             <div class="toggle-group">
-                                <label><span>授權到期提醒</span><input type="checkbox" id="notifyExpiry" checked><span class="toggle"></span></label>
+                                <label><span data-i18n="settings.notifyExpiry">授權到期提醒</span><input type="checkbox" id="notifyExpiry" checked><span class="toggle"></span></label>
                             </div>
                             <div class="toggle-group">
-                                <label><span>電子郵件通知</span><input type="checkbox" id="notifyEmail"><span class="toggle"></span></label>
+                                <label><span data-i18n="settings.notifyEmail">電子郵件通知</span><input type="checkbox" id="notifyEmail"><span class="toggle"></span></label>
                             </div>
-                            <button class="btn-primary" onclick="saveNotificationSettings()">儲存通知設定</button>
+                            <button class="btn-primary" data-i18n="settings.saveNotifications" onclick="saveNotificationSettings()">儲存通知設定</button>
                         </div>
                     </div>
                     <div class="card">
-                        <div class="card-header"><h2 class="card-title">安全設定</h2></div>
+                        <div class="card-header"><h2 class="card-title" data-i18n="settings.securityTitle">安全設定</h2></div>
                         <div class="card-body">
                             <div class="form-group">
-                                <label>目前密碼</label>
-                                <input type="password" class="form-input" id="currentPassword" placeholder="輸入目前密碼">
+                                <label data-i18n="settings.currentPassword">目前密碼</label>
+                                <input type="password" class="form-input" id="currentPassword" data-i18n-placeholder="settings.currentPasswordPlaceholder" placeholder="輸入目前密碼">
                             </div>
                             <div class="form-group">
-                                <label>新密碼</label>
-                                <input type="password" class="form-input" id="newPassword" placeholder="輸入新密碼">
+                                <label data-i18n="settings.newPassword">新密碼</label>
+                                <input type="password" class="form-input" id="newPassword" data-i18n-placeholder="settings.newPasswordPlaceholder" placeholder="輸入新密碼">
                             </div>
                             <div class="form-group">
-                                <label>確認新密碼</label>
-                                <input type="password" class="form-input" id="confirmPassword" placeholder="再次輸入新密碼">
+                                <label data-i18n="settings.confirmPassword">確認新密碼</label>
+                                <input type="password" class="form-input" id="confirmPassword" data-i18n-placeholder="settings.confirmPasswordPlaceholder" placeholder="再次輸入新密碼">
                             </div>
-                            <button class="btn-primary" onclick="changePassword()">更新密碼</button>
+                            <button class="btn-primary" data-i18n="settings.updatePassword" onclick="changePassword()">更新密碼</button>
                         </div>
                     </div>
                     <div class="card">
-                        <div class="card-header"><h2 class="card-title">顯示偏好</h2></div>
+                        <div class="card-header"><h2 class="card-title" data-i18n="settings.displayTitle">顯示偏好</h2></div>
                         <div class="card-body">
                             <div class="toggle-group">
-                                <label><span>深色模式</span><input type="checkbox"><span class="toggle"></span></label>
+                                <label><span data-i18n="settings.darkMode">深色模式</span><input type="checkbox"><span class="toggle"></span></label>
                             </div>
                             <div class="toggle-group">
-                                <label><span>精簡介面</span><input type="checkbox"><span class="toggle"></span></label>
+                                <label><span data-i18n="settings.compactUI">精簡介面</span><input type="checkbox"><span class="toggle"></span></label>
                             </div>
                             <div class="form-group" style="margin-top: 1rem;">
-                                <label>語言</label>
+                                <label data-i18n="settings.language">語言</label>
                                 <select class="form-input">
-                                    <option>繁體中文</option>
-                                    <option>English</option>
-                                    <option>日本語</option>
+                                    <option data-i18n="settings.langZhTW">繁體中文</option>
+                                    <option data-i18n="settings.langEn">English</option>
+                                    <option data-i18n="settings.langJa">日本語</option>
                                 </select>
                             </div>
                         </div>
@@ -2449,52 +2449,52 @@
                     <div style="display: flex; align-items: center; gap: 1rem;">
                         <div class="search-box" style="width: 300px; background: var(--white);">
                             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                            <input type="text" placeholder="搜尋知識建材..." id="librarySearch">
+                            <input type="text" data-i18n-placeholder="library.searchPlaceholder" placeholder="搜尋知識建材..." id="librarySearch">
                         </div>
-                        <span style="color: var(--gray-500); font-size: 0.9rem;">找到 <strong>128</strong> 個建材</span>
+                        <span style="color: var(--gray-500); font-size: 0.9rem;" id="libraryResultCount">找到 <strong>128</strong> 個建材</span>
                     </div>
                     <div style="display: flex; gap: 0.5rem;">
                         <button class="icon-btn" style="background: var(--olive); color: var(--cream);" title="卡片檢視"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></button>
-                        <button class="icon-btn" title="列表檢視" onclick="showToast('切換至列表檢視')"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></button>
-                        <button class="btn-primary" style="padding: 0.5rem 1rem; display: flex; align-items: center; gap: 0.5rem;" onclick="showToast('聯繫顧問申請客製建材')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>申請客製建材</button>
+                        <button class="icon-btn" title="列表檢視" onclick="showToast(t('library.switchToList'))"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></button>
+                        <button class="btn-primary" style="padding: 0.5rem 1rem; display: flex; align-items: center; gap: 0.5rem;" onclick="showToast(t('library.requestCustomToast'))"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span data-i18n="library.requestCustom">申請客製建材</span></button>
                     </div>
                 </div>
                 <div class="library-filters">
                     <div class="filter-group">
-                        <span class="filter-label">科目領域</span>
+                        <span class="filter-label" data-i18n="library.filterSubject">科目領域</span>
                         <select class="filter-select" id="filterCategory" onchange="filterResources()">
-                            <option value="">全部科目</option>
-                            <option value="math">數學</option>
-                            <option value="chinese">國文</option>
-                            <option value="english">英文</option>
-                            <option value="science">自然科學</option>
-                            <option value="social">社會科學</option>
-                            <option value="business">商業管理</option>
-                            <option value="technology">資訊科技</option>
-                            <option value="arts">藝術人文</option>
-                            <option value="language">語言學習</option>
+                            <option value="" data-i18n="library.allSubjects">全部科目</option>
+                            <option value="math" data-i18n="library.subjectMath">數學</option>
+                            <option value="chinese" data-i18n="library.subjectChinese">國文</option>
+                            <option value="english" data-i18n="library.subjectEnglish">英文</option>
+                            <option value="science" data-i18n="library.subjectScience">自然科學</option>
+                            <option value="social" data-i18n="library.subjectSocial">社會科學</option>
+                            <option value="business" data-i18n="library.subjectBusiness">商業管理</option>
+                            <option value="technology" data-i18n="library.subjectTech">資訊科技</option>
+                            <option value="arts" data-i18n="library.subjectArts">藝術人文</option>
+                            <option value="language" data-i18n="library.subjectLanguage">語言學習</option>
                         </select>
                     </div>
                     <div class="filter-group">
-                        <span class="filter-label">適用年級</span>
+                        <span class="filter-label" data-i18n="library.filterGrade">適用年級</span>
                         <select class="filter-select" id="filterGradeLevel" onchange="filterResources()">
-                            <option value="">全部年級</option>
-                            <option value="elementary">國小</option>
-                            <option value="junior">國中</option>
-                            <option value="senior">高中</option>
-                            <option value="university">大學</option>
-                            <option value="corporate">企業培訓</option>
+                            <option value="" data-i18n="library.allGrades">全部年級</option>
+                            <option value="elementary" data-i18n="library.gradeElementary">國小</option>
+                            <option value="junior" data-i18n="library.gradeJunior">國中</option>
+                            <option value="senior" data-i18n="library.gradeSenior">高中</option>
+                            <option value="university" data-i18n="library.gradeUniversity">大學</option>
+                            <option value="corporate" data-i18n="library.gradeCorporate">企業培訓</option>
                         </select>
                     </div>
                     <div class="filter-group">
-                        <span class="filter-label">建材類型</span>
+                        <span class="filter-label" data-i18n="library.filterType">建材類型</span>
                         <select class="filter-select" id="filterType" onchange="filterResources()">
-                            <option value="">全部類型</option>
-                            <option value="video">影音建材</option>
-                            <option value="interactive">互動模組</option>
-                            <option value="document">電子講義</option>
-                            <option value="quiz">測驗題庫</option>
-                            <option value="lti">外部工具</option>
+                            <option value="" data-i18n="library.allTypes">全部類型</option>
+                            <option value="video" data-i18n="library.typeVideo">影音建材</option>
+                            <option value="interactive" data-i18n="library.typeInteractive">互動模組</option>
+                            <option value="document" data-i18n="library.typeDocument">電子講義</option>
+                            <option value="quiz" data-i18n="library.typeQuiz">測驗題庫</option>
+                            <option value="lti" data-i18n="library.typeLti">外部工具</option>
                         </select>
                     </div>
                 </div>
@@ -2505,7 +2505,7 @@
                         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite;">
                             <path d="M12 2v4m0 12v4m10-10h-4M6 12H2m15.5-7.5L15 7m-6 10l-2.5 2.5m13-2.5L17 17M7 7L4.5 4.5"/>
                         </svg>
-                        <p style="margin-top: 16px;">載入教材中...</p>
+                        <p style="margin-top: 16px;" data-i18n="library.loadingResources">載入教材中...</p>
                     </div>
                 </div>
             </div>
@@ -2516,12 +2516,12 @@
             <div class="dashboard" id="moodleCoursesView" style="display: none;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
                     <div style="display: flex; align-items: center; gap: 1rem;">
-                        <input type="text" placeholder="搜尋課程..." id="courseSearch" class="form-input" style="width: 300px;" onkeyup="MoodleUI.loadCourses({search: this.value})">
+                        <input type="text" data-i18n-placeholder="moodle.searchCourses" placeholder="搜尋課程..." id="courseSearch" class="form-input" style="width: 300px;" onkeyup="MoodleUI.loadCourses({search: this.value})">
                         <select class="form-input" onchange="MoodleUI.loadCourses({category: this.value})" style="width: 180px;">
-                            <option value="">全部分類</option>
-                            <option value="programming">程式設計</option>
-                            <option value="math">數學</option>
-                            <option value="language">語言學習</option>
+                            <option value="" data-i18n="moodle.allCategories">全部分類</option>
+                            <option value="programming" data-i18n="moodle.catProgramming">程式設計</option>
+                            <option value="math" data-i18n="moodle.catMath">數學</option>
+                            <option value="language" data-i18n="moodle.catLanguage">語言學習</option>
                         </select>
                     </div>
                 </div>
@@ -2567,7 +2567,7 @@
             <div class="dashboard" id="moodleGradebookView" style="display: none;">
                 <div style="margin-bottom: 1.5rem;">
                     <select id="gradebookCourseSelect" class="form-input" style="width: 300px;" onchange="MoodleUI.loadGradebookForCourse(this.value)">
-                        <option value="">選擇課程查看成績...</option>
+                        <option value="" data-i18n="moodle.selectCourseGrades">選擇課程查看成績...</option>
                     </select>
                 </div>
                 <div id="gradebookContent"></div>
@@ -2586,7 +2586,7 @@
                 </div>
                 <div id="calendarGrid" class="calendar-grid"></div>
                 <div style="margin-top: 2rem;">
-                    <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem;">即將到來的事件</h3>
+                    <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem;" data-i18n="moodle.upcomingEvents">即將到來的事件</h3>
                     <div id="upcomingEventsList"></div>
                 </div>
             </div>
@@ -4055,9 +4055,9 @@
             <div class="login-visual-content">
                 <div class="login-visual-logo">BeyondBridge</div>
                 <div class="login-visual-tagline">Build the Bridge. Go Beyond.</div>
-                <div class="login-visual-quote">
+                <div class="login-visual-quote" data-i18n="login.visual.quote">
                     先築橋，再超越
-                    <span>— 超越之橋計畫</span>
+                    <span data-i18n="login.visual.quoteAuthor">— 超越之橋計畫</span>
                 </div>
             </div>
 
@@ -4071,8 +4071,8 @@
             <div class="login-card">
                 <!-- Tab Switcher -->
                 <div class="auth-tabs">
-                    <button type="button" class="auth-tab active" onclick="switchAuthTab('login')">登入</button>
-                    <button type="button" class="auth-tab" onclick="switchAuthTab('register')">註冊</button>
+                    <button type="button" class="auth-tab active" data-i18n="login.tab.login" onclick="switchAuthTab('login')">登入</button>
+                    <button type="button" class="auth-tab" data-i18n="login.tab.register" onclick="switchAuthTab('register')">註冊</button>
                 </div>
 
                 <div id="loginError" class="login-error"></div>
@@ -4080,14 +4080,14 @@
                 <!-- Login Form -->
                 <form id="loginForm" class="login-form" onsubmit="handleLogin(event)">
                     <div class="form-group">
-                        <label>電子郵件</label>
+                        <label data-i18n="login.email">電子郵件</label>
                         <input type="email" id="loginEmail" placeholder="your@email.com" required>
                     </div>
                     <div class="form-group">
-                        <label>密碼</label>
-                        <input type="password" id="loginPassword" placeholder="請輸入密碼" required>
+                        <label data-i18n="login.password">密碼</label>
+                        <input type="password" id="loginPassword" data-i18n-placeholder="login.passwordPlaceholder" placeholder="請輸入密碼" required>
                     </div>
-                    <button type="submit" class="login-btn">踏上橋樑</button>
+                    <button type="submit" class="login-btn" data-i18n="login.submit">踏上橋樑</button>
                 </form>
 
                 <!-- Register Form (Student Only) -->
@@ -4099,29 +4099,29 @@
                     <div class="invite-code-group">
                         <label>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-                            通行碼
+                            <span data-i18n="register.inviteCode">通行碼</span>
                         </label>
-                        <input type="text" id="registerInviteCode" placeholder="ABC123" maxlength="6" class="invite-code-input">
+                        <input type="text" id="registerInviteCode" data-i18n-placeholder="register.inviteCodePlaceholder" placeholder="ABC123" maxlength="6" class="invite-code-input">
                     </div>
 
                     <!-- Name + Email in 2 columns -->
                     <div class="form-row">
                         <div class="form-group">
-                            <label>姓名</label>
-                            <input type="text" id="registerName" placeholder="您的姓名" required>
+                            <label data-i18n="register.name">姓名</label>
+                            <input type="text" id="registerName" data-i18n-placeholder="register.namePlaceholder" placeholder="您的姓名" required>
                         </div>
                         <div class="form-group">
-                            <label>電子郵件</label>
-                            <input type="email" id="registerEmail" placeholder="email@example.com" required>
+                            <label data-i18n="register.email">電子郵件</label>
+                            <input type="email" id="registerEmail" data-i18n-placeholder="register.emailPlaceholder" placeholder="email@example.com" required>
                         </div>
                     </div>
 
                     <div class="form-group">
-                        <label>密碼</label>
-                        <input type="password" id="registerPassword" placeholder="至少6個字元" required minlength="6">
+                        <label data-i18n="register.password">密碼</label>
+                        <input type="password" id="registerPassword" data-i18n-placeholder="register.passwordPlaceholder" placeholder="至少6個字元" required minlength="6">
                     </div>
 
-                    <button type="submit" class="login-btn">開始探索</button>
+                    <button type="submit" class="login-btn" data-i18n="register.submit">開始探索</button>
                 </form>
             </div>
 
@@ -4133,46 +4133,17 @@
     </div>
 
     <script>
-        // Page titles mapping
-        const pageTitles = {
-            'dashboard': '建橋總覽 <span>Bridge Overview</span>',
-            'library': '知識建材庫 <span>Knowledge Materials</span>',
-            'courses': '我的橋樑 <span>My Bridges</span>',
-            'licenses': '建材授權 <span>Material Licenses</span>',
-            'videos': '影音橋段 <span>Video Segments</span>',
-            'quizzes': '橋樑驗收 <span>Bridge Inspection</span>',
-            'discussions': '共建論壇 <span>Co-Build Forum</span>',
-            'consultations': '即時客服 <span>Live Support</span>',
-            'classes': '共建團隊 <span>Build Teams</span>',
-            'studentClasses': '我的橋隊 <span>My Bridge Team</span>',
-            'classDetail': '團隊詳情 <span>Team Detail</span>',
-            'settings': '橋樑設定 <span>Bridge Settings</span>',
-            'moodleCourses': '課程中心 <span>Course Center</span>',
-            'courseDetail': '課程內容 <span>Course Content</span>',
-            'moodleAssignments': '作業管理 <span>Assignments</span>',
-            'assignmentDetail': '作業詳情 <span>Assignment Detail</span>',
-            'moodleQuizzes': '測驗中心 <span>Quiz Center</span>',
-            'quizAttempt': '測驗作答 <span>Quiz Attempt</span>',
-            'moodleForums': '討論區 <span>Forums</span>',
-            'forumDetail': '討論詳情 <span>Forum Detail</span>',
-            'moodleGradebook': '成績簿 <span>Gradebook</span>',
-            'moodleCalendar': '行事曆 <span>Calendar</span>',
-            'moodleNotifications': '通知中心 <span>Notifications</span>',
-            'moodleFiles': '檔案管理 <span>Files</span>',
-            'questionBank': '題庫管理 <span>Question Bank</span>',
-            'gradebookManagement': '成績簿管理 <span>Gradebook Management</span>',
-            'rolesManagement': '角色權限 <span>Role Management</span>',
-            'courseCategories': '課程類別 <span>Course Categories</span>',
-            'auditLogs': '審計日誌 <span>Audit Logs</span>',
-            'learningPaths': '學習路徑 <span>Learning Paths</span>',
-            'badges': '成就徽章 <span>Badges</span>',
-            'scormManager': 'SCORM 管理 <span>SCORM Packages</span>',
-            'ltiManager': 'LTI 外部工具 <span>External Tools</span>',
-            'h5pManager': 'H5P 內容 <span>Interactive Content</span>',
-            'rubrics': '評分標準 <span>Rubrics</span>',
-            'groupsManager': '群組管理 <span>Groups</span>',
-            'courseCompletionSettings': '課程完成設定 <span>Course Completion</span>'
-        };
+        // Page titles mapping - i18n enabled
+        function getPageTitle(viewName) {
+            const key = 'page.' + viewName;
+            return (typeof t === 'function') ? t(key) : key;
+        }
+        // Legacy compatibility object (for any code that accesses pageTitles directly)
+        const pageTitles = new Proxy({}, {
+            get(target, prop) {
+                return getPageTitle(prop);
+            }
+        });
 
         // Resources data - 動態從 API 載入
         let resources = [];
@@ -6602,22 +6573,22 @@
             const btn = e.target.querySelector('button');
 
             btn.disabled = true;
-            btn.textContent = '正在踏上橋樑...';
+            btn.textContent = t('login.submitting');
             errorDiv.classList.remove('show');
 
             try {
                 const success = await App.login(email, password);
                 if (!success) {
-                    errorDiv.textContent = '無法踏上橋樑，請確認帳號與密碼';
+                    errorDiv.textContent = t('login.error.invalid');
                     errorDiv.classList.add('show');
                 }
             } catch (error) {
-                errorDiv.textContent = '橋樑暫時關閉，請稍後再試';
+                errorDiv.textContent = t('login.error.network');
                 errorDiv.classList.add('show');
             }
 
             btn.disabled = false;
-            btn.textContent = '踏上橋樑';
+            btn.textContent = t('login.submit');
         }
 
         async function handleRegister(e) {
@@ -6628,7 +6599,7 @@
             // 探橋者需要通行碼
             const inviteCode = document.getElementById('registerInviteCode').value.trim().toUpperCase();
             if (!inviteCode || inviteCode.length < 6) {
-                errorDiv.textContent = '請輸入有效的橋樑通行碼';
+                errorDiv.textContent = t('register.error.inviteCode');
                 errorDiv.classList.add('show');
                 return;
             }
@@ -6642,27 +6613,30 @@
             };
 
             btn.disabled = true;
-            btn.textContent = '正在建立探橋者身份...';
+            btn.textContent = t('register.submitting');
             errorDiv.classList.remove('show');
 
             try {
                 const success = await App.register(userData);
                 if (!success) {
-                    errorDiv.textContent = '無法成為探橋者，該郵箱可能已被使用或通行碼無效';
+                    errorDiv.textContent = t('register.error.duplicate');
                     errorDiv.classList.add('show');
                 }
             } catch (error) {
-                errorDiv.textContent = '橋樑暫時關閉，請稍後再試';
+                errorDiv.textContent = t('login.error.network');
                 errorDiv.classList.add('show');
             }
 
             btn.disabled = false;
-            btn.textContent = '開始探索';
+            btn.textContent = t('register.submit');
         }
     </script>
 
     <!-- Quill.js 富文本編輯器 -->
     <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
+
+    <!-- i18n Engine -->
+    <script src="js/i18n.js?v=1"></script>
 
     <!-- API & App Scripts (v8 - cache bust) -->
     <script src="js/api.js?v=8"></script>
@@ -6675,7 +6649,11 @@
     <!-- 初始化腳本 - 必須在所有外部腳本載入後執行 -->
     <script>
         // 在 DOM 準備好且所有腳本載入後初始化
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
+            // 初始化 i18n
+            if (typeof I18n !== 'undefined') {
+                await I18n.init();
+            }
             // 載入教材資源（在知識建材庫使用）
             if (typeof API !== 'undefined' && typeof loadResources === 'function') {
                 loadResources();

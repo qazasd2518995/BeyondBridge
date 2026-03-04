@@ -76,6 +76,7 @@ const API = {
     const config = {
       headers: {
         'Content-Type': 'application/json',
+        'X-Language': (typeof I18n !== 'undefined' && I18n.getLocale) ? I18n.getLocale() : 'zh-TW',
         ...options.headers
       },
       ...options

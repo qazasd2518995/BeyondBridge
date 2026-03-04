@@ -1,0 +1,7 @@
+{
+  "error.rateLimited": "Too many requests. Please try again later.",
+  "error.authRateLimited": "Too many login attempts. Please try again later.",
+  "error.relogin": "Please log in again.",
+  "error.loginFailed": "Login failed.",
+  "error.networkError": "Network connection error."
+}
