@@ -767,7 +767,8 @@ const App = {
     try {
       const result = await API.badges.getUserBadges(userId);
       if (result.success && result.data) {
-        this.updateRecentBadgesUI(result.data.slice(0, 4));
+        const badges = Array.isArray(result.data) ? result.data : (result.data.badges || []);
+        this.updateRecentBadgesUI(badges.slice(0, 4));
       }
     } catch (error) {
       console.error('Load recent badges error:', error);
