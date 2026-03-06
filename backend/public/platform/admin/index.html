@@ -8509,9 +8509,10 @@
             }
         }
 
-        // 初始化 i18n
+        // 初始化 i18n 並載入頁面
+        (async function() {
         if (typeof I18n !== 'undefined') {
-            I18n.init();
+            await I18n.init();
         }
 
         // 監聽語言切換 → 重新翻譯靜態元素
@@ -8535,6 +8536,7 @@
             // 未登入或非管理員，跳轉到主平台登入頁面
             window.location.href = '/platform/';
         }
+        })();
     </script>
 </body>
 </html>

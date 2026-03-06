@@ -6516,8 +6516,10 @@
             });
         });
 
-        // Initialize - show dashboard
+        // Initialize - show dashboard (will be re-called after i18n loads)
         showView('dashboard');
+        // Mark initial view for re-render after i18n
+        window._initialView = 'dashboard';
 
         // 注意：loadResources() 已移至外部腳本載入後執行
 
@@ -6655,6 +6657,11 @@
             // 初始化 i18n
             if (typeof I18n !== 'undefined') {
                 await I18n.init();
+                // i18n 載入完成後，重新渲染當前頁面標題
+                if (window._initialView) {
+                    showView(window._initialView);
+                    delete window._initialView;
+                }
             }
             // 載入教材資源（在知識建材庫使用）
             if (typeof API !== 'undefined' && typeof loadResources === 'function') {
