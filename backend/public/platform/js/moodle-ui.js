@@ -485,6 +485,18 @@ const MoodleUI = {
       return `<div class="empty-list">${t('moodleGrade.noGrades')}</div>`;
     }
 
+    const items = gradebook.columns || gradebook.items || [];
+    const students = (gradebook.students || []).map(s => {
+      if (s.grades && !Array.isArray(s.grades)) {
+        s.grades = items.map(item => ({
+          score: s.grades[item.id]?.grade ?? null,
+          feedback: s.grades[item.id]?.feedback || '',
+          submitted: s.grades[item.id]?.submitted || false
+        }));
+      }
+      return s;
+    });
+
     return `
       <div class="teacher-gradebook">
         <div class="gradebook-actions">
@@ -502,12 +514,12 @@ const MoodleUI = {
             <thead>
               <tr>
                 <th class="sticky-col">${t('moodleParticipant.student')}</th>
-                ${(gradebook.items || []).map(item => `<th>${item.name}</th>`).join('')}
+                ${items.map(item => `<th>${item.name || item.title}</th>`).join('')}
                 <th>${t('moodleGrade.totalCol')}</th>
               </tr>
             </thead>
             <tbody>
-              ${(gradebook.students || []).map(student => `
+              ${students.map(student => `
                 <tr>
                   <td class="sticky-col">${student.name}</td>
                   ${(student.grades || []).map(g => `
@@ -2747,8 +2759,17 @@ const MoodleUI = {
    * 渲染完整成績簿管理界面
    */
   renderFullGradebookManagement(gradebook, categories, settings, courseId) {
-    const items = gradebook.items || [];
-    const students = gradebook.students || [];
+    const items = gradebook.columns || gradebook.items || [];
+    const students = (gradebook.students || []).map(s => {
+      if (s.grades && !Array.isArray(s.grades)) {
+        s.grades = items.map(item => ({
+          score: s.grades[item.id]?.grade ?? null,
+          feedback: s.grades[item.id]?.feedback || '',
+          submitted: s.grades[item.id]?.submitted || false
+        }));
+      }
+      return s;
+    });
 
     return `
       <div class="gradebook-management">
@@ -2823,11 +2844,11 @@ const MoodleUI = {
             <div class="stat-label">${t('moodleGradebook.gradeItems')}</div>
           </div>
           <div class="stat-card">
-            <div class="stat-value">${gradebook.classAverage ? gradebook.classAverage.toFixed(1) : '-'}</div>
+            <div class="stat-value">${(gradebook.stats?.averageGrade ?? gradebook.classAverage) != null ? (gradebook.stats?.averageGrade ?? gradebook.classAverage).toFixed(1) : '-'}</div>
             <div class="stat-label">${t('moodleGradebook.classAverage')}</div>
           </div>
           <div class="stat-card">
-            <div class="stat-value">${gradebook.highestScore || '-'}</div>
+            <div class="stat-value">${gradebook.stats?.passingRate != null ? gradebook.stats.passingRate + '%' : (gradebook.highestScore || '-')}</div>
             <div class="stat-label">${t('moodleGradebook.highestScore')}</div>
           </div>
         </div>
@@ -2843,9 +2864,9 @@ const MoodleUI = {
                     <button onclick="MoodleUI.sortGradebook('name')" class="sort-btn">↕</button>
                   </th>
                   ${items.map(item => `
-                    <th class="item-header" data-item-id="${item.itemId}">
-                      <div class="item-name">${item.name}</div>
-                      <div class="item-meta">${item.maxScore} ${t('moodleGradebook.pointsSuffix')}</div>
+                    <th class="item-header" data-item-id="${item.itemId || item.id}">
+                      <div class="item-name">${item.name || item.title}</div>
+                      <div class="item-meta">${item.maxScore || item.maxGrade || 0} ${t('moodleGradebook.pointsSuffix')}</div>
                       ${item.category ? `<div class="item-category">${item.category}</div>` : ''}
                     </th>
                   `).join('')}
@@ -2867,7 +2888,7 @@ const MoodleUI = {
                     </td>
                     ${(student.grades || []).map((g, idx) => `
                       <td class="grade-cell ${g.score === null ? 'not-graded' : ''}"
-                          data-item-id="${items[idx]?.itemId}"
+                          data-item-id="${items[idx]?.itemId || items[idx]?.id}"
                           data-student-id="${student.userId}"
                           ondblclick="MoodleUI.editGradeCell(this)">
                         <span class="grade-value">${g.score !== null ? g.score : '-'}</span>
@@ -2875,10 +2896,10 @@ const MoodleUI = {
                       </td>
                     `).join('')}
                     <td class="total-cell">
-                      <strong>${student.total !== null ? student.total.toFixed(1) : '-'}</strong>
+                      <strong>${(student.total ?? student.summary?.overallPercentage) != null ? (student.total ?? student.summary?.overallPercentage).toFixed(1) : '-'}</strong>
                     </td>
                     <td class="letter-cell">
-                      <span class="letter-grade ${this.getLetterGradeClass(student.letterGrade)}">${student.letterGrade || '-'}</span>
+                      <span class="letter-grade ${this.getLetterGradeClass(student.letterGrade)}">${student.letterGrade || (student.summary?.passing ? 'P' : student.summary?.overallPercentage != null ? 'F' : '-')}</span>
                     </td>
                   </tr>
                 `).join('')}
