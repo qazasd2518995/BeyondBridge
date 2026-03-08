@@ -633,7 +633,24 @@ const MoodleUI = {
   },
 
   /**
-   * 開啟網址活動 - 在新分頁中開啟 URL
+   * 從 YouTube URL 提取影片 ID
+   */
+  extractYouTubeId(url) {
+    const patterns = [
+      /youtu\.be\/([^?&#]+)/,
+      /youtube\.com\/watch\?.*v=([^&#]+)/,
+      /youtube\.com\/embed\/([^?&#]+)/,
+      /youtube\.com\/shorts\/([^?&#]+)/
+    ];
+    for (const p of patterns) {
+      const m = url.match(p);
+      if (m) return m[1];
+    }
+    return null;
+  },
+
+  /**
+   * 開啟網址活動 - YouTube 在平台內播放，其他開新分頁
    */
   async openUrlActivity(activityId, courseId) {
     try {
@@ -644,15 +661,60 @@ const MoodleUI = {
       }
       const activity = result.data;
       const url = activity.url || activity.externalUrl;
-      if (url) {
-        window.open(url, '_blank');
-      } else {
+      if (!url) {
         showToast(t('moodleActivity.noUrl'));
+        return;
       }
+
+      // YouTube 影片：平台內嵌入播放
+      const ytId = this.extractYouTubeId(url);
+      if (ytId) {
+        this.openVideoViewer(activity.name || activity.title || t('moodleActivity.video'), ytId);
+        return;
+      }
+
+      // 其他連結：新分頁開啟
+      window.open(url, '_blank');
     } catch (error) {
       console.error('開啟網址活動失敗:', error);
       showToast(t('moodleActivity.loadActivityError'));
     }
+  },
+
+  /**
+   * YouTube 影片全螢幕播放器
+   */
+  openVideoViewer(title, youtubeId) {
+    const existing = document.getElementById('video-viewer-overlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'video-viewer-overlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:10000;background:rgba(0,0,0,0.9);display:flex;flex-direction:column;';
+
+    const header = document.createElement('div');
+    header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:10px 20px;color:#fff;flex-shrink:0;';
+    header.innerHTML = `
+      <h3 style="margin:0;font-size:1rem;font-weight:500;">${title}</h3>
+      <button id="video-viewer-close" style="background:none;border:none;color:#fff;font-size:1.5rem;cursor:pointer;padding:4px 8px;">&times;</button>
+    `;
+    overlay.appendChild(header);
+
+    const content = document.createElement('div');
+    content.style.cssText = 'flex:1;display:flex;align-items:center;justify-content:center;padding:0 20px 20px;';
+    content.innerHTML = `
+      <div style="width:100%;max-width:960px;aspect-ratio:16/9;">
+        <iframe src="https://www.youtube.com/embed/${youtubeId}?autoplay=1&rel=0&modestbranding=1"
+                style="width:100%;height:100%;border:none;border-radius:8px;"
+                allow="autoplay; encrypted-media" allowfullscreen></iframe>
+      </div>
+    `;
+    overlay.appendChild(content);
+    document.body.appendChild(overlay);
+
+    document.getElementById('video-viewer-close').onclick = () => overlay.remove();
+    const escHandler = (e) => { if (e.key === 'Escape') { overlay.remove(); document.removeEventListener('keydown', escHandler); } };
+    document.addEventListener('keydown', escHandler);
   },
 
   /**
