@@ -9,6 +9,7 @@ require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 const { DynamoDBDocumentClient, PutCommand, QueryCommand } = require('@aws-sdk/lib-dynamodb');
+const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -46,7 +47,17 @@ async function getUserByEmail(email) {
   return result.Items?.find(i => i.entityType === 'USER') || null;
 }
 
-// Upload dir
+// S3
+const S3_BUCKET = process.env.S3_BUCKET || 'beyondbridge-files';
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION || 'ap-southeast-2',
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+  }
+});
+
+// Upload dir (local backup)
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, '../uploads');
 
 // ===== Course Definition =====
@@ -205,8 +216,17 @@ async function main() {
       const storagePath = path.join(UPLOAD_DIR, storageName);
       const hash = crypto.createHash('md5').update(buffer).digest('hex');
 
-      // Save file to uploads dir
-      fs.writeFileSync(storagePath, buffer);
+      // Upload to S3
+      const s3Key = `files/${storageName}`;
+      await s3Client.send(new PutObjectCommand({
+        Bucket: S3_BUCKET,
+        Key: s3Key,
+        Body: buffer,
+        ContentType: 'application/pdf'
+      }));
+
+      // Also save locally (backup)
+      try { fs.writeFileSync(storagePath, buffer); } catch { /* ignore */ }
 
       // Create file record in DB
       const fileItem = {
@@ -220,6 +240,7 @@ async function main() {
         filename: originalName,
         storageName,
         storagePath,
+        s3Key,
         contentType: 'application/pdf',
         size: buffer.length,
         hash,

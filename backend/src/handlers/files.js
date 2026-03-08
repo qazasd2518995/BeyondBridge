@@ -2,8 +2,7 @@
  * 檔案管理系統 API 處理器
  * BeyondBridge Education Platform - File Management System
  *
- * 注意：此實作使用本地存儲作為範例
- * 生產環境建議使用 AWS S3 或其他雲端存儲服務
+ * 使用 AWS S3 儲存檔案，本地為備援
  */
 
 const express = require('express');
@@ -13,8 +12,15 @@ const { authMiddleware } = require('../utils/auth');
 const path = require('path');
 const fs = require('fs').promises;
 const crypto = require('crypto');
+const { S3Client, PutObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
 
-// 檔案存儲目錄
+// S3 設定
+const S3_BUCKET = process.env.S3_BUCKET || 'beyondbridge-files';
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION || 'ap-southeast-2'
+});
+
+// 本地備援目錄
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, '../../uploads');
 
 // 確保上傳目錄存在
@@ -22,10 +28,37 @@ async function ensureUploadDir() {
   try {
     await fs.mkdir(UPLOAD_DIR, { recursive: true });
   } catch (err) {
-    console.error('Error creating upload directory:', err);
+    // ignore
   }
 }
 ensureUploadDir();
+
+/**
+ * 上傳檔案到 S3
+ */
+async function uploadToS3(key, buffer, contentType) {
+  await s3Client.send(new PutObjectCommand({
+    Bucket: S3_BUCKET,
+    Key: key,
+    Body: buffer,
+    ContentType: contentType
+  }));
+}
+
+/**
+ * 從 S3 讀取檔案
+ */
+async function getFromS3(key) {
+  const result = await s3Client.send(new GetObjectCommand({
+    Bucket: S3_BUCKET,
+    Key: key
+  }));
+  const chunks = [];
+  for await (const chunk of result.Body) {
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks);
+}
 
 // ==================== 檔案上傳 ====================
 
@@ -73,8 +106,12 @@ router.post('/upload', authMiddleware, async (req, res) => {
     const storageName = `${fileId}${ext}`;
     const storagePath = path.join(UPLOAD_DIR, storageName);
 
-    // 儲存檔案
-    await fs.writeFile(storagePath, buffer);
+    // 上傳到 S3
+    const s3Key = `files/${storageName}`;
+    await uploadToS3(s3Key, buffer, contentType || 'application/octet-stream');
+
+    // 也存一份到本地（備援）
+    try { await fs.writeFile(storagePath, buffer); } catch { /* ignore */ }
 
     const now = new Date().toISOString();
 
@@ -90,6 +127,7 @@ router.post('/upload', authMiddleware, async (req, res) => {
       filename,
       storageName,
       storagePath,
+      s3Key,
       contentType: contentType || 'application/octet-stream',
       size: buffer.length,
       hash,
@@ -407,23 +445,29 @@ router.get('/:id/view', (req, res, next) => {
       });
     }
 
+    // 讀取檔案：S3 > 本地 > DB base64
+    let fileContent;
+    const s3Key = file.s3Key || `files/${file.storageName}`;
     try {
-      await fs.access(file.storagePath);
+      fileContent = await getFromS3(s3Key);
     } catch {
-      return res.status(404).json({
-        success: false,
-        error: 'FILE_NOT_FOUND',
-        message: '檔案不存在'
-      });
+      try {
+        await fs.access(file.storagePath);
+        fileContent = await fs.readFile(file.storagePath);
+      } catch {
+        return res.status(404).json({
+          success: false,
+          error: 'FILE_NOT_FOUND',
+          message: '檔案不存在'
+        });
+      }
     }
 
     res.setHeader('Content-Type', file.contentType);
     res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(file.filename)}"`);
-    res.setHeader('Content-Length', file.size);
-    // 禁止快取以防外洩
+    res.setHeader('Content-Length', fileContent.length);
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
 
-    const fileContent = await fs.readFile(file.storagePath);
     res.send(fileContent);
 
   } catch (error) {
@@ -464,23 +508,29 @@ router.get('/:id/download', authMiddleware, async (req, res) => {
       });
     }
 
-    // 檢查檔案是否存在
+    // 讀取檔案：S3 > 本地
+    let fileContent;
+    const s3Key = file.s3Key || `files/${file.storageName}`;
     try {
-      await fs.access(file.storagePath);
+      fileContent = await getFromS3(s3Key);
     } catch {
-      return res.status(404).json({
-        success: false,
-        error: 'FILE_NOT_FOUND',
-        message: '檔案不存在'
-      });
+      try {
+        await fs.access(file.storagePath);
+        fileContent = await fs.readFile(file.storagePath);
+      } catch {
+        return res.status(404).json({
+          success: false,
+          error: 'FILE_NOT_FOUND',
+          message: '檔案不存在'
+        });
+      }
     }
 
     // 發送檔案
     res.setHeader('Content-Type', file.contentType);
     res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(file.filename)}"`);
-    res.setHeader('Content-Length', file.size);
+    res.setHeader('Content-Length', fileContent.length);
 
-    const fileContent = await fs.readFile(file.storagePath);
     res.send(fileContent);
 
   } catch (error) {
