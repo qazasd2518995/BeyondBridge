@@ -677,7 +677,7 @@ const MoodleUI = {
       const contentType = activity.contentType || 'application/pdf';
 
       // 取得 auth token
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('accessToken');
       const authedUrl = viewUrl + (viewUrl.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(token);
 
       let viewerContent = '';
