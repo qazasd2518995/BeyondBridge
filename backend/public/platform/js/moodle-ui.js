@@ -673,8 +673,8 @@ const MoodleUI = {
         return;
       }
 
-      // 其他連結：新分頁開啟
-      window.open(url, '_blank');
+      // 其他網頁：平台內 iframe 瀏覽
+      this.openWebViewer(activity.name || activity.title || url, url);
     } catch (error) {
       console.error('開啟網址活動失敗:', error);
       showToast(t('moodleActivity.loadActivityError'));
@@ -713,6 +713,37 @@ const MoodleUI = {
     document.body.appendChild(overlay);
 
     document.getElementById('video-viewer-close').onclick = () => overlay.remove();
+    const escHandler = (e) => { if (e.key === 'Escape') { overlay.remove(); document.removeEventListener('keydown', escHandler); } };
+    document.addEventListener('keydown', escHandler);
+  },
+
+  /**
+   * 網頁全螢幕 iframe 瀏覽器（不跳出平台）
+   */
+  openWebViewer(title, url) {
+    const existing = document.getElementById('web-viewer-overlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'web-viewer-overlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:10000;background:rgba(0,0,0,0.9);display:flex;flex-direction:column;';
+
+    const header = document.createElement('div');
+    header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:#1a1a2e;color:#fff;flex-shrink:0;';
+    header.innerHTML = `
+      <h3 style="margin:0;font-size:0.95rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;margin-right:12px;">${title}</h3>
+      <button id="web-viewer-close" style="background:none;border:none;color:#fff;font-size:1.5rem;cursor:pointer;padding:4px 8px;flex-shrink:0;">&times;</button>
+    `;
+    overlay.appendChild(header);
+
+    const content = document.createElement('div');
+    content.style.cssText = 'flex:1;overflow:hidden;';
+    content.innerHTML = `<iframe src="${url}" style="width:100%;height:100%;border:none;background:#fff;" allow="autoplay; encrypted-media; fullscreen"></iframe>`;
+    overlay.appendChild(content);
+
+    document.body.appendChild(overlay);
+
+    document.getElementById('web-viewer-close').onclick = () => overlay.remove();
     const escHandler = (e) => { if (e.key === 'Escape') { overlay.remove(); document.removeEventListener('keydown', escHandler); } };
     document.addEventListener('keydown', escHandler);
   },
