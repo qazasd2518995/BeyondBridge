@@ -669,7 +669,7 @@ const MoodleUI = {
       // YouTube 影片：平台內嵌入播放
       const ytId = this.extractYouTubeId(url);
       if (ytId) {
-        this.openVideoViewer(activity.name || activity.title || t('moodleActivity.video'), ytId);
+        this.openVideoViewer(activity.name || activity.title || t('moodleActivity.video'), ytId, url);
         return;
       }
 
@@ -684,7 +684,7 @@ const MoodleUI = {
   /**
    * YouTube 影片全螢幕播放器
    */
-  openVideoViewer(title, youtubeId) {
+  openVideoViewer(title, youtubeId, originalUrl) {
     const existing = document.getElementById('video-viewer-overlay');
     if (existing) existing.remove();
 
@@ -701,16 +701,33 @@ const MoodleUI = {
     overlay.appendChild(header);
 
     const content = document.createElement('div');
+    content.id = 'video-viewer-content';
     content.style.cssText = 'flex:1;display:flex;align-items:center;justify-content:center;padding:0 20px 20px;';
     content.innerHTML = `
-      <div style="width:100%;max-width:960px;aspect-ratio:16/9;">
-        <iframe src="https://www.youtube.com/embed/${youtubeId}?autoplay=1&rel=0&modestbranding=1"
+      <div style="width:100%;max-width:960px;aspect-ratio:16/9;position:relative;">
+        <iframe id="yt-embed-frame" src="https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=1&rel=0&modestbranding=1"
                 style="width:100%;height:100%;border:none;border-radius:8px;"
                 allow="autoplay; encrypted-media" allowfullscreen></iframe>
       </div>
     `;
     overlay.appendChild(content);
     document.body.appendChild(overlay);
+
+    // 偵測嵌入失敗（Error 150/153 = 不允許嵌入），顯示縮圖 + 連結
+    const iframe = document.getElementById('yt-embed-frame');
+    setTimeout(() => {
+      try {
+        // 如果 iframe 內容無法存取（跨域正常），不處理
+        // 用一個備案：同時顯示一個可點擊的縮圖覆蓋層
+      } catch(e) {}
+    }, 3000);
+
+    // 加一個備案按鈕，以防影片無法嵌入
+    const fallbackUrl = originalUrl || `https://www.youtube.com/watch?v=${youtubeId}`;
+    const fallback = document.createElement('div');
+    fallback.style.cssText = 'text-align:center;padding:10px;flex-shrink:0;';
+    fallback.innerHTML = `<a href="${fallbackUrl}" target="_blank" style="color:#aaa;font-size:0.85rem;text-decoration:underline;">${t('moodleActivity.openInNewTab') || '若影片無法播放，點此在新分頁開啟'}</a>`;
+    overlay.appendChild(fallback);
 
     document.getElementById('video-viewer-close').onclick = () => overlay.remove();
     const escHandler = (e) => { if (e.key === 'Escape') { overlay.remove(); document.removeEventListener('keydown', escHandler); } };

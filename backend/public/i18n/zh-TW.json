@@ -864,6 +864,7 @@
   "moodleActivity.noLtiTool": "此活動未設定 LTI 工具",
   "moodleActivity.noPageContent": "此頁面沒有內容",
   "moodleActivity.noUrl": "此活動未設定網址",
+  "moodleActivity.openInNewTab": "若影片無法播放，點此在新分頁開啟",
   "moodleActivity.openNewWindow": "在新視窗開啟",
   "moodleActivity.pageTitle": "頁面活動",
   "moodleActivity.unsupportedType": "不支援的活動類型",

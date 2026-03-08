@@ -864,6 +864,7 @@
   "moodleActivity.noLtiTool": "No LTI tool configured",
   "moodleActivity.noPageContent": "This page has no content",
   "moodleActivity.noUrl": "No URL set for this activity",
+  "moodleActivity.openInNewTab": "If the video doesn't play, click here to open in a new tab",
   "moodleActivity.openNewWindow": "Open in new window",
   "moodleActivity.pageTitle": "Page Activity",
   "moodleActivity.unsupportedType": "Unsupported activity type",
