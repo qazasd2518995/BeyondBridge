@@ -1549,62 +1549,92 @@ const MoodleUI = {
     const container = document.getElementById('assignmentsList');
     if (!container) return;
 
-    const filterTabs = [
-      { key: 'all', label: t('moodleAssignment.filterAll') || '全部' },
-      { key: 'pending', label: t('moodleAssignment.filterPending') || '待提交' },
-      { key: 'submitted', label: t('moodleAssignment.filterSubmitted') || '已提交' },
-      { key: 'graded', label: t('moodleAssignment.filterGraded') || '已評分' },
-    ];
+    const user = API.getCurrentUser();
+    const isTeacher = user && (user.role === 'educator' || user.role === 'trainer' || user.role === 'creator' || user.isAdmin);
 
     const header = `
       <div style="padding: 1.5rem 1.5rem 0;">
-        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem;">
-          <button onclick="MoodleUI.loadAssignments()" style="background: var(--gray-100); border: none; padding: 0.5rem; border-radius: 8px; cursor: pointer; display: flex; align-items: center;">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
-          </button>
-          <div>
-            <h2 style="font-size: 1.3rem; font-weight: 700; margin: 0;">${courseName} — ${t('moodleAssignment.title')}</h2>
-            <p style="color: var(--gray-500); margin: 0.25rem 0 0; font-size: 0.85rem;">${assignments.length} 份作業</p>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <button onclick="MoodleUI.loadAssignments()" style="background: var(--gray-100); border: none; padding: 0.5rem; border-radius: 8px; cursor: pointer; display: flex; align-items: center;">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
+            </button>
+            <div>
+              <h2 style="font-size: 1.3rem; font-weight: 700; margin: 0;">${courseName} — ${t('moodleAssignment.title')}</h2>
+              <p style="color: var(--gray-500); margin: 0.25rem 0 0; font-size: 0.85rem;">${assignments.length} 份作業</p>
+            </div>
           </div>
-        </div>
-        <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
-          ${filterTabs.map(f => `
-            <button onclick="MoodleUI.loadAssignments('${courseId}', '${f.key}')"
-              style="padding: 0.5rem 1rem; border: none; border-radius: 8px; cursor: pointer; font-size: 0.85rem;
-              background: ${currentFilter === f.key ? 'var(--olive)' : 'var(--gray-100)'};
-              color: ${currentFilter === f.key ? 'var(--cream)' : 'var(--gray-600)'};">${f.label}</button>
-          `).join('')}
+          ${isTeacher ? `
+            <button onclick="MoodleUI.showCreateAssignmentModal('${courseId}')" style="padding: 0.6rem 1.25rem; background: var(--olive); color: var(--cream); border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem;">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              新增作業
+            </button>
+          ` : ''}
         </div>
       </div>
     `;
 
     if (assignments.length === 0) {
-      container.innerHTML = header + `<div class="empty-list" style="padding: 3rem; text-align: center; color: var(--gray-400);">${t('moodleAssignment.noAssignments')}</div>`;
+      container.innerHTML = header + `<div style="text-align: center; padding: 4rem 2rem; color: var(--gray-400);">
+        <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1" style="margin-bottom: 1rem; opacity: 0.5;"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+        <p style="font-size: 1.05rem;">${isTeacher ? '尚未建立作業' : t('moodleAssignment.noAssignments')}</p>
+        ${isTeacher ? '<p style="font-size: 0.85rem; margin-top: 0.5rem;">點擊「新增作業」開始派發作業給學生</p>' : ''}
+      </div>`;
       return;
     }
 
     container.innerHTML = header + `<div style="padding: 0 1.5rem 1.5rem;">` + assignments.map(a => {
-      const isOverdue = a.dueDate && new Date(a.dueDate) < new Date() && !a.submitted;
-      const statusClass = a.graded ? 'graded' : a.submitted ? 'submitted' : isOverdue ? 'overdue' : 'pending';
-      const statusText = a.graded ? (t('moodleAssignment.statusGraded') || '已評分') : a.submitted ? (t('moodleAssignment.statusSubmitted') || '已提交') : isOverdue ? (t('moodleAssignment.statusOverdue') || '已逾期') : (t('moodleAssignment.statusPending') || '待提交');
+      const isOverdue = a.dueDate && new Date(a.dueDate) < new Date();
+      const submissions = a.stats?.totalSubmissions || 0;
+      const graded = a.stats?.gradedCount || 0;
 
-      return `
-        <div class="assignment-card" onclick="MoodleUI.openAssignment('${a.assignmentId}')" style="display: flex; align-items: center; gap: 1rem; padding: 1.25rem; background: var(--white); border-radius: 12px; margin-bottom: 0.75rem; cursor: pointer; transition: box-shadow 0.2s;" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)'" onmouseout="this.style.boxShadow='none'">
-          <div style="width: 48px; height: 48px; background: var(--olive-light, #e8f0e0); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--olive)" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+      if (isTeacher) {
+        return `
+          <div onclick="MoodleUI.openAssignment('${a.assignmentId}')" style="display: flex; align-items: center; gap: 1rem; padding: 1.25rem; background: var(--white); border-radius: 12px; margin-bottom: 0.75rem; cursor: pointer; transition: box-shadow 0.2s;" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)'" onmouseout="this.style.boxShadow='none'">
+            <div style="width: 48px; height: 48px; background: var(--olive-light, #e8f0e0); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--olive)" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+            </div>
+            <div style="flex: 1; min-width: 0;">
+              <h3 style="font-size: 1rem; font-weight: 600; margin: 0 0 0.25rem;">${a.title}</h3>
+              <p style="color: var(--gray-500); font-size: 0.85rem; margin: 0; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;">${a.description || ''}</p>
+              ${a.dueDate ? `<p style="color: ${isOverdue ? 'var(--terracotta)' : 'var(--gray-400)'}; font-size: 0.8rem; margin: 0.25rem 0 0;">截止：${new Date(a.dueDate).toLocaleString('zh-TW')}</p>` : ''}
+            </div>
+            <div style="flex-shrink: 0; display: flex; gap: 1rem; align-items: center;">
+              <div style="text-align: center;">
+                <div style="font-size: 1.1rem; font-weight: 700; color: var(--olive);">${submissions}</div>
+                <div style="font-size: 0.7rem; color: var(--gray-400);">已提交</div>
+              </div>
+              <div style="text-align: center;">
+                <div style="font-size: 1.1rem; font-weight: 700; color: #6366f1;">${graded}</div>
+                <div style="font-size: 0.7rem; color: var(--gray-400);">已評分</div>
+              </div>
+              <div style="padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 500; background: ${isOverdue ? '#fee2e2' : '#f0fdf4'}; color: ${isOverdue ? '#dc2626' : '#16a34a'};">
+                ${isOverdue ? '已截止' : '進行中'}
+              </div>
+            </div>
           </div>
-          <div style="flex: 1; min-width: 0;">
-            <h3 style="font-size: 1rem; font-weight: 600; margin: 0 0 0.25rem;">${a.title}</h3>
-            <p style="color: var(--gray-500); font-size: 0.85rem; margin: 0;">${a.description || ''}</p>
-            ${a.dueDate ? `<p style="color: ${isOverdue ? 'var(--terracotta)' : 'var(--gray-400)'}; font-size: 0.8rem; margin: 0.25rem 0 0;">截止：${new Date(a.dueDate).toLocaleString('zh-TW')}</p>` : ''}
+        `;
+      } else {
+        const statusClass = a.graded ? 'graded' : a.submitted ? 'submitted' : isOverdue ? 'overdue' : 'pending';
+        const statusText = a.graded ? '已評分' : a.submitted ? '已提交' : isOverdue ? '已逾期' : '待提交';
+        return `
+          <div onclick="MoodleUI.openAssignment('${a.assignmentId}')" style="display: flex; align-items: center; gap: 1rem; padding: 1.25rem; background: var(--white); border-radius: 12px; margin-bottom: 0.75rem; cursor: pointer; transition: box-shadow 0.2s;" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)'" onmouseout="this.style.boxShadow='none'">
+            <div style="width: 48px; height: 48px; background: var(--olive-light, #e8f0e0); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--olive)" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+            </div>
+            <div style="flex: 1; min-width: 0;">
+              <h3 style="font-size: 1rem; font-weight: 600; margin: 0 0 0.25rem;">${a.title}</h3>
+              <p style="color: var(--gray-500); font-size: 0.85rem; margin: 0;">${a.description || ''}</p>
+              ${a.dueDate ? `<p style="color: ${isOverdue && !a.submitted ? 'var(--terracotta)' : 'var(--gray-400)'}; font-size: 0.8rem; margin: 0.25rem 0 0;">截止：${new Date(a.dueDate).toLocaleString('zh-TW')}</p>` : ''}
+            </div>
+            <div style="flex-shrink: 0; padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 500;
+              background: ${statusClass === 'graded' ? '#dcfce7' : statusClass === 'submitted' ? '#dbeafe' : statusClass === 'overdue' ? '#fee2e2' : '#f3f4f6'};
+              color: ${statusClass === 'graded' ? '#16a34a' : statusClass === 'submitted' ? '#2563eb' : statusClass === 'overdue' ? '#dc2626' : '#6b7280'};">
+              ${statusText}
+            </div>
           </div>
-          <div style="flex-shrink: 0; padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 500;
-            background: ${statusClass === 'graded' ? '#dcfce7' : statusClass === 'submitted' ? '#dbeafe' : statusClass === 'overdue' ? '#fee2e2' : '#f3f4f6'};
-            color: ${statusClass === 'graded' ? '#16a34a' : statusClass === 'submitted' ? '#2563eb' : statusClass === 'overdue' ? '#dc2626' : '#6b7280'};">
-            ${statusText}
-          </div>
-        </div>
-      `;
+        `;
+      }
     }).join('') + `</div>`;
   },
 
@@ -1944,66 +1974,100 @@ const MoodleUI = {
     const container = document.getElementById('quizzesList');
     if (!container) return;
 
-    const filterTabs = [
-      { key: 'all', label: '全部' },
-      { key: 'available', label: '可作答' },
-      { key: 'completed', label: '已完成' },
-    ];
+    const user = API.getCurrentUser();
+    const isTeacher = user && (user.role === 'educator' || user.role === 'trainer' || user.role === 'creator' || user.isAdmin);
 
     const header = `
       <div style="padding: 1.5rem 1.5rem 0;">
-        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem;">
-          <button onclick="MoodleUI.loadQuizzes()" style="background: var(--gray-100); border: none; padding: 0.5rem; border-radius: 8px; cursor: pointer; display: flex; align-items: center;">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
-          </button>
-          <div>
-            <h2 style="font-size: 1.3rem; font-weight: 700; margin: 0;">${courseName} — ${t('moodleQuiz.title')}</h2>
-            <p style="color: var(--gray-500); margin: 0.25rem 0 0; font-size: 0.85rem;">${quizzes.length} 份測驗</p>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <button onclick="MoodleUI.loadQuizzes()" style="background: var(--gray-100); border: none; padding: 0.5rem; border-radius: 8px; cursor: pointer; display: flex; align-items: center;">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
+            </button>
+            <div>
+              <h2 style="font-size: 1.3rem; font-weight: 700; margin: 0;">${courseName} — ${t('moodleQuiz.title')}</h2>
+              <p style="color: var(--gray-500); margin: 0.25rem 0 0; font-size: 0.85rem;">${quizzes.length} 份測驗</p>
+            </div>
           </div>
-        </div>
-        <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
-          ${filterTabs.map(f => `
-            <button onclick="MoodleUI.loadQuizzes('${courseId}', '${f.key}')"
-              style="padding: 0.5rem 1rem; border: none; border-radius: 8px; cursor: pointer; font-size: 0.85rem;
-              background: ${currentFilter === f.key ? 'var(--olive)' : 'var(--gray-100)'};
-              color: ${currentFilter === f.key ? 'var(--cream)' : 'var(--gray-600)'};">${f.label}</button>
-          `).join('')}
+          ${isTeacher ? `
+            <button onclick="MoodleUI.showCreateQuizModal('${courseId}')" style="padding: 0.6rem 1.25rem; background: var(--olive); color: var(--cream); border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem;">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              新增測驗
+            </button>
+          ` : ''}
         </div>
       </div>
     `;
 
     if (quizzes.length === 0) {
-      container.innerHTML = header + `<div class="empty-list" style="padding: 3rem; text-align: center; color: var(--gray-400);">${t('moodleQuiz.noQuizzes')}</div>`;
+      container.innerHTML = header + `<div style="text-align: center; padding: 4rem 2rem; color: var(--gray-400);">
+        <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1" style="margin-bottom: 1rem; opacity: 0.5;"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <p style="font-size: 1.05rem;">${isTeacher ? '尚未建立測驗' : t('moodleQuiz.noQuizzes')}</p>
+        ${isTeacher ? '<p style="font-size: 0.85rem; margin-top: 0.5rem;">點擊「新增測驗」開始建立測驗</p>' : ''}
+      </div>`;
       return;
     }
 
     container.innerHTML = header + `<div style="padding: 0 1.5rem 1.5rem;">` + quizzes.map(q => {
       const now = new Date();
       const isOpen = (!q.openDate || new Date(q.openDate) <= now) && (!q.closeDate || new Date(q.closeDate) >= now);
+      const qCount = q.questionCount || q.questions?.length || 0;
+      const attempts = q.stats?.totalAttempts || 0;
+      const avgScore = q.stats?.averageScore || 0;
 
-      return `
-        <div onclick="MoodleUI.openQuiz('${q.quizId}')" style="display: flex; align-items: center; gap: 1rem; padding: 1.25rem; background: var(--white); border-radius: 12px; margin-bottom: 0.75rem; cursor: pointer; transition: box-shadow 0.2s;" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)'" onmouseout="this.style.boxShadow='none'">
-          <div style="width: 48px; height: 48px; background: #ede9fe; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#7c3aed" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      if (isTeacher) {
+        return `
+          <div onclick="MoodleUI.openQuiz('${q.quizId}')" style="display: flex; align-items: center; gap: 1rem; padding: 1.25rem; background: var(--white); border-radius: 12px; margin-bottom: 0.75rem; cursor: pointer; transition: box-shadow 0.2s;" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)'" onmouseout="this.style.boxShadow='none'">
+            <div style="width: 48px; height: 48px; background: #ede9fe; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#7c3aed" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </div>
+            <div style="flex: 1; min-width: 0;">
+              <h3 style="font-size: 1rem; font-weight: 600; margin: 0 0 0.25rem;">${q.title}</h3>
+              <p style="color: var(--gray-500); font-size: 0.85rem; margin: 0; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;">${q.description || ''}</p>
+              <p style="color: var(--gray-400); font-size: 0.8rem; margin: 0.25rem 0 0;">
+                ${qCount} 題 · ${q.timeLimit ? q.timeLimit + ' 分鐘' : '不限時'} · ${q.totalPoints || 0} 分
+              </p>
+            </div>
+            <div style="flex-shrink: 0; display: flex; gap: 1rem; align-items: center;">
+              <div style="text-align: center;">
+                <div style="font-size: 1.1rem; font-weight: 700; color: #7c3aed;">${attempts}</div>
+                <div style="font-size: 0.7rem; color: var(--gray-400);">作答次數</div>
+              </div>
+              <div style="text-align: center;">
+                <div style="font-size: 1.1rem; font-weight: 700; color: var(--olive);">${avgScore ? avgScore.toFixed(0) : '-'}</div>
+                <div style="font-size: 0.7rem; color: var(--gray-400);">平均分</div>
+              </div>
+              <div style="padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 500; background: ${isOpen ? '#f0fdf4' : '#f3f4f6'}; color: ${isOpen ? '#16a34a' : '#6b7280'};">
+                ${isOpen ? '開放中' : '未開放'}
+              </div>
+            </div>
           </div>
-          <div style="flex: 1; min-width: 0;">
-            <h3 style="font-size: 1rem; font-weight: 600; margin: 0 0 0.25rem;">${q.title}</h3>
-            <p style="color: var(--gray-500); font-size: 0.85rem; margin: 0;">${q.description || ''}</p>
-            <p style="color: var(--gray-400); font-size: 0.8rem; margin: 0.25rem 0 0;">
-              ${q.questionCount || q.questions?.length || 0} 題 · ${q.timeLimit ? q.timeLimit + ' 分鐘' : '不限時'} · 最多 ${q.maxAttempts || 1} 次
-            </p>
+        `;
+      } else {
+        return `
+          <div onclick="MoodleUI.openQuiz('${q.quizId}')" style="display: flex; align-items: center; gap: 1rem; padding: 1.25rem; background: var(--white); border-radius: 12px; margin-bottom: 0.75rem; cursor: pointer; transition: box-shadow 0.2s;" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)'" onmouseout="this.style.boxShadow='none'">
+            <div style="width: 48px; height: 48px; background: #ede9fe; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#7c3aed" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </div>
+            <div style="flex: 1; min-width: 0;">
+              <h3 style="font-size: 1rem; font-weight: 600; margin: 0 0 0.25rem;">${q.title}</h3>
+              <p style="color: var(--gray-500); font-size: 0.85rem; margin: 0;">${q.description || ''}</p>
+              <p style="color: var(--gray-400); font-size: 0.8rem; margin: 0.25rem 0 0;">
+                ${qCount} 題 · ${q.timeLimit ? q.timeLimit + ' 分鐘' : '不限時'} · 最多 ${q.maxAttempts || 1} 次
+              </p>
+            </div>
+            <div style="flex-shrink: 0;">
+              ${q.completed ? `
+                <span style="padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 500; background: #dcfce7; color: #16a34a;">已完成</span>
+              ` : isOpen ? `
+                <button onclick="event.stopPropagation(); MoodleUI.startQuiz('${q.quizId}')" style="padding: 0.5rem 1rem; background: var(--olive); color: var(--cream); border: none; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 500;">開始作答</button>
+              ` : `
+                <span style="padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 500; background: #f3f4f6; color: #6b7280;">未開放</span>
+              `}
+            </div>
           </div>
-          <div style="flex-shrink: 0;">
-            ${q.completed ? `
-              <span style="padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 500; background: #dcfce7; color: #16a34a;">已完成</span>
-            ` : isOpen ? `
-              <button onclick="event.stopPropagation(); MoodleUI.startQuiz('${q.quizId}')" style="padding: 0.5rem 1rem; background: var(--olive); color: var(--cream); border: none; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 500;">開始作答</button>
-            ` : `
-              <span style="padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 500; background: #f3f4f6; color: #6b7280;">未開放</span>
-            `}
-          </div>
-        </div>
-      `;
+        `;
+      }
     }).join('') + `</div>`;
   },
 
@@ -2310,16 +2374,27 @@ const MoodleUI = {
     const container = document.getElementById('forumsList');
     if (!container) return;
 
+    const user = API.getCurrentUser();
+    const isTeacher = user && (user.role === 'educator' || user.role === 'trainer' || user.role === 'creator' || user.isAdmin);
+
     const header = `
       <div style="padding: 1.5rem 1.5rem 0;">
-        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem;">
-          <button onclick="MoodleUI.loadForums()" style="background: var(--gray-100); border: none; padding: 0.5rem; border-radius: 8px; cursor: pointer; display: flex; align-items: center;">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
-          </button>
-          <div>
-            <h2 style="font-size: 1.3rem; font-weight: 700; margin: 0;">${courseName} — ${t('moodleForum.title')}</h2>
-            <p style="color: var(--gray-500); margin: 0.25rem 0 0; font-size: 0.85rem;">${forums.length} 個討論區</p>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <button onclick="MoodleUI.loadForums()" style="background: var(--gray-100); border: none; padding: 0.5rem; border-radius: 8px; cursor: pointer; display: flex; align-items: center;">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
+            </button>
+            <div>
+              <h2 style="font-size: 1.3rem; font-weight: 700; margin: 0;">${courseName} — ${t('moodleForum.title')}</h2>
+              <p style="color: var(--gray-500); margin: 0.25rem 0 0; font-size: 0.85rem;">${forums.length} 個討論區</p>
+            </div>
           </div>
+          ${isTeacher ? `
+            <button onclick="MoodleUI.openCreateForumModal('${courseId}')" style="padding: 0.6rem 1.25rem; background: var(--olive); color: var(--cream); border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem;">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              新增討論區
+            </button>
+          ` : ''}
         </div>
       </div>
     `;
@@ -2791,6 +2866,66 @@ const MoodleUI = {
   /**
    * 開啟新增討論 Modal
    */
+  openCreateForumModal(courseId) {
+    const modal = document.createElement('div');
+    modal.id = 'createForumModal';
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+      <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+          <h3>新增討論區</h3>
+          <button onclick="MoodleUI.closeModal('createForumModal')" class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group" style="margin-bottom: 1rem;">
+            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">討論區名稱 *</label>
+            <input type="text" id="newForumTitle" placeholder="例如：課程公告、學習交流" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-200); border-radius: 8px; font-size: 1rem;">
+          </div>
+          <div class="form-group" style="margin-bottom: 1rem;">
+            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">說明</label>
+            <textarea id="newForumDesc" rows="3" placeholder="討論區說明（選填）" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-200); border-radius: 8px; font-size: 1rem; resize: vertical;"></textarea>
+          </div>
+          <div class="form-group" style="margin-bottom: 1rem;">
+            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">類型</label>
+            <select id="newForumType" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-200); border-radius: 8px; font-size: 1rem;">
+              <option value="general">一般討論</option>
+              <option value="news">公告</option>
+              <option value="qanda">問與答</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 0.75rem; padding: 1rem 1.5rem; border-top: 1px solid var(--gray-200);">
+          <button onclick="MoodleUI.closeModal('createForumModal')" class="btn-secondary" style="padding: 0.75rem 1.5rem; background: var(--gray-200); border: none; border-radius: 8px; cursor: pointer;">取消</button>
+          <button onclick="MoodleUI.submitCreateForum('${courseId}')" class="btn-primary" style="padding: 0.75rem 1.5rem; background: var(--olive); color: var(--cream); border: none; border-radius: 8px; cursor: pointer; font-weight: 500;">建立</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    modal.onclick = (e) => { if (e.target === modal) this.closeModal('createForumModal'); };
+  },
+
+  async submitCreateForum(courseId) {
+    const title = document.getElementById('newForumTitle').value.trim();
+    const description = document.getElementById('newForumDesc').value.trim();
+    const type = document.getElementById('newForumType').value;
+
+    if (!title) { showToast('請輸入討論區名稱'); return; }
+
+    try {
+      const result = await API.forums.create({ courseId, title, description, type });
+      if (result.success) {
+        showToast('討論區已建立');
+        this.closeModal('createForumModal');
+        this.loadForums(courseId);
+      } else {
+        showToast(result.message || '建立失敗');
+      }
+    } catch (error) {
+      console.error('Create forum error:', error);
+      showToast('建立討論區失敗');
+    }
+  },
+
   openNewDiscussionModal(forumId) {
     const modal = document.createElement('div');
     modal.id = 'newDiscussionModal';
@@ -7059,14 +7194,15 @@ const MoodleUI = {
   /**
    * 建立作業 Modal
    */
-  async showCreateAssignmentModal() {
+  async showCreateAssignmentModal(preselectedCourseId) {
     let courseOptions = `<option value="">${t('moodleCourseCreate.selectCourse')}</option>`;
     try {
       const result = await API.courses.list();
       if (result.success && result.data) {
         const courses = Array.isArray(result.data) ? result.data : (result.data.courses || []);
         courses.forEach(c => {
-          courseOptions += `<option value="${c.courseId || c.id}">${c.title || c.name}</option>`;
+          const cid = c.courseId || c.id;
+          courseOptions += `<option value="${cid}" ${cid === preselectedCourseId ? 'selected' : ''}>${c.title || c.name}</option>`;
         });
       }
     } catch (e) { /* ignore */ }
@@ -7161,14 +7297,15 @@ const MoodleUI = {
   /**
    * 建立測驗 Modal
    */
-  async showCreateQuizModal() {
+  async showCreateQuizModal(preselectedCourseId) {
     let courseOptions = `<option value="">${t('moodleCourseCreate.selectCourse')}</option>`;
     try {
       const result = await API.courses.list();
       if (result.success && result.data) {
         const courses = Array.isArray(result.data) ? result.data : (result.data.courses || []);
         courses.forEach(c => {
-          courseOptions += `<option value="${c.courseId || c.id}">${c.title || c.name}</option>`;
+          const cid = c.courseId || c.id;
+          courseOptions += `<option value="${cid}" ${cid === preselectedCourseId ? 'selected' : ''}>${c.title || c.name}</option>`;
         });
       }
     } catch (e) { /* ignore */ }
