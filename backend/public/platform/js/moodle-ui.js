@@ -676,38 +676,51 @@ const MoodleUI = {
       const title = activity.name || activity.title || t('moodleActivity.fileViewer');
       const contentType = activity.contentType || 'application/pdf';
 
-      // 取得 auth token
       const token = localStorage.getItem('accessToken');
-      const authedUrl = viewUrl + (viewUrl.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(token);
+      const authedUrl = viewUrl + '?token=' + encodeURIComponent(token);
 
-      let viewerContent = '';
+      // 移除舊的 viewer
+      const existing = document.getElementById('file-viewer-overlay');
+      if (existing) existing.remove();
+
+      // 建立全螢幕 viewer overlay
+      const overlay = document.createElement('div');
+      overlay.id = 'file-viewer-overlay';
+      overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:10000;background:rgba(0,0,0,0.85);display:flex;flex-direction:column;';
+      overlay.oncontextmenu = () => false;
+
+      // 標題列
+      const header = document.createElement('div');
+      header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:10px 20px;background:rgba(0,0,0,0.95);color:#fff;flex-shrink:0;';
+      header.innerHTML = `
+        <h3 style="margin:0;font-size:1rem;font-weight:500;">${title}</h3>
+        <button id="file-viewer-close" style="background:none;border:none;color:#fff;font-size:1.5rem;cursor:pointer;padding:4px 8px;">&times;</button>
+      `;
+      overlay.appendChild(header);
+
+      // 內容區域
+      const content = document.createElement('div');
+      content.style.cssText = 'flex:1;overflow:hidden;';
+
       if (contentType === 'application/pdf') {
-        viewerContent = `
-          <iframe src="${authedUrl}#toolbar=0&navpanes=0&scrollbar=1"
-                  style="width:100%; height:80vh; border:none;"
-                  sandbox="allow-same-origin allow-scripts"></iframe>
-        `;
+        content.innerHTML = `<iframe src="${authedUrl}#toolbar=0&navpanes=0&scrollbar=1" style="width:100%;height:100%;border:none;"></iframe>`;
       } else if (contentType.startsWith('image/')) {
-        viewerContent = `
-          <div style="text-align:center; padding:1rem;">
-            <img src="${authedUrl}" style="max-width:100%; max-height:80vh; object-fit:contain;"
-                 oncontextmenu="return false" draggable="false" />
-          </div>
-        `;
+        content.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;padding:1rem;"><img src="${authedUrl}" style="max-width:100%;max-height:100%;object-fit:contain;" oncontextmenu="return false" draggable="false" /></div>`;
       } else if (contentType.startsWith('video/')) {
-        viewerContent = `
-          <video controls controlslist="nodownload" disablepictureinpicture
-                 style="width:100%; max-height:80vh;" oncontextmenu="return false">
-            <source src="${authedUrl}" type="${contentType}">
-          </video>
-        `;
+        content.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;"><video controls controlslist="nodownload" disablepictureinpicture style="max-width:100%;max-height:100%;" oncontextmenu="return false"><source src="${authedUrl}" type="${contentType}"></video></div>`;
       } else {
-        viewerContent = `
-          <iframe src="${authedUrl}" style="width:100%; height:80vh; border:none;"></iframe>
-        `;
+        content.innerHTML = `<iframe src="${authedUrl}" style="width:100%;height:100%;border:none;"></iframe>`;
       }
 
-      MoodleUI.createModal('file-viewer-modal', title, viewerContent, { maxWidth: '90vw' });
+      overlay.appendChild(content);
+      document.body.appendChild(overlay);
+
+      // 關閉按鈕
+      document.getElementById('file-viewer-close').onclick = () => overlay.remove();
+      // ESC 關閉
+      const escHandler = (e) => { if (e.key === 'Escape') { overlay.remove(); document.removeEventListener('keydown', escHandler); } };
+      document.addEventListener('keydown', escHandler);
+
     } catch (error) {
       console.error('開啟檔案活動失敗:', error);
       showToast(t('moodleActivity.loadFileError'));
