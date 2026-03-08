@@ -8,6 +8,70 @@ const MoodleUI = {
   currentCourse: null,
   currentCourseId: null,
 
+  // 當前各模組選中的課程
+  currentAssignmentCourseId: null,
+  currentQuizCourseId: null,
+  currentForumCourseId: null,
+  currentQuestionBankCategoryFilter: null,
+
+  /**
+   * 通用課程選擇器
+   */
+  renderCoursePicker(title, icon, callbackFn, containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.innerHTML = `<div class="loading">${t('common.loading')}</div>`;
+
+    API.courses.list({ enrolled: true }).then(result => {
+      const courses = result.success ? (Array.isArray(result.data) ? result.data : (result.data?.courses || [])) : [];
+      const courseColors = [
+        'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+        'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+        'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+        'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+        'linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)',
+      ];
+      container.innerHTML = `
+        <div style="padding: 1.5rem;">
+          <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 2rem;">
+            ${icon}
+            <div>
+              <h2 style="font-size: 1.5rem; font-weight: 700; margin: 0;">${title}</h2>
+              <p style="color: var(--gray-500); margin: 0.25rem 0 0; font-size: 0.9rem;">請選擇課程</p>
+            </div>
+          </div>
+          ${courses.length === 0 ? `
+            <div style="text-align: center; padding: 4rem 2rem; color: var(--gray-400);">
+              <p style="font-size: 1.1rem;">尚無課程</p>
+            </div>
+          ` : `
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem;">
+              ${courses.map((c, idx) => `
+                <div onclick="${callbackFn}('${c.courseId || c.id}')"
+                     style="background: var(--white); border-radius: 16px; overflow: hidden; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.06);"
+                     onmouseover="this.style.boxShadow='0 8px 24px rgba(0,0,0,0.12)';this.style.transform='translateY(-2px)'"
+                     onmouseout="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.06)';this.style.transform='none'">
+                  <div style="height: 8px; background: ${courseColors[idx % courseColors.length]};"></div>
+                  <div style="padding: 1.5rem;">
+                    <h3 style="font-size: 1.15rem; font-weight: 600; margin: 0 0 0.5rem;">${c.title || c.name || '未命名課程'}</h3>
+                    <p style="color: var(--gray-500); font-size: 0.85rem; margin: 0 0 1rem; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${c.summary || c.description || ''}</p>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: var(--gray-400);">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                      ${c.instructorName || c.teacherName || ''}
+                    </div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          `}
+        </div>
+      `;
+    }).catch(() => {
+      container.innerHTML = `<div class="error">載入課程失敗</div>`;
+    });
+  },
+
   // ==================== 課程頁面 ====================
 
   /**
@@ -1433,42 +1497,115 @@ const MoodleUI = {
   /**
    * 載入作業列表
    */
-  async loadAssignments(filter = 'all') {
+  async loadAssignments(courseId, filter = 'all') {
     const container = document.getElementById('assignmentsList');
     if (!container) return;
 
-    try {
-      // 取得使用者報名的所有課程的作業
-      const coursesResult = await API.courses.list({ enrolled: true });
-      if (!coursesResult.success) return;
+    // 沒有指定課程 → 顯示課程選擇器
+    if (!courseId) {
+      this.currentAssignmentCourseId = null;
+      this.renderCoursePicker(
+        t('moodleAssignment.title'),
+        '<svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="var(--olive)" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>',
+        'MoodleUI.loadAssignments',
+        'assignmentsList'
+      );
+      return;
+    }
 
-      let allAssignments = [];
-      for (const course of coursesResult.data || []) {
-        const assignmentsResult = await API.assignments.list(course.courseId);
-        if (assignmentsResult.success) {
-          const assignments = (assignmentsResult.data || []).map(a => ({
-            ...a,
-            courseName: course.name,
-            courseId: course.courseId
-          }));
-          allAssignments = allAssignments.concat(assignments);
-        }
-      }
+    this.currentAssignmentCourseId = courseId;
+
+    try {
+      container.innerHTML = `<div class="loading">${t('common.loading')}</div>`;
+      const assignmentsResult = await API.assignments.list(courseId);
+      let assignments = assignmentsResult.success ? (assignmentsResult.data || []) : [];
+
+      // 取得課程名稱
+      let courseName = '';
+      try {
+        const courseResult = await API.courses.get(courseId);
+        if (courseResult.success) courseName = courseResult.data.title || courseResult.data.name || '';
+      } catch(e) {}
+
+      assignments = assignments.map(a => ({ ...a, courseName, courseId }));
 
       // 篩選
       if (filter === 'pending') {
-        allAssignments = allAssignments.filter(a => !a.submitted);
+        assignments = assignments.filter(a => !a.submitted);
       } else if (filter === 'submitted') {
-        allAssignments = allAssignments.filter(a => a.submitted && !a.graded);
+        assignments = assignments.filter(a => a.submitted && !a.graded);
       } else if (filter === 'graded') {
-        allAssignments = allAssignments.filter(a => a.graded);
+        assignments = assignments.filter(a => a.graded);
       }
 
-      this.renderAssignmentsList(allAssignments);
+      this.renderAssignmentsWithBack(assignments, courseName, courseId, filter);
     } catch (error) {
       console.error('Load assignments error:', error);
       container.innerHTML = `<div class="error">${t('moodleAssignment.loadFailed')}</div>`;
     }
+  },
+
+  renderAssignmentsWithBack(assignments, courseName, courseId, currentFilter) {
+    const container = document.getElementById('assignmentsList');
+    if (!container) return;
+
+    const filterTabs = [
+      { key: 'all', label: t('moodleAssignment.filterAll') || '全部' },
+      { key: 'pending', label: t('moodleAssignment.filterPending') || '待提交' },
+      { key: 'submitted', label: t('moodleAssignment.filterSubmitted') || '已提交' },
+      { key: 'graded', label: t('moodleAssignment.filterGraded') || '已評分' },
+    ];
+
+    const header = `
+      <div style="padding: 1.5rem 1.5rem 0;">
+        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem;">
+          <button onclick="MoodleUI.loadAssignments()" style="background: var(--gray-100); border: none; padding: 0.5rem; border-radius: 8px; cursor: pointer; display: flex; align-items: center;">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
+          </button>
+          <div>
+            <h2 style="font-size: 1.3rem; font-weight: 700; margin: 0;">${courseName} — ${t('moodleAssignment.title')}</h2>
+            <p style="color: var(--gray-500); margin: 0.25rem 0 0; font-size: 0.85rem;">${assignments.length} 份作業</p>
+          </div>
+        </div>
+        <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+          ${filterTabs.map(f => `
+            <button onclick="MoodleUI.loadAssignments('${courseId}', '${f.key}')"
+              style="padding: 0.5rem 1rem; border: none; border-radius: 8px; cursor: pointer; font-size: 0.85rem;
+              background: ${currentFilter === f.key ? 'var(--olive)' : 'var(--gray-100)'};
+              color: ${currentFilter === f.key ? 'var(--cream)' : 'var(--gray-600)'};">${f.label}</button>
+          `).join('')}
+        </div>
+      </div>
+    `;
+
+    if (assignments.length === 0) {
+      container.innerHTML = header + `<div class="empty-list" style="padding: 3rem; text-align: center; color: var(--gray-400);">${t('moodleAssignment.noAssignments')}</div>`;
+      return;
+    }
+
+    container.innerHTML = header + `<div style="padding: 0 1.5rem 1.5rem;">` + assignments.map(a => {
+      const isOverdue = a.dueDate && new Date(a.dueDate) < new Date() && !a.submitted;
+      const statusClass = a.graded ? 'graded' : a.submitted ? 'submitted' : isOverdue ? 'overdue' : 'pending';
+      const statusText = a.graded ? (t('moodleAssignment.statusGraded') || '已評分') : a.submitted ? (t('moodleAssignment.statusSubmitted') || '已提交') : isOverdue ? (t('moodleAssignment.statusOverdue') || '已逾期') : (t('moodleAssignment.statusPending') || '待提交');
+
+      return `
+        <div class="assignment-card" onclick="MoodleUI.openAssignment('${a.assignmentId}')" style="display: flex; align-items: center; gap: 1rem; padding: 1.25rem; background: var(--white); border-radius: 12px; margin-bottom: 0.75rem; cursor: pointer; transition: box-shadow 0.2s;" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)'" onmouseout="this.style.boxShadow='none'">
+          <div style="width: 48px; height: 48px; background: var(--olive-light, #e8f0e0); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--olive)" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+          </div>
+          <div style="flex: 1; min-width: 0;">
+            <h3 style="font-size: 1rem; font-weight: 600; margin: 0 0 0.25rem;">${a.title}</h3>
+            <p style="color: var(--gray-500); font-size: 0.85rem; margin: 0;">${a.description || ''}</p>
+            ${a.dueDate ? `<p style="color: ${isOverdue ? 'var(--terracotta)' : 'var(--gray-400)'}; font-size: 0.8rem; margin: 0.25rem 0 0;">截止：${new Date(a.dueDate).toLocaleString('zh-TW')}</p>` : ''}
+          </div>
+          <div style="flex-shrink: 0; padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 500;
+            background: ${statusClass === 'graded' ? '#dcfce7' : statusClass === 'submitted' ? '#dbeafe' : statusClass === 'overdue' ? '#fee2e2' : '#f3f4f6'};
+            color: ${statusClass === 'graded' ? '#16a34a' : statusClass === 'submitted' ? '#2563eb' : statusClass === 'overdue' ? '#dc2626' : '#6b7280'};">
+            ${statusText}
+          </div>
+        </div>
+      `;
+    }).join('') + `</div>`;
   },
 
   /**
@@ -1515,8 +1652,8 @@ const MoodleUI = {
    */
   filterAssignments(filter, btn) {
     document.querySelectorAll('#moodleAssignmentsView .tab-btn').forEach(t => t.classList.remove('active'));
-    btn.classList.add('active');
-    this.loadAssignments(filter);
+    if (btn) btn.classList.add('active');
+    this.loadAssignments(this.currentAssignmentCourseId, filter);
   },
 
   /**
@@ -1754,44 +1891,120 @@ const MoodleUI = {
   /**
    * 載入測驗列表
    */
-  async loadQuizzes(filter = 'all') {
+  async loadQuizzes(courseId, filter = 'all') {
     const container = document.getElementById('quizzesList');
     if (!container) return;
 
+    // 沒有指定課程 → 顯示課程選擇器
+    if (!courseId) {
+      this.currentQuizCourseId = null;
+      this.renderCoursePicker(
+        t('moodleQuiz.title'),
+        '<svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="var(--olive)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+        'MoodleUI.loadQuizzes',
+        'quizzesList'
+      );
+      return;
+    }
+
+    this.currentQuizCourseId = courseId;
+
     try {
-      const coursesResult = await API.courses.list({ enrolled: true });
-      if (!coursesResult.success) return;
+      container.innerHTML = `<div class="loading">${t('common.loading')}</div>`;
+      const quizzesResult = await API.quizzes.list(courseId);
+      let quizzes = quizzesResult.success ? (quizzesResult.data || []) : [];
 
-      let allQuizzes = [];
-      for (const course of coursesResult.data || []) {
-        const quizzesResult = await API.quizzes.list(course.courseId);
-        if (quizzesResult.success) {
-          const quizzes = (quizzesResult.data || []).map(q => ({
-            ...q,
-            courseName: course.name,
-            courseId: course.courseId
-          }));
-          allQuizzes = allQuizzes.concat(quizzes);
-        }
-      }
+      let courseName = '';
+      try {
+        const courseResult = await API.courses.get(courseId);
+        if (courseResult.success) courseName = courseResult.data.title || courseResult.data.name || '';
+      } catch(e) {}
 
-      // 篩選
+      quizzes = quizzes.map(q => ({ ...q, courseName, courseId }));
+
       const now = new Date();
       if (filter === 'available') {
-        allQuizzes = allQuizzes.filter(q => {
+        quizzes = quizzes.filter(q => {
           const open = q.openDate ? new Date(q.openDate) : null;
           const close = q.closeDate ? new Date(q.closeDate) : null;
           return (!open || open <= now) && (!close || close >= now);
         });
       } else if (filter === 'completed') {
-        allQuizzes = allQuizzes.filter(q => q.completed);
+        quizzes = quizzes.filter(q => q.completed);
       }
 
-      this.renderQuizzesList(allQuizzes);
+      this.renderQuizzesWithBack(quizzes, courseName, courseId, filter);
     } catch (error) {
       console.error('Load quizzes error:', error);
       container.innerHTML = `<div class="error">${t('moodleQuiz.loadFailed')}</div>`;
     }
+  },
+
+  renderQuizzesWithBack(quizzes, courseName, courseId, currentFilter) {
+    const container = document.getElementById('quizzesList');
+    if (!container) return;
+
+    const filterTabs = [
+      { key: 'all', label: '全部' },
+      { key: 'available', label: '可作答' },
+      { key: 'completed', label: '已完成' },
+    ];
+
+    const header = `
+      <div style="padding: 1.5rem 1.5rem 0;">
+        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem;">
+          <button onclick="MoodleUI.loadQuizzes()" style="background: var(--gray-100); border: none; padding: 0.5rem; border-radius: 8px; cursor: pointer; display: flex; align-items: center;">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
+          </button>
+          <div>
+            <h2 style="font-size: 1.3rem; font-weight: 700; margin: 0;">${courseName} — ${t('moodleQuiz.title')}</h2>
+            <p style="color: var(--gray-500); margin: 0.25rem 0 0; font-size: 0.85rem;">${quizzes.length} 份測驗</p>
+          </div>
+        </div>
+        <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+          ${filterTabs.map(f => `
+            <button onclick="MoodleUI.loadQuizzes('${courseId}', '${f.key}')"
+              style="padding: 0.5rem 1rem; border: none; border-radius: 8px; cursor: pointer; font-size: 0.85rem;
+              background: ${currentFilter === f.key ? 'var(--olive)' : 'var(--gray-100)'};
+              color: ${currentFilter === f.key ? 'var(--cream)' : 'var(--gray-600)'};">${f.label}</button>
+          `).join('')}
+        </div>
+      </div>
+    `;
+
+    if (quizzes.length === 0) {
+      container.innerHTML = header + `<div class="empty-list" style="padding: 3rem; text-align: center; color: var(--gray-400);">${t('moodleQuiz.noQuizzes')}</div>`;
+      return;
+    }
+
+    container.innerHTML = header + `<div style="padding: 0 1.5rem 1.5rem;">` + quizzes.map(q => {
+      const now = new Date();
+      const isOpen = (!q.openDate || new Date(q.openDate) <= now) && (!q.closeDate || new Date(q.closeDate) >= now);
+
+      return `
+        <div onclick="MoodleUI.openQuiz('${q.quizId}')" style="display: flex; align-items: center; gap: 1rem; padding: 1.25rem; background: var(--white); border-radius: 12px; margin-bottom: 0.75rem; cursor: pointer; transition: box-shadow 0.2s;" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)'" onmouseout="this.style.boxShadow='none'">
+          <div style="width: 48px; height: 48px; background: #ede9fe; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#7c3aed" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </div>
+          <div style="flex: 1; min-width: 0;">
+            <h3 style="font-size: 1rem; font-weight: 600; margin: 0 0 0.25rem;">${q.title}</h3>
+            <p style="color: var(--gray-500); font-size: 0.85rem; margin: 0;">${q.description || ''}</p>
+            <p style="color: var(--gray-400); font-size: 0.8rem; margin: 0.25rem 0 0;">
+              ${q.questionCount || q.questions?.length || 0} 題 · ${q.timeLimit ? q.timeLimit + ' 分鐘' : '不限時'} · 最多 ${q.maxAttempts || 1} 次
+            </p>
+          </div>
+          <div style="flex-shrink: 0;">
+            ${q.completed ? `
+              <span style="padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 500; background: #dcfce7; color: #16a34a;">已完成</span>
+            ` : isOpen ? `
+              <button onclick="event.stopPropagation(); MoodleUI.startQuiz('${q.quizId}')" style="padding: 0.5rem 1rem; background: var(--olive); color: var(--cream); border: none; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 500;">開始作答</button>
+            ` : `
+              <span style="padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 500; background: #f3f4f6; color: #6b7280;">未開放</span>
+            `}
+          </div>
+        </div>
+      `;
+    }).join('') + `</div>`;
   },
 
   /**
@@ -1848,8 +2061,8 @@ const MoodleUI = {
    */
   filterQuizzes(filter, btn) {
     document.querySelectorAll('#moodleQuizzesView .tab-btn').forEach(t => t.classList.remove('active'));
-    btn.classList.add('active');
-    this.loadQuizzes(filter);
+    if (btn) btn.classList.add('active');
+    this.loadQuizzes(this.currentQuizCourseId, filter);
   },
 
   /**
@@ -2051,36 +2264,96 @@ const MoodleUI = {
   /**
    * 載入討論區列表
    */
-  async loadForums(filter = 'all') {
+  async loadForums(courseId, filter = 'all') {
     const container = document.getElementById('forumsList');
     if (!container) return;
 
-    try {
-      const coursesResult = await API.courses.list({ enrolled: true });
-      if (!coursesResult.success) return;
+    // 沒有指定課程 → 顯示課程選擇器
+    if (!courseId) {
+      this.currentForumCourseId = null;
+      this.renderCoursePicker(
+        t('moodleForum.title'),
+        '<svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="var(--olive)" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>',
+        'MoodleUI.loadForums',
+        'forumsList'
+      );
+      return;
+    }
 
-      let allForums = [];
-      for (const course of coursesResult.data || []) {
-        const forumsResult = await API.forums.list(course.courseId);
-        if (forumsResult.success) {
-          const forums = (forumsResult.data || []).map(f => ({
-            ...f,
-            courseName: course.name,
-            courseId: course.courseId
-          }));
-          allForums = allForums.concat(forums);
-        }
-      }
+    this.currentForumCourseId = courseId;
+
+    try {
+      container.innerHTML = `<div class="loading">${t('common.loading')}</div>`;
+      const forumsResult = await API.forums.list(courseId);
+      let forums = forumsResult.success ? (forumsResult.data || []) : [];
+
+      let courseName = '';
+      try {
+        const courseResult = await API.courses.get(courseId);
+        if (courseResult.success) courseName = courseResult.data.title || courseResult.data.name || '';
+      } catch(e) {}
+
+      forums = forums.map(f => ({ ...f, courseName, courseId }));
 
       if (filter === 'subscribed') {
-        allForums = allForums.filter(f => f.subscribed);
+        forums = forums.filter(f => f.subscribed);
       }
 
-      this.renderForumsList(allForums);
+      this.renderForumsWithBack(forums, courseName, courseId);
     } catch (error) {
       console.error('Load forums error:', error);
       container.innerHTML = `<div class="error">${t('moodleForum.loadFailed')}</div>`;
     }
+  },
+
+  renderForumsWithBack(forums, courseName, courseId) {
+    const container = document.getElementById('forumsList');
+    if (!container) return;
+
+    const header = `
+      <div style="padding: 1.5rem 1.5rem 0;">
+        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem;">
+          <button onclick="MoodleUI.loadForums()" style="background: var(--gray-100); border: none; padding: 0.5rem; border-radius: 8px; cursor: pointer; display: flex; align-items: center;">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
+          </button>
+          <div>
+            <h2 style="font-size: 1.3rem; font-weight: 700; margin: 0;">${courseName} — ${t('moodleForum.title')}</h2>
+            <p style="color: var(--gray-500); margin: 0.25rem 0 0; font-size: 0.85rem;">${forums.length} 個討論區</p>
+          </div>
+        </div>
+      </div>
+    `;
+
+    if (forums.length === 0) {
+      container.innerHTML = header + `<div class="empty-list" style="padding: 3rem; text-align: center; color: var(--gray-400);">${t('moodleForum.noForums')}</div>`;
+      return;
+    }
+
+    const typeLabels = { 'news': '公告', 'general': '一般討論', 'qanda': '問與答', 'social': '社交' };
+    const typeColors = { 'news': '#ef4444', 'general': 'var(--olive)', 'qanda': '#6366f1', 'social': '#f59e0b' };
+
+    container.innerHTML = header + `
+      <div style="padding: 0 1.5rem 1.5rem;">
+        ${forums.map(f => `
+          <div onclick="MoodleUI.openForum('${f.forumId}')" style="display: flex; align-items: center; gap: 1rem; padding: 1.25rem; background: var(--white); border-radius: 12px; margin-bottom: 0.75rem; cursor: pointer; transition: box-shadow 0.2s;" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)'" onmouseout="this.style.boxShadow='none'">
+            <div style="width: 48px; height: 48px; background: ${(typeColors[f.type] || 'var(--olive)')}15; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="${typeColors[f.type] || 'var(--olive)'}" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+            </div>
+            <div style="flex: 1; min-width: 0;">
+              <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                <span style="padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 500; background: ${(typeColors[f.type] || 'var(--olive)')}; color: white;">${typeLabels[f.type] || f.type}</span>
+                <h3 style="font-size: 1rem; font-weight: 600; margin: 0;">${f.title || f.name}</h3>
+              </div>
+              <p style="color: var(--gray-500); font-size: 0.85rem; margin: 0;">${f.description || ''}</p>
+            </div>
+            <div style="flex-shrink: 0; display: flex; gap: 1.5rem; font-size: 0.85rem; color: var(--gray-400);">
+              <span>${f.discussionCount || 0} 篇討論</span>
+              <span>${f.postCount || 0} 則回覆</span>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
   },
 
   /**
@@ -2124,8 +2397,8 @@ const MoodleUI = {
    */
   filterForums(filter, btn) {
     document.querySelectorAll('#moodleForumsView .tab-btn').forEach(t => t.classList.remove('active'));
-    btn.classList.add('active');
-    this.loadForums(filter);
+    if (btn) btn.classList.add('active');
+    this.loadForums(this.currentForumCourseId, filter);
   },
 
   /**
@@ -2144,7 +2417,7 @@ const MoodleUI = {
 
       container.innerHTML = `
         <div class="forum-header">
-          <button onclick="showView('moodleForums')" class="back-btn">
+          <button onclick="MoodleUI.currentForumCourseId ? (showView('moodleForums'), MoodleUI.loadForums(MoodleUI.currentForumCourseId)) : showView('moodleForums')" class="back-btn">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
             ${t('moodleForum.backToForums')}
           </button>
@@ -3431,23 +3704,82 @@ const MoodleUI = {
   /**
    * 開啟題庫管理頁面
    */
-  async openQuestionBank() {
+  async openQuestionBank(categoryId) {
     const container = document.getElementById('questionBankContent');
     if (!container) return;
 
+    // 沒有指定類別 → 顯示課程選擇器（題庫以課程類別分類）
+    if (!categoryId) {
+      container.innerHTML = `<div class="loading">${t('common.loading')}</div>`;
+      showView('questionBank');
+
+      try {
+        const categoriesResult = await API.questionBank.getCategories();
+        const categories = categoriesResult.success ? categoriesResult.data : [];
+
+        if (categories.length === 0) {
+          container.innerHTML = `<div class="empty-list" style="padding: 3rem; text-align: center; color: var(--gray-400);">${t('moodleQuestionBank.noQuestions')}</div>`;
+          return;
+        }
+
+        const catColors = [
+          'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+          'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+          'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+        ];
+
+        container.innerHTML = `
+          <div style="padding: 1.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 2rem;">
+              <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="var(--olive)" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+              <div>
+                <h2 style="font-size: 1.5rem; font-weight: 700; margin: 0;">${t('moodleQuestionBank.title')}</h2>
+                <p style="color: var(--gray-500); margin: 0.25rem 0 0; font-size: 0.9rem;">請選擇題庫類別</p>
+              </div>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem;">
+              ${categories.map((cat, idx) => `
+                <div onclick="MoodleUI.openQuestionBank('${cat.id}')"
+                     style="background: var(--white); border-radius: 16px; overflow: hidden; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.06);"
+                     onmouseover="this.style.boxShadow='0 8px 24px rgba(0,0,0,0.12)';this.style.transform='translateY(-2px)'"
+                     onmouseout="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.06)';this.style.transform='none'">
+                  <div style="height: 8px; background: ${catColors[idx % catColors.length]};"></div>
+                  <div style="padding: 1.5rem;">
+                    <h3 style="font-size: 1.15rem; font-weight: 600; margin: 0 0 0.5rem;">${cat.name}</h3>
+                    <p style="color: var(--gray-500); font-size: 0.85rem; margin: 0 0 1rem;">${cat.description || ''}</p>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: var(--gray-400);">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                      ${cat.questionCount || 0} 道題目
+                    </div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      } catch (error) {
+        console.error('Open question bank error:', error);
+        container.innerHTML = `<div class="error">${t('moodleQuestionBank.loadFailed')}</div>`;
+      }
+      return;
+    }
+
+    // 有指定類別 → 載入該類別的題目
     container.innerHTML = `<div class="loading">${t('common.loading')}</div>`;
     showView('questionBank');
 
     try {
       const [questionsResult, categoriesResult] = await Promise.all([
-        API.questionBank.list(this.currentQuestionBankFilters),
+        API.questionBank.list({ ...this.currentQuestionBankFilters, categoryId }),
         API.questionBank.getCategories()
       ]);
 
       const questions = questionsResult.success ? questionsResult.data : [];
       const categories = categoriesResult.success ? categoriesResult.data : [];
+      const currentCat = categories.find(c => c.id === categoryId);
 
-      container.innerHTML = this.renderQuestionBankPage(questions, categories);
+      container.innerHTML = this.renderQuestionBankPageWithBack(questions, categories, currentCat, categoryId);
     } catch (error) {
       console.error('Open question bank error:', error);
       container.innerHTML = `<div class="error">${t('moodleQuestionBank.loadFailed')}</div>`;
@@ -3457,6 +3789,24 @@ const MoodleUI = {
   /**
    * 渲染題庫頁面
    */
+  renderQuestionBankPageWithBack(questions, categories, currentCat, categoryId) {
+    const catName = currentCat ? currentCat.name : '題庫';
+    const backHeader = `
+      <div style="padding: 1.5rem 1.5rem 0;">
+        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+          <button onclick="MoodleUI.openQuestionBank()" style="background: var(--gray-100); border: none; padding: 0.5rem; border-radius: 8px; cursor: pointer; display: flex; align-items: center;">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
+          </button>
+          <div>
+            <h2 style="font-size: 1.3rem; font-weight: 700; margin: 0;">${catName} — ${t('moodleQuestionBank.title')}</h2>
+            <p style="color: var(--gray-500); margin: 0.25rem 0 0; font-size: 0.85rem;">${questions.length} 道題目</p>
+          </div>
+        </div>
+      </div>
+    `;
+    return backHeader + this.renderQuestionBankPage(questions, categories);
+  },
+
   renderQuestionBankPage(questions, categories) {
     const questionTypes = {
       'multiple_choice': t('moodleQuestionBank.multipleChoice'),
