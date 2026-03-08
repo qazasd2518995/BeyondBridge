@@ -190,7 +190,7 @@ const MoodleUI = {
       <div class="course-section ${section.visible === false ? 'hidden-section' : ''}">
         <div class="section-header">
           <div class="section-info">
-            <h2 class="section-title">${section.name || `${t('moodleCourse.weekPrefix')} ${index + 1} ${t('moodleCourse.weekSuffix')}`}</h2>
+            <h2 class="section-title">${section.name || section.title || `${t('moodleCourse.weekPrefix')} ${index + 1} ${t('moodleCourse.weekSuffix')}`}</h2>
             ${section.summary ? `<p class="section-summary">${section.summary}</p>` : ''}
           </div>
           ${isTeacher ? `
@@ -250,7 +250,7 @@ const MoodleUI = {
           </svg>
         </div>
         <div class="activity-info">
-          <span class="activity-name">${activity.name}</span>
+          <span class="activity-name">${activity.name || activity.title}</span>
           ${activity.description ? `<span class="activity-desc">${activity.description}</span>` : ''}
           ${activity.dueDate ? `<span class="activity-due">${t('moodleCourse.dueDate')}：${new Date(activity.dueDate).toLocaleDateString(I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW')}</span>` : ''}
         </div>
@@ -666,7 +666,7 @@ const MoodleUI = {
         return;
       }
       const activity = result.data;
-      const fileUrl = activity.fileUrl || activity.url || activity.file;
+      const fileUrl = activity.fileUrl || activity.url || activity.file || (activity.fileId ? `/api/files/${activity.fileId}/download` : null);
       if (fileUrl) {
         const link = document.createElement('a');
         link.href = fileUrl;
