@@ -75,7 +75,8 @@ const PORT = process.env.PORT || 3000;
 
 // 安全 Headers
 app.use(helmet({
-  contentSecurityPolicy: false // 因為有自己的 SPA 頁面
+  contentSecurityPolicy: false, // 因為有自己的 SPA 頁面
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' } // YouTube embed 需要 referrer
 }));
 
 // CORS 設定

@@ -707,7 +707,8 @@ const MoodleUI = {
       <div style="width:100%;max-width:960px;aspect-ratio:16/9;position:relative;">
         <iframe id="yt-embed-frame" src="https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=1&rel=0&modestbranding=1"
                 style="width:100%;height:100%;border:none;border-radius:8px;"
-                allow="autoplay; encrypted-media" allowfullscreen></iframe>
+                referrerpolicy="strict-origin-when-cross-origin"
+                allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>
       </div>
     `;
     overlay.appendChild(content);
