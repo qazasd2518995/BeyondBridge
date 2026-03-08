@@ -375,6 +375,68 @@ router.get('/:id', authMiddleware, async (req, res) => {
 });
 
 /**
+ * GET /api/files/:id/view
+ * 線上預覽檔案（inline，禁止下載）
+ */
+router.get('/:id/view', (req, res, next) => {
+  // 支援 query string token（iframe 無法送 header）
+  if (!req.headers.authorization && req.query.token) {
+    req.headers.authorization = `Bearer ${req.query.token}`;
+  }
+  authMiddleware(req, res, next);
+}, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.userId;
+
+    const file = await db.getItem(`FILE#${id}`, 'META');
+    if (!file) {
+      return res.status(404).json({
+        success: false,
+        error: 'FILE_NOT_FOUND',
+        message: '找不到此檔案'
+      });
+    }
+
+    const canAccess = await checkFileAccess(file, userId, req.user.isAdmin);
+    if (!canAccess) {
+      return res.status(403).json({
+        success: false,
+        error: 'FORBIDDEN',
+        message: '沒有權限檢視此檔案'
+      });
+    }
+
+    try {
+      await fs.access(file.storagePath);
+    } catch {
+      return res.status(404).json({
+        success: false,
+        error: 'FILE_NOT_FOUND',
+        message: '檔案不存在'
+      });
+    }
+
+    res.setHeader('Content-Type', file.contentType);
+    res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(file.filename)}"`);
+    res.setHeader('Content-Length', file.size);
+    // 禁止快取以防外洩
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+
+    const fileContent = await fs.readFile(file.storagePath);
+    res.send(fileContent);
+
+  } catch (error) {
+    console.error('View file error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'VIEW_FAILED',
+      message: '檢視檔案失敗'
+    });
+  }
+});
+
+/**
  * GET /api/files/:id/download
  * 下載檔案
  */

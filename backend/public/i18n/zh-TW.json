@@ -860,6 +860,7 @@
   "moodleActivity.loadPageError": "載入頁面內容失敗",
   "moodleActivity.loadPageFailed": "無法載入頁面內容",
   "moodleActivity.noFile": "此活動未設定檔案",
+  "moodleActivity.fileViewer": "檔案檢視",
   "moodleActivity.noLtiTool": "此活動未設定 LTI 工具",
   "moodleActivity.noPageContent": "此頁面沒有內容",
   "moodleActivity.noUrl": "此活動未設定網址",

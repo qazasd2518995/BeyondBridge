@@ -860,6 +860,7 @@
   "moodleActivity.loadPageError": "Error loading page content",
   "moodleActivity.loadPageFailed": "Failed to load page content",
   "moodleActivity.noFile": "No file set for this activity",
+  "moodleActivity.fileViewer": "File Viewer",
   "moodleActivity.noLtiTool": "No LTI tool configured",
   "moodleActivity.noPageContent": "This page has no content",
   "moodleActivity.noUrl": "No URL set for this activity",

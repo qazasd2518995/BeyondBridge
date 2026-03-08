@@ -324,6 +324,16 @@ router.get('/:id/activities/:activityId', authMiddleware, async (req, res) => {
       });
     }
 
+    // 如果是檔案類型活動，附加檔案資訊
+    if (activity.type === 'file' && activity.fileId) {
+      const file = await db.getItem(`FILE#${activity.fileId}`, 'META');
+      if (file) {
+        activity.contentType = file.contentType;
+        activity.fileName = file.filename;
+        activity.fileSize = file.size;
+      }
+    }
+
     res.json({
       success: true,
       data: activity

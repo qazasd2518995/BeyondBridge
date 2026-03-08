@@ -656,7 +656,7 @@ const MoodleUI = {
   },
 
   /**
-   * 開啟檔案活動 - 下載或開啟檔案
+   * 開啟檔案活動 - 在平台內預覽（禁止下載）
    */
   async openFileActivity(activityId, courseId) {
     try {
@@ -666,18 +666,48 @@ const MoodleUI = {
         return;
       }
       const activity = result.data;
-      const fileUrl = activity.fileUrl || activity.url || activity.file || (activity.fileId ? `/api/files/${activity.fileId}/download` : null);
-      if (fileUrl) {
-        const link = document.createElement('a');
-        link.href = fileUrl;
-        link.download = activity.fileName || activity.title || '';
-        link.target = '_blank';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      } else {
+      const fileId = activity.fileId;
+      if (!fileId) {
         showToast(t('moodleActivity.noFile'));
+        return;
       }
+
+      const viewUrl = `/api/files/${fileId}/view`;
+      const title = activity.name || activity.title || t('moodleActivity.fileViewer');
+      const contentType = activity.contentType || 'application/pdf';
+
+      // 取得 auth token
+      const token = localStorage.getItem('token');
+      const authedUrl = viewUrl + (viewUrl.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(token);
+
+      let viewerContent = '';
+      if (contentType === 'application/pdf') {
+        viewerContent = `
+          <iframe src="${authedUrl}#toolbar=0&navpanes=0&scrollbar=1"
+                  style="width:100%; height:80vh; border:none;"
+                  sandbox="allow-same-origin allow-scripts"></iframe>
+        `;
+      } else if (contentType.startsWith('image/')) {
+        viewerContent = `
+          <div style="text-align:center; padding:1rem;">
+            <img src="${authedUrl}" style="max-width:100%; max-height:80vh; object-fit:contain;"
+                 oncontextmenu="return false" draggable="false" />
+          </div>
+        `;
+      } else if (contentType.startsWith('video/')) {
+        viewerContent = `
+          <video controls controlslist="nodownload" disablepictureinpicture
+                 style="width:100%; max-height:80vh;" oncontextmenu="return false">
+            <source src="${authedUrl}" type="${contentType}">
+          </video>
+        `;
+      } else {
+        viewerContent = `
+          <iframe src="${authedUrl}" style="width:100%; height:80vh; border:none;"></iframe>
+        `;
+      }
+
+      MoodleUI.createModal('file-viewer-modal', title, viewerContent, { maxWidth: '90vw' });
     } catch (error) {
       console.error('開啟檔案活動失敗:', error);
       showToast(t('moodleActivity.loadFileError'));
