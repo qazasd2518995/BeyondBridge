@@ -8364,7 +8364,13 @@
                 const result = await API.admin.analytics.getUserActivity(dateRange);
 
                 if (result.success) {
-                    const { summary, dailyActiveUsers, roleDistribution, registrationTrend } = result.data;
+                    const {
+                        summary = {},
+                        dailyActiveUsers = [],
+                        behaviorDistribution = {},
+                        topActiveUsers = [],
+                        activityHeatmap = null
+                    } = result.data || {};
 
                     // 更新關鍵指標
                     document.getElementById('dauValue').textContent = summary.dau || 0;
@@ -8379,13 +8385,13 @@
 
                     // 更新圖表
                     renderActivityTrendChart(dailyActiveUsers || []);
-                    renderBehaviorDistributionChart(roleDistribution || {});
+                    renderBehaviorDistributionChart(behaviorDistribution || {});
 
                     // 更新熱力圖
-                    renderActivityHeatmap();
+                    renderActivityHeatmap(activityHeatmap);
 
                     // 載入高活躍用戶列表
-                    loadTopActiveUsers();
+                    loadTopActiveUsers(topActiveUsers || []);
                 }
             } catch (error) {
                 console.error('Load user activity error:', error);
@@ -8418,21 +8424,18 @@
                 activityTrendChart.destroy();
             }
 
-            // 模擬數據如果沒有真實數據
-            if (!data || data.length === 0) {
-                data = Array.from({ length: 30 }, (_, i) => ({
-                    date: new Date(Date.now() - (29 - i) * 86400000).toISOString().slice(0, 10),
-                    count: Math.floor(Math.random() * 50) + 10
-                }));
-            }
+            const normalized = Array.isArray(data) ? data : [];
+            const hasData = normalized.length > 0;
+            const labels = hasData ? normalized.map(d => d.date) : [t('admin.analytics.noData')];
+            const values = hasData ? normalized.map(d => d.count) : [0];
 
             activityTrendChart = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: data.map(d => d.date),
+                    labels,
                     datasets: [{
                         label: t('admin.userActivity.activeUsers'),
-                        data: data.map(d => d.count),
+                        data: values,
                         borderColor: '#5a6b4d',
                         backgroundColor: 'rgba(90, 107, 77, 0.1)',
                         fill: true,
@@ -8467,23 +8470,61 @@
                 behaviorDistributionChart.destroy();
             }
 
-            // 模擬數據
-            const labels = [t('admin.userActivity.login'), t('admin.userActivity.browseCourse'), t('admin.userActivity.submitAssignment'), t('admin.userActivity.joinDiscussion'), t('admin.userActivity.downloadResource')];
-            const values = [35, 28, 18, 12, 7];
+            const source = data && typeof data === 'object' ? data : {};
+            const buckets = {
+                login: 0,
+                browseCourse: 0,
+                submitAssignment: 0,
+                joinDiscussion: 0,
+                downloadResource: 0,
+                other: 0
+            };
+
+            Object.entries(source).forEach(([action, count]) => {
+                const value = Number(count) || 0;
+                if (!value) return;
+
+                if (action === 'login' || action.includes('login') || action.includes('auth')) {
+                    buckets.login += value;
+                } else if (action.includes('course')) {
+                    buckets.browseCourse += value;
+                } else if (action.includes('assignment') || action.includes('submit')) {
+                    buckets.submitAssignment += value;
+                } else if (action.includes('discussion') || action.includes('forum') || action.includes('reply')) {
+                    buckets.joinDiscussion += value;
+                } else if (action.includes('resource') || action.includes('file') || action.includes('download')) {
+                    buckets.downloadResource += value;
+                } else {
+                    buckets.other += value;
+                }
+            });
+
+            const allBuckets = [
+                { label: t('admin.userActivity.login'), value: buckets.login, color: '#5a6b4d' },
+                { label: t('admin.userActivity.browseCourse'), value: buckets.browseCourse, color: '#c17a5e' },
+                { label: t('admin.userActivity.submitAssignment'), value: buckets.submitAssignment, color: '#3b82f6' },
+                { label: t('admin.userActivity.joinDiscussion'), value: buckets.joinDiscussion, color: '#8b5cf6' },
+                { label: t('admin.userActivity.downloadResource'), value: buckets.downloadResource, color: '#f59e0b' },
+                { label: 'Other', value: buckets.other, color: '#9ca3af' }
+            ].filter(item => item.value > 0);
+
+            const labels = allBuckets.length > 0
+                ? allBuckets.map(item => item.label)
+                : [t('admin.analytics.noData')];
+            const values = allBuckets.length > 0
+                ? allBuckets.map(item => item.value)
+                : [1];
+            const colors = allBuckets.length > 0
+                ? allBuckets.map(item => item.color)
+                : ['#d1d5db'];
 
             behaviorDistributionChart = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
-                    labels: labels,
+                    labels,
                     datasets: [{
                         data: values,
-                        backgroundColor: [
-                            '#5a6b4d',
-                            '#c17a5e',
-                            '#3b82f6',
-                            '#8b5cf6',
-                            '#f59e0b'
-                        ]
+                        backgroundColor: colors
                     }]
                 },
                 options: {
@@ -8498,14 +8539,38 @@
             });
         }
 
-        function renderActivityHeatmap() {
+        function renderActivityHeatmap(data) {
             const container = document.getElementById('activityHeatmap');
             if (!container) return;
 
             const days = [t('admin.userActivity.sun'), t('admin.userActivity.mon'), t('admin.userActivity.tue'), t('admin.userActivity.wed'), t('admin.userActivity.thu'), t('admin.userActivity.fri'), t('admin.userActivity.sat')];
             const hours = Array.from({ length: 24 }, (_, i) => i);
 
-            // 生成模擬數據
+            const matrix = Array.isArray(data?.matrix) && data.matrix.length === 7
+                ? data.matrix
+                : null;
+
+            if (!matrix) {
+                container.innerHTML = `
+                    <div style="padding: 1rem; text-align: center; color: var(--text-secondary);">
+                        ${t('admin.analytics.noData')}
+                    </div>
+                `;
+                return;
+            }
+
+            const maxCount = Math.max(...matrix.flat().map(v => Number(v) || 0), 0);
+            const getLevel = (count) => {
+                const value = Number(count) || 0;
+                if (maxCount <= 0 || value <= 0) return 0;
+                const ratio = value / maxCount;
+                if (ratio >= 0.8) return 4;
+                if (ratio >= 0.6) return 3;
+                if (ratio >= 0.4) return 2;
+                if (ratio >= 0.2) return 1;
+                return 0;
+            };
+
             let html = '';
 
             // 時段標題行
@@ -8515,29 +8580,21 @@
             });
 
             // 每日數據行
-            days.forEach(day => {
+            days.forEach((day, dayIndex) => {
                 html += `<div class="heatmap-row-label">${day}</div>`;
                 hours.forEach(h => {
-                    const level = Math.floor(Math.random() * 5);
-                    html += `<div class="heatmap-cell level-${level}" title="${day} ${h}:00"></div>`;
+                    const count = Number(matrix[dayIndex]?.[h]) || 0;
+                    const level = getLevel(count);
+                    html += `<div class="heatmap-cell level-${level}" title="${day} ${h}:00 (${count})"></div>`;
                 });
             });
 
             container.innerHTML = html;
         }
 
-        async function loadTopActiveUsers() {
+        function loadTopActiveUsers(users = []) {
             const tbody = document.getElementById('topActiveUsersTable');
             if (!tbody) return;
-
-            // 模擬數據
-            const users = [
-                { rank: 1, name: '王小明', role: 'educator', count: 156, lastActive: new Date() },
-                { rank: 2, name: '李老師', role: 'trainer', count: 143, lastActive: new Date() },
-                { rank: 3, name: '張同學', role: 'student', count: 128, lastActive: new Date() },
-                { rank: 4, name: '陳教授', role: 'creator', count: 115, lastActive: new Date() },
-                { rank: 5, name: '林助教', role: 'educator', count: 102, lastActive: new Date() }
-            ];
 
             const roleMap = {
                 'educator': t('admin.roles.educator'),
@@ -8547,13 +8604,25 @@
                 'student': t('admin.roles.student')
             };
 
-            tbody.innerHTML = users.map(u => `
+            const list = Array.isArray(users) ? users : [];
+            if (list.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" style="text-align:center; color: var(--text-secondary);">
+                            ${t('admin.analytics.noData')}
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = list.map(u => `
                 <tr>
-                    <td><strong>${u.rank}</strong></td>
-                    <td>${u.name}</td>
+                    <td><strong>${u.rank || ''}</strong></td>
+                    <td>${u.name || u.userId || '-'}</td>
                     <td><span class="role-badge role-${u.role}">${roleMap[u.role] || u.role}</span></td>
-                    <td>${u.count}</td>
-                    <td>${formatDate(u.lastActive)}</td>
+                    <td>${u.count || 0}</td>
+                    <td>${u.lastActive ? formatDate(u.lastActive) : '-'}</td>
                 </tr>
             `).join('');
         }

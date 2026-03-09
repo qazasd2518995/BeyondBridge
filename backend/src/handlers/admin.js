@@ -1618,6 +1618,7 @@ router.get('/analytics/user-activity', async (req, res) => {
     const dailyActiveSets = new Map();
     const actionDistribution = {};
     const userActivityCount = new Map();
+    const activityHeatmap = Array.from({ length: 7 }, () => Array(24).fill(0));
 
     periodEvents.forEach(e => {
       const key = toDateKey(e.timestamp);
@@ -1628,6 +1629,11 @@ router.get('/analytics/user-activity', async (req, res) => {
 
       actionDistribution[e.action] = (actionDistribution[e.action] || 0) + 1;
       userActivityCount.set(e.userId, (userActivityCount.get(e.userId) || 0) + 1);
+
+      const eventDate = new Date(e.timestamp);
+      const day = eventDate.getUTCDay();
+      const hour = eventDate.getUTCHours();
+      activityHeatmap[day][hour] = (activityHeatmap[day][hour] || 0) + 1;
     });
 
     const dateKeys = [];
@@ -1743,6 +1749,10 @@ router.get('/analytics/user-activity', async (req, res) => {
         registrationTrend,
         behaviorDistribution: actionDistribution,
         topActiveUsers,
+        activityHeatmap: {
+          timezone: 'UTC',
+          matrix: activityHeatmap
+        },
         period: {
           days,
           from: periodStart.toISOString(),
@@ -1765,8 +1775,37 @@ router.get('/analytics/user-activity', async (req, res) => {
 // 自動化規則 API
 // ========================================
 
-// 模擬自動化規則資料存儲（實際應使用資料庫）
-let automationRules = [];
+const AUTOMATION_RULES_PK = 'AUTOMATION_RULES';
+const AUTOMATION_RULES_SK_PREFIX = 'RULE#';
+
+function getAutomationRuleSk(ruleId) {
+  return `${AUTOMATION_RULES_SK_PREFIX}${ruleId}`;
+}
+
+function sanitizeAutomationRule(rule) {
+  if (!rule) return null;
+  const normalized = { ...rule };
+  delete normalized.PK;
+  delete normalized.SK;
+  normalized.id = normalized.id || normalized.ruleId;
+  normalized.ruleId = normalized.ruleId || normalized.id;
+  return normalized;
+}
+
+async function listAutomationRules() {
+  const items = await db.query(AUTOMATION_RULES_PK, {
+    skPrefix: AUTOMATION_RULES_SK_PREFIX
+  });
+  return items
+    .map(sanitizeAutomationRule)
+    .filter(Boolean)
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+}
+
+async function getAutomationRuleById(ruleId) {
+  const item = await db.getItem(AUTOMATION_RULES_PK, getAutomationRuleSk(ruleId));
+  return sanitizeAutomationRule(item);
+}
 
 /**
  * GET /api/admin/automation/rules
@@ -1774,19 +1813,20 @@ let automationRules = [];
  */
 router.get('/automation/rules', async (req, res) => {
   try {
+    const rules = await listAutomationRules();
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
-    const todayTriggers = automationRules.reduce((sum, rule) => {
+    const todayTriggers = rules.reduce((sum, rule) => {
       return sum + (rule.triggers?.filter(t => new Date(t) >= todayStart).length || 0);
     }, 0);
 
-    const totalTriggers = automationRules.reduce((sum, rule) => sum + (rule.triggerCount || 0), 0);
+    const totalTriggers = rules.reduce((sum, rule) => sum + (rule.triggerCount || 0), 0);
 
     res.json({
       success: true,
       data: {
-        rules: automationRules,
+        rules,
         todayTriggers,
         totalTriggers
       }
@@ -1817,26 +1857,33 @@ router.post('/automation/rules', async (req, res) => {
       });
     }
 
+    const now = new Date().toISOString();
+    const ruleId = db.generateId('rule');
     const newRule = {
-      id: `rule_${Date.now()}`,
+      PK: AUTOMATION_RULES_PK,
+      SK: getAutomationRuleSk(ruleId),
+      entityType: 'AUTOMATION_RULE',
+      id: ruleId,
+      ruleId,
       name,
       type,
       conditions: conditions || {},
       actions: actions || {},
       isActive: true,
       triggerCount: 0,
+      triggers: [],
       lastTriggered: null,
       conditionSummary: summarizeConditions(conditions),
       actionSummary: summarizeActions(actions, type),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      createdAt: now,
+      updatedAt: now
     };
 
-    automationRules.push(newRule);
+    await db.putItem(newRule);
 
     res.json({
       success: true,
-      data: { rule: newRule }
+      data: { rule: sanitizeAutomationRule(newRule) }
     });
   } catch (error) {
     console.error('Create automation rule error:', error);
@@ -1855,10 +1902,10 @@ router.post('/automation/rules', async (req, res) => {
 router.put('/automation/rules/:ruleId', async (req, res) => {
   try {
     const { ruleId } = req.params;
-    const updates = req.body;
+    const updates = { ...(req.body || {}) };
 
-    const ruleIndex = automationRules.findIndex(r => r.id === ruleId);
-    if (ruleIndex === -1) {
+    const existingRule = await getAutomationRuleById(ruleId);
+    if (!existingRule) {
       return res.status(404).json({
         success: false,
         error: 'NOT_FOUND',
@@ -1866,15 +1913,31 @@ router.put('/automation/rules/:ruleId', async (req, res) => {
       });
     }
 
-    automationRules[ruleIndex] = {
-      ...automationRules[ruleIndex],
-      ...updates,
-      updatedAt: new Date().toISOString()
-    };
+    delete updates.PK;
+    delete updates.SK;
+    delete updates.id;
+    delete updates.ruleId;
+    delete updates.entityType;
+    delete updates.createdAt;
+
+    if (updates.conditions && !updates.conditionSummary) {
+      updates.conditionSummary = summarizeConditions(updates.conditions);
+    }
+    if ((updates.actions || updates.type) && !updates.actionSummary) {
+      updates.actionSummary = summarizeActions(updates.actions || existingRule.actions, updates.type || existingRule.type);
+    }
+
+    updates.updatedAt = new Date().toISOString();
+
+    const updatedRule = await db.updateItem(
+      AUTOMATION_RULES_PK,
+      getAutomationRuleSk(ruleId),
+      updates
+    );
 
     res.json({
       success: true,
-      data: { rule: automationRules[ruleIndex] }
+      data: { rule: sanitizeAutomationRule(updatedRule) }
     });
   } catch (error) {
     console.error('Update automation rule error:', error);
@@ -1894,8 +1957,8 @@ router.delete('/automation/rules/:ruleId', async (req, res) => {
   try {
     const { ruleId } = req.params;
 
-    const ruleIndex = automationRules.findIndex(r => r.id === ruleId);
-    if (ruleIndex === -1) {
+    const existingRule = await getAutomationRuleById(ruleId);
+    if (!existingRule) {
       return res.status(404).json({
         success: false,
         error: 'NOT_FOUND',
@@ -1903,7 +1966,7 @@ router.delete('/automation/rules/:ruleId', async (req, res) => {
       });
     }
 
-    automationRules.splice(ruleIndex, 1);
+    await db.deleteItem(AUTOMATION_RULES_PK, getAutomationRuleSk(ruleId));
 
     res.json({
       success: true,
@@ -1927,8 +1990,8 @@ router.put('/automation/rules/:ruleId/toggle', async (req, res) => {
   try {
     const { ruleId } = req.params;
 
-    const ruleIndex = automationRules.findIndex(r => r.id === ruleId);
-    if (ruleIndex === -1) {
+    const existingRule = await getAutomationRuleById(ruleId);
+    if (!existingRule) {
       return res.status(404).json({
         success: false,
         error: 'NOT_FOUND',
@@ -1936,12 +1999,18 @@ router.put('/automation/rules/:ruleId/toggle', async (req, res) => {
       });
     }
 
-    automationRules[ruleIndex].isActive = !automationRules[ruleIndex].isActive;
-    automationRules[ruleIndex].updatedAt = new Date().toISOString();
+    const toggledRule = await db.updateItem(
+      AUTOMATION_RULES_PK,
+      getAutomationRuleSk(ruleId),
+      {
+        isActive: !existingRule.isActive,
+        updatedAt: new Date().toISOString()
+      }
+    );
 
     res.json({
       success: true,
-      data: { rule: automationRules[ruleIndex] }
+      data: { rule: sanitizeAutomationRule(toggledRule) }
     });
   } catch (error) {
     console.error('Toggle automation rule error:', error);

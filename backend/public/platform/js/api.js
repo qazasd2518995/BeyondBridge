@@ -507,6 +507,50 @@ const API = {
 
     async getAnalytics() {
       return API.request('/admin/analytics/overview');
+    },
+
+    // 管理後台模組化 API（給 admin/index.html 使用）
+    analytics: {
+      async getOverview() {
+        return API.request('/admin/analytics/overview');
+      },
+
+      async getUserActivity(range = '30d', groupBy = 'day') {
+        const params = new URLSearchParams({ range, groupBy }).toString();
+        return API.request(`/admin/analytics/user-activity?${params}`);
+      }
+    },
+
+    automation: {
+      async getRules() {
+        return API.request('/admin/automation/rules');
+      },
+
+      async createRule(data) {
+        return API.request('/admin/automation/rules', {
+          method: 'POST',
+          body: data
+        });
+      },
+
+      async updateRule(ruleId, data) {
+        return API.request(`/admin/automation/rules/${ruleId}`, {
+          method: 'PUT',
+          body: data
+        });
+      },
+
+      async deleteRule(ruleId) {
+        return API.request(`/admin/automation/rules/${ruleId}`, {
+          method: 'DELETE'
+        });
+      },
+
+      async toggleRule(ruleId) {
+        return API.request(`/admin/automation/rules/${ruleId}/toggle`, {
+          method: 'PUT'
+        });
+      }
     }
   },
 
