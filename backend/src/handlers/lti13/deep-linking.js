@@ -8,7 +8,7 @@
 const express = require('express');
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
-const { putItem, getItem, query } = require('../../utils/db');
+const { putItem, query } = require('../../utils/db');
 const { verifyToolJwt, LTI_CLAIMS } = require('../../utils/lti/jwt');
 
 // Deep Linking Content Types
@@ -21,7 +21,7 @@ const DL_CONTENT_TYPES = {
 };
 
 /**
- * POST /api/lti/dl/callback
+ * POST /api/lti/13/dl/callback
  * 接收 Tool 回傳的 Deep Linking Response
  */
 router.post('/callback', async (req, res) => {
@@ -43,7 +43,7 @@ router.post('/callback', async (req, res) => {
       });
     }
 
-    // 解碼 JWT（開發模式：簡化驗證）
+    // 先解碼 payload 取得 issuer（僅用於定位 Tool，不可當作可信資料）
     const parts = token.split('.');
     if (parts.length !== 3) {
       return res.status(400).json({
@@ -53,9 +53,54 @@ router.post('/callback', async (req, res) => {
       });
     }
 
-    const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+    let unverifiedPayload;
+    try {
+      unverifiedPayload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+    } catch (parseError) {
+      return res.status(400).json({
+        success: false,
+        error: 'INVALID_JWT',
+        message: 'Invalid JWT payload'
+      });
+    }
 
-    console.log('[Deep Linking] Received response:', JSON.stringify(payload, null, 2));
+    const issuerClientId = unverifiedPayload.iss;
+    if (!issuerClientId) {
+      return res.status(400).json({
+        success: false,
+        error: 'MISSING_ISSUER',
+        message: 'JWT issuer is required'
+      });
+    }
+
+    // 根據 issuer 找到對應 Tool，再做 JWT 驗簽
+    const tools = await query('LTI_TOOL', { skPrefix: 'TOOL#' });
+    const tool = tools.find(t => t.clientId === issuerClientId && t.status !== 'deleted');
+    if (!tool) {
+      return res.status(401).json({
+        success: false,
+        error: 'INVALID_CLIENT',
+        message: 'Unknown tool issuer'
+      });
+    }
+
+    let payload;
+    try {
+      payload = await verifyToolJwt(token, tool);
+    } catch (verifyError) {
+      if (process.env.NODE_ENV === 'production') {
+        return res.status(401).json({
+          success: false,
+          error: 'INVALID_SIGNATURE',
+          message: 'JWT signature verification failed'
+        });
+      }
+      // 非正式環境保留相容性，避免阻斷本地串接測試
+      console.warn('[Deep Linking] JWT verification failed in non-production mode:', verifyError.message);
+      payload = unverifiedPayload;
+    }
+
+    console.log(`[Deep Linking] Response accepted from tool: ${tool.toolId || issuerClientId}`);
 
     // 驗證 message type
     const messageType = payload[LTI_CLAIMS.MESSAGE_TYPE] ||
@@ -70,7 +115,8 @@ router.post('/callback', async (req, res) => {
     }
 
     // 提取 content items
-    const contentItems = payload['https://purl.imsglobal.org/spec/lti-dl/claim/content_items'] || [];
+    const contentItemsRaw = payload['https://purl.imsglobal.org/spec/lti-dl/claim/content_items'];
+    const contentItems = Array.isArray(contentItemsRaw) ? contentItemsRaw : [];
 
     // 提取 data（包含 courseId 和 toolId）
     let contextData = {};
@@ -84,6 +130,14 @@ router.post('/callback', async (req, res) => {
     }
 
     const { courseId, toolId } = contextData;
+    if (toolId && tool.toolId && toolId !== tool.toolId) {
+      return res.status(400).json({
+        success: false,
+        error: 'TOOL_MISMATCH',
+        message: 'Tool context does not match token issuer'
+      });
+    }
+    const resolvedToolId = tool.toolId || toolId;
 
     if (!courseId) {
       return res.status(400).json({
@@ -106,7 +160,7 @@ router.post('/callback', async (req, res) => {
         entityType: 'COURSE_RESOURCE',
         resourceId,
         courseId,
-        toolId,
+        toolId: resolvedToolId,
         type: item.type || DL_CONTENT_TYPES.LTI_RESOURCE_LINK,
         title: item.title || item.text || 'Untitled Resource',
         text: item.text,
@@ -249,7 +303,7 @@ router.post('/callback', async (req, res) => {
 });
 
 /**
- * GET /api/lti/dl/resources/:courseId
+ * GET /api/lti/13/dl/resources/:courseId
  * 取得課程的 Deep Linking 資源
  */
 router.get('/resources/:courseId', async (req, res) => {

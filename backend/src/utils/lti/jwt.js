@@ -222,14 +222,14 @@ async function createResourceLinkJwt(options) {
         'https://purl.imsglobal.org/spec/lti-ags/scope/result.readonly',
         'https://purl.imsglobal.org/spec/lti-ags/scope/score'
       ],
-      lineitems: `${baseUrl}/api/lti/ags/courses/${course?.courseId || 'default'}/lineitems`
+      lineitems: `${baseUrl}/api/lti/13/ags/courses/${course?.courseId || 'default'}/lineitems`
     };
   }
 
   // NRPS (Names and Role Provisioning Services)
   if (includeNrps && tool.services?.nrps?.enabled && course) {
     claims[LTI_CLAIMS.NRPS_ENDPOINT] = {
-      context_memberships_url: `${baseUrl}/api/lti/nrps/courses/${course.courseId}/memberships`,
+      context_memberships_url: `${baseUrl}/api/lti/13/nrps/courses/${course.courseId}/memberships`,
       service_versions: ['2.0']
     };
   }
@@ -298,7 +298,7 @@ async function createDeepLinkingJwt(options) {
     },
 
     [LTI_CLAIMS.DEEP_LINKING_SETTINGS]: {
-      deep_link_return_url: returnUrl || `${baseUrl}/api/lti/dl/callback`,
+      deep_link_return_url: returnUrl || `${baseUrl}/api/lti/13/dl/callback`,
       accept_types: acceptTypes,
       accept_presentation_document_targets: acceptPresentationDocumentTargets,
       accept_multiple: acceptMultiple,

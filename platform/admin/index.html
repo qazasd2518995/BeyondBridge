@@ -7261,7 +7261,7 @@
         // Load Courses
         async function loadCourses() {
             try {
-                const result = await API.request('/api/courses');
+                const result = await API.request('/courses');
                 const courses = result.success ? result.data : [];
                 const tbody = document.getElementById('coursesTableBody');
                 if (!tbody) return;
@@ -7292,7 +7292,7 @@
         // Load Course Categories
         async function loadCourseCategories() {
             try {
-                const result = await API.request('/api/course-categories');
+                const result = await API.request('/course-categories');
                 const categories = result.success ? (result.data || []) : [];
                 const container = document.getElementById('categoriesTreeContainer');
                 if (!container) return;
@@ -7334,7 +7334,7 @@
         async function loadQuestionBank() {
             try {
                 // Load categories
-                const catResult = await API.request('/api/questionbank/categories');
+                const catResult = await API.request('/questionbank/categories');
                 const categories = catResult.success ? catResult.data : [];
                 const catContainer = document.getElementById('questionCategoriesTree');
                 if (catContainer) {
@@ -7361,7 +7361,7 @@
                 }
 
                 // Load questions
-                const result = await API.request('/api/questionbank');
+                const result = await API.request('/questionbank');
                 const questions = result.success ? result.data : [];
                 const tbody = document.getElementById('questionsTableBody');
                 if (!tbody) return;
@@ -7408,7 +7408,7 @@
         // Load Badges
         async function loadBadges() {
             try {
-                const result = await API.request('/api/badges');
+                const result = await API.request('/badges');
                 const badges = result.success ? (result.data || []) : [];
 
                 // Update stats (with null checks)
@@ -7455,7 +7455,7 @@
         // Load Learning Paths
         async function loadLearningPaths() {
             try {
-                const result = await API.request('/api/learning-paths');
+                const result = await API.request('/learning-paths');
                 const paths = result.success ? (result.data || []) : [];
                 const container = document.getElementById('learningPathsContainer');
                 if (!container) return;
@@ -7490,7 +7490,7 @@
         // Load SCORM
         async function loadScorm() {
             try {
-                const result = await API.request('/api/scorm');
+                const result = await API.request('/scorm');
                 const packages = result.success ? (result.data || []) : [];
 
                 // Update stats (with null checks)
@@ -7532,7 +7532,7 @@
         // Load LTI
         async function loadLti() {
             try {
-                const result = await API.request('/api/lti/tools');
+                const result = await API.request('/lti/tools');
                 const tools = result.success ? (result.data || []) : [];
 
                 // Update stats (with null checks)
@@ -7569,7 +7569,7 @@
         // Load H5P
         async function loadH5p() {
             try {
-                const result = await API.request('/api/h5p/content');
+                const result = await API.request('/h5p');
                 const contents = result.success ? (result.data || []) : [];
 
                 // Update stats (with null checks)
@@ -7612,7 +7612,7 @@
         // Load Roles
         async function loadRoles() {
             try {
-                const result = await API.request('/api/roles');
+                const result = await API.request('/roles');
                 const roles = result.success ? (result.data || []) : [];
                 const container = document.getElementById('rolesListContainer');
                 if (!container) return;
@@ -7669,7 +7669,7 @@
         // Load Rubrics
         async function loadRubrics() {
             try {
-                const result = await API.request('/api/rubrics');
+                const result = await API.request('/rubrics');
                 const rubrics = result.success ? (result.data || []) : [];
                 const container = document.getElementById('rubricsContainer');
                 if (!container) return;
@@ -7706,7 +7706,7 @@
         // Load Audit Logs
         async function loadAuditLogs() {
             try {
-                const result = await API.request('/api/audit-logs');
+                const result = await API.request('/audit-logs');
                 const logs = result.success ? result.data : [];
                 const tbody = document.getElementById('auditLogsTableBody');
                 if (!tbody) return;

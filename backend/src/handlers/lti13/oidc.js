@@ -184,6 +184,14 @@ router.all('/authorize', async (req, res) => {
       });
     }
 
+    if (!login_hint) {
+      return res.status(400).json({
+        success: false,
+        error: 'MISSING_LOGIN_HINT',
+        message: 'Missing login_hint parameter'
+      });
+    }
+
     // 查找 Tool
     const tools = await query('LTI_TOOL', { skPrefix: 'TOOL#' });
     const tool = tools.find(t =>
@@ -222,7 +230,7 @@ router.all('/authorize', async (req, res) => {
 
     // 取得用戶資訊
     const userId = login_hint;
-    const user = await getItem(`USER#${userId}`, 'PROFILE');
+    let user = await getItem(`USER#${userId}`, 'PROFILE');
     if (!user) {
       // 嘗試查找管理員
       const admin = await getItem(`ADMIN#${userId}`, 'PROFILE');
@@ -252,7 +260,7 @@ router.all('/authorize', async (req, res) => {
         tool,
         user,
         course,
-        returnUrl: `${process.env.BASE_URL || `${req.protocol}://${req.get('host')}`}/api/lti/dl/callback`
+        returnUrl: `${process.env.BASE_URL || `${req.protocol}://${req.get('host')}`}/api/lti/13/dl/callback`
       });
     } else {
       jwtResult = await createResourceLinkJwt({

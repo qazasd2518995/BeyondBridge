@@ -8,7 +8,7 @@
     "seed": "node scripts/seed-data.js",
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "sync-platform": "cp public/platform/js/api.js ../platform/js/api.js && cp public/platform/js/moodle-ui.js ../platform/js/moodle-ui.js && cp public/platform/index.html ../platform/index.html && echo 'Platform files synced'"
+    "sync-platform": "mkdir -p ../platform && cp -R public/platform/. ../platform/ && echo 'Platform files synced from backend/public/platform'"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.0.0",

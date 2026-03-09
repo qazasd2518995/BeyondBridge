@@ -21,7 +21,7 @@ const AGS_CONTENT_TYPES = {
 };
 
 /**
- * GET /api/lti/ags/courses/:courseId/lineitems
+ * GET /api/lti/13/ags/courses/:courseId/lineitems
  * 取得課程的所有 Line Items
  */
 router.get('/courses/:courseId/lineitems',
@@ -72,7 +72,7 @@ router.get('/courses/:courseId/lineitems',
 );
 
 /**
- * POST /api/lti/ags/courses/:courseId/lineitems
+ * POST /api/lti/13/ags/courses/:courseId/lineitems
  * 建立新的 Line Item
  */
 router.post('/courses/:courseId/lineitems',
@@ -143,7 +143,7 @@ router.post('/courses/:courseId/lineitems',
 );
 
 /**
- * GET /api/lti/ags/courses/:courseId/lineitems/:lineitemId
+ * GET /api/lti/13/ags/courses/:courseId/lineitems/:lineitemId
  * 取得單一 Line Item
  */
 router.get('/courses/:courseId/lineitems/:lineitemId',
@@ -179,7 +179,7 @@ router.get('/courses/:courseId/lineitems/:lineitemId',
 );
 
 /**
- * PUT /api/lti/ags/courses/:courseId/lineitems/:lineitemId
+ * PUT /api/lti/13/ags/courses/:courseId/lineitems/:lineitemId
  * 更新 Line Item
  */
 router.put('/courses/:courseId/lineitems/:lineitemId',
@@ -228,7 +228,7 @@ router.put('/courses/:courseId/lineitems/:lineitemId',
 );
 
 /**
- * DELETE /api/lti/ags/courses/:courseId/lineitems/:lineitemId
+ * DELETE /api/lti/13/ags/courses/:courseId/lineitems/:lineitemId
  * 刪除 Line Item
  */
 router.delete('/courses/:courseId/lineitems/:lineitemId',
@@ -262,7 +262,7 @@ router.delete('/courses/:courseId/lineitems/:lineitemId',
 );
 
 /**
- * POST /api/lti/ags/courses/:courseId/lineitems/:lineitemId/scores
+ * POST /api/lti/13/ags/courses/:courseId/lineitems/:lineitemId/scores
  * 提交成績
  */
 router.post('/courses/:courseId/lineitems/:lineitemId/scores',
@@ -356,7 +356,7 @@ router.post('/courses/:courseId/lineitems/:lineitemId/scores',
 );
 
 /**
- * GET /api/lti/ags/courses/:courseId/lineitems/:lineitemId/results
+ * GET /api/lti/13/ags/courses/:courseId/lineitems/:lineitemId/results
  * 取得成績結果
  */
 router.get('/courses/:courseId/lineitems/:lineitemId/results',
@@ -401,7 +401,7 @@ router.get('/courses/:courseId/lineitems/:lineitemId/results',
  */
 function formatLineItem(item, baseUrl, courseId) {
   return {
-    id: `${baseUrl}/api/lti/ags/courses/${courseId}/lineitems/${item.lineitemId}`,
+    id: `${baseUrl}/api/lti/13/ags/courses/${courseId}/lineitems/${item.lineitemId}`,
     scoreMaximum: item.scoreMaximum,
     label: item.label,
     resourceId: item.resourceId,
@@ -418,8 +418,8 @@ function formatLineItem(item, baseUrl, courseId) {
  */
 function formatResult(score, baseUrl, courseId, lineitemId) {
   const result = {
-    id: `${baseUrl}/api/lti/ags/courses/${courseId}/lineitems/${lineitemId}/results/${score.userId}`,
-    scoreOf: `${baseUrl}/api/lti/ags/courses/${courseId}/lineitems/${lineitemId}`,
+    id: `${baseUrl}/api/lti/13/ags/courses/${courseId}/lineitems/${lineitemId}/results/${score.userId}`,
+    scoreOf: `${baseUrl}/api/lti/13/ags/courses/${courseId}/lineitems/${lineitemId}`,
     userId: score.userId,
     resultMaximum: score.scoreMaximum,
     comment: score.comment
