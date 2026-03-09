@@ -1490,86 +1490,264 @@ router.delete('/users/batch/delete', async (req, res) => {
  * GET /api/admin/analytics/user-activity
  * 用戶活動分析
  */
+const USER_ACTIVITY_RANGE_DAYS = {
+  '7d': 7,
+  '30d': 30,
+  '90d': 90
+};
+
+function startOfUtcDay(value) {
+  const d = new Date(value);
+  d.setUTCHours(0, 0, 0, 0);
+  return d;
+}
+
+function endOfUtcDay(value) {
+  const d = new Date(value);
+  d.setUTCHours(23, 59, 59, 999);
+  return d;
+}
+
+function toDateKey(value) {
+  if (!value) return null;
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toISOString().slice(0, 10);
+}
+
+function getWeekStartKey(dateKey) {
+  const d = new Date(`${dateKey}T00:00:00.000Z`);
+  if (Number.isNaN(d.getTime())) return null;
+  const dayOfWeek = (d.getUTCDay() + 6) % 7; // Monday = 0
+  d.setUTCDate(d.getUTCDate() - dayOfWeek);
+  return d.toISOString().slice(0, 10);
+}
+
+function calcPercentTrend(current, previous) {
+  if (!previous) return current > 0 ? 100 : 0;
+  return Math.round(((current - previous) / previous) * 100);
+}
+
 router.get('/analytics/user-activity', async (req, res) => {
   try {
     const { range = '30d', groupBy = 'day' } = req.query;
-
-    // 解析日期範圍
-    let days = 30;
-    if (range === '7d') days = 7;
-    else if (range === '90d') days = 90;
-    else if (range === '30d') days = 30;
-
-    // 取得所有用戶
-    const users = await db.getAllUsers({ limit: 10000 });
-
-    // 計算活躍用戶
+    const days = USER_ACTIVITY_RANGE_DAYS[range] || 30;
     const now = new Date();
-    const cutoffDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+    const todayStart = startOfUtcDay(now);
+    const periodStart = startOfUtcDay(now);
+    periodStart.setUTCDate(periodStart.getUTCDate() - (days - 1));
 
-    // 計算活躍用戶數（模擬數據，實際應從登入日誌計算）
-    const totalUsers = users.length;
-    const activeUsers = users.filter(u => u.status === 'active').length;
+    const [users, activities, courseProgress] = await Promise.all([
+      db.getAllUsers({ limit: 10000 }),
+      db.scan({
+        filter: {
+          expression: 'entityType = :type',
+          values: { ':type': 'ACTIVITY' }
+        }
+      }),
+      db.scan({
+        filter: {
+          expression: 'entityType = :type',
+          values: { ':type': 'COURSE_PROGRESS' }
+        }
+      })
+    ]);
 
-    // 模擬 DAU/WAU/MAU（實際應從登入日誌計算）
-    const dau = Math.floor(totalUsers * 0.15) + Math.floor(Math.random() * 10);
-    const wau = Math.floor(totalUsers * 0.35) + Math.floor(Math.random() * 20);
-    const mau = Math.floor(totalUsers * 0.65) + Math.floor(Math.random() * 30);
-    const retention = Math.floor(50 + Math.random() * 30); // 50-80%
+    const knownUserIds = new Set(
+      users.map(u => u.userId).filter(Boolean)
+    );
 
-    // 模擬趨勢變化
-    const dauTrend = Math.floor(Math.random() * 20) - 5; // -5 to +15
-    const wauTrend = Math.floor(Math.random() * 15) - 3; // -3 to +12
-    const mauTrend = Math.floor(Math.random() * 10); // 0 to +10
+    const lookbackDays = Math.max(days, 30) * 2;
+    const lookbackStart = startOfUtcDay(now);
+    lookbackStart.setUTCDate(lookbackStart.getUTCDate() - (lookbackDays - 1));
 
-    // 模擬活躍用戶統計
-    const dailyActiveUsers = [];
-    for (let i = 0; i < days; i++) {
-      const date = new Date(now.getTime() - (days - 1 - i) * 24 * 60 * 60 * 1000);
-      dailyActiveUsers.push({
-        date: date.toISOString().split('T')[0],
-        count: Math.floor(Math.random() * totalUsers * 0.2) + Math.floor(totalUsers * 0.05)
-      });
-    }
+    const eventRows = [];
+    const pushEvent = (userId, at, action = 'activity') => {
+      if (!userId || !knownUserIds.has(userId) || !at) return;
+      const timestamp = new Date(at).getTime();
+      if (Number.isNaN(timestamp)) return;
+      if (timestamp < lookbackStart.getTime() || timestamp > now.getTime()) return;
+      eventRows.push({ userId, timestamp, action });
+    };
 
-    // 角色分布
+    activities.forEach(a => {
+      pushEvent(a.userId, a.createdAt, a.action || 'activity');
+    });
+
+    courseProgress.forEach(p => {
+      pushEvent(p.userId, p.lastAccessedAt, 'course_access');
+    });
+
+    users.forEach(u => {
+      pushEvent(u.userId, u.lastLoginAt, 'login');
+    });
+
+    eventRows.sort((a, b) => a.timestamp - b.timestamp);
+
+    const getActiveUsersInWindow = (windowDays, offsetDays = 0) => {
+      const windowEnd = endOfUtcDay(new Date(now.getTime() - offsetDays * 24 * 60 * 60 * 1000));
+      const windowStart = startOfUtcDay(windowEnd);
+      windowStart.setUTCDate(windowStart.getUTCDate() - (windowDays - 1));
+      const activeSet = new Set();
+      for (const row of eventRows) {
+        if (row.timestamp >= windowStart.getTime() && row.timestamp <= windowEnd.getTime()) {
+          activeSet.add(row.userId);
+        }
+      }
+      return activeSet;
+    };
+
     const roleDistribution = {};
     users.forEach(u => {
       const role = u.role || 'unknown';
       roleDistribution[role] = (roleDistribution[role] || 0) + 1;
     });
 
-    // 註冊趨勢
-    const registrationTrend = [];
+    const registrationsByDate = new Map();
+    users.forEach(u => {
+      const key = toDateKey(u.createdAt);
+      if (key) {
+        registrationsByDate.set(key, (registrationsByDate.get(key) || 0) + 1);
+      }
+    });
+
+    const periodEvents = eventRows.filter(
+      e => e.timestamp >= periodStart.getTime() && e.timestamp <= now.getTime()
+    );
+
+    const dailyActiveSets = new Map();
+    const actionDistribution = {};
+    const userActivityCount = new Map();
+
+    periodEvents.forEach(e => {
+      const key = toDateKey(e.timestamp);
+      if (!key) return;
+
+      if (!dailyActiveSets.has(key)) dailyActiveSets.set(key, new Set());
+      dailyActiveSets.get(key).add(e.userId);
+
+      actionDistribution[e.action] = (actionDistribution[e.action] || 0) + 1;
+      userActivityCount.set(e.userId, (userActivityCount.get(e.userId) || 0) + 1);
+    });
+
+    const dateKeys = [];
     for (let i = 0; i < days; i++) {
-      const date = new Date(now.getTime() - (days - 1 - i) * 24 * 60 * 60 * 1000);
-      const dateStr = date.toISOString().split('T')[0];
-      const count = users.filter(u => u.createdAt?.startsWith(dateStr)).length;
-      registrationTrend.push({ date: dateStr, count });
+      const d = new Date(periodStart);
+      d.setUTCDate(periodStart.getUTCDate() + i);
+      dateKeys.push(d.toISOString().slice(0, 10));
     }
+
+    const dailyActiveUsersRaw = dateKeys.map(date => ({
+      date,
+      count: dailyActiveSets.get(date)?.size || 0
+    }));
+
+    const registrationTrendRaw = dateKeys.map(date => ({
+      date,
+      count: registrationsByDate.get(date) || 0
+    }));
+
+    const groupByWeek = groupBy === 'week';
+    const aggregateWeekly = (items) => {
+      const weeklyMap = new Map();
+      items.forEach(item => {
+        const weekKey = getWeekStartKey(item.date);
+        if (!weekKey) return;
+        weeklyMap.set(weekKey, (weeklyMap.get(weekKey) || 0) + item.count);
+      });
+      return Array.from(weeklyMap.entries())
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([date, count]) => ({ date, count }));
+    };
+
+    const dailyActiveUsers = groupByWeek
+      ? (() => {
+        const weeklySets = new Map();
+        dateKeys.forEach(date => {
+          const weekKey = getWeekStartKey(date);
+          if (!weekKey) return;
+          if (!weeklySets.has(weekKey)) weeklySets.set(weekKey, new Set());
+          const daySet = dailyActiveSets.get(date);
+          if (!daySet) return;
+          daySet.forEach(userId => weeklySets.get(weekKey).add(userId));
+        });
+
+        return Array.from(weeklySets.entries())
+          .sort((a, b) => a[0].localeCompare(b[0]))
+          .map(([date, set]) => ({ date, count: set.size }));
+      })()
+      : dailyActiveUsersRaw;
+
+    const registrationTrend = groupByWeek
+      ? aggregateWeekly(registrationTrendRaw)
+      : registrationTrendRaw;
+
+    const dau = getActiveUsersInWindow(1, 0).size;
+    const wau = getActiveUsersInWindow(7, 0).size;
+    const mau = getActiveUsersInWindow(30, 0).size;
+
+    const dauPrev = getActiveUsersInWindow(1, 1).size;
+    const wauPrev = getActiveUsersInWindow(7, 7).size;
+    const mauPrev = getActiveUsersInWindow(30, 30).size;
+
+    const retentionWindow = Math.min(7, days);
+    const currentWindowUsers = getActiveUsersInWindow(retentionWindow, 0);
+    const previousWindowUsers = getActiveUsersInWindow(retentionWindow, retentionWindow);
+    let retainedCount = 0;
+    previousWindowUsers.forEach(userId => {
+      if (currentWindowUsers.has(userId)) retainedCount++;
+    });
+    const retention = previousWindowUsers.size > 0
+      ? Math.round((retainedCount / previousWindowUsers.size) * 100)
+      : 0;
+
+    const topActiveUsers = Array.from(userActivityCount.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([userId, count], index) => {
+        const user = users.find(u => u.userId === userId);
+        return {
+          rank: index + 1,
+          userId,
+          name: user?.displayName || user?.email || userId,
+          role: user?.role || 'unknown',
+          count,
+          lastActive: new Date(
+            Math.max(
+              ...periodEvents
+                .filter(e => e.userId === userId)
+                .map(e => e.timestamp)
+            )
+          ).toISOString()
+        };
+      });
 
     res.json({
       success: true,
       data: {
         summary: {
-          totalUsers,
-          activeUsers,
+          totalUsers: users.length,
+          activeUsers: users.filter(u => u.status === 'active').length,
+          periodActiveUsers: getActiveUsersInWindow(days, 0).size,
           dau,
           wau,
           mau,
           retention,
-          dauTrend,
-          wauTrend,
-          mauTrend,
-          newUsersToday: registrationTrend[registrationTrend.length - 1]?.count || 0
+          dauTrend: calcPercentTrend(dau, dauPrev),
+          wauTrend: calcPercentTrend(wau, wauPrev),
+          mauTrend: calcPercentTrend(mau, mauPrev),
+          newUsersToday: registrationsByDate.get(todayStart.toISOString().slice(0, 10)) || 0
         },
         dailyActiveUsers,
         roleDistribution,
         registrationTrend,
+        behaviorDistribution: actionDistribution,
+        topActiveUsers,
         period: {
           days,
-          from: cutoffDate.toISOString(),
-          to: now.toISOString()
+          from: periodStart.toISOString(),
+          to: now.toISOString(),
+          groupBy: groupByWeek ? 'week' : 'day'
         }
       }
     });

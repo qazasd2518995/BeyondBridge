@@ -6,7 +6,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../utils/db');
-const { authMiddleware, optionalAuthMiddleware } = require('../utils/auth');
+const { authMiddleware } = require('../utils/auth');
 
 // ==================== 討論區列表與詳情 ====================
 
@@ -1111,6 +1111,65 @@ function buildPostTree(posts) {
   return sortByTime(rootPosts);
 }
 
+function isCourseInstructor(course, userId) {
+  if (!course || !userId) return false;
+  return course.instructorId === userId ||
+    course.creatorId === userId ||
+    (Array.isArray(course.instructors) && course.instructors.includes(userId));
+}
+
+function parseTime(value) {
+  if (!value) return null;
+  const ts = new Date(value).getTime();
+  return Number.isNaN(ts) ? null : ts;
+}
+
+async function getForumAccessContext(forumId, userId, isAdmin = false) {
+  const forum = await db.getItem(`FORUM#${forumId}`, 'META');
+  if (!forum) {
+    return { ok: false, status: 404, error: 'FORUM_NOT_FOUND', message: '找不到此討論區' };
+  }
+
+  const course = await db.getItem(`COURSE#${forum.courseId}`, 'META');
+  const instructor = isCourseInstructor(course, userId);
+  const enrollment = await db.getItem(`USER#${userId}`, `PROG#COURSE#${forum.courseId}`);
+  const enrolled = !!enrollment;
+  const canAccess = isAdmin || instructor || enrolled;
+
+  if (!canAccess) {
+    return { ok: false, status: 403, error: 'FORBIDDEN', message: '沒有權限存取此討論區' };
+  }
+
+  return { ok: true, forum, course, isInstructor: instructor, isEnrolled: enrolled };
+}
+
+async function getDiscussionInForum(forumId, discussionId) {
+  const discussion = await db.getItem(`DISCUSSION#${discussionId}`, 'META');
+  if (!discussion) return null;
+  if (discussion.forumId !== forumId) return null;
+  return discussion;
+}
+
+function buildRatingSummary(ratings) {
+  const distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  let total = 0;
+  let sum = 0;
+
+  ratings.forEach(item => {
+    const value = Number(item.rating);
+    if (Number.isNaN(value) || value < 1 || value > 5) return;
+    distribution[value] = (distribution[value] || 0) + 1;
+    total++;
+    sum += value;
+  });
+
+  return {
+    totalRatings: total,
+    averageRating: total > 0 ? Math.round((sum / total) * 100) / 100 : 0,
+    distribution
+  };
+}
+
 // ==================== 訂閱管理 ====================
 
 /**
@@ -1121,15 +1180,43 @@ router.get('/:id/subscription', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.userId;
+    const context = await getForumAccessContext(id, userId, req.user.isAdmin);
+    if (!context.ok) {
+      return res.status(context.status).json({
+        success: false,
+        error: context.error,
+        message: context.message
+      });
+    }
 
-    // 模擬訂閱狀態
+    const { forum } = context;
+    const stored = await db.getItem(`FORUM#${id}`, `SUBSCRIPTION#${userId}`);
+    const now = new Date().toISOString();
+
+    let defaultSubscribed = false;
+    let defaultType = 'none';
+    let defaultNotify = true;
+
+    if (forum.subscriptionMode === 'forced') {
+      defaultSubscribed = true;
+      defaultType = 'all_posts';
+    } else if (forum.subscriptionMode === 'auto') {
+      defaultSubscribed = true;
+      defaultType = 'all_posts';
+    } else if (forum.subscriptionMode === 'disabled') {
+      defaultSubscribed = false;
+      defaultType = 'none';
+      defaultNotify = false;
+    }
+
     const subscription = {
       forumId: id,
       userId,
-      subscribed: true,
-      subscriptionType: 'all_posts', // 'all_posts', 'first_post_only', 'none'
-      emailNotification: true,
-      subscribedAt: '2024-01-15T10:00:00Z'
+      subscribed: stored ? stored.subscribed !== false : defaultSubscribed,
+      subscriptionType: stored?.subscriptionType || defaultType,
+      emailNotification: stored?.emailNotification ?? defaultNotify,
+      subscribedAt: stored?.subscribedAt || now,
+      updatedAt: stored?.updatedAt || now
     };
 
     res.json({
@@ -1154,14 +1241,59 @@ router.post('/:id/subscribe', authMiddleware, async (req, res) => {
     const { id } = req.params;
     const userId = req.user.userId;
     const { subscriptionType = 'all_posts', emailNotification = true } = req.body;
+    const context = await getForumAccessContext(id, userId, req.user.isAdmin);
+    if (!context.ok) {
+      return res.status(context.status).json({
+        success: false,
+        error: context.error,
+        message: context.message
+      });
+    }
+
+    if (context.forum.subscriptionMode === 'disabled') {
+      return res.status(403).json({
+        success: false,
+        error: 'SUBSCRIPTION_DISABLED',
+        message: '此討論區不允許訂閱'
+      });
+    }
+
+    const allowedTypes = new Set(['all_posts', 'first_post_only', 'none']);
+    if (!allowedTypes.has(subscriptionType)) {
+      return res.status(400).json({
+        success: false,
+        error: 'VALIDATION_ERROR',
+        message: '無效的訂閱類型'
+      });
+    }
+
+    const now = new Date().toISOString();
+    const stored = await db.getItem(`FORUM#${id}`, `SUBSCRIPTION#${userId}`);
+    const normalizedType = context.forum.subscriptionMode === 'forced' ? 'all_posts' : subscriptionType;
+
+    await db.putItem({
+      PK: `FORUM#${id}`,
+      SK: `SUBSCRIPTION#${userId}`,
+      entityType: 'FORUM_SUBSCRIPTION',
+      GSI1PK: `USER#${userId}`,
+      GSI1SK: `FORUM_SUBSCRIPTION#${id}`,
+      forumId: id,
+      userId,
+      subscribed: true,
+      subscriptionType: normalizedType,
+      emailNotification: !!emailNotification,
+      subscribedAt: stored?.subscribedAt || now,
+      updatedAt: now
+    });
 
     const subscription = {
       forumId: id,
       userId,
       subscribed: true,
-      subscriptionType,
-      emailNotification,
-      subscribedAt: new Date().toISOString()
+      subscriptionType: normalizedType,
+      emailNotification: !!emailNotification,
+      subscribedAt: stored?.subscribedAt || now,
+      updatedAt: now
     };
 
     res.json({
@@ -1186,6 +1318,24 @@ router.delete('/:id/subscribe', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.userId;
+    const context = await getForumAccessContext(id, userId, req.user.isAdmin);
+    if (!context.ok) {
+      return res.status(context.status).json({
+        success: false,
+        error: context.error,
+        message: context.message
+      });
+    }
+
+    if (context.forum.subscriptionMode === 'forced') {
+      return res.status(403).json({
+        success: false,
+        error: 'SUBSCRIPTION_FORCED',
+        message: '此討論區為強制訂閱，無法取消'
+      });
+    }
+
+    await db.deleteItem(`FORUM#${id}`, `SUBSCRIPTION#${userId}`);
 
     res.json({
       success: true,
@@ -1208,13 +1358,47 @@ router.post('/:id/discussions/:discussionId/subscribe', authMiddleware, async (r
   try {
     const { id, discussionId } = req.params;
     const userId = req.user.userId;
+    const context = await getForumAccessContext(id, userId, req.user.isAdmin);
+    if (!context.ok) {
+      return res.status(context.status).json({
+        success: false,
+        error: context.error,
+        message: context.message
+      });
+    }
+
+    const discussion = await getDiscussionInForum(id, discussionId);
+    if (!discussion) {
+      return res.status(404).json({
+        success: false,
+        error: 'DISCUSSION_NOT_FOUND',
+        message: '找不到此討論'
+      });
+    }
+
+    const now = new Date().toISOString();
+    const stored = await db.getItem(`DISCUSSION#${discussionId}`, `SUBSCRIPTION#${userId}`);
+    await db.putItem({
+      PK: `DISCUSSION#${discussionId}`,
+      SK: `SUBSCRIPTION#${userId}`,
+      entityType: 'DISCUSSION_SUBSCRIPTION',
+      GSI1PK: `USER#${userId}`,
+      GSI1SK: `DISCUSSION_SUBSCRIPTION#${discussionId}`,
+      forumId: id,
+      discussionId,
+      userId,
+      subscribed: true,
+      subscribedAt: stored?.subscribedAt || now,
+      updatedAt: now
+    });
 
     const subscription = {
       forumId: id,
       discussionId,
       userId,
       subscribed: true,
-      subscribedAt: new Date().toISOString()
+      subscribedAt: stored?.subscribedAt || now,
+      updatedAt: now
     };
 
     res.json({
@@ -1239,6 +1423,25 @@ router.delete('/:id/discussions/:discussionId/subscribe', authMiddleware, async 
   try {
     const { id, discussionId } = req.params;
     const userId = req.user.userId;
+    const context = await getForumAccessContext(id, userId, req.user.isAdmin);
+    if (!context.ok) {
+      return res.status(context.status).json({
+        success: false,
+        error: context.error,
+        message: context.message
+      });
+    }
+
+    const discussion = await getDiscussionInForum(id, discussionId);
+    if (!discussion) {
+      return res.status(404).json({
+        success: false,
+        error: 'DISCUSSION_NOT_FOUND',
+        message: '找不到此討論'
+      });
+    }
+
+    await db.deleteItem(`DISCUSSION#${discussionId}`, `SUBSCRIPTION#${userId}`);
 
     res.json({
       success: true,
@@ -1263,28 +1466,67 @@ router.get('/:id/unread', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.userId;
+    const context = await getForumAccessContext(id, userId, req.user.isAdmin);
+    if (!context.ok) {
+      return res.status(context.status).json({
+        success: false,
+        error: context.error,
+        message: context.message
+      });
+    }
 
-    // 模擬未讀資料
+    const forumReadState = await db.getItem(`FORUM#${id}`, `READ#${userId}`);
+    const forumReadTs = parseTime(forumReadState?.lastReadAt) || 0;
+
+    const discussions = await db.query(`FORUM#${id}`, { skPrefix: 'DISCUSSION#' });
+    const unreadDiscussions = [];
+    let totalUnread = 0;
+
+    for (const discussionIndex of discussions) {
+      const discussionId = discussionIndex.discussionId;
+      if (!discussionId) continue;
+
+      const discussion = await db.getItem(`DISCUSSION#${discussionId}`, 'META');
+      if (!discussion) continue;
+
+      const discussionReadState = await db.getItem(`DISCUSSION#${discussionId}`, `READ#${userId}`);
+      const discussionReadTs = parseTime(discussionReadState?.lastReadAt) || forumReadTs;
+
+      const posts = await db.query(`DISCUSSION#${discussionId}`, { skPrefix: 'POST#' });
+      const unreadReplies = posts.filter(post => {
+        const postTs = parseTime(post.createdAt);
+        return postTs && postTs > discussionReadTs && post.authorId !== userId;
+      });
+
+      const discussionCreatedTs = parseTime(discussion.createdAt);
+      const unreadDiscussionSelf = discussion.authorId !== userId &&
+        discussionCreatedTs &&
+        discussionCreatedTs > discussionReadTs ? 1 : 0;
+
+      const unreadPosts = unreadReplies.length + unreadDiscussionSelf;
+      if (unreadPosts <= 0) continue;
+
+      const latestPost = posts
+        .slice()
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+
+      unreadDiscussions.push({
+        discussionId,
+        title: discussion.title || discussionIndex.title || '未命名討論',
+        unreadPosts,
+        lastPostAt: latestPost?.createdAt || discussion.lastReplyAt || discussion.createdAt,
+        lastPostBy: latestPost?.authorName || discussion.lastReplyByName || discussion.authorName || '未知用戶'
+      });
+      totalUnread += unreadPosts;
+    }
+
+    unreadDiscussions.sort((a, b) => new Date(b.lastPostAt) - new Date(a.lastPostAt));
+
     const unreadData = {
       forumId: id,
       userId,
-      totalUnread: 5,
-      unreadDiscussions: [
-        {
-          discussionId: 'disc_001',
-          title: '關於作業截止日期的問題',
-          unreadPosts: 3,
-          lastPostAt: '2024-01-25T14:30:00Z',
-          lastPostBy: '張小明'
-        },
-        {
-          discussionId: 'disc_002',
-          title: '課程內容討論',
-          unreadPosts: 2,
-          lastPostAt: '2024-01-25T10:15:00Z',
-          lastPostBy: '李小華'
-        }
-      ]
+      totalUnread,
+      unreadDiscussions
     };
 
     res.json({
@@ -1308,13 +1550,33 @@ router.post('/:id/mark-read', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.userId;
+    const context = await getForumAccessContext(id, userId, req.user.isAdmin);
+    if (!context.ok) {
+      return res.status(context.status).json({
+        success: false,
+        error: context.error,
+        message: context.message
+      });
+    }
+
+    const markedAt = new Date().toISOString();
+    await db.putItem({
+      PK: `FORUM#${id}`,
+      SK: `READ#${userId}`,
+      entityType: 'FORUM_READ_STATE',
+      forumId: id,
+      userId,
+      lastReadAt: markedAt,
+      markedAt,
+      updatedAt: markedAt
+    });
 
     res.json({
       success: true,
       data: {
         forumId: id,
         userId,
-        markedAt: new Date().toISOString()
+        markedAt
       },
       message: '已全部標記為已讀'
     });
@@ -1335,6 +1597,36 @@ router.post('/:id/discussions/:discussionId/mark-read', authMiddleware, async (r
   try {
     const { id, discussionId } = req.params;
     const userId = req.user.userId;
+    const context = await getForumAccessContext(id, userId, req.user.isAdmin);
+    if (!context.ok) {
+      return res.status(context.status).json({
+        success: false,
+        error: context.error,
+        message: context.message
+      });
+    }
+
+    const discussion = await getDiscussionInForum(id, discussionId);
+    if (!discussion) {
+      return res.status(404).json({
+        success: false,
+        error: 'DISCUSSION_NOT_FOUND',
+        message: '找不到此討論'
+      });
+    }
+
+    const markedAt = new Date().toISOString();
+    await db.putItem({
+      PK: `DISCUSSION#${discussionId}`,
+      SK: `READ#${userId}`,
+      entityType: 'DISCUSSION_READ_STATE',
+      forumId: id,
+      discussionId,
+      userId,
+      lastReadAt: markedAt,
+      markedAt,
+      updatedAt: markedAt
+    });
 
     res.json({
       success: true,
@@ -1342,7 +1634,7 @@ router.post('/:id/discussions/:discussionId/mark-read', authMiddleware, async (r
         forumId: id,
         discussionId,
         userId,
-        markedAt: new Date().toISOString()
+        markedAt
       },
       message: '討論已標記為已讀'
     });
@@ -1366,6 +1658,14 @@ router.post('/:id/discussions/:discussionId/posts/:postId/rate', authMiddleware,
     const { id, discussionId, postId } = req.params;
     const { rating } = req.body;
     const userId = req.user.userId;
+    const context = await getForumAccessContext(id, userId, req.user.isAdmin);
+    if (!context.ok) {
+      return res.status(context.status).json({
+        success: false,
+        error: context.error,
+        message: context.message
+      });
+    }
 
     if (!rating || rating < 1 || rating > 5) {
       return res.status(400).json({
@@ -1374,16 +1674,60 @@ router.post('/:id/discussions/:discussionId/posts/:postId/rate', authMiddleware,
       });
     }
 
+    const discussion = await getDiscussionInForum(id, discussionId);
+    if (!discussion) {
+      return res.status(404).json({
+        success: false,
+        error: 'DISCUSSION_NOT_FOUND',
+        message: '找不到此討論'
+      });
+    }
+
+    const posts = await db.query(`DISCUSSION#${discussionId}`, { skPrefix: 'POST#' });
+    const post = posts.find(p => p.postId === postId);
+    if (!post) {
+      return res.status(404).json({
+        success: false,
+        error: 'POST_NOT_FOUND',
+        message: '找不到此回覆'
+      });
+    }
+
+    const now = new Date().toISOString();
+    await db.putItem({
+      PK: `POST#${postId}`,
+      SK: `RATING#${userId}`,
+      entityType: 'FORUM_POST_RATING',
+      GSI1PK: `USER#${userId}`,
+      GSI1SK: `POST_RATING#${postId}`,
+      forumId: id,
+      discussionId,
+      postId,
+      userId,
+      rating: Number(rating),
+      ratedAt: now,
+      updatedAt: now
+    });
+
+    const allRatings = await db.query(`POST#${postId}`, { skPrefix: 'RATING#' });
+    const summary = buildRatingSummary(allRatings);
+    await db.updateItem(`DISCUSSION#${discussionId}`, post.SK, {
+      ratingAverage: summary.averageRating,
+      ratingCount: summary.totalRatings,
+      updatedAt: now
+    });
+
     const ratingData = {
       postId,
       userId,
-      rating,
-      ratedAt: new Date().toISOString()
+      rating: Number(rating),
+      ratedAt: now
     };
 
     res.json({
       success: true,
       data: ratingData,
+      stats: summary,
       message: '評分成功'
     });
   } catch (error) {
@@ -1401,19 +1745,46 @@ router.post('/:id/discussions/:discussionId/posts/:postId/rate', authMiddleware,
  */
 router.get('/:id/discussions/:discussionId/posts/:postId/ratings', authMiddleware, async (req, res) => {
   try {
-    const { postId } = req.params;
+    const { id, discussionId, postId } = req.params;
+    const userId = req.user.userId;
+    const context = await getForumAccessContext(id, userId, req.user.isAdmin);
+    if (!context.ok) {
+      return res.status(context.status).json({
+        success: false,
+        error: context.error,
+        message: context.message
+      });
+    }
+
+    const discussion = await getDiscussionInForum(id, discussionId);
+    if (!discussion) {
+      return res.status(404).json({
+        success: false,
+        error: 'DISCUSSION_NOT_FOUND',
+        message: '找不到此討論'
+      });
+    }
+
+    const posts = await db.query(`DISCUSSION#${discussionId}`, { skPrefix: 'POST#' });
+    const post = posts.find(p => p.postId === postId);
+    if (!post) {
+      return res.status(404).json({
+        success: false,
+        error: 'POST_NOT_FOUND',
+        message: '找不到此回覆'
+      });
+    }
+
+    const ratingRows = await db.query(`POST#${postId}`, { skPrefix: 'RATING#' });
+    const summary = buildRatingSummary(ratingRows);
+    const myRating = ratingRows.find(r => r.userId === userId)?.rating || null;
 
     const ratings = {
       postId,
-      averageRating: 4.2,
-      totalRatings: 15,
-      distribution: {
-        5: 8,
-        4: 4,
-        3: 2,
-        2: 1,
-        1: 0
-      }
+      averageRating: summary.averageRating,
+      totalRatings: summary.totalRatings,
+      distribution: summary.distribution,
+      myRating
     };
 
     res.json({
@@ -1438,14 +1809,52 @@ router.get('/:id/discussions/:discussionId/posts/:postId/ratings', authMiddlewar
 router.post('/:id/discussions/:discussionId/pin', authMiddleware, async (req, res) => {
   try {
     const { id, discussionId } = req.params;
+    const userId = req.user.userId;
+    const context = await getForumAccessContext(id, userId, req.user.isAdmin);
+    if (!context.ok) {
+      return res.status(context.status).json({
+        success: false,
+        error: context.error,
+        message: context.message
+      });
+    }
+
+    if (!context.isInstructor && !req.user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        error: 'FORBIDDEN',
+        message: '只有教師可置頂討論'
+      });
+    }
+
+    const discussion = await getDiscussionInForum(id, discussionId);
+    if (!discussion) {
+      return res.status(404).json({
+        success: false,
+        error: 'DISCUSSION_NOT_FOUND',
+        message: '找不到此討論'
+      });
+    }
+
+    const now = new Date().toISOString();
+    await db.updateItem(`DISCUSSION#${discussionId}`, 'META', {
+      pinned: true,
+      pinnedAt: now,
+      pinnedBy: userId,
+      updatedAt: now
+    });
+    await db.updateItem(`FORUM#${id}`, `DISCUSSION#${discussionId}`, {
+      pinned: true,
+      updatedAt: now
+    });
 
     res.json({
       success: true,
       data: {
         discussionId,
         pinned: true,
-        pinnedAt: new Date().toISOString(),
-        pinnedBy: req.user.userId
+        pinnedAt: now,
+        pinnedBy: userId
       },
       message: '討論已置頂'
     });
@@ -1464,7 +1873,45 @@ router.post('/:id/discussions/:discussionId/pin', authMiddleware, async (req, re
  */
 router.delete('/:id/discussions/:discussionId/pin', authMiddleware, async (req, res) => {
   try {
-    const { discussionId } = req.params;
+    const { id, discussionId } = req.params;
+    const userId = req.user.userId;
+    const context = await getForumAccessContext(id, userId, req.user.isAdmin);
+    if (!context.ok) {
+      return res.status(context.status).json({
+        success: false,
+        error: context.error,
+        message: context.message
+      });
+    }
+
+    if (!context.isInstructor && !req.user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        error: 'FORBIDDEN',
+        message: '只有教師可取消置頂'
+      });
+    }
+
+    const discussion = await getDiscussionInForum(id, discussionId);
+    if (!discussion) {
+      return res.status(404).json({
+        success: false,
+        error: 'DISCUSSION_NOT_FOUND',
+        message: '找不到此討論'
+      });
+    }
+
+    const now = new Date().toISOString();
+    await db.updateItem(`DISCUSSION#${discussionId}`, 'META', {
+      pinned: false,
+      pinnedAt: null,
+      pinnedBy: null,
+      updatedAt: now
+    });
+    await db.updateItem(`FORUM#${id}`, `DISCUSSION#${discussionId}`, {
+      pinned: false,
+      updatedAt: now
+    });
 
     res.json({
       success: true,
@@ -1489,16 +1936,51 @@ router.delete('/:id/discussions/:discussionId/pin', authMiddleware, async (req, 
  */
 router.post('/:id/discussions/:discussionId/lock', authMiddleware, async (req, res) => {
   try {
-    const { discussionId } = req.params;
+    const { id, discussionId } = req.params;
+    const userId = req.user.userId;
     const { reason } = req.body;
+    const context = await getForumAccessContext(id, userId, req.user.isAdmin);
+    if (!context.ok) {
+      return res.status(context.status).json({
+        success: false,
+        error: context.error,
+        message: context.message
+      });
+    }
+
+    if (!context.isInstructor && !req.user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        error: 'FORBIDDEN',
+        message: '只有教師可鎖定討論'
+      });
+    }
+
+    const discussion = await getDiscussionInForum(id, discussionId);
+    if (!discussion) {
+      return res.status(404).json({
+        success: false,
+        error: 'DISCUSSION_NOT_FOUND',
+        message: '找不到此討論'
+      });
+    }
+
+    const now = new Date().toISOString();
+    await db.updateItem(`DISCUSSION#${discussionId}`, 'META', {
+      locked: true,
+      lockReason: reason || '',
+      lockedAt: now,
+      lockedBy: userId,
+      updatedAt: now
+    });
 
     res.json({
       success: true,
       data: {
         discussionId,
         locked: true,
-        lockedAt: new Date().toISOString(),
-        lockedBy: req.user.userId,
+        lockedAt: now,
+        lockedBy: userId,
         reason: reason || ''
       },
       message: '討論已鎖定'
@@ -1518,7 +2000,42 @@ router.post('/:id/discussions/:discussionId/lock', authMiddleware, async (req, r
  */
 router.delete('/:id/discussions/:discussionId/lock', authMiddleware, async (req, res) => {
   try {
-    const { discussionId } = req.params;
+    const { id, discussionId } = req.params;
+    const userId = req.user.userId;
+    const context = await getForumAccessContext(id, userId, req.user.isAdmin);
+    if (!context.ok) {
+      return res.status(context.status).json({
+        success: false,
+        error: context.error,
+        message: context.message
+      });
+    }
+
+    if (!context.isInstructor && !req.user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        error: 'FORBIDDEN',
+        message: '只有教師可解除鎖定'
+      });
+    }
+
+    const discussion = await getDiscussionInForum(id, discussionId);
+    if (!discussion) {
+      return res.status(404).json({
+        success: false,
+        error: 'DISCUSSION_NOT_FOUND',
+        message: '找不到此討論'
+      });
+    }
+
+    const now = new Date().toISOString();
+    await db.updateItem(`DISCUSSION#${discussionId}`, 'META', {
+      locked: false,
+      lockReason: null,
+      lockedAt: null,
+      lockedBy: null,
+      updatedAt: now
+    });
 
     res.json({
       success: true,

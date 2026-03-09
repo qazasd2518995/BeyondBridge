@@ -31,6 +31,112 @@ function requireTeachingRole(req, res, next) {
   });
 }
 
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+function parseTimestamp(value) {
+  if (!value) return null;
+  const ts = new Date(value).getTime();
+  return Number.isNaN(ts) ? null : ts;
+}
+
+function average(values) {
+  if (!values || values.length === 0) return 0;
+  return values.reduce((sum, v) => sum + v, 0) / values.length;
+}
+
+function extractSubmissionUserId(submission) {
+  if (submission?.userId) return submission.userId;
+  if (typeof submission?.SK === 'string' && submission.SK.startsWith('SUBMISSION#')) {
+    return submission.SK.slice('SUBMISSION#'.length);
+  }
+  return null;
+}
+
+function extractAttemptUserId(attempt) {
+  if (attempt?.userId) return attempt.userId;
+  if (typeof attempt?.SK === 'string' && attempt.SK.startsWith('ATTEMPT#')) {
+    const chunks = attempt.SK.split('#');
+    return chunks[1] || null;
+  }
+  return null;
+}
+
+function getAlertSummary(alerts) {
+  return {
+    total: alerts.length,
+    behind: alerts.filter(a => a.type === 'behind').length,
+    missing: alerts.filter(a => a.type === 'missing').length,
+    inactive: alerts.filter(a => a.type === 'inactive').length,
+    declining: alerts.filter(a => a.type === 'declining').length,
+    high: alerts.filter(a => a.severity === 'high').length,
+    medium: alerts.filter(a => a.severity === 'medium').length,
+    low: alerts.filter(a => a.severity === 'low').length
+  };
+}
+
+function getSeverityOrder(severity) {
+  if (severity === 'high') return 0;
+  if (severity === 'medium') return 1;
+  return 2;
+}
+
+async function getTeacherCourses(teacherId) {
+  return db.scan({
+    filter: {
+      expression: 'entityType = :type AND (instructorId = :teacherId OR creatorId = :teacherId)',
+      values: {
+        ':type': 'COURSE',
+        ':teacherId': teacherId
+      }
+    }
+  });
+}
+
+async function getCourseEnrollments(courseId) {
+  return db.queryByIndex(
+    'GSI1',
+    `COURSE#${courseId}`,
+    'GSI1PK',
+    { skPrefix: 'ENROLLED#', skName: 'GSI1SK' }
+  );
+}
+
+async function getAssignmentsByCourse(courseId) {
+  return db.scan({
+    filter: {
+      expression: 'entityType = :type AND courseId = :courseId',
+      values: {
+        ':type': 'ASSIGNMENT',
+        ':courseId': courseId
+      }
+    }
+  });
+}
+
+async function getQuizzesByCourse(courseId) {
+  return db.scan({
+    filter: {
+      expression: 'entityType = :type AND courseId = :courseId',
+      values: {
+        ':type': 'QUIZ',
+        ':courseId': courseId
+      }
+    }
+  });
+}
+
+async function getForumsByCourse(courseId) {
+  return db.scan({
+    filter: {
+      expression: 'entityType = :type AND courseId = :courseId',
+      values: {
+        ':type': 'FORUM',
+        ':courseId': courseId
+      }
+    }
+  });
+}
+
 /**
  * 獲取教師的學生預警列表
  * GET /api/teachers/alerts
@@ -39,87 +145,178 @@ router.get('/alerts', authMiddleware, requireTeachingRole, async (req, res) => {
   try {
     const teacherId = req.user.userId;
     const alerts = [];
+    const nowTs = Date.now();
+    const nowIso = new Date(nowTs).toISOString();
 
-    // 從 DynamoDB 獲取教師的所有課程
-    const courses = await db.scan({
-      filter: {
-        expression: 'entityType = :type AND (instructorId = :teacherId OR creatorId = :teacherId)',
-        values: {
-          ':type': 'COURSE',
-          ':teacherId': teacherId
-        }
-      }
-    });
+    const courses = await getTeacherCourses(teacherId);
 
     if (!courses || courses.length === 0) {
-      // 如果沒有課程，返回空的預警列表
       return res.json({
         success: true,
         data: [],
-        summary: {
-          total: 0,
-          behind: 0,
-          missing: 0,
-          inactive: 0,
-          declining: 0,
-          high: 0,
-          medium: 0
+        summary: getAlertSummary([])
+      });
+    }
+
+    for (const course of courses) {
+      const courseId = course.courseId;
+      if (!courseId) continue;
+
+      const [enrollments, assignments, quizzes] = await Promise.all([
+        getCourseEnrollments(courseId),
+        getAssignmentsByCourse(courseId),
+        getQuizzesByCourse(courseId)
+      ]);
+
+      if (!enrollments || enrollments.length === 0) continue;
+
+      const studentIds = [...new Set(enrollments.map(e => e.userId).filter(Boolean))];
+      const studentProfiles = await Promise.all(studentIds.map(studentId => db.getUser(studentId)));
+      const studentMap = new Map();
+      studentProfiles.forEach(student => {
+        if (student?.userId) studentMap.set(student.userId, student);
+      });
+
+      const progressValues = enrollments
+        .map(e => Number(e.progressPercentage) || 0);
+      const avgProgress = Math.round(average(progressValues));
+
+      const overdueAssignments = assignments.filter(a => {
+        const dueTs = parseTimestamp(a.dueDate);
+        return dueTs && dueTs <= nowTs;
+      });
+
+      const submittedByAssignment = new Map();
+      await Promise.all(overdueAssignments.map(async (assignment) => {
+        const submissions = await db.query(`ASSIGNMENT#${assignment.assignmentId}`, { skPrefix: 'SUBMISSION#' });
+        const submittedUserSet = new Set(
+          submissions
+            .filter(s => !!s.submittedAt)
+            .map(extractSubmissionUserId)
+            .filter(Boolean)
+        );
+        submittedByAssignment.set(assignment.assignmentId, submittedUserSet);
+      }));
+
+      const attemptsByUser = new Map();
+      for (const quiz of quizzes) {
+        if (!quiz?.quizId) continue;
+        const attempts = await db.query(`QUIZ#${quiz.quizId}`, { skPrefix: 'ATTEMPT#' });
+        attempts
+          .filter(a => a.status === 'completed' && typeof a.percentage === 'number')
+          .forEach(a => {
+            const userId = extractAttemptUserId(a);
+            const timestamp = parseTimestamp(a.submittedAt || a.updatedAt || a.createdAt);
+            if (!userId || !timestamp) return;
+            const list = attemptsByUser.get(userId) || [];
+            list.push({ percentage: Number(a.percentage) || 0, timestamp });
+            attemptsByUser.set(userId, list);
+          });
+      }
+
+      enrollments.forEach(enrollment => {
+        const studentId = enrollment.userId;
+        if (!studentId) return;
+
+        const student = studentMap.get(studentId);
+        const studentName = student?.displayName || student?.email || studentId;
+        const studentEmail = student?.email || '';
+        const currentProgress = Number(enrollment.progressPercentage) || 0;
+
+        const progressGap = avgProgress - currentProgress;
+        if (avgProgress >= 20 && progressGap >= 20) {
+          alerts.push({
+            type: 'behind',
+            alertId: `behind_${courseId}_${studentId}`,
+            studentId,
+            studentName,
+            studentEmail,
+            courseId,
+            courseTitle: course.title,
+            message: `進度落後平均 ${Math.round(progressGap)}%`,
+            currentProgress,
+            avgProgress,
+            severity: progressGap >= 35 ? 'high' : 'medium',
+            createdAt: nowIso
+          });
+        }
+
+        const lastAccessedAt = enrollment.lastAccessedAt || enrollment.updatedAt || enrollment.enrolledAt || null;
+        const lastAccessTs = parseTimestamp(lastAccessedAt);
+        const inactiveDays = lastAccessTs ? Math.floor((nowTs - lastAccessTs) / MS_PER_DAY) : 999;
+        if (inactiveDays >= 7) {
+          alerts.push({
+            type: 'inactive',
+            alertId: `inactive_${courseId}_${studentId}`,
+            studentId,
+            studentName,
+            studentEmail,
+            courseId,
+            courseTitle: course.title,
+            message: `${inactiveDays} 天未進入課程`,
+            lastLogin: lastAccessedAt,
+            severity: inactiveDays >= 14 ? 'high' : 'medium',
+            createdAt: lastAccessedAt || nowIso
+          });
+        }
+
+        let missingCount = 0;
+        overdueAssignments.forEach(assignment => {
+          const submittedSet = submittedByAssignment.get(assignment.assignmentId) || new Set();
+          if (!submittedSet.has(studentId)) missingCount++;
+        });
+        if (missingCount > 0) {
+          alerts.push({
+            type: 'missing',
+            alertId: `missing_${courseId}_${studentId}`,
+            studentId,
+            studentName,
+            studentEmail,
+            courseId,
+            courseTitle: course.title,
+            message: `有 ${missingCount} 份逾期作業未提交`,
+            missingAssignments: missingCount,
+            severity: missingCount >= 2 ? 'high' : 'medium',
+            createdAt: nowIso
+          });
+        }
+
+        const attempts = attemptsByUser.get(studentId) || [];
+        if (attempts.length >= 3) {
+          attempts.sort((a, b) => b.timestamp - a.timestamp);
+          const recent = attempts.slice(0, 2);
+          const previous = attempts.slice(2, 4);
+          const recentAvg = average(recent.map(a => a.percentage));
+          const previousAvg = average(previous.map(a => a.percentage));
+          const decline = previousAvg - recentAvg;
+          if (previous.length > 0 && decline >= 15) {
+            alerts.push({
+              type: 'declining',
+              alertId: `declining_${courseId}_${studentId}`,
+              studentId,
+              studentName,
+              studentEmail,
+              courseId,
+              courseTitle: course.title,
+              message: `最近測驗平均下降 ${Math.round(decline)} 分`,
+              previousAverage: Math.round(previousAvg),
+              currentAverage: Math.round(recentAvg),
+              severity: decline >= 25 ? 'high' : 'medium',
+              createdAt: new Date(recent[0].timestamp).toISOString()
+            });
+          }
         }
       });
     }
 
-    // 模擬一些預警資料（實際應從學生活動和成績計算）
-    // 在實際生產環境中，這裡會查詢學生的進度、成績、活動記錄等
-    const now = new Date();
-
-    // 為每個課程生成一些示例預警
-    courses.slice(0, 3).forEach((course, index) => {
-      // 進度落後警示
-      if (index === 0) {
-        alerts.push({
-          type: 'behind',
-          alertId: `behind_student001_${course.courseId}`,
-          studentId: 'student_001',
-          studentName: '王小明',
-          studentEmail: 'xiaoming@example.com',
-          courseId: course.courseId,
-          courseTitle: course.title,
-          message: '進度落後平均 25%',
-          currentProgress: 35,
-          avgProgress: 60,
-          severity: 'medium',
-          createdAt: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString()
-        });
-      }
-
-      // 長期未活動警示
-      if (index <= 1) {
-        alerts.push({
-          type: 'inactive',
-          alertId: `inactive_student002_${course.courseId}`,
-          studentId: 'student_002',
-          studentName: '李小華',
-          studentEmail: 'xiaohua@example.com',
-          courseId: course.courseId,
-          courseTitle: course.title,
-          message: '10 天未登入',
-          lastLogin: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-          severity: 'high',
-          createdAt: now.toISOString()
-        });
-      }
-    });
-
-    // 過濾已 dismiss 的預警
     const dismissedAlerts = await db.query(`TEACHER#${teacherId}`, { skPrefix: 'DISMISSED_ALERT#' });
     const dismissedSet = new Set(dismissedAlerts.map(a => a.alertId));
     const visibleAlerts = alerts.filter(a => !dismissedSet.has(a.alertId));
 
-    // 按嚴重程度和時間排序
     visibleAlerts.sort((a, b) => {
-      const severityOrder = { high: 0, medium: 1, low: 2 };
-      if (severityOrder[a.severity] !== severityOrder[b.severity]) {
-        return severityOrder[a.severity] - severityOrder[b.severity];
+      const severityDiff = getSeverityOrder(a.severity) - getSeverityOrder(b.severity);
+      if (severityDiff !== 0) {
+        return severityDiff;
       }
       return new Date(b.createdAt) - new Date(a.createdAt);
     });
@@ -127,15 +324,7 @@ router.get('/alerts', authMiddleware, requireTeachingRole, async (req, res) => {
     res.json({
       success: true,
       data: visibleAlerts,
-      summary: {
-        total: visibleAlerts.length,
-        behind: visibleAlerts.filter(a => a.type === 'behind').length,
-        missing: visibleAlerts.filter(a => a.type === 'missing').length,
-        inactive: visibleAlerts.filter(a => a.type === 'inactive').length,
-        declining: visibleAlerts.filter(a => a.type === 'declining').length,
-        high: visibleAlerts.filter(a => a.severity === 'high').length,
-        medium: visibleAlerts.filter(a => a.severity === 'medium').length
-      }
+      summary: getAlertSummary(visibleAlerts)
     });
 
   } catch (error) {
@@ -192,33 +381,88 @@ router.post('/alerts/:alertId/dismiss', authMiddleware, requireTeachingRole, asy
 router.get('/dashboard', authMiddleware, requireTeachingRole, async (req, res) => {
   try {
     const teacherId = req.user.userId;
+    const courses = await getTeacherCourses(teacherId);
+    const nowTs = Date.now();
+    const weekAgoTs = nowTs - (7 * MS_PER_DAY);
 
-    // 從 DynamoDB 獲取教師的課程
-    const courses = await db.scan({
-      filter: {
-        expression: 'entityType = :type AND (instructorId = :teacherId OR creatorId = :teacherId)',
-        values: {
-          ':type': 'COURSE',
-          ':teacherId': teacherId
+    const totalCourses = courses.length;
+    const studentIdSet = new Set();
+    let progressSum = 0;
+    let progressCount = 0;
+    let pendingAssignments = 0;
+    let pendingQuizzes = 0;
+    let unrepliedPosts = 0;
+    let weeklySubmissions = 0;
+
+    for (const course of courses) {
+      const courseId = course.courseId;
+      if (!courseId) continue;
+
+      const [enrollments, assignments, quizzes, forums] = await Promise.all([
+        getCourseEnrollments(courseId),
+        getAssignmentsByCourse(courseId),
+        getQuizzesByCourse(courseId),
+        getForumsByCourse(courseId)
+      ]);
+
+      enrollments.forEach(enrollment => {
+        if (enrollment.userId) studentIdSet.add(enrollment.userId);
+        progressSum += Number(enrollment.progressPercentage) || 0;
+        progressCount++;
+      });
+
+      for (const assignment of assignments) {
+        if (!assignment?.assignmentId) continue;
+        const submissions = await db.query(`ASSIGNMENT#${assignment.assignmentId}`, { skPrefix: 'SUBMISSION#' });
+
+        submissions.forEach(sub => {
+          if (sub.submittedAt && !sub.gradedAt) {
+            pendingAssignments++;
+          }
+
+          const submittedAtTs = parseTimestamp(sub.submittedAt || sub.createdAt);
+          if (submittedAtTs && submittedAtTs >= weekAgoTs) {
+            weeklySubmissions++;
+          }
+        });
+      }
+
+      for (const quiz of quizzes) {
+        if (!quiz?.quizId) continue;
+        const attempts = await db.query(`QUIZ#${quiz.quizId}`, { skPrefix: 'ATTEMPT#' });
+        pendingQuizzes += attempts.filter(a => a.status && a.status !== 'completed').length;
+      }
+
+      for (const forum of forums) {
+        if (!forum?.forumId) continue;
+        const discussions = await db.query(`FORUM#${forum.forumId}`, { skPrefix: 'DISCUSSION#' });
+
+        for (const discussion of discussions) {
+          const authoredByTeacher = discussion.authorId === teacherId ||
+            discussion.authorId === course.instructorId ||
+            discussion.authorRole === 'instructor';
+          if (authoredByTeacher) continue;
+
+          const posts = await db.query(`DISCUSSION#${discussion.discussionId}`, { skPrefix: 'POST#' });
+          const hasTeacherReply = posts.some(post =>
+            post.authorId === teacherId ||
+            post.authorId === course.instructorId ||
+            post.authorRole === 'instructor' ||
+            post.authorRole === 'assistant' ||
+            post.authorRole === 'teacher'
+          );
+
+          if (!hasTeacherReply) {
+            unrepliedPosts++;
+          }
         }
       }
-    });
-
-    // 計算統計數據
-    const totalCourses = courses.length;
-    let totalStudents = 0;
-    let avgProgress = 0;
-
-    // 實際應該查詢每個課程的報名人數和進度
-    // 這裡使用課程資料中的 enrollmentCount
-    courses.forEach(course => {
-      totalStudents += course.enrollmentCount || 0;
-      avgProgress += course.completionRate || 0;
-    });
-
-    if (totalCourses > 0) {
-      avgProgress = Math.round(avgProgress / totalCourses);
     }
+
+    const totalStudents = studentIdSet.size;
+    const avgProgress = progressCount > 0
+      ? Math.round(progressSum / progressCount)
+      : 0;
 
     res.json({
       success: true,
@@ -226,10 +470,10 @@ router.get('/dashboard', authMiddleware, requireTeachingRole, async (req, res) =
         totalCourses,
         totalStudents,
         avgProgress,
-        pendingAssignments: 0,  // 需要實際查詢
-        pendingQuizzes: 0,      // 需要實際查詢
-        unrepliedPosts: 0,      // 需要實際查詢
-        weeklySubmissions: 0    // 需要實際查詢
+        pendingAssignments,
+        pendingQuizzes,
+        unrepliedPosts,
+        weeklySubmissions
       }
     });
 
