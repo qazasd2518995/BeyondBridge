@@ -882,66 +882,65 @@ const App = {
    */
   async loadTeacherDashboardData() {
     try {
-      // 並行載入所有教師相關數據
-      const [coursesRes, assignmentsRes, quizzesRes, forumsRes] = await Promise.all([
-        API.courses.list(),
-        API.assignments.list(),
-        API.quizzes.list(),
-        API.forums.list()
+      const [dashboardRes, coursesRes, alertsRes] = await Promise.all([
+        API.teachers.getDashboard(),
+        API.courses.getMyCourses('instructor'),
+        API.teachers.getAlerts()
       ]);
 
-      // 計算待處理事項
-      let pendingAssignments = 0;
-      let pendingQuizzes = 0;
-      let pendingForums = 0;
-
-      if (assignmentsRes.success && assignmentsRes.data) {
-        pendingAssignments = assignmentsRes.data.filter(a => a.pendingGrading > 0 || a.status === 'pending').length;
+      if (!dashboardRes.success) {
+        throw new Error(dashboardRes.message || 'Load teacher dashboard failed');
       }
 
-      if (quizzesRes.success && quizzesRes.data) {
-        pendingQuizzes = quizzesRes.data.filter(q => q.pendingReview > 0 || q.status === 'pending').length;
+      const dashboard = dashboardRes.data || {};
+      const courseStats = Array.isArray(dashboard.courses) ? dashboard.courses : [];
+      const myCourses = coursesRes.success && Array.isArray(coursesRes.data) ? coursesRes.data : [];
+      const statsMap = new Map(courseStats.map(course => [course.courseId, course]));
+      let mergedCourses = myCourses.map(course => ({ ...course, ...(statsMap.get(course.courseId) || {}) }));
+      if (mergedCourses.length === 0 && courseStats.length > 0) {
+        mergedCourses = courseStats;
       }
 
-      if (forumsRes.success && forumsRes.data) {
-        pendingForums = forumsRes.data.filter(f => f.unrepliedPosts > 0).length;
-      }
+      const setText = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = String(value ?? 0);
+      };
 
-      // 更新待處理事項 UI
-      const pendingAssignmentsEl = document.getElementById('pendingAssignments');
-      const pendingQuizzesEl = document.getElementById('pendingQuizzes');
-      const pendingForumsEl = document.getElementById('pendingForums');
+      const pendingAssignments = Number(dashboard.pendingAssignments) || 0;
+      const pendingQuizzes = Number(dashboard.pendingQuizzes) || 0;
+      const pendingForums = Number(dashboard.unrepliedPosts) || 0;
+      const pendingNotifications = Number(dashboard.pendingNotifications) || 0;
+      const totalStudents = Number(dashboard.totalStudents) || 0;
+      const totalCourses = Number(dashboard.totalCourses) || mergedCourses.length || 0;
+      const avgProgress = Number(dashboard.avgProgress) || 0;
+      const weeklySubmissions = Number(dashboard.weeklySubmissions) || 0;
+      const pendingGrading = pendingAssignments + pendingQuizzes;
 
-      if (pendingAssignmentsEl) pendingAssignmentsEl.textContent = pendingAssignments;
-      if (pendingQuizzesEl) pendingQuizzesEl.textContent = pendingQuizzes;
-      if (pendingForumsEl) pendingForumsEl.textContent = pendingForums;
+      setText('pendingAssignments', pendingAssignments);
+      setText('pendingQuizzes', pendingQuizzes);
+      setText('pendingForums', pendingForums);
+      setText('pendingNotifications', pendingNotifications);
 
-      // 更新統計卡片
-      if (coursesRes.success && coursesRes.data) {
-        const courses = coursesRes.data;
-        const totalStudents = courses.reduce((sum, c) => sum + (c.studentCount || 0), 0);
-        const avgProgress = courses.length > 0 ?
-          Math.round(courses.reduce((sum, c) => sum + (c.avgProgress || 0), 0) / courses.length) : 0;
+      setText('teacherTotalStudents', totalStudents);
+      setText('teacherActiveCourses', totalCourses);
+      setText('teacherAvgProgress', `${avgProgress}%`);
+      setText('teacherWeeklySubmissions', weeklySubmissions);
 
-        const totalStudentsEl = document.getElementById('teacherTotalStudents');
-        const activeCoursesEl = document.getElementById('teacherActiveCourses');
-        const avgProgressEl = document.getElementById('teacherAvgProgress');
+      setText('teacherPendingGrading', pendingGrading);
+      setText('teacherStudentCount', totalStudents);
+      setText('teacherCourseCount', totalCourses);
 
-        if (totalStudentsEl) totalStudentsEl.textContent = totalStudents;
-        if (activeCoursesEl) activeCoursesEl.textContent = courses.length;
-        if (avgProgressEl) avgProgressEl.textContent = `${avgProgress}%`;
+      this.updateTeacherCourseList(mergedCourses);
+      this.updateGradingQueueUI(dashboard.gradingQueue || []);
+      this.updateRecentSubmissionsUI(dashboard.recentSubmissions || []);
 
-        // 更新課程列表
-        this.updateTeacherCourseList(courses);
-      }
-
-      // 載入學生警示和最近提交
-      await Promise.all([
-        this.loadStudentAlerts(),
-        this.loadRecentSubmissions()
-      ]);
+      const allAlerts = alertsRes.success && Array.isArray(alertsRes.data) ? alertsRes.data : [];
+      this.updateStudentAlertsUI(allAlerts.slice(0, 5), allAlerts.length);
     } catch (error) {
       console.error('Load teacher dashboard data error:', error);
+      this.updateGradingQueueUI([]);
+      this.updateStudentAlertsUI([]);
+      this.updateRecentSubmissionsUI([]);
     }
   },
 
@@ -976,8 +975,10 @@ const App = {
 
     courseList.innerHTML = courses.slice(0, 4).map((course, index) => {
       const colorSet = colors[index % colors.length];
+      const avgProgress = course.avgProgress ?? course.averageProgress ?? 0;
+      const pendingGrading = Number(course.pendingGrading || course.pendingAssignments || 0);
       return `
-        <div class="teacher-course-item" style="display: flex; align-items: center; padding: 0.75rem; border-radius: 8px; background: var(--surface-light); margin-bottom: 0.5rem; cursor: pointer;" onclick="App.openCourse('${course.courseId}');">
+        <div class="teacher-course-item" style="display: flex; align-items: center; padding: 0.75rem; border-radius: 8px; background: var(--surface-light); margin-bottom: 0.5rem; cursor: pointer;" onclick="if (typeof MoodleUI !== 'undefined' && MoodleUI.openCourse) { MoodleUI.openCourse('${course.courseId}'); }">
           <div class="course-icon" style="width: 40px; height: 40px; border-radius: 8px; background: ${colorSet.bg}; display: flex; align-items: center; justify-content: center; margin-right: 0.75rem; flex-shrink: 0;">
             <svg viewBox="0 0 24 24" fill="none" stroke="${colorSet.color}" stroke-width="2" style="width: 20px; height: 20px;">
               <polygon points="12,2 2,7 12,12 22,7"/>
@@ -988,13 +989,13 @@ const App = {
           <div class="course-info" style="flex: 1; min-width: 0;">
             <div class="course-title" style="font-weight: 500; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${course.title || course.courseTitle || t('app.course')}</div>
             <div class="course-meta" style="font-size: 0.75rem; color: var(--text-secondary);">
-              ${course.studentCount || 0} ${t('app.students')} ・ ${t('app.avgProgress')} ${course.avgProgress || 0}%
+              ${course.studentCount || 0} ${t('app.students')} ・ ${t('app.avgProgress')} ${avgProgress}%
             </div>
           </div>
           <div class="course-stats" style="text-align: right;">
-            ${course.pendingGrading > 0 ? `
+            ${pendingGrading > 0 ? `
               <span style="background: var(--terracotta-light); color: var(--terracotta); padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: 500;">
-                ${course.pendingGrading} ${t('app.pendingGrading')}
+                ${pendingGrading} ${t('app.pendingGrading')}
               </span>
             ` : ''}
           </div>
@@ -1008,18 +1009,11 @@ const App = {
    */
   async loadStudentAlerts() {
     try {
-      // 從 API 獲取學生預警
       const result = await API.teachers.getAlerts();
-
-      let alerts = [];
-      if (result.success && result.data) {
-        alerts = result.data.slice(0, 5); // 只顯示前 5 項
-      }
-
-      this.updateStudentAlertsUI(alerts);
+      const allAlerts = result.success && Array.isArray(result.data) ? result.data : [];
+      this.updateStudentAlertsUI(allAlerts.slice(0, 5), allAlerts.length);
     } catch (error) {
       console.error('Load student alerts error:', error);
-      // 發生錯誤時顯示空列表
       this.updateStudentAlertsUI([]);
     }
   },
@@ -1027,13 +1021,13 @@ const App = {
   /**
    * 更新學生警示 UI
    */
-  updateStudentAlertsUI(alerts) {
+  updateStudentAlertsUI(alerts, totalCount = alerts.length) {
     const alertsList = document.getElementById('studentAlertsList');
     const alertCount = document.getElementById('studentAlertCount');
 
     if (alertCount) {
-      alertCount.textContent = `${alerts.length} ${t('app.items')}`;
-      alertCount.style.display = alerts.length > 0 ? 'inline-block' : 'none';
+      alertCount.textContent = `${totalCount} ${t('app.items')}`;
+      alertCount.style.display = totalCount > 0 ? 'inline-block' : 'none';
     }
 
     if (!alertsList) return;
@@ -1073,9 +1067,63 @@ const App = {
               ${alert.message}${alert.courseTitle ? ` - ${alert.courseTitle}` : ''}
             </div>
           </div>
+          ${alert.alertId ? `
+            <button onclick="event.stopPropagation(); App.dismissTeacherAlert('${alert.alertId}')" style="border:none;background:var(--white);color:var(--gray-500);font-size:0.75rem;padding:0.35rem 0.6rem;border-radius:6px;cursor:pointer;">
+              處理
+            </button>
+          ` : ''}
         </div>
       `;
     }).join('');
+  },
+
+  async dismissTeacherAlert(alertId) {
+    if (!alertId) return;
+    try {
+      const result = await API.teachers.dismissAlert(alertId);
+      if (result.success) {
+        await this.loadStudentAlerts();
+      } else {
+        showToast(result.message || t('toast.operationFailed'));
+      }
+    } catch (error) {
+      console.error('Dismiss teacher alert error:', error);
+      showToast(t('toast.operationFailed'));
+    }
+  },
+
+  updateGradingQueueUI(queue) {
+    const queueList = document.getElementById('gradingQueueList');
+    if (!queueList) return;
+
+    if (!Array.isArray(queue) || queue.length === 0) {
+      queueList.innerHTML = `
+        <div class="empty-state" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width: 48px; height: 48px; margin-bottom: 0.5rem; opacity: 0.5;">
+            <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+            <polyline points="22,4 12,14.01 9,11.01"/>
+          </svg>
+          <p>${t('teacher.noGradingTasks')}</p>
+        </div>
+      `;
+      return;
+    }
+
+    queueList.innerHTML = queue.slice(0, 5).map(item => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:0.75rem 1rem;border-bottom:1px solid var(--gray-100);">
+        <div style="min-width:0;">
+          <div style="font-size:0.85rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.assignmentTitle || t('app.assignment')}</div>
+          <div style="font-size:0.75rem;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+            ${item.studentName || t('app.user')} · ${this.formatTimeAgo(item.submittedAt)}
+          </div>
+        </div>
+        ${item.assignmentId ? `
+          <button onclick="showView('moodleAssignments'); if (typeof MoodleUI !== 'undefined' && MoodleUI.openAssignment) { MoodleUI.openAssignment('${item.assignmentId}'); }" style="border:none;background:var(--olive-light);color:var(--olive);font-size:0.75rem;padding:0.35rem 0.6rem;border-radius:6px;cursor:pointer;flex-shrink:0;">
+            評分
+          </button>
+        ` : ''}
+      </div>
+    `).join('');
   },
 
   /**
@@ -1083,26 +1131,14 @@ const App = {
    */
   async loadRecentSubmissions() {
     try {
-      const result = await API.assignments.list();
-      let submissions = [];
-
-      if (result.success && result.data) {
-        // 從作業中提取最近提交
-        submissions = result.data
-          .filter(a => a.submissions && a.submissions.length > 0)
-          .flatMap(a => a.submissions.map(s => ({
-            studentName: s.studentName || t('app.user'),
-            assignmentTitle: a.title,
-            submittedAt: s.submittedAt || s.createdAt,
-            status: s.status
-          })))
-          .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt))
-          .slice(0, 5);
-      }
-
+      const result = await API.teachers.getDashboard();
+      const submissions = result.success && Array.isArray(result.data?.recentSubmissions)
+        ? result.data.recentSubmissions
+        : [];
       this.updateRecentSubmissionsUI(submissions);
     } catch (error) {
       console.error('Load recent submissions error:', error);
+      this.updateRecentSubmissionsUI([]);
     }
   },
 
@@ -1136,7 +1172,8 @@ const App = {
     submissionsList.innerHTML = submissions.map(sub => {
       const timeAgo = this.formatTimeAgo(sub.submittedAt);
       const statusColor = sub.status === 'graded' ? 'var(--success)' :
-                         sub.status === 'pending' ? 'var(--sand)' : 'var(--text-secondary)';
+        (sub.status === 'pending' || sub.status === 'submitted') ? 'var(--sand)' : 'var(--text-secondary)';
+      const assignmentTitle = sub.assignmentTitle || sub.title || t('app.assignment');
 
       return `
         <div class="submission-item" style="display: flex; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid var(--gray-100);">
@@ -1145,7 +1182,7 @@ const App = {
           </div>
           <div class="submission-info" style="flex: 1; min-width: 0;">
             <div style="font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-              <strong>${sub.studentName}</strong> ${t('app.submitted')} <span style="color: var(--olive);">${sub.assignmentTitle}</span>
+              <strong>${sub.studentName || t('app.user')}</strong> ${t('app.submitted')} <span style="color: var(--olive);">${assignmentTitle}</span>
             </div>
             <div style="font-size: 0.7rem; color: var(--text-secondary);">${timeAgo}</div>
           </div>

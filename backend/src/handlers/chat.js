@@ -264,19 +264,36 @@ router.get('/rooms/:id/messages', authMiddleware, async (req, res) => {
       });
     }
 
-    // 查詢訊息 - 使用正確的 db.query API
+    const parsedLimit = Number.parseInt(limit, 10);
+    const pageLimit = Number.isNaN(parsedLimit)
+      ? 50
+      : Math.max(1, Math.min(parsedLimit, 200));
+
+    // 查詢訊息（由新到舊，再反轉成舊到新回傳）
     const queryOptions = {
       skPrefix: 'MSG#',
-      limit: parseInt(limit),
+      limit: pageLimit + 1,
       scanIndexForward: false
     };
 
-    // TODO: 分頁功能需要用不同的查詢方式實現
-    // if (before) { ... }
+    if (before) {
+      const beforeSk = String(before).startsWith('MSG#')
+        ? String(before)
+        : `MSG#${before}`;
 
-    const result = await db.query(`CHAT#${id}`, queryOptions);
+      queryOptions.filter = {
+        expression: 'SK < :beforeSk',
+        values: {
+          ':beforeSk': beforeSk
+        }
+      };
+    }
 
-    const messages = (result || [])
+    const rows = await db.query(`CHAT#${id}`, queryOptions);
+    const hasMore = rows.length > pageLimit;
+    const pagedRows = hasMore ? rows.slice(0, pageLimit) : rows;
+
+    const messages = (pagedRows || [])
       .map(item => {
         delete item.PK;
         delete item.SK;
@@ -284,10 +301,19 @@ router.get('/rooms/:id/messages', authMiddleware, async (req, res) => {
       })
       .reverse();
 
+    const nextBefore = hasMore
+      ? messages[0]?.createdAt || null
+      : null;
+
     res.json({
       success: true,
       data: messages,
-      hasMore: !!result.LastEvaluatedKey
+      hasMore,
+      pagination: {
+        limit: pageLimit,
+        before: before || null,
+        nextBefore
+      }
     });
 
   } catch (error) {

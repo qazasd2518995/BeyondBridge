@@ -755,14 +755,16 @@ const API = {
     },
 
     async acceptQuote(consultationId) {
-      return API.request(`/consultations/${consultationId}/accept`, {
-        method: 'POST'
+      return API.request(`/consultations/${consultationId}`, {
+        method: 'PUT',
+        body: { action: 'accept_quote' }
       });
     },
 
     async rejectQuote(consultationId) {
-      return API.request(`/consultations/${consultationId}/reject`, {
-        method: 'POST'
+      return API.request(`/consultations/${consultationId}`, {
+        method: 'PUT',
+        body: { action: 'reject_quote' }
       });
     },
 
@@ -780,9 +782,12 @@ const API = {
     },
 
     async submitQuote(consultationId, quoteData) {
-      return API.request(`/consultations/admin/${consultationId}/quote`, {
-        method: 'POST',
-        body: quoteData
+      return API.request(`/consultations/admin/${consultationId}`, {
+        method: 'PUT',
+        body: {
+          quote: quoteData,
+          status: quoteData?.status || 'quoted'
+        }
       });
     }
   },
@@ -1194,6 +1199,39 @@ const API = {
 
     async likePost(forumId, discussionId, postId) {
       return API.request(`/forums/${forumId}/discussions/${discussionId}/posts/${postId}/like`, {
+        method: 'POST'
+      });
+    },
+
+    async getSubscription(forumId) {
+      return API.request(`/forums/${forumId}/subscription`);
+    },
+
+    async subscribe(forumId, data = {}) {
+      return API.request(`/forums/${forumId}/subscribe`, {
+        method: 'POST',
+        body: data
+      });
+    },
+
+    async unsubscribe(forumId) {
+      return API.request(`/forums/${forumId}/subscribe`, {
+        method: 'DELETE'
+      });
+    },
+
+    async getUnread(forumId) {
+      return API.request(`/forums/${forumId}/unread`);
+    },
+
+    async markRead(forumId) {
+      return API.request(`/forums/${forumId}/mark-read`, {
+        method: 'POST'
+      });
+    },
+
+    async markDiscussionRead(forumId, discussionId) {
+      return API.request(`/forums/${forumId}/discussions/${discussionId}/mark-read`, {
         method: 'POST'
       });
     }

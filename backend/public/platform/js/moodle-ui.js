@@ -14,6 +14,32 @@ const MoodleUI = {
   currentForumCourseId: null,
   currentQuestionBankCategoryFilter: null,
 
+  teachingRoles: new Set(['manager', 'coursecreator', 'educator', 'trainer', 'creator', 'teacher', 'assistant']),
+
+  isTeachingRole(user = API.getCurrentUser()) {
+    if (!user) return false;
+    return !!(user.isAdmin || this.teachingRoles.has(user.role));
+  },
+
+  isCourseOwner(course, user = API.getCurrentUser()) {
+    if (!course || !user) return false;
+    if (user.isAdmin) return true;
+    const ownerIds = new Set([
+      course.instructorId,
+      course.teacherId,
+      course.creatorId,
+      course.createdBy
+    ].filter(Boolean));
+    const inInstructors = Array.isArray(course.instructors) && course.instructors.includes(user.userId);
+    return ownerIds.has(user.userId) || inInstructors;
+  },
+
+  canTeachCourse(course, user = API.getCurrentUser()) {
+    if (!this.isTeachingRole(user)) return false;
+    if (!course) return true;
+    return this.isCourseOwner(course, user);
+  },
+
   /**
    * 通用課程選擇器
    */
@@ -163,7 +189,7 @@ const MoodleUI = {
     if (!container) return;
 
     const user = API.getCurrentUser();
-    const isTeacher = course.teacherId === user?.userId || user?.role === 'teacher';
+    const isTeacher = this.canTeachCourse(course, user);
 
     container.innerHTML = `
       <!-- 課程頭部 -->
@@ -472,7 +498,7 @@ const MoodleUI = {
     if (!panel) return;
 
     const user = API.getCurrentUser();
-    const isTeacher = this.currentCourse?.teacherId === user?.userId || user?.role === 'teacher';
+    const isTeacher = this.canTeachCourse(this.currentCourse, user);
 
     try {
       let result;
@@ -1550,7 +1576,7 @@ const MoodleUI = {
     if (!container) return;
 
     const user = API.getCurrentUser();
-    const isTeacher = user && (user.role === 'educator' || user.role === 'trainer' || user.role === 'creator' || user.isAdmin);
+    const isTeacher = this.isTeachingRole(user);
 
     const header = `
       <div style="padding: 1.5rem 1.5rem 0;">
@@ -1975,7 +2001,7 @@ const MoodleUI = {
     if (!container) return;
 
     const user = API.getCurrentUser();
-    const isTeacher = user && (user.role === 'educator' || user.role === 'trainer' || user.role === 'creator' || user.isAdmin);
+    const isTeacher = this.isTeachingRole(user);
 
     const header = `
       <div style="padding: 1.5rem 1.5rem 0;">
@@ -2375,7 +2401,7 @@ const MoodleUI = {
     if (!container) return;
 
     const user = API.getCurrentUser();
-    const isTeacher = user && (user.role === 'educator' || user.role === 'trainer' || user.role === 'creator' || user.isAdmin);
+    const isTeacher = this.isTeachingRole(user);
 
     const header = `
       <div style="padding: 1.5rem 1.5rem 0;">
@@ -2422,8 +2448,8 @@ const MoodleUI = {
               <p style="color: var(--gray-500); font-size: 0.85rem; margin: 0;">${f.description || ''}</p>
             </div>
             <div style="flex-shrink: 0; display: flex; gap: 1.5rem; font-size: 0.85rem; color: var(--gray-400);">
-              <span>${f.discussionCount || 0} 篇討論</span>
-              <span>${f.postCount || 0} 則回覆</span>
+              <span>${f.discussionCount ?? f.stats?.discussionCount ?? 0} 篇討論</span>
+              <span>${f.postCount ?? f.stats?.postCount ?? 0} 則回覆</span>
             </div>
           </div>
         `).join('')}
@@ -2458,8 +2484,8 @@ const MoodleUI = {
               <p class="forum-desc">${f.description || t('moodleLti.noDescription')}</p>
             </div>
             <div class="forum-stats">
-              <span>${f.discussionCount || 0} ${t('moodleForum.topics')}</span>
-              <span>${f.postCount || 0} ${t('moodleForum.replies')}</span>
+              <span>${f.discussionCount ?? f.stats?.discussionCount ?? 0} ${t('moodleForum.topics')}</span>
+              <span>${f.postCount ?? f.stats?.postCount ?? 0} ${t('moodleForum.replies')}</span>
             </div>
           </div>
         `).join('')}
@@ -2744,7 +2770,7 @@ const MoodleUI = {
       }
 
       const course = courseResult.data;
-      const isTeacher = course.teacherId === user?.userId || user?.role === 'teacher';
+      const isTeacher = this.canTeachCourse(course, user);
 
       let result;
       if (isTeacher) {

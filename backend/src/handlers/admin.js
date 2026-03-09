@@ -5,6 +5,8 @@
 
 const express = require('express');
 const router = express.Router();
+const path = require('path');
+const fs = require('fs/promises');
 const db = require('../utils/db');
 const auth = require('../utils/auth');
 const cache = require('../utils/cache');
@@ -1156,9 +1158,43 @@ router.get('/system/health', async (req, res) => {
     const apiLatency = Date.now() - startTime;
     const apiStatus = apiLatency < 500 ? 'healthy' : apiLatency < 2000 ? 'degraded' : 'unhealthy';
 
+    // 儲存空間狀態（以 uploads 目錄所在檔案系統估算）
+    let storageStatus = 'healthy';
+    let storageUsage = null;
+    try {
+      const uploadsPath = process.env.UPLOADS_DIR || path.join(__dirname, '../../uploads');
+      const stat = await fs.statfs(uploadsPath);
+      const totalBytes = Number(stat.blocks) * Number(stat.bsize);
+      const freeBytes = Number(stat.bavail) * Number(stat.bsize);
+      const usedBytes = Math.max(0, totalBytes - freeBytes);
+      const usedPercent = totalBytes > 0 ? Math.round((usedBytes / totalBytes) * 100) : 0;
+
+      if (usedPercent >= 95) {
+        storageStatus = 'unhealthy';
+      } else if (usedPercent >= 85) {
+        storageStatus = 'degraded';
+      }
+
+      storageUsage = {
+        usedBytes,
+        freeBytes,
+        totalBytes,
+        percent: usedPercent,
+        storagePath: uploadsPath
+      };
+    } catch (e) {
+      storageStatus = 'degraded';
+      storageUsage = {
+        error: 'STORAGE_METRIC_UNAVAILABLE'
+      };
+    }
+
     // 總體健康狀態
-    const overallStatus = dbStatus === 'unhealthy' || apiStatus === 'unhealthy' ? 'unhealthy'
-      : dbStatus === 'degraded' || apiStatus === 'degraded' ? 'degraded' : 'healthy';
+    const overallStatus = dbStatus === 'unhealthy' || apiStatus === 'unhealthy' || storageStatus === 'unhealthy'
+      ? 'unhealthy'
+      : dbStatus === 'degraded' || apiStatus === 'degraded' || storageStatus === 'degraded'
+        ? 'degraded'
+        : 'healthy';
 
     res.json({
       success: true,
@@ -1175,8 +1211,8 @@ router.get('/system/health', async (req, res) => {
             latency: dbLatency
           },
           storage: {
-            status: 'healthy',
-            usage: '未實作'
+            status: storageStatus,
+            usage: storageUsage
           }
         },
         system: {

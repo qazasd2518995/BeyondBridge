@@ -27,7 +27,7 @@ router.post('/:id/start', authMiddleware, async (req, res) => {
     const { id } = req.params;
     const userId = req.user.userId;
 
-    // 使用 fallback 函數取得測驗（含 mock 資料）
+    // 取得測驗資料
     const quiz = await getQuiz(id);
     if (!quiz) {
       return res.status(404).json({
@@ -37,7 +37,7 @@ router.post('/:id/start', authMiddleware, async (req, res) => {
       });
     }
 
-    // 檢查是否已報名課程（允許 mock 模式跳過）
+    // 檢查是否已報名課程
     const progress = await db.getItem(`USER#${userId}`, `PROG#COURSE#${quiz.courseId}`);
     if (!progress) {
       return res.status(403).json({

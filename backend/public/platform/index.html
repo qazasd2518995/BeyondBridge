@@ -5414,6 +5414,9 @@
                 if (typeof MoodleUI !== 'undefined' && MoodleUI.initTeacherDashboard) {
                     MoodleUI.initTeacherDashboard();
                 }
+                if (typeof App !== 'undefined' && App.loadTeacherDashboardData) {
+                    App.loadTeacherDashboardData();
+                }
             }
         };
 
@@ -5735,7 +5738,7 @@
                                 </div>
                             </div>
                             <div style="display: flex; gap: 0.5rem;">
-                                <button onclick="viewAssignment('${a.assignmentId}')" style="padding: 0.5rem 1rem; background: var(--gray-100); border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">查看</button>
+                                <button onclick="viewAssignment('${classId}', '${a.assignmentId}')" style="padding: 0.5rem 1rem; background: var(--gray-100); border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">查看</button>
                                 ${isTeacher ? `<button onclick="deleteAssignment('${classId}', '${a.assignmentId}')" style="padding: 0.5rem; background: none; border: none; cursor: pointer; color: var(--gray-400);"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button>` : ''}
                             </div>
                         </div>
@@ -5934,9 +5937,30 @@
         }
 
         // 查看作業
-        function viewAssignment(assignmentId) {
-            showToast('正在載入作業內容...');
-            // 這裡可以擴展為打開作業詳情
+        async function viewAssignment(classId, assignmentId) {
+            try {
+                const result = await API.classes.get(classId);
+                if (!result.success) {
+                    showToast(result.message || '載入作業失敗');
+                    return;
+                }
+                const assignments = Array.isArray(result.data?.assignments) ? result.data.assignments : [];
+                const assignment = assignments.find(a => a.assignmentId === assignmentId);
+                if (!assignment) {
+                    showToast('找不到此作業');
+                    return;
+                }
+                await startAssignment(
+                    assignment.assignmentId,
+                    assignment.type,
+                    assignment.resourceId || '',
+                    assignment.quizId || '',
+                    classId
+                );
+            } catch (error) {
+                console.error('View assignment error:', error);
+                showToast('載入作業失敗');
+            }
         }
 
         // ===== 探橋者橋隊功能 =====
@@ -6087,7 +6111,7 @@
                             <h2 class="card-title">橋隊作業</h2>
                         </div>
                         <div class="card-body">
-                            ${renderStudentAssignmentsList(cls.assignments || [])}
+                            ${renderStudentAssignmentsList(cls.assignments || [], classId)}
                         </div>
                     </div>
                 `;
@@ -6101,7 +6125,7 @@
         }
 
         // 渲染探橋者作業列表
-        function renderStudentAssignmentsList(assignments) {
+        function renderStudentAssignmentsList(assignments, classId) {
             if (assignments.length === 0) {
                 return `
                     <div style="text-align: center; padding: 3rem; color: var(--gray-400);">
@@ -6117,19 +6141,20 @@
             }
 
             const typeIcons = {
+                'material': '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>',
                 'video': '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23,7 16,12 23,17"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>',
                 'quiz': '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
                 'practice': '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>',
                 'exam': '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M9 15l2 2 4-4"/></svg>'
             };
 
-            const typeLabels = { 'video': '影片', 'quiz': '測驗', 'practice': '練習', 'exam': '考試' };
-            const typeColors = { 'video': '#2D2B6B', 'quiz': '#1A6B4A', 'practice': '#4A4899', 'exam': '#1A3A5C' };
+            const typeLabels = { 'material': '建材', 'video': '影片', 'quiz': '測驗', 'practice': '練習', 'exam': '考試' };
+            const typeColors = { 'material': 'var(--olive)', 'video': '#2D2B6B', 'quiz': '#1A6B4A', 'practice': '#4A4899', 'exam': '#1A3A5C' };
 
             return `
                 <div style="display: flex; flex-direction: column; gap: 1rem;">
                     ${assignments.map(a => `
-                        <div onclick="startAssignment('${a.assignmentId}', '${a.type}')" style="display: flex; align-items: center; gap: 1rem; padding: 1rem 1.25rem; background: var(--gray-50); border-radius: 8px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='var(--gray-100)'" onmouseout="this.style.background='var(--gray-50)'">
+                        <div onclick="startAssignment('${a.assignmentId}', '${a.type}', '${a.resourceId || ''}', '${a.quizId || ''}', '${classId}')" style="display: flex; align-items: center; gap: 1rem; padding: 1rem 1.25rem; background: var(--gray-50); border-radius: 8px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='var(--gray-100)'" onmouseout="this.style.background='var(--gray-50)'">
                             <div style="width: 40px; height: 40px; background: ${typeColors[a.type] || 'var(--olive)'}20; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: ${typeColors[a.type] || 'var(--olive)'};">
                                 ${typeIcons[a.type] || typeIcons['video']}
                             </div>
@@ -6153,24 +6178,53 @@
         }
 
         // 開始作業
-        function startAssignment(assignmentId, type) {
-            // 根據類型跳轉到不同視圖
-            switch (type) {
-                case 'video':
-                    showView('videos');
-                    showToast('正在載入影片...');
-                    break;
-                case 'quiz':
-                case 'practice':
-                    showView('quizzes');
-                    showToast('正在載入測驗...');
-                    break;
-                case 'exam':
-                    showView('quizzes');
-                    showToast('正在載入考試...');
-                    break;
-                default:
-                    showToast('正在載入作業內容...');
+        async function startAssignment(assignmentId, type, resourceId = '', quizId = '', classId = '') {
+            try {
+                if (type === 'material' || type === 'video') {
+                    showView('library');
+
+                    if (typeof App !== 'undefined' && typeof App.loadResources === 'function') {
+                        await App.loadResources();
+                    }
+
+                    if (resourceId) {
+                        if (typeof App !== 'undefined' && typeof App.openResourceModal === 'function') {
+                            await App.openResourceModal(resourceId);
+                        } else if (typeof openResourceModal === 'function') {
+                            openResourceModal(resourceId);
+                        }
+                    } else {
+                        showToast('此建材尚未綁定資源，請聯繫建橋者');
+                    }
+                    return;
+                }
+
+                if (type === 'quiz' || type === 'practice' || type === 'exam') {
+                    showView('moodleQuizzes');
+                    if (quizId && typeof MoodleUI !== 'undefined' && typeof MoodleUI.openQuiz === 'function') {
+                        await MoodleUI.openQuiz(quizId);
+                    } else if (typeof MoodleUI !== 'undefined' && typeof MoodleUI.loadQuizzes === 'function') {
+                        await MoodleUI.loadQuizzes();
+                        showToast('此作業尚未綁定測驗，已開啟測驗列表');
+                    } else {
+                        showToast('測驗功能載入中，請稍後再試');
+                    }
+                    return;
+                }
+
+                // 其他類型 fallback：開啟作業列表
+                showView('moodleAssignments');
+                if (typeof MoodleUI !== 'undefined' && typeof MoodleUI.loadAssignments === 'function') {
+                    await MoodleUI.loadAssignments();
+                }
+                showToast('已開啟作業列表');
+            } catch (error) {
+                console.error('Start assignment error:', error);
+                if (classId && assignmentId) {
+                    showToast('作業載入失敗，請稍後重試');
+                } else {
+                    showToast('載入失敗');
+                }
             }
         }
 

@@ -5,6 +5,7 @@
 
 const express = require('express');
 const router = express.Router();
+const crypto = require('crypto');
 const db = require('../../utils/db');
 const { authMiddleware } = require('../../utils/auth');
 
@@ -28,6 +29,234 @@ const AGGREGATION_METHODS = {
   ALL: 'all',           // 所有條件都需達成
   ANY: 'any'            // 任一條件達成即可
 };
+
+async function getBadgeById(badgeId) {
+  if (!badgeId) return null;
+
+  const direct = await db.getItem(`BADGE#${badgeId}`, 'META');
+  if (direct && direct.entityType === 'BADGE' && direct.status !== 'deleted') {
+    return direct;
+  }
+
+  const fallback = await db.scan({
+    filter: {
+      expression: 'entityType = :type AND badgeId = :bid AND (#status <> :deleted OR attribute_not_exists(#status))',
+      values: { ':type': 'BADGE', ':bid': badgeId, ':deleted': 'deleted' },
+      names: { '#status': 'status' }
+    },
+    limit: 1
+  });
+
+  return fallback[0] || null;
+}
+
+function generateCertificateVerifyCode(courseId, userId, issuedAt) {
+  const seed = `${courseId}:${userId}:${issuedAt}:${Math.random()}`;
+  return crypto.createHash('sha256').update(seed).digest('hex').slice(0, 12).toUpperCase();
+}
+
+async function issueCourseCompletionBadge({
+  badgeId,
+  courseId,
+  courseTitle,
+  userId,
+  issuedBy = 'system',
+  source = 'course_completion'
+}) {
+  if (!badgeId) {
+    return { status: 'skipped', reason: 'badge_not_configured' };
+  }
+
+  const existingUserBadge = await db.getItem(`USER#${userId}`, `BADGE#${badgeId}`);
+  if (existingUserBadge && existingUserBadge.entityType === 'USER_BADGE') {
+    return {
+      status: 'already_issued',
+      badgeId,
+      issueId: existingUserBadge.issueId || null,
+      issuedAt: existingUserBadge.issuedAt || existingUserBadge.updatedAt || null
+    };
+  }
+
+  const badge = await getBadgeById(badgeId);
+  if (!badge) {
+    return { status: 'skipped', reason: 'badge_not_found', badgeId };
+  }
+
+  const issuedAt = new Date().toISOString();
+  const issueId = db.generateId('issue');
+
+  await db.putItem({
+    PK: `BADGE#${badgeId}`,
+    SK: `ISSUE#${issuedAt}#${userId}`,
+    entityType: 'BADGE_ISSUANCE',
+    issueId,
+    badgeId,
+    userId,
+    courseId,
+    courseTitle: courseTitle || '',
+    issuedBy,
+    issuedAt,
+    message: '課程完成自動發放',
+    type: 'automatic',
+    source
+  });
+
+  await db.putItem({
+    PK: `USER#${userId}`,
+    SK: `BADGE#${badgeId}`,
+    entityType: 'USER_BADGE',
+    issueId,
+    badgeId,
+    userId,
+    courseId,
+    courseTitle: courseTitle || '',
+    badgeName: badge.name,
+    badgeIcon: badge.icon || '🏆',
+    issuedBy,
+    issuedAt,
+    message: '課程完成自動發放',
+    updatedAt: issuedAt,
+    createdAt: issuedAt,
+    source
+  });
+
+  if (badge.PK && badge.SK) {
+    await db.updateItem(badge.PK, badge.SK, {
+      issuedCount: (badge.issuedCount || 0) + 1,
+      updatedAt: issuedAt
+    });
+  }
+
+  return {
+    status: 'issued',
+    badgeId,
+    issueId,
+    issuedAt
+  };
+}
+
+async function issueCourseCompletionCertificate({
+  courseId,
+  courseTitle,
+  userId,
+  issuedBy = 'system',
+  source = 'course_completion'
+}) {
+  const certSk = `CERT#COURSE#${courseId}`;
+  const existingCertificate = await db.getItem(`USER#${userId}`, certSk);
+
+  if (existingCertificate && existingCertificate.entityType === 'USER_CERTIFICATE') {
+    return {
+      status: 'already_issued',
+      certificateId: existingCertificate.certificateId || null,
+      verifyCode: existingCertificate.verifyCode || null,
+      issuedAt: existingCertificate.issuedAt || existingCertificate.updatedAt || null
+    };
+  }
+
+  const issuedAt = new Date().toISOString();
+  const certificateId = db.generateId('cert');
+  const verifyCode = generateCertificateVerifyCode(courseId, userId, issuedAt);
+  const certificateNo = `BB-${issuedAt.slice(0, 10).replace(/-/g, '')}-${verifyCode.slice(0, 6)}`;
+
+  await db.putItem({
+    PK: `USER#${userId}`,
+    SK: certSk,
+    entityType: 'USER_CERTIFICATE',
+    certificateId,
+    certificateNo,
+    userId,
+    courseId,
+    courseTitle: courseTitle || '',
+    issuedBy,
+    issuedAt,
+    verifyCode,
+    status: 'active',
+    source,
+    updatedAt: issuedAt,
+    createdAt: issuedAt
+  });
+
+  await db.putItem({
+    PK: `COURSE#${courseId}`,
+    SK: `CERTIFICATE#${userId}`,
+    entityType: 'COURSE_CERTIFICATE',
+    certificateId,
+    certificateNo,
+    userId,
+    courseId,
+    courseTitle: courseTitle || '',
+    issuedBy,
+    issuedAt,
+    verifyCode,
+    status: 'active',
+    source,
+    updatedAt: issuedAt,
+    createdAt: issuedAt
+  });
+
+  return {
+    status: 'issued',
+    certificateId,
+    certificateNo,
+    verifyCode,
+    issuedAt
+  };
+}
+
+async function issueCourseCompletionRewards({
+  completionSettings,
+  courseId,
+  courseTitle,
+  userId,
+  issuedBy = 'system',
+  source = 'course_completion'
+}) {
+  const rewards = {
+    badge: null,
+    certificate: null
+  };
+
+  if (completionSettings?.awardBadgeId) {
+    try {
+      rewards.badge = await issueCourseCompletionBadge({
+        badgeId: completionSettings.awardBadgeId,
+        courseId,
+        courseTitle,
+        userId,
+        issuedBy,
+        source
+      });
+    } catch (error) {
+      console.error('Issue completion badge error:', error);
+      rewards.badge = {
+        status: 'failed',
+        reason: 'badge_issue_failed',
+        badgeId: completionSettings.awardBadgeId
+      };
+    }
+  }
+
+  if (completionSettings?.issueCertificate) {
+    try {
+      rewards.certificate = await issueCourseCompletionCertificate({
+        courseId,
+        courseTitle,
+        userId,
+        issuedBy,
+        source
+      });
+    } catch (error) {
+      console.error('Issue completion certificate error:', error);
+      rewards.certificate = {
+        status: 'failed',
+        reason: 'certificate_issue_failed'
+      };
+    }
+  }
+
+  return rewards;
+}
 
 /**
  * GET /api/courses/:id/completion/settings
@@ -427,6 +656,24 @@ router.post('/:id/completion/self-mark', authMiddleware, async (req, res) => {
       });
     }
 
+    const progress = await db.getItem(`USER#${userId}`, `PROG#COURSE#${id}`);
+    if (!progress) {
+      return res.status(404).json({
+        success: false,
+        error: 'NOT_ENROLLED',
+        message: '您尚未報名此課程'
+      });
+    }
+
+    const course = await db.getItem(`COURSE#${id}`, 'META');
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        error: 'COURSE_NOT_FOUND',
+        message: '找不到此課程'
+      });
+    }
+
     // 更新進度
     const now = new Date().toISOString();
     await db.updateItem(`USER#${userId}`, `PROG#COURSE#${id}`, {
@@ -437,12 +684,22 @@ router.post('/:id/completion/self-mark', authMiddleware, async (req, res) => {
       updatedAt: now
     });
 
+    const rewards = await issueCourseCompletionRewards({
+      completionSettings,
+      courseId: id,
+      courseTitle: course.title,
+      userId,
+      issuedBy: userId,
+      source: 'self_mark_completion'
+    });
+
     res.json({
       success: true,
       message: '已標記課程完成',
       data: {
         courseId: id,
-        completedAt: now
+        completedAt: now,
+        rewards
       }
     });
 
@@ -487,6 +744,7 @@ router.post('/:id/completion/manual/:targetUserId', authMiddleware, async (req, 
     }
 
     const now = new Date().toISOString();
+    const completionSettings = await db.getItem(`COURSE#${id}`, 'COMPLETION_SETTINGS');
 
     if (complete) {
       await db.updateItem(`USER#${targetUserId}`, `PROG#COURSE#${id}`, {
@@ -499,13 +757,23 @@ router.post('/:id/completion/manual/:targetUserId', authMiddleware, async (req, 
         updatedAt: now
       });
 
+      const rewards = await issueCourseCompletionRewards({
+        completionSettings,
+        courseId: id,
+        courseTitle: course.title,
+        userId: targetUserId,
+        issuedBy: userId,
+        source: 'manual_completion_mark'
+      });
+
       res.json({
         success: true,
         message: '已手動標記學生完成課程',
         data: {
           courseId: id,
           userId: targetUserId,
-          completedAt: now
+          completedAt: now,
+          rewards
         }
       });
     } else {
@@ -761,20 +1029,28 @@ router.post('/:id/check-completion', authMiddleware, async (req, res) => {
 
     // 更新狀態
     const now = new Date().toISOString();
+    let rewards = {
+      badge: null,
+      certificate: null
+    };
+
     if (isCourseComplete && progress.status !== 'completed') {
       await db.updateItem(`USER#${userId}`, `PROG#COURSE#${id}`, {
         status: 'completed',
         completedAt: now,
         updatedAt: now
       });
+    }
 
-      // TODO: 發放徽章或證書（如果設定）
-      if (completionSettings?.awardBadgeId) {
-        // 實作徽章發放
-      }
-      if (completionSettings?.issueCertificate) {
-        // 實作證書發放
-      }
+    if (isCourseComplete) {
+      rewards = await issueCourseCompletionRewards({
+        completionSettings,
+        courseId: id,
+        courseTitle: course.title,
+        userId,
+        issuedBy: 'system',
+        source: 'auto_completion_check'
+      });
     }
 
     res.json({
@@ -785,6 +1061,7 @@ router.post('/:id/check-completion', authMiddleware, async (req, res) => {
         previousStatus: progress.status,
         newStatus: isCourseComplete ? 'completed' : 'in_progress',
         completedAt: isCourseComplete ? (progress.completedAt || now) : null,
+        rewards,
         message: isCourseComplete
           ? (completionSettings?.completionMessage || '恭喜您完成此課程！')
           : '課程尚未完成'

@@ -7,6 +7,8 @@ const express = require('express');
 const router = express.Router();
 const db = require('../utils/db');
 const { authMiddleware, adminMiddleware } = require('../utils/auth');
+const notifications = require('./notifications');
+const emailUtils = require('../utils/email');
 
 // 生成唯一 ID
 const generateId = () => {
@@ -35,6 +37,80 @@ const CONSULTATION_STATUS = {
   cancelled: '已取消',
   rejected: '已拒絕'
 };
+
+function mapStatusToEmailUpdateType(status) {
+  switch (status) {
+    case 'pending':
+      return 'received';
+    case 'reviewing':
+      return 'reviewing';
+    case 'quoted':
+      return 'quoted';
+    case 'in_progress':
+      return 'in_progress';
+    case 'completed':
+      return 'completed';
+    default:
+      return 'status_changed';
+  }
+}
+
+async function notifyConsultationUser({
+  consultationBefore,
+  consultationAfter
+}) {
+  const userId = consultationAfter.userId;
+  if (!userId) return;
+
+  const fromStatus = consultationBefore?.status || consultationAfter.status;
+  const toStatus = consultationAfter.status;
+  const fromLabel = CONSULTATION_STATUS[fromStatus] || fromStatus;
+  const toLabel = CONSULTATION_STATUS[toStatus] || toStatus;
+  const statusChanged = fromStatus !== toStatus;
+  const quoteAmount = consultationAfter?.quote?.amount;
+
+  let message = statusChanged
+    ? `您的諮詢狀態已由「${fromLabel}」更新為「${toLabel}」。`
+    : `您的諮詢「${consultationAfter.title}」有新進度。`;
+
+  if (quoteAmount) {
+    message += ` 目前報價：NT$ ${Number(quoteAmount).toLocaleString('zh-TW')}`;
+  }
+
+  if (typeof notifications.createNotification === 'function') {
+    try {
+      await notifications.createNotification({
+        userId,
+        type: 'course_update',
+        title: `諮詢進度更新：${consultationAfter.title}`,
+        message,
+        link: '/platform/#consultations',
+        metadata: {
+          consultationId: consultationAfter.consultationId,
+          status: toStatus,
+          quote: consultationAfter.quote || null
+        },
+        sendEmail: false
+      });
+    } catch (notifyError) {
+      console.error('Create consultation in-app notification error:', notifyError);
+    }
+  }
+
+  try {
+    const user = await db.getUser(userId);
+    if (user?.email) {
+      await emailUtils.sendConsultationUpdate(
+        user,
+        consultationAfter,
+        mapStatusToEmailUpdateType(toStatus)
+      );
+    }
+  } catch (emailError) {
+    // 通知 Email 失敗不應中斷主流程
+    console.error('Send consultation update email error:', emailError);
+  }
+}
 
 /**
  * GET /api/consultations
@@ -564,8 +640,20 @@ router.put('/admin/:id', authMiddleware, adminMiddleware, async (req, res) => {
     }
 
     await db.updateItem(`CONSULT#${id}`, 'META', updates);
+    const updatedConsultation = {
+      ...consultation,
+      ...updates,
+      consultationId: consultation.consultationId || id
+    };
 
-    // TODO: 發送 Email 通知用戶狀態變更
+    const statusChanged = updates.status && updates.status !== consultation.status;
+    const quoteChanged = quote !== undefined;
+    if (statusChanged || quoteChanged) {
+      await notifyConsultationUser({
+        consultationBefore: consultation,
+        consultationAfter: updatedConsultation
+      });
+    }
 
     res.json({
       success: true,

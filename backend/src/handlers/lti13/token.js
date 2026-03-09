@@ -9,6 +9,7 @@
 const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
+const { jwtVerify, createRemoteJWKSet, importSPKI } = require('jose');
 const { query, putItem } = require('../../utils/db');
 const { createServiceAccessToken, verifyServiceAccessToken } = require('../../utils/lti/jwt');
 
@@ -21,6 +22,52 @@ const SUPPORTED_SCOPES = [
   'https://purl.imsglobal.org/spec/lti-nrps/scope/contextmembership.readonly'
 ];
 
+function buildClientAssertionAudiences(req) {
+  const audiences = new Set();
+  const issuer = process.env.LTI_PLATFORM_ISSUER || process.env.PLATFORM_URL || 'https://beyondbridge.edu';
+  audiences.add(issuer);
+  audiences.add(`${issuer.replace(/\/$/, '')}/api/lti/13/token`);
+
+  const host = req.get('host');
+  if (host) {
+    const forwardedProto = req.get('x-forwarded-proto');
+    const protocol = forwardedProto || req.protocol || 'https';
+    const tokenEndpoint = `${protocol}://${host}${req.originalUrl}`;
+    audiences.add(tokenEndpoint);
+  }
+
+  return Array.from(audiences);
+}
+
+async function verifyClientAssertion(assertion, tool, req) {
+  if (!tool.publicKeysetUrl && !tool.publicKey) {
+    throw new Error('Tool public key is not configured');
+  }
+
+  const audiences = buildClientAssertionAudiences(req);
+  let payload;
+
+  if (tool.publicKeysetUrl) {
+    const JWKS = createRemoteJWKSet(new URL(tool.publicKeysetUrl));
+    ({ payload } = await jwtVerify(assertion, JWKS, {
+      issuer: tool.clientId,
+      audience: audiences
+    }));
+  } else {
+    const publicKey = await importSPKI(tool.publicKey, 'RS256');
+    ({ payload } = await jwtVerify(assertion, publicKey, {
+      issuer: tool.clientId,
+      audience: audiences
+    }));
+  }
+
+  if (payload.sub !== tool.clientId) {
+    throw new Error('client_assertion sub does not match client_id');
+  }
+
+  return payload;
+}
+
 /**
  * POST /api/lti/13/token
  * OAuth 2.0 Token Endpoint
@@ -29,8 +76,6 @@ const SUPPORTED_SCOPES = [
  */
 router.post('/token', async (req, res) => {
   try {
-    const isProduction = process.env.NODE_ENV === 'production';
-
     // 解析請求（支援 form-urlencoded 和 JSON）
     let params = req.body || {};
     if (typeof params === 'string') {
@@ -64,27 +109,8 @@ router.post('/token', async (req, res) => {
     // 查找 Tool
     let tool = null;
 
-    if (client_id) {
-      // 使用 client_id 查找
-      try {
-        const tools = await query('LTI_TOOL', { skPrefix: 'TOOL#' });
-        tool = tools.find(t => t.clientId === client_id && t.status !== 'deleted');
-      } catch (dbError) {
-        console.warn('[Token] Database query failed, using dev mode fallback');
-        // 開發模式：如果資料庫不可用，使用模擬工具
-        if (process.env.NODE_ENV !== 'production') {
-          tool = {
-            toolId: 'dev_tool',
-            clientId: client_id,
-            name: 'Development Tool',
-            status: 'active',
-            services: { ags: { enabled: true }, nrps: { enabled: true } },
-            allowGradePassback: true,
-            allowMembershipService: true
-          };
-        }
-      }
-    }
+    const tools = await query('LTI_TOOL', { skPrefix: 'TOOL#' });
+    tool = tools.find(t => t.clientId === client_id && t.status !== 'deleted');
 
     if (!tool) {
       return res.status(401).json({
@@ -105,14 +131,14 @@ router.post('/token', async (req, res) => {
         });
       }
 
-      // TODO: 實作 JWT client assertion 驗證（使用 Tool 公鑰驗簽）
-      if (isProduction) {
+      try {
+        await verifyClientAssertion(client_assertion, tool, req);
+      } catch (verifyError) {
         return res.status(401).json({
           error: 'invalid_client',
-          error_description: 'JWT client assertion authentication is not enabled'
+          error_description: `Invalid client assertion: ${verifyError.message}`
         });
       }
-      console.warn('[Token] JWT client assertion accepted in non-production mode');
     } else if (hasClientSecret) {
       // Secret-based authentication
       if (!tool.consumerSecret) {
@@ -128,14 +154,10 @@ router.post('/token', async (req, res) => {
         });
       }
     } else {
-      if (isProduction) {
-        return res.status(401).json({
-          error: 'invalid_client',
-          error_description: 'Client authentication is required'
-        });
-      }
-      // 非正式環境允許無認證，避免阻斷本地開發流程
-      console.warn('[Token] No client authentication provided - non-production mode');
+      return res.status(401).json({
+        error: 'invalid_client',
+        error_description: 'Client authentication is required'
+      });
     }
 
     // 解析請求的 scopes

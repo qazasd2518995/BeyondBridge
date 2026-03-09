@@ -13,6 +13,7 @@ const path = require('path');
 const fs = require('fs').promises;
 const crypto = require('crypto');
 const { S3Client, PutObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
+const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 
 // S3 設定
 const S3_BUCKET = process.env.S3_BUCKET || 'beyondbridge-files';
@@ -166,7 +167,6 @@ router.post('/upload', authMiddleware, async (req, res) => {
 /**
  * POST /api/files/request-upload-url
  * 請求預簽名上傳 URL（用於大檔案直接上傳到 S3）
- * 注意：這是用於 S3 整合的範例，目前返回模擬資料
  */
 router.post('/request-upload-url', authMiddleware, async (req, res) => {
   try {
@@ -192,20 +192,35 @@ router.post('/request-upload-url', authMiddleware, async (req, res) => {
     }
 
     const fileId = db.generateId('file');
-    const ext = path.extname(filename);
+    const ext = path.extname(filename) || '';
+    const s3Key = `files/${userId}/${fileId}${ext}`;
+    const expiresIn = 3600;
 
-    // 在實際實作中，這裡會生成 S3 預簽名 URL
-    // 目前返回模擬資料
+    const command = new PutObjectCommand({
+      Bucket: S3_BUCKET,
+      Key: s3Key,
+      ContentType: contentType,
+      Metadata: {
+        uploadedby: String(userId),
+        fileid: String(fileId),
+        originalname: encodeURIComponent(filename).slice(0, 180)
+      }
+    });
+
+    const uploadUrl = await getSignedUrl(s3Client, command, { expiresIn });
+
     res.json({
       success: true,
       data: {
         fileId,
-        uploadUrl: `/api/files/upload/${fileId}`,
+        s3Key,
+        uploadUrl,
+        fileUrl: `https://${S3_BUCKET}.s3.${process.env.AWS_REGION || 'ap-southeast-2'}.amazonaws.com/${s3Key}`,
         method: 'PUT',
         headers: {
           'Content-Type': contentType
         },
-        expiresIn: 3600 // 1 小時
+        expiresIn
       }
     });
 

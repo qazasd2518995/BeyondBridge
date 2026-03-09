@@ -44,20 +44,7 @@ router.post('/tools/:toolId/progress', async (req, res) => {
     }
 
     // 取得 Tool 資訊
-    let tool = null;
-    try {
-      tool = await getItem('LTI_TOOL', `TOOL#${toolId}`);
-    } catch (dbError) {
-      console.warn('[LTI Proxy] Database query failed, using dev mode fallback');
-      // 開發模式：如果資料庫不可用，使用模擬工具
-      if (process.env.NODE_ENV !== 'production') {
-        tool = {
-          toolId,
-          name: 'Development Tool',
-          status: 'active'
-        };
-      }
-    }
+    const tool = await getItem('LTI_TOOL', `TOOL#${toolId}`);
 
     if (!tool || tool.status === 'deleted') {
       return res.status(404).json({
@@ -95,16 +82,7 @@ router.post('/tools/:toolId/progress', async (req, res) => {
       createdAt: now
     };
 
-    try {
-      await putItem(progressRecord);
-    } catch (dbError) {
-      console.warn('[LTI Proxy] Failed to save progress to DB, using memory cache');
-      // 開發模式：儲存到內存
-      if (!global.ltiProgressCache) {
-        global.ltiProgressCache = [];
-      }
-      global.ltiProgressCache.push(progressRecord);
-    }
+    await putItem(progressRecord);
 
     // 如果是完成狀態，更新/建立 AGS 成績記錄
     if (type === 'completion' || activityProgress === 'Completed') {

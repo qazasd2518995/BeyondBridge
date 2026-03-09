@@ -16,6 +16,8 @@ const { authMiddleware } = require('../utils/auth');
  */
 router.get('/', authMiddleware, async (req, res) => {
   try {
+    const userId = req.user.userId;
+    const isAdmin = !!req.user.isAdmin;
     const { courseId } = req.query;
 
     let forums = await db.scan({
@@ -30,33 +32,74 @@ router.get('/', authMiddleware, async (req, res) => {
       forums = forums.filter(f => f.courseId === courseId);
     }
 
+    if (!isAdmin) {
+      const [progressList, teachingCourses] = await Promise.all([
+        db.getUserCourseProgress(userId),
+        db.scan({
+          filter: {
+            expression: 'entityType = :type AND (instructorId = :userId OR creatorId = :userId OR contains(instructors, :userId))',
+            values: {
+              ':type': 'COURSE',
+              ':userId': userId
+            }
+          }
+        })
+      ]);
+
+      const allowedCourseIds = new Set([
+        ...progressList.map(item => item.courseId).filter(Boolean),
+        ...teachingCourses.map(item => item.courseId).filter(Boolean)
+      ]);
+      forums = forums.filter(f => allowedCourseIds.has(f.courseId));
+    }
+
     // 取得每個討論區的統計
     const forumsWithStats = await Promise.all(
       forums.map(async (f) => {
-        const discussions = await db.query(`FORUM#${f.forumId}`, {
-          skPrefix: 'DISCUSSION#'
-        });
+        const [discussions, storedSubscription] = await Promise.all([
+          db.query(`FORUM#${f.forumId}`, { skPrefix: 'DISCUSSION#' }),
+          db.getItem(`FORUM#${f.forumId}`, `SUBSCRIPTION#${userId}`)
+        ]);
 
-        // 計算總回覆數
-        let totalReplies = 0;
-        for (const d of discussions) {
-          const replies = await db.query(`DISCUSSION#${d.discussionId}`, {
-            skPrefix: 'POST#'
-          });
-          totalReplies += replies.length;
+        const hasStoredDiscussionCount = Number.isFinite(Number(f.stats?.discussionCount));
+        const hasStoredPostCount = Number.isFinite(Number(f.stats?.postCount));
+        let discussionCount = hasStoredDiscussionCount ? Number(f.stats?.discussionCount) : discussions.length;
+        let postCount = hasStoredPostCount ? Number(f.stats?.postCount) : 0;
+
+        if (!hasStoredPostCount) {
+          for (const d of discussions) {
+            const replies = await db.query(`DISCUSSION#${d.discussionId}`, {
+              skPrefix: 'POST#'
+            });
+            postCount += replies.length;
+          }
+        }
+        if (!hasStoredDiscussionCount) {
+          discussionCount = discussions.length;
         }
 
         // 取得最新討論
         const latestDiscussion = discussions
+          .slice()
           .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+
+        const defaultSubscribed = f.subscriptionMode === 'forced' || f.subscriptionMode === 'auto';
+        const subscribed = storedSubscription
+          ? storedSubscription.subscribed !== false
+          : defaultSubscribed;
 
         delete f.PK;
         delete f.SK;
         return {
           ...f,
+          discussionCount,
+          postCount,
+          replyCount: postCount,
+          subscribed,
           stats: {
-            discussionCount: discussions.length,
-            replyCount: totalReplies,
+            discussionCount,
+            postCount,
+            replyCount: postCount,
             latestDiscussion: latestDiscussion ? {
               title: latestDiscussion.title,
               createdAt: latestDiscussion.createdAt,

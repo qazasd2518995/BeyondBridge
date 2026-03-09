@@ -4622,8 +4622,8 @@
                 const { width = 100, height = 40, showArea = true } = options;
 
                 if (!data || data.length < 2) {
-                    // 生成模擬數據
-                    data = [0, 2, 1, 4, 3, 6, 5, 8, 7, 10];
+                    // 無資料時顯示平線，避免誤導為真實趨勢
+                    data = [0, 0];
                 }
 
                 const max = Math.max(...data);
