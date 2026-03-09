@@ -944,6 +944,7 @@
   "moodleAnnouncement.title": "發布公告",
   "moodleAnnouncement.titleLabel": "公告標題",
   "moodleAnnouncement.titlePlaceholder": "輸入公告標題",
+  "moodleAssignment.title": "作業管理",
   "moodleAssignment.attachments": "附件",
   "moodleAssignment.backToList": "返回作業列表",
   "moodleAssignment.contentLabel": "作業內容",

@@ -944,6 +944,7 @@
   "moodleAnnouncement.title": "Publish Announcement",
   "moodleAnnouncement.titleLabel": "Title",
   "moodleAnnouncement.titlePlaceholder": "Enter announcement title",
+  "moodleAssignment.title": "Assignments",
   "moodleAssignment.attachments": "Attachments",
   "moodleAssignment.backToList": "Back to Assignments",
   "moodleAssignment.contentLabel": "Assignment Content",
