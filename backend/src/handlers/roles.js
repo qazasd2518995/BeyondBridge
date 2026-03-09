@@ -181,6 +181,76 @@ router.get('/', authMiddleware, async (req, res) => {
 });
 
 /**
+ * GET /api/roles/users/:userId/capabilities
+ * 取得指定用戶能力（本人或管理員）
+ */
+router.get('/users/:userId/capabilities', authMiddleware, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { courseId, categoryId } = req.query;
+    const context = { courseId, categoryId };
+
+    // 僅允許本人或管理員查詢
+    if (!req.user.isAdmin && req.user.userId !== userId) {
+      return res.status(403).json({
+        success: false,
+        error: 'FORBIDDEN',
+        message: '無權限查詢其他用戶能力'
+      });
+    }
+
+    // 優先使用當前登入者，避免額外查詢
+    let targetUser = req.user.userId === userId
+      ? req.user
+      : await db.getUser(userId);
+
+    // 兼容管理員帳號
+    if (!targetUser) {
+      const admin = await db.getAdmin(userId);
+      if (admin) {
+        targetUser = {
+          userId: admin.adminId || userId,
+          role: 'admin',
+          isAdmin: true
+        };
+      }
+    }
+
+    if (!targetUser) {
+      return res.status(404).json({
+        success: false,
+        error: 'USER_NOT_FOUND',
+        message: '找不到此用戶'
+      });
+    }
+
+    const capabilityIds = await permissions.getUserCapabilities(targetUser, context);
+    const capabilities = capabilityIds.map(capId => ({
+      id: capId,
+      ...permissions.CAPABILITIES[capId]
+    }));
+
+    res.json({
+      success: true,
+      data: {
+        userId,
+        capabilityIds,
+        capabilities,
+        context
+      }
+    });
+
+  } catch (error) {
+    console.error('Get user capabilities error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'FETCH_FAILED',
+      message: '取得用戶能力失敗'
+    });
+  }
+});
+
+/**
  * GET /api/roles/:roleId
  * 取得單一角色詳情
  */
@@ -301,7 +371,7 @@ router.put('/:roleId', adminMiddleware, async (req, res) => {
     if (name) updates.name = name;
     if (nameEn) updates.nameEn = nameEn;
     if (description !== undefined) updates.description = description;
-    if (capabilities) updates.capabilities = capabilities;
+    if (capabilities !== undefined) updates.capabilities = capabilities;
     if (sortOrder !== undefined) updates.sortOrder = sortOrder;
 
     const updatedRole = await permissions.updateCustomRole(roleId, updates);

@@ -47,11 +47,13 @@ function generateRefreshToken(payload) {
  * 產生 Token 組合
  */
 function generateTokens(user) {
+  const displayName = user.displayName || user.displayNameZh || null;
   const payload = {
     userId: user.userId || user.adminId,
     email: user.email,
     role: user.role || 'user',
-    isAdmin: user.entityType === 'ADMIN'
+    isAdmin: user.entityType === 'ADMIN',
+    displayName
   };
 
   return {

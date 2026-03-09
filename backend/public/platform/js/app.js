@@ -15,6 +15,24 @@ const App = {
   consultationsCache: [],
   discussionsCache: [],
 
+  getCurrentUser() {
+    return this.currentUser || API.getCurrentUser();
+  },
+
+  isAdminUser(user = this.getCurrentUser()) {
+    return !!(user && (user.isAdmin || user.role === 'admin'));
+  },
+
+  isStudentUser(user = this.getCurrentUser()) {
+    return !!(user && user.role === 'student');
+  },
+
+  isTeachingUser(user = this.getCurrentUser()) {
+    if (!user) return false;
+    if (this.isAdminUser(user)) return true;
+    return ['manager', 'coursecreator', 'educator', 'trainer', 'creator', 'teacher', 'assistant'].includes(user.role);
+  },
+
   /**
    * 初始化應用程式
    */
@@ -70,7 +88,7 @@ const App = {
     const user = this.currentUser || API.getCurrentUser();
     if (!user) return;
 
-    const isStudent = user.role === 'student';
+    const isStudent = this.isStudentUser(user);
     const sidebar = document.querySelector('.sidebar-nav');
     if (!sidebar) return;
 
@@ -440,7 +458,7 @@ const App = {
       </div>
     `;
 
-    const isAdmin = user.role === 'admin' || user.isAdmin;
+    const isAdmin = this.isAdminUser(user);
 
     if (isStudent) {
       sidebar.innerHTML = studentSidebar;
@@ -468,6 +486,10 @@ const App = {
         'educator': t('role.educator'),
         'trainer': t('role.trainer'),
         'creator': t('role.creator'),
+        'manager': t('role.manager'),
+        'coursecreator': t('role.coursecreator'),
+        'teacher': t('role.teacher'),
+        'assistant': t('role.assistant'),
         'admin': t('role.admin'),
         'student': t('role.student')
       };
@@ -576,7 +598,7 @@ const App = {
   async loadDashboardData() {
     try {
       const user = API.getCurrentUser();
-      const isStudent = user && user.role === 'student';
+      const isStudent = this.isStudentUser(user);
 
       // 並行載入各項資料
       const promises = [
@@ -602,7 +624,7 @@ const App = {
       await Promise.all(promises);
 
       // 根據角色顯示/隱藏儀表板區塊
-      const isTeacher = user && (user.role === 'educator' || user.role === 'trainer' || user.role === 'creator');
+      const isTeacher = this.isTeachingUser(user);
       this.updateDashboardLayout(isStudent, isTeacher);
 
       // 教師專屬數據載入
@@ -2001,6 +2023,17 @@ const App = {
    * 載入班級列表
    */
   async loadClasses() {
+    const user = API.getCurrentUser();
+    // 優先使用 index.html 的橋隊渲染流程（目前主頁面的實際容器結構）
+    if (this.isStudentUser(user) && typeof window.loadStudentClasses === 'function') {
+      await window.loadStudentClasses();
+      return;
+    }
+    if (!this.isStudentUser(user) && typeof window.loadClasses === 'function') {
+      await window.loadClasses();
+      return;
+    }
+
     try {
       const result = await API.classes.list();
       if (result.success) {
@@ -2017,7 +2050,7 @@ const App = {
    */
   updateClassesUI() {
     const user = API.getCurrentUser();
-    const isStudent = user?.role === 'student';
+    const isStudent = this.isStudentUser(user);
 
     // 教師班級視圖
     const teacherView = document.querySelector('#classesView .class-grid');
@@ -2044,15 +2077,16 @@ const App = {
    * 渲染班級卡片
    */
   renderClassCard(classInfo, isStudent) {
+    const className = classInfo.name || classInfo.className || '班級';
     const memberCount = classInfo.members?.length || classInfo.memberCount || 0;
-    const initial = (classInfo.className || 'C')[0];
+    const initial = className[0];
 
     return `
       <div class="class-card" onclick="App.openClassDetail('${classInfo.classId}')">
         <div class="class-card-header">
           <div class="class-avatar">${initial}</div>
           <div class="class-info">
-            <h3>${classInfo.className}</h3>
+            <h3>${className}</h3>
             <p>${classInfo.description || t('app.noDescription')}</p>
           </div>
         </div>
@@ -2076,7 +2110,7 @@ const App = {
    */
   async createClass(className, description = '') {
     try {
-      const result = await API.classes.create({ className, description });
+      const result = await API.classes.create({ name: className, description });
       if (result.success) {
         showToast(t('toast.classCreated'));
         await this.loadClasses();
@@ -2145,8 +2179,9 @@ const App = {
     // 更新班級詳情內容
     const header = classDetail.querySelector('.class-detail-header');
     if (header) {
+      const className = c.name || c.className || '班級';
       header.innerHTML = `
-        <h2>${c.className}</h2>
+        <h2>${className}</h2>
         <p>${c.description || ''}</p>
         ${isOwner ? `<p>${t('app.inviteCode')}: <strong>${c.inviteCode}</strong></p>` : ''}
       `;
@@ -2171,14 +2206,17 @@ const App = {
    * 渲染成員項目
    */
   renderMemberItem(member, isOwner, classId) {
-    const initial = (member.displayName || member.email || 'U')[0];
+    const memberName = member.displayName || member.userName || member.email || member.userEmail || 'Unknown';
+    const memberEmail = member.email || member.userEmail || '';
+    const initial = memberName[0];
     const joinDate = member.joinedAt ? new Date(member.joinedAt).toLocaleDateString('zh-TW') : '';
 
     return `
       <div class="member-item">
         <div class="member-avatar">${initial}</div>
         <div class="member-info">
-          <span class="member-name">${member.displayName || member.email}</span>
+          <span class="member-name">${memberName}</span>
+          ${memberEmail ? `<span class="member-email">${memberEmail}</span>` : ''}
           <span class="member-joined">${joinDate}</span>
         </div>
         ${isOwner && member.userId !== this.currentUser?.userId ? `
@@ -2698,7 +2736,9 @@ const App = {
     if (!container) return;
     container.innerHTML = `<div class="loading-indicator">${t('common.loading')}</div>`;
     try {
-      const result = await API.courses.getMyCourses();
+      const user = API.getCurrentUser();
+      const role = this.isTeachingUser(user) ? 'instructor' : 'student';
+      const result = await API.courses.getMyCourses(role);
       const courses = result.success ? (result.data || []) : [];
       if (courses.length === 0) {
         container.innerHTML = `<div class="empty-state"><p>${t('app.noCourses')}</p><button onclick="showView('moodleCourses')" class="btn-primary">${t('app.browseCourses')}</button></div>`;
@@ -2914,7 +2954,7 @@ const App = {
               <div class="file-item" style="display:flex;align-items:center;padding:12px;border-bottom:1px solid #eee;gap:12px">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
                 <div style="flex:1">
-                  <div style="font-weight:500">${f.fileName || f.name || 'file'}</div>
+                  <div style="font-weight:500">${f.fileName || f.filename || f.name || 'file'}</div>
                   <div style="font-size:0.85rem;color:var(--gray-500)">${f.size ? (f.size / 1024).toFixed(1) + ' KB' : ''} ${f.createdAt ? '・' + new Date(f.createdAt).toLocaleDateString('zh-TW') : ''}</div>
                 </div>
                 <button onclick="App.deleteFile('${f.fileId || f.id}')" class="btn-sm btn-danger">${t('app.delete')}</button>
@@ -2968,9 +3008,9 @@ const App = {
     container.innerHTML = `<div class="loading-indicator" style="text-align:center;padding:2rem;color:var(--gray-500);">${t('common.loading')}</div>`;
     try {
       const user = API.getCurrentUser();
-      const coursesResult = await API.courses.getMyCourses();
+      const coursesResult = await API.courses.getMyCourses('instructor');
       const courses = coursesResult.success ? (coursesResult.data || []) : [];
-      const teacherCourses = courses.filter(c => c.instructorId === user?.userId || c.role === 'teacher');
+      const teacherCourses = courses.filter(c => !user || c.instructorId === user.userId || user.isAdmin);
 
       if (teacherCourses.length === 0) {
         container.innerHTML = `<div class="empty-state" style="text-align:center;padding:3rem;color:var(--gray-500)"><p>${t('app.noManagedCourses')}</p></div>`;

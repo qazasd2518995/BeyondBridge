@@ -1,78 +1,445 @@
 /**
  * 題庫管理 API
  * BeyondBridge Education Platform
- *
- * Moodle-style question bank management
  */
 
 const express = require('express');
 const router = express.Router();
 const db = require('../utils/db');
-const { authMiddleware, adminMiddleware } = require('../utils/auth');
-const { v4: uuidv4 } = require('uuid');
+const { authMiddleware } = require('../utils/auth');
+
+const TEACHING_ROLES = new Set([
+  'manager',
+  'coursecreator',
+  'educator',
+  'trainer',
+  'creator',
+  'teacher',
+  'assistant'
+]);
+
+function isTeachingUser(user) {
+  if (!user) return false;
+  if (user.isAdmin) return true;
+  return TEACHING_ROLES.has(user.role);
+}
+
+function ensureTeachingAccess(user, res) {
+  if (isTeachingUser(user)) return true;
+  res.status(403).json({
+    success: false,
+    message: '僅教師或管理員可使用題庫管理功能'
+  });
+  return false;
+}
+
+function parseInteger(value, fallback, { min = Number.MIN_SAFE_INTEGER, max = Number.MAX_SAFE_INTEGER } = {}) {
+  const parsed = parseInt(value, 10);
+  if (Number.isNaN(parsed)) return fallback;
+  return Math.max(min, Math.min(max, parsed));
+}
+
+function parseTypeFilters(type, types) {
+  if (Array.isArray(types)) {
+    return types.map(t => String(t).trim()).filter(Boolean);
+  }
+  if (typeof types === 'string' && types.trim()) {
+    return types.split(',').map(t => t.trim()).filter(Boolean);
+  }
+  if (typeof type === 'string' && type.trim()) {
+    return [type.trim()];
+  }
+  return [];
+}
+
+function parseTags(tags) {
+  if (Array.isArray(tags)) {
+    return tags.map(t => String(t).trim()).filter(Boolean);
+  }
+  if (typeof tags === 'string') {
+    return tags.split(',').map(t => t.trim()).filter(Boolean);
+  }
+  return [];
+}
+
+function parseBoolean(value) {
+  if (typeof value === 'boolean') return value;
+  if (typeof value !== 'string') return value;
+  if (value.toLowerCase() === 'true') return true;
+  if (value.toLowerCase() === 'false') return false;
+  return value;
+}
+
+function normalizeOptions(options) {
+  if (!Array.isArray(options)) return [];
+  if (options.length === 0) return [];
+  if (typeof options[0] === 'string') {
+    return options.map(opt => String(opt)).filter(Boolean);
+  }
+  return options
+    .map(opt => {
+      if (typeof opt === 'string') return opt;
+      if (opt && typeof opt.text === 'string') return opt.text;
+      if (opt && typeof opt.label === 'string') return opt.label;
+      return '';
+    })
+    .filter(Boolean);
+}
+
+function inferCorrectAnswerFromObjectOptions(options) {
+  if (!Array.isArray(options)) return null;
+  const idx = options.findIndex(opt => opt && (opt.isCorrect === true || opt.correct === true));
+  return idx >= 0 ? idx : null;
+}
+
+function normalizeCategory(item) {
+  const categoryId = item.categoryId || item.id;
+  return {
+    id: categoryId,
+    categoryId,
+    name: item.name || '',
+    description: item.description || '',
+    parentId: item.parentId || null,
+    questionCount: item.questionCount || 0,
+    sortOrder: item.sortOrder || 0,
+    status: item.status || 'active',
+    createdBy: item.createdBy || null,
+    createdAt: item.createdAt || null,
+    updatedAt: item.updatedAt || null
+  };
+}
+
+function normalizeQuestion(item, categoriesMap = new Map()) {
+  const questionId = item.questionId || item.id;
+  const rawOptions = Array.isArray(item.options) ? item.options : [];
+  const options = normalizeOptions(rawOptions);
+
+  let correctAnswer = item.correctAnswer;
+  if (correctAnswer === undefined || correctAnswer === null) {
+    const inferred = inferCorrectAnswerFromObjectOptions(rawOptions);
+    if (inferred !== null) correctAnswer = inferred;
+  }
+  correctAnswer = parseBoolean(correctAnswer);
+  if (typeof correctAnswer === 'string' && /^\d+$/.test(correctAnswer)) {
+    correctAnswer = parseInt(correctAnswer, 10);
+  }
+
+  const categoryId = item.categoryId || item.category || 'cat_default';
+  const category = categoriesMap.get(categoryId);
+
+  const questionText = item.questionText || item.text || item.content || item.title || '';
+
+  return {
+    id: questionId,
+    questionId,
+    type: item.type || 'multiple_choice',
+    questionText,
+    title: questionText,
+    content: questionText,
+    options,
+    correctAnswer,
+    correctAnswers: Array.isArray(item.correctAnswers) ? item.correctAnswers : [],
+    caseSensitive: !!item.caseSensitive,
+    referenceAnswer: item.referenceAnswer || '',
+    minWords: item.minWords || 0,
+    explanation: item.explanation || item.feedback || '',
+    points: item.points || 10,
+    difficulty: item.difficulty || 'medium',
+    categoryId,
+    category: category ? category.name : (item.categoryName || ''),
+    tags: parseTags(item.tags),
+    status: item.status || 'active',
+    usageCount: item.usageCount || 0,
+    createdBy: item.createdBy || null,
+    createdAt: item.createdAt || null,
+    updatedAt: item.updatedAt || null
+  };
+}
+
+async function getQuestionById(questionId) {
+  const direct = await db.getItem(`QUESTION#${questionId}`, 'META');
+  if (direct && direct.entityType === 'QUESTION') return direct;
+
+  const fallback = await db.scan({
+    filter: {
+      expression: 'entityType = :type AND questionId = :qid',
+      values: { ':type': 'QUESTION', ':qid': questionId }
+    }
+  });
+
+  return fallback[0] || null;
+}
+
+async function getCategoryById(categoryId) {
+  if (!categoryId) return null;
+  const direct = await db.getItem('QUESTION_CATEGORIES', `CATEGORY#${categoryId}`);
+  if (direct) return direct;
+
+  const fallback = await db.scan({
+    filter: {
+      expression: 'entityType = :type AND categoryId = :cid',
+      values: { ':type': 'QUESTION_CATEGORY', ':cid': categoryId }
+    }
+  });
+
+  return fallback[0] || null;
+}
+
+async function loadCategories() {
+  const categories = await db.query('QUESTION_CATEGORIES', { skPrefix: 'CATEGORY#' });
+  return categories.filter(cat => cat.status !== 'deleted');
+}
+
+async function loadCategoriesMap() {
+  const categories = await loadCategories();
+  return new Map(categories.map(cat => [cat.categoryId, normalizeCategory(cat)]));
+}
+
+async function loadActiveQuestions() {
+  const questions = await db.scan({
+    filter: {
+      expression: 'entityType = :type AND (#status <> :deleted OR attribute_not_exists(#status))',
+      values: { ':type': 'QUESTION', ':deleted': 'deleted' },
+      names: { '#status': 'status' }
+    }
+  });
+  return questions;
+}
+
+async function ensureDefaultCategory(userId = 'system') {
+  const existing = await getCategoryById('cat_default');
+  if (existing && existing.status !== 'deleted') return existing;
+
+  const now = new Date().toISOString();
+  const category = {
+    PK: 'QUESTION_CATEGORIES',
+    SK: 'CATEGORY#cat_default',
+    entityType: 'QUESTION_CATEGORY',
+    categoryId: 'cat_default',
+    name: '預設類別',
+    description: '系統預設題庫類別',
+    parentId: null,
+    sortOrder: 0,
+    questionCount: 0,
+    status: 'active',
+    createdBy: userId,
+    createdAt: now,
+    updatedAt: now
+  };
+  await db.putItem(category);
+  return category;
+}
+
+async function refreshCategoryQuestionCount(categoryId) {
+  if (!categoryId) return;
+  const category = await getCategoryById(categoryId);
+  if (!category || category.status === 'deleted') return;
+
+  const questions = await db.scan({
+    filter: {
+      expression: 'entityType = :type AND categoryId = :cid AND (#status <> :deleted OR attribute_not_exists(#status))',
+      values: { ':type': 'QUESTION', ':cid': categoryId, ':deleted': 'deleted' },
+      names: { '#status': 'status' }
+    }
+  });
+
+  await db.updateItem(category.PK, category.SK, {
+    questionCount: questions.length,
+    updatedAt: new Date().toISOString()
+  });
+}
+
+function buildQuestionPayload(body, existing = null) {
+  const type = body.type || existing?.type || 'multiple_choice';
+  const questionText = body.questionText ?? body.text ?? body.content ?? body.title ?? existing?.questionText ?? existing?.content ?? '';
+
+  const payload = {
+    type,
+    questionText: String(questionText || '').trim(),
+    points: body.points !== undefined ? parseInteger(body.points, 10, { min: 0 }) : (existing?.points || 10),
+    difficulty: body.difficulty || existing?.difficulty || 'medium',
+    tags: body.tags !== undefined ? parseTags(body.tags) : parseTags(existing?.tags),
+    explanation: body.explanation !== undefined
+      ? String(body.explanation || '')
+      : String(existing?.explanation || existing?.feedback || ''),
+    categoryId: body.categoryId !== undefined
+      ? (body.categoryId || 'cat_default')
+      : (body.category !== undefined ? (body.category || 'cat_default') : (existing?.categoryId || 'cat_default'))
+  };
+
+  if (body.options !== undefined) {
+    payload.options = normalizeOptions(body.options);
+  } else if (existing?.options !== undefined) {
+    payload.options = normalizeOptions(existing.options);
+  } else {
+    payload.options = [];
+  }
+
+  if (body.correctAnswer !== undefined) {
+    payload.correctAnswer = parseBoolean(body.correctAnswer);
+  } else if (existing?.correctAnswer !== undefined) {
+    payload.correctAnswer = parseBoolean(existing.correctAnswer);
+  } else {
+    payload.correctAnswer = null;
+  }
+
+  if (typeof payload.correctAnswer === 'string' && /^\d+$/.test(payload.correctAnswer)) {
+    payload.correctAnswer = parseInt(payload.correctAnswer, 10);
+  }
+
+  payload.correctAnswers = body.correctAnswers !== undefined
+    ? parseTags(body.correctAnswers)
+    : (Array.isArray(existing?.correctAnswers) ? existing.correctAnswers : []);
+
+  payload.caseSensitive = body.caseSensitive !== undefined
+    ? !!body.caseSensitive
+    : !!existing?.caseSensitive;
+
+  payload.referenceAnswer = body.referenceAnswer !== undefined
+    ? String(body.referenceAnswer || '')
+    : String(existing?.referenceAnswer || '');
+
+  payload.minWords = body.minWords !== undefined
+    ? parseInteger(body.minWords, 0, { min: 0 })
+    : parseInteger(existing?.minWords, 0, { min: 0 });
+
+  return payload;
+}
+
+function filterQuestions(questions, filters) {
+  const {
+    categoryId,
+    difficulty,
+    search,
+    type,
+    types
+  } = filters;
+
+  const selectedTypes = parseTypeFilters(type, types);
+  const normalizedSearch = String(search || '').trim().toLowerCase();
+
+  let filtered = [...questions];
+
+  if (categoryId) {
+    filtered = filtered.filter(q => q.categoryId === categoryId);
+  }
+
+  if (difficulty) {
+    filtered = filtered.filter(q => q.difficulty === difficulty);
+  }
+
+  if (selectedTypes.length > 0) {
+    filtered = filtered.filter(q => selectedTypes.includes(q.type));
+  }
+
+  if (normalizedSearch) {
+    filtered = filtered.filter(q => {
+      const text = `${q.questionText || ''} ${q.explanation || ''} ${(q.tags || []).join(' ')} ${(q.options || []).join(' ')}`.toLowerCase();
+      return text.includes(normalizedSearch);
+    });
+  }
+
+  filtered.sort((a, b) => {
+    const timeA = new Date(a.updatedAt || a.createdAt || 0).getTime();
+    const timeB = new Date(b.updatedAt || b.createdAt || 0).getTime();
+    return timeB - timeA;
+  });
+
+  return filtered;
+}
 
 // ============================================================================
 // 題目類別 CRUD
 // ============================================================================
 
-/**
- * GET /api/questionbank/categories
- * 取得所有題目類別
- */
 router.get('/categories', authMiddleware, async (req, res) => {
   try {
-    const categories = await db.scan({
-      TableName: 'QUESTION_CATEGORIES',
-      FilterExpression: '#status <> :deleted',
-      ExpressionAttributeNames: { '#status': 'status' },
-      ExpressionAttributeValues: { ':deleted': 'deleted' }
+    if (!ensureTeachingAccess(req.user, res)) return;
+
+    let categories = await loadCategories();
+    if (categories.length === 0) {
+      await ensureDefaultCategory(req.user.userId);
+      categories = await loadCategories();
+    }
+
+    const activeQuestions = await loadActiveQuestions();
+    const countMap = new Map();
+    activeQuestions.forEach(q => {
+      const cid = q.categoryId || 'cat_default';
+      countMap.set(cid, (countMap.get(cid) || 0) + 1);
     });
+
+    const normalized = categories
+      .map(cat => {
+        const mapped = normalizeCategory(cat);
+        mapped.questionCount = countMap.get(mapped.categoryId) || 0;
+        return mapped;
+      })
+      .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
 
     res.json({
       success: true,
-      data: categories.Items || []
+      data: normalized
     });
   } catch (error) {
     console.error('Get question categories error:', error);
-    res.json({
-      success: true,
-      data: [
-        { id: 'cat_default', name: '預設類別', description: '未分類的題目', questionCount: 0 },
-        { id: 'cat_math', name: '數學', description: '數學相關題目', questionCount: 0 },
-        { id: 'cat_science', name: '科學', description: '科學相關題目', questionCount: 0 },
-        { id: 'cat_language', name: '語文', description: '語文相關題目', questionCount: 0 }
-      ]
+    res.status(500).json({
+      success: false,
+      message: '取得題目類別失敗'
     });
   }
 });
 
-/**
- * POST /api/questionbank/categories
- * 建立題目類別
- */
 router.post('/categories', authMiddleware, async (req, res) => {
   try {
-    const { name, description, parentId } = req.body;
+    if (!isTeachingUser(req.user)) {
+      return res.status(403).json({
+        success: false,
+        message: '僅教師或管理員可建立題目類別'
+      });
+    }
 
+    const { name, description, parentId, sortOrder } = req.body;
+    if (!name || !String(name).trim()) {
+      return res.status(400).json({
+        success: false,
+        message: '請提供類別名稱'
+      });
+    }
+
+    if (parentId) {
+      const parent = await getCategoryById(parentId);
+      if (!parent || parent.status === 'deleted') {
+        return res.status(400).json({
+          success: false,
+          message: '父類別不存在'
+        });
+      }
+    }
+
+    const categoryId = db.generateId('qcat');
+    const now = new Date().toISOString();
     const category = {
-      id: `qcat_${uuidv4().substring(0, 12)}`,
-      name,
+      PK: 'QUESTION_CATEGORIES',
+      SK: `CATEGORY#${categoryId}`,
+      entityType: 'QUESTION_CATEGORY',
+      categoryId,
+      name: String(name).trim(),
       description: description || '',
       parentId: parentId || null,
+      sortOrder: parseInteger(sortOrder, 0, { min: 0 }),
       questionCount: 0,
+      status: 'active',
       createdBy: req.user.userId,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      createdAt: now,
+      updatedAt: now
     };
 
-    await db.put({
-      TableName: 'QUESTION_CATEGORIES',
-      Item: category
-    });
+    await db.putItem(category);
 
-    res.json({
+    res.status(201).json({
       success: true,
-      data: category,
+      data: normalizeCategory(category),
       message: '類別建立成功'
     });
   } catch (error) {
@@ -84,32 +451,56 @@ router.post('/categories', authMiddleware, async (req, res) => {
   }
 });
 
-/**
- * PUT /api/questionbank/categories/:categoryId
- * 更新題目類別
- */
 router.put('/categories/:categoryId', authMiddleware, async (req, res) => {
   try {
-    const { categoryId } = req.params;
-    const { name, description, parentId } = req.body;
+    if (!isTeachingUser(req.user)) {
+      return res.status(403).json({
+        success: false,
+        message: '僅教師或管理員可更新題目類別'
+      });
+    }
 
-    const result = await db.update({
-      TableName: 'QUESTION_CATEGORIES',
-      Key: { id: categoryId },
-      UpdateExpression: 'SET #name = :name, description = :desc, parentId = :parentId, updatedAt = :updatedAt',
-      ExpressionAttributeNames: { '#name': 'name' },
-      ExpressionAttributeValues: {
-        ':name': name,
-        ':desc': description || '',
-        ':parentId': parentId || null,
-        ':updatedAt': new Date().toISOString()
-      },
-      ReturnValues: 'ALL_NEW'
-    });
+    const { categoryId } = req.params;
+    const { name, description, parentId, sortOrder } = req.body;
+    const category = await getCategoryById(categoryId);
+
+    if (!category || category.status === 'deleted') {
+      return res.status(404).json({
+        success: false,
+        message: '找不到題目類別'
+      });
+    }
+
+    if (parentId && parentId === categoryId) {
+      return res.status(400).json({
+        success: false,
+        message: '父類別不可設定為自己'
+      });
+    }
+
+    if (parentId) {
+      const parent = await getCategoryById(parentId);
+      if (!parent || parent.status === 'deleted') {
+        return res.status(400).json({
+          success: false,
+          message: '父類別不存在'
+        });
+      }
+    }
+
+    const updates = {
+      updatedAt: new Date().toISOString()
+    };
+    if (name !== undefined) updates.name = String(name || '').trim();
+    if (description !== undefined) updates.description = String(description || '');
+    if (parentId !== undefined) updates.parentId = parentId || null;
+    if (sortOrder !== undefined) updates.sortOrder = parseInteger(sortOrder, 0, { min: 0 });
+
+    const updated = await db.updateItem(category.PK, category.SK, updates);
 
     res.json({
       success: true,
-      data: result.Attributes,
+      data: normalizeCategory(updated),
       message: '類別更新成功'
     });
   } catch (error) {
@@ -121,17 +512,42 @@ router.put('/categories/:categoryId', authMiddleware, async (req, res) => {
   }
 });
 
-/**
- * DELETE /api/questionbank/categories/:categoryId
- * 刪除題目類別
- */
 router.delete('/categories/:categoryId', authMiddleware, async (req, res) => {
   try {
-    const { categoryId } = req.params;
+    if (!isTeachingUser(req.user)) {
+      return res.status(403).json({
+        success: false,
+        message: '僅教師或管理員可刪除題目類別'
+      });
+    }
 
-    await db.delete({
-      TableName: 'QUESTION_CATEGORIES',
-      Key: { id: categoryId }
+    const { categoryId } = req.params;
+    const category = await getCategoryById(categoryId);
+    if (!category || category.status === 'deleted') {
+      return res.status(404).json({
+        success: false,
+        message: '找不到題目類別'
+      });
+    }
+
+    const questions = await db.scan({
+      filter: {
+        expression: 'entityType = :type AND categoryId = :cid AND (#status <> :deleted OR attribute_not_exists(#status))',
+        values: { ':type': 'QUESTION', ':cid': categoryId, ':deleted': 'deleted' },
+        names: { '#status': 'status' }
+      }
+    });
+
+    if (questions.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: '此類別仍有題目，請先移動或刪除題目'
+      });
+    }
+
+    await db.updateItem(category.PK, category.SK, {
+      status: 'deleted',
+      updatedAt: new Date().toISOString()
     });
 
     res.json({
@@ -151,133 +567,30 @@ router.delete('/categories/:categoryId', authMiddleware, async (req, res) => {
 // 題目 CRUD
 // ============================================================================
 
-/**
- * GET /api/questionbank
- * 取得題目列表（支援篩選）
- */
 router.get('/', authMiddleware, async (req, res) => {
   try {
-    const { categoryId, type, difficulty, search, page = 1, limit = 20 } = req.query;
+    if (!ensureTeachingAccess(req.user, res)) return;
 
-    // 模擬題庫資料
-    const mockQuestions = [
-      {
-        id: 'q_001',
-        type: 'multiple_choice',
-        title: '以下哪個是 JavaScript 的原始型別？',
-        content: '以下哪個是 JavaScript 的原始型別？',
-        options: [
-          { id: 'a', text: 'Object', isCorrect: false },
-          { id: 'b', text: 'Array', isCorrect: false },
-          { id: 'c', text: 'String', isCorrect: true },
-          { id: 'd', text: 'Function', isCorrect: false }
-        ],
-        correctAnswer: 'c',
-        points: 10,
-        difficulty: 'easy',
-        categoryId: 'cat_default',
-        categoryName: '預設類別',
-        tags: ['JavaScript', '基礎'],
-        createdAt: '2024-01-15T10:00:00Z',
-        updatedAt: '2024-01-15T10:00:00Z'
-      },
-      {
-        id: 'q_002',
-        type: 'true_false',
-        title: 'HTML 是一種程式語言',
-        content: 'HTML 是一種程式語言',
-        correctAnswer: false,
-        points: 5,
-        difficulty: 'easy',
-        categoryId: 'cat_default',
-        categoryName: '預設類別',
-        tags: ['HTML', '基礎'],
-        createdAt: '2024-01-16T10:00:00Z',
-        updatedAt: '2024-01-16T10:00:00Z'
-      },
-      {
-        id: 'q_003',
-        type: 'short_answer',
-        title: '請解釋什麼是 RESTful API',
-        content: '請解釋什麼是 RESTful API，並說明其主要特點。',
-        sampleAnswer: 'RESTful API 是一種基於 REST 架構風格的 API 設計...',
-        points: 20,
-        difficulty: 'medium',
-        categoryId: 'cat_science',
-        categoryName: '科學',
-        tags: ['API', '網路'],
-        createdAt: '2024-01-17T10:00:00Z',
-        updatedAt: '2024-01-17T10:00:00Z'
-      },
-      {
-        id: 'q_004',
-        type: 'multiple_choice',
-        title: '哪個 HTTP 方法用於更新資源？',
-        content: '在 RESTful API 中，哪個 HTTP 方法通常用於更新現有資源？',
-        options: [
-          { id: 'a', text: 'GET', isCorrect: false },
-          { id: 'b', text: 'POST', isCorrect: false },
-          { id: 'c', text: 'PUT', isCorrect: true },
-          { id: 'd', text: 'DELETE', isCorrect: false }
-        ],
-        correctAnswer: 'c',
-        points: 10,
-        difficulty: 'medium',
-        categoryId: 'cat_science',
-        categoryName: '科學',
-        tags: ['API', 'HTTP'],
-        createdAt: '2024-01-18T10:00:00Z',
-        updatedAt: '2024-01-18T10:00:00Z'
-      },
-      {
-        id: 'q_005',
-        type: 'fill_blank',
-        title: 'CSS 選擇器填空',
-        content: '在 CSS 中，選擇所有 class 為 "highlight" 的元素，應該使用 _____ 選擇器。',
-        correctAnswer: '.highlight',
-        points: 10,
-        difficulty: 'easy',
-        categoryId: 'cat_default',
-        categoryName: '預設類別',
-        tags: ['CSS', '選擇器'],
-        createdAt: '2024-01-19T10:00:00Z',
-        updatedAt: '2024-01-19T10:00:00Z'
-      }
-    ];
+    const { categoryId, type, types, difficulty, search, page = 1, limit = 20 } = req.query;
 
-    // 應用篩選
-    let filtered = [...mockQuestions];
+    const categoriesMap = await loadCategoriesMap();
+    const rawQuestions = await loadActiveQuestions();
+    const normalizedQuestions = rawQuestions.map(q => normalizeQuestion(q, categoriesMap));
+    const filtered = filterQuestions(normalizedQuestions, { categoryId, type, types, difficulty, search });
 
-    if (categoryId) {
-      filtered = filtered.filter(q => q.categoryId === categoryId);
-    }
-    if (type) {
-      filtered = filtered.filter(q => q.type === type);
-    }
-    if (difficulty) {
-      filtered = filtered.filter(q => q.difficulty === difficulty);
-    }
-    if (search) {
-      const searchLower = search.toLowerCase();
-      filtered = filtered.filter(q =>
-        q.title.toLowerCase().includes(searchLower) ||
-        q.content.toLowerCase().includes(searchLower) ||
-        q.tags.some(t => t.toLowerCase().includes(searchLower))
-      );
-    }
-
-    // 分頁
-    const startIndex = (page - 1) * limit;
-    const paginatedQuestions = filtered.slice(startIndex, startIndex + parseInt(limit));
+    const pageNumber = parseInteger(page, 1, { min: 1 });
+    const pageSize = parseInteger(limit, 20, { min: 1, max: 200 });
+    const startIndex = (pageNumber - 1) * pageSize;
+    const paginated = filtered.slice(startIndex, startIndex + pageSize);
 
     res.json({
       success: true,
-      data: paginatedQuestions,
+      data: paginated,
       pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
+        page: pageNumber,
+        limit: pageSize,
         total: filtered.length,
-        totalPages: Math.ceil(filtered.length / limit)
+        totalPages: Math.ceil(filtered.length / pageSize)
       }
     });
   } catch (error) {
@@ -289,38 +602,24 @@ router.get('/', authMiddleware, async (req, res) => {
   }
 });
 
-/**
- * GET /api/questionbank/:questionId
- * 取得單一題目詳情
- */
 router.get('/:questionId', authMiddleware, async (req, res) => {
   try {
+    if (!ensureTeachingAccess(req.user, res)) return;
+
     const { questionId } = req.params;
+    const question = await getQuestionById(questionId);
 
-    // 模擬資料
-    const question = {
-      id: questionId,
-      type: 'multiple_choice',
-      title: '範例題目',
-      content: '這是一個範例題目內容',
-      options: [
-        { id: 'a', text: '選項 A', isCorrect: false },
-        { id: 'b', text: '選項 B', isCorrect: true },
-        { id: 'c', text: '選項 C', isCorrect: false },
-        { id: 'd', text: '選項 D', isCorrect: false }
-      ],
-      correctAnswer: 'b',
-      points: 10,
-      difficulty: 'medium',
-      categoryId: 'cat_default',
-      tags: ['範例'],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
+    if (!question || question.status === 'deleted') {
+      return res.status(404).json({
+        success: false,
+        message: '找不到題目'
+      });
+    }
 
+    const categoriesMap = await loadCategoriesMap();
     res.json({
       success: true,
-      data: question
+      data: normalizeQuestion(question, categoriesMap)
     });
   } catch (error) {
     console.error('Get question error:', error);
@@ -331,38 +630,63 @@ router.get('/:questionId', authMiddleware, async (req, res) => {
   }
 });
 
-/**
- * POST /api/questionbank
- * 建立新題目
- */
 router.post('/', authMiddleware, async (req, res) => {
   try {
-    const { type, title, content, options, correctAnswer, points, difficulty, categoryId, tags } = req.body;
+    if (!isTeachingUser(req.user)) {
+      return res.status(403).json({
+        success: false,
+        message: '僅教師或管理員可建立題目'
+      });
+    }
 
+    const payload = buildQuestionPayload(req.body);
+    if (!payload.questionText) {
+      return res.status(400).json({
+        success: false,
+        message: '題目內容不可為空'
+      });
+    }
+
+    if (payload.categoryId === 'cat_default') {
+      await ensureDefaultCategory(req.user.userId);
+    }
+
+    if (payload.categoryId) {
+      const category = await getCategoryById(payload.categoryId);
+      if (!category || category.status === 'deleted') {
+        return res.status(400).json({
+          success: false,
+          message: '指定的題目類別不存在'
+        });
+      }
+    }
+
+    const questionId = db.generateId('q');
+    const now = new Date().toISOString();
     const question = {
-      id: `q_${uuidv4().substring(0, 12)}`,
-      type,
-      title,
-      content,
-      options: options || [],
-      correctAnswer,
-      points: points || 10,
-      difficulty: difficulty || 'medium',
-      categoryId: categoryId || 'cat_default',
-      tags: tags || [],
+      PK: `QUESTION#${questionId}`,
+      SK: 'META',
+      GSI1PK: `QCAT#${payload.categoryId || 'uncategorized'}`,
+      GSI1SK: `QUESTION#${questionId}`,
+      entityType: 'QUESTION',
+      questionId,
+      ...payload,
+      status: 'active',
+      usageCount: 0,
       createdBy: req.user.userId,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      createdAt: now,
+      updatedAt: now
     };
 
-    await db.put({
-      TableName: 'QUESTIONS',
-      Item: question
-    });
+    await db.putItem(question);
+    if (payload.categoryId) {
+      await refreshCategoryQuestionCount(payload.categoryId);
+    }
 
-    res.json({
+    const categoriesMap = await loadCategoriesMap();
+    res.status(201).json({
       success: true,
-      data: question,
+      data: normalizeQuestion(question, categoriesMap),
       message: '題目建立成功'
     });
   } catch (error) {
@@ -374,20 +698,67 @@ router.post('/', authMiddleware, async (req, res) => {
   }
 });
 
-/**
- * PUT /api/questionbank/:questionId
- * 更新題目
- */
 router.put('/:questionId', authMiddleware, async (req, res) => {
   try {
     const { questionId } = req.params;
-    const updates = req.body;
+    const existing = await getQuestionById(questionId);
+    if (!existing || existing.status === 'deleted') {
+      return res.status(404).json({
+        success: false,
+        message: '找不到題目'
+      });
+    }
 
-    updates.updatedAt = new Date().toISOString();
+    if (!req.user.isAdmin && existing.createdBy !== req.user.userId && !isTeachingUser(req.user)) {
+      return res.status(403).json({
+        success: false,
+        message: '無權限更新此題目'
+      });
+    }
 
+    const previousCategoryId = existing.categoryId || null;
+    const payload = buildQuestionPayload(req.body, existing);
+
+    if (!payload.questionText) {
+      return res.status(400).json({
+        success: false,
+        message: '題目內容不可為空'
+      });
+    }
+
+    if (payload.categoryId === 'cat_default') {
+      await ensureDefaultCategory(req.user.userId);
+    }
+
+    if (payload.categoryId) {
+      const category = await getCategoryById(payload.categoryId);
+      if (!category || category.status === 'deleted') {
+        return res.status(400).json({
+          success: false,
+          message: '指定的題目類別不存在'
+        });
+      }
+    }
+
+    const updates = {
+      ...payload,
+      GSI1PK: `QCAT#${payload.categoryId || 'uncategorized'}`,
+      updatedAt: new Date().toISOString()
+    };
+
+    const updated = await db.updateItem(existing.PK, existing.SK, updates);
+
+    if (previousCategoryId !== payload.categoryId) {
+      await refreshCategoryQuestionCount(previousCategoryId);
+      await refreshCategoryQuestionCount(payload.categoryId);
+    } else {
+      await refreshCategoryQuestionCount(payload.categoryId);
+    }
+
+    const categoriesMap = await loadCategoriesMap();
     res.json({
       success: true,
-      data: { id: questionId, ...updates },
+      data: normalizeQuestion(updated, categoriesMap),
       message: '題目更新成功'
     });
   } catch (error) {
@@ -399,20 +770,31 @@ router.put('/:questionId', authMiddleware, async (req, res) => {
   }
 });
 
-/**
- * DELETE /api/questionbank/:questionId
- * 刪除題目
- */
 router.delete('/:questionId', authMiddleware, async (req, res) => {
   try {
     const { questionId } = req.params;
+    const question = await getQuestionById(questionId);
 
-    // 使用正確的 db 方法刪除
-    try {
-      await db.deleteItem(`QUESTION#${questionId}`, 'META');
-    } catch (dbError) {
-      console.log('Database delete skipped (mock mode)');
+    if (!question || question.status === 'deleted') {
+      return res.status(404).json({
+        success: false,
+        message: '找不到題目'
+      });
     }
+
+    if (!req.user.isAdmin && question.createdBy !== req.user.userId && !isTeachingUser(req.user)) {
+      return res.status(403).json({
+        success: false,
+        message: '無權限刪除此題目'
+      });
+    }
+
+    await db.updateItem(question.PK, question.SK, {
+      status: 'deleted',
+      updatedAt: new Date().toISOString()
+    });
+
+    await refreshCategoryQuestionCount(question.categoryId || null);
 
     res.json({
       success: true,
@@ -427,28 +809,82 @@ router.delete('/:questionId', authMiddleware, async (req, res) => {
   }
 });
 
-/**
- * POST /api/questionbank/import
- * 批量匯入題目
- */
 router.post('/import', authMiddleware, async (req, res) => {
   try {
-    const { questions, categoryId } = req.body;
+    if (!isTeachingUser(req.user)) {
+      return res.status(403).json({
+        success: false,
+        message: '僅教師或管理員可匯入題目'
+      });
+    }
 
-    const imported = questions.map((q, index) => ({
-      id: `q_${uuidv4().substring(0, 12)}`,
-      ...q,
-      categoryId: categoryId || 'cat_default',
-      createdBy: req.user.userId,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    }));
+    const inputQuestions = Array.isArray(req.body.questions) ? req.body.questions : [];
+    if (inputQuestions.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: '請提供要匯入的題目資料'
+      });
+    }
 
+    await ensureDefaultCategory(req.user.userId);
+
+    const overrideCategoryId = req.body.categoryId || req.body.category || null;
+    if (overrideCategoryId) {
+      if (overrideCategoryId === 'cat_default') {
+        await ensureDefaultCategory(req.user.userId);
+      }
+      const category = await getCategoryById(overrideCategoryId);
+      if (!category || category.status === 'deleted') {
+        return res.status(400).json({
+          success: false,
+          message: '指定的匯入類別不存在'
+        });
+      }
+    }
+
+    const touchedCategories = new Set();
+    const now = new Date().toISOString();
+    const imported = [];
+
+    for (const row of inputQuestions) {
+      const payload = buildQuestionPayload({
+        ...row,
+        categoryId: overrideCategoryId || row.categoryId || row.category || null
+      });
+
+      if (!payload.questionText) continue;
+
+      const questionId = db.generateId('q');
+      const item = {
+        PK: `QUESTION#${questionId}`,
+        SK: 'META',
+        GSI1PK: `QCAT#${payload.categoryId || 'uncategorized'}`,
+        GSI1SK: `QUESTION#${questionId}`,
+        entityType: 'QUESTION',
+        questionId,
+        ...payload,
+        status: 'active',
+        usageCount: 0,
+        createdBy: req.user.userId,
+        createdAt: now,
+        updatedAt: now
+      };
+
+      await db.putItem(item);
+      imported.push(item);
+      if (payload.categoryId) touchedCategories.add(payload.categoryId);
+    }
+
+    for (const categoryId of touchedCategories) {
+      await refreshCategoryQuestionCount(categoryId);
+    }
+
+    const categoriesMap = await loadCategoriesMap();
     res.json({
       success: true,
       data: {
         imported: imported.length,
-        questions: imported
+        questions: imported.map(item => normalizeQuestion(item, categoriesMap))
       },
       message: `成功匯入 ${imported.length} 題`
     });
@@ -461,20 +897,30 @@ router.post('/import', authMiddleware, async (req, res) => {
   }
 });
 
-/**
- * POST /api/questionbank/export
- * 匯出題目
- */
 router.post('/export', authMiddleware, async (req, res) => {
   try {
-    const { questionIds, format = 'json' } = req.body;
+    const { questionIds, format = 'json' } = req.body || {};
+    const categoriesMap = await loadCategoriesMap();
+    let questions = [];
 
-    // 模擬匯出資料
+    if (Array.isArray(questionIds) && questionIds.length > 0) {
+      for (const questionId of questionIds) {
+        const question = await getQuestionById(questionId);
+        if (question && question.status !== 'deleted') {
+          questions.push(normalizeQuestion(question, categoriesMap));
+        }
+      }
+    } else {
+      const all = await loadActiveQuestions();
+      const normalized = all.map(q => normalizeQuestion(q, categoriesMap));
+      questions = filterQuestions(normalized, req.body || {});
+    }
+
     const exportData = {
       exportedAt: new Date().toISOString(),
       format,
-      questionCount: questionIds?.length || 0,
-      questions: []
+      questionCount: questions.length,
+      questions
     };
 
     res.json({
@@ -491,21 +937,48 @@ router.post('/export', authMiddleware, async (req, res) => {
   }
 });
 
-/**
- * POST /api/questionbank/add-to-quiz
- * 將題目加入測驗
- */
 router.post('/add-to-quiz', authMiddleware, async (req, res) => {
   try {
     const { quizId, questionIds } = req.body;
+    if (!quizId || !Array.isArray(questionIds) || questionIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: '請提供測驗 ID 與題目列表'
+      });
+    }
+
+    let added = 0;
+    const now = new Date().toISOString();
+
+    for (const questionId of questionIds) {
+      const question = await getQuestionById(questionId);
+      if (!question || question.status === 'deleted') continue;
+
+      await db.putItem({
+        PK: `QUIZ#${quizId}`,
+        SK: `QUESTION#${questionId}`,
+        entityType: 'QUIZ_QUESTION_REFERENCE',
+        quizId,
+        questionId,
+        addedBy: req.user.userId,
+        addedAt: now
+      });
+
+      await db.updateItem(question.PK, question.SK, {
+        usageCount: (question.usageCount || 0) + 1,
+        updatedAt: now
+      });
+
+      added += 1;
+    }
 
     res.json({
       success: true,
       data: {
         quizId,
-        addedQuestions: questionIds.length
+        addedQuestions: added
       },
-      message: `成功加入 ${questionIds.length} 題到測驗`
+      message: `成功加入 ${added} 題到測驗`
     });
   } catch (error) {
     console.error('Add to quiz error:', error);

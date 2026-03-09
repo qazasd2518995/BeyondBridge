@@ -10,11 +10,32 @@ const router = express.Router();
 const { authMiddleware } = require('../utils/auth');
 const db = require('../utils/db');
 
+const TEACHING_ROLES = new Set([
+  'manager',
+  'coursecreator',
+  'educator',
+  'trainer',
+  'creator',
+  'teacher',
+  'assistant'
+]);
+
+function requireTeachingRole(req, res, next) {
+  if (req.user?.isAdmin || TEACHING_ROLES.has(req.user?.role)) {
+    return next();
+  }
+  return res.status(403).json({
+    success: false,
+    error: 'FORBIDDEN',
+    message: '需要教學管理角色權限'
+  });
+}
+
 /**
  * 獲取教師的學生預警列表
  * GET /api/teachers/alerts
  */
-router.get('/alerts', authMiddleware, async (req, res) => {
+router.get('/alerts', authMiddleware, requireTeachingRole, async (req, res) => {
   try {
     const teacherId = req.user.userId;
     const alerts = [];
@@ -89,8 +110,13 @@ router.get('/alerts', authMiddleware, async (req, res) => {
       }
     });
 
+    // 過濾已 dismiss 的預警
+    const dismissedAlerts = await db.query(`TEACHER#${teacherId}`, { skPrefix: 'DISMISSED_ALERT#' });
+    const dismissedSet = new Set(dismissedAlerts.map(a => a.alertId));
+    const visibleAlerts = alerts.filter(a => !dismissedSet.has(a.alertId));
+
     // 按嚴重程度和時間排序
-    alerts.sort((a, b) => {
+    visibleAlerts.sort((a, b) => {
       const severityOrder = { high: 0, medium: 1, low: 2 };
       if (severityOrder[a.severity] !== severityOrder[b.severity]) {
         return severityOrder[a.severity] - severityOrder[b.severity];
@@ -100,15 +126,15 @@ router.get('/alerts', authMiddleware, async (req, res) => {
 
     res.json({
       success: true,
-      data: alerts,
+      data: visibleAlerts,
       summary: {
-        total: alerts.length,
-        behind: alerts.filter(a => a.type === 'behind').length,
-        missing: alerts.filter(a => a.type === 'missing').length,
-        inactive: alerts.filter(a => a.type === 'inactive').length,
-        declining: alerts.filter(a => a.type === 'declining').length,
-        high: alerts.filter(a => a.severity === 'high').length,
-        medium: alerts.filter(a => a.severity === 'medium').length
+        total: visibleAlerts.length,
+        behind: visibleAlerts.filter(a => a.type === 'behind').length,
+        missing: visibleAlerts.filter(a => a.type === 'missing').length,
+        inactive: visibleAlerts.filter(a => a.type === 'inactive').length,
+        declining: visibleAlerts.filter(a => a.type === 'declining').length,
+        high: visibleAlerts.filter(a => a.severity === 'high').length,
+        medium: visibleAlerts.filter(a => a.severity === 'medium').length
       }
     });
 
@@ -126,7 +152,7 @@ router.get('/alerts', authMiddleware, async (req, res) => {
  * 標記預警為已處理
  * POST /api/teachers/alerts/:alertId/dismiss
  */
-router.post('/alerts/:alertId/dismiss', authMiddleware, async (req, res) => {
+router.post('/alerts/:alertId/dismiss', authMiddleware, requireTeachingRole, async (req, res) => {
   try {
     const { alertId } = req.params;
     const teacherId = req.user.userId;
@@ -163,7 +189,7 @@ router.post('/alerts/:alertId/dismiss', authMiddleware, async (req, res) => {
  * 獲取教師儀表板統計
  * GET /api/teachers/dashboard
  */
-router.get('/dashboard', authMiddleware, async (req, res) => {
+router.get('/dashboard', authMiddleware, requireTeachingRole, async (req, res) => {
   try {
     const teacherId = req.user.userId;
 
@@ -191,7 +217,7 @@ router.get('/dashboard', authMiddleware, async (req, res) => {
     });
 
     if (totalCourses > 0) {
-      avgProgress = Math.round((avgProgress / totalCourses) * 100);
+      avgProgress = Math.round(avgProgress / totalCourses);
     }
 
     res.json({

@@ -8,6 +8,39 @@ const router = express.Router();
 const db = require('../utils/db');
 const { authMiddleware } = require('../utils/auth');
 
+const TEACHING_ROLES = new Set([
+  'manager',
+  'coursecreator',
+  'educator',
+  'trainer',
+  'creator',
+  'teacher',
+  'assistant'
+]);
+
+function isTeachingUser(user) {
+  if (!user) return false;
+  if (user.isAdmin) return true;
+  return TEACHING_ROLES.has(user.role);
+}
+
+async function canAccessClass(classData, user) {
+  if (!classData || !user) return false;
+  const classId = classData.classId;
+  if (!classId) return false;
+  if (user.isAdmin || classData.teacherId === user.userId) return true;
+
+  // 班級成員
+  const member = await db.getItem(`CLASS#${classId}`, `MEMBER#${user.userId}`);
+  if (member && member.status !== 'removed' && member.status !== 'inactive') {
+    return true;
+  }
+
+  // 反向報名紀錄
+  const enrollment = await db.getItem(`USER#${user.userId}`, `ENROLLMENT#${classId}`);
+  return !!enrollment;
+}
+
 /**
  * GET /api/classes
  * 取得班級列表（教師看自己的班級，學生看已加入的班級）
@@ -85,17 +118,32 @@ router.get('/:id', authMiddleware, async (req, res) => {
       });
     }
 
+    const hasAccess = await canAccessClass(classData, req.user);
+    if (!hasAccess) {
+      return res.status(403).json({
+        success: false,
+        error: 'FORBIDDEN',
+        message: '無權限查看此班級'
+      });
+    }
+
     // 取得班級成員
     const members = await db.query(`CLASS#${id}`, { skPrefix: 'MEMBER#' });
 
     // 取得班級作業
     const assignments = await db.query(`CLASS#${id}`, { skPrefix: 'ASSIGN#' });
 
+    // 非教師/管理員不回傳成員 Email，避免學生互相暴露個資
+    const canManageClass = req.user.isAdmin || classData.teacherId === req.user.userId;
+    const visibleMembers = canManageClass
+      ? members
+      : members.map(({ userEmail, ...member }) => member);
+
     res.json({
       success: true,
       data: {
         ...classData,
-        members,
+        members: visibleMembers,
         assignments
       }
     });
@@ -118,6 +166,14 @@ router.post('/', authMiddleware, async (req, res) => {
   try {
     const { name, description, subject, gradeLevel } = req.body;
     const userId = req.user.userId;
+
+    if (!isTeachingUser(req.user)) {
+      return res.status(403).json({
+        success: false,
+        error: 'FORBIDDEN',
+        message: '僅具教學管理角色可建立班級'
+      });
+    }
 
     if (!name) {
       return res.status(400).json({
@@ -618,6 +674,24 @@ router.get('/:id/assignments', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
     const { type } = req.query;
+
+    const classData = await db.getItem(`CLASS#${id}`, 'META');
+    if (!classData) {
+      return res.status(404).json({
+        success: false,
+        error: 'CLASS_NOT_FOUND',
+        message: '找不到班級'
+      });
+    }
+
+    const hasAccess = await canAccessClass(classData, req.user);
+    if (!hasAccess) {
+      return res.status(403).json({
+        success: false,
+        error: 'FORBIDDEN',
+        message: '無權限查看此班級作業'
+      });
+    }
 
     const assignments = await db.query(`CLASS#${id}`, { skPrefix: 'ASSIGN#' });
 

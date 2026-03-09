@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LTI 1.3 整合示範 - BeyondBridge</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      min-height: 100vh;
+      color: #fff;
+      padding: 20px;
+    }
+    .container { max-width: 1200px; margin: 0 auto; }
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .card {
+      background: rgba(255,255,255,0.05);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .card h2 {
+      color: #667eea;
+      margin-bottom: 15px;
+      font-size: 1.2rem;
+    }
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 15px;
+    }
+    .status-item {
+      background: rgba(255,255,255,0.03);
+      padding: 15px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .status-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+    }
+    .status-icon.success { background: #10b98130; }
+    .status-icon.error { background: #ef444430; }
+    .status-icon.pending { background: #f59e0b30; }
+    .btn {
+      padding: 12px 24px;
+      border-radius: 8px;
+      border: none;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-right: 10px;
+      margin-bottom: 10px;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    .btn-primary:hover { transform: scale(1.02); box-shadow: 0 4px 15px rgba(102,126,234,0.3); }
+    .btn-secondary {
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    .btn-success {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: white;
+    }
+    .log-box {
+      background: #0a0a0f;
+      border-radius: 8px;
+      padding: 15px;
+      font-family: monospace;
+      font-size: 0.85rem;
+      max-height: 300px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .log-box .info { color: #60a5fa; }
+    .log-box .success { color: #34d399; }
+    .log-box .error { color: #f87171; }
+    .log-box .warn { color: #fbbf24; }
+    .iframe-container {
+      background: #fff;
+      border-radius: 8px;
+      overflow: hidden;
+      height: 600px;
+    }
+    .iframe-container iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+    .tool-card {
+      background: rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 20px;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 2px solid transparent;
+    }
+    .tool-card:hover {
+      background: rgba(255,255,255,0.12);
+      transform: translateY(-2px);
+    }
+    .tool-card.selected {
+      border-color: #667eea;
+    }
+    .tool-icon {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+    }
+    .hidden { display: none; }
+    .flex-row { display: flex; gap: 15px; flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔗 LTI 1.3 整合示範</h1>
+
+    <!-- 服務狀態 -->
+    <div class="card">
+      <h2>📊 服務狀態</h2>
+      <div class="status-grid" id="statusGrid">
+        <div class="status-item">
+          <div class="status-icon pending" id="platformStatus">⏳</div>
+          <div>
+            <strong>BeyondBridge Platform</strong>
+            <div style="font-size: 0.85rem; color: #888;">http://localhost:3002</div>
+          </div>
+        </div>
+        <div class="status-item">
+          <div class="status-icon pending" id="toolStatus">⏳</div>
+          <div>
+            <strong>金門語教材 Tool</strong>
+            <div style="font-size: 0.85rem; color: #888;">http://localhost:8080</div>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top: 15px;">
+        <button class="btn btn-secondary" onclick="checkServices()">🔄 重新檢查</button>
+      </div>
+    </div>
+
+    <!-- 快速啟動 -->
+    <div class="card">
+      <h2>🚀 快速啟動金門語教材</h2>
+      <p style="margin-bottom: 15px; color: #aaa;">選擇啟動方式：</p>
+      <div class="flex-row">
+        <button class="btn btn-primary" onclick="launchTool('resource')">
+          📚 一般學習啟動
+        </button>
+        <button class="btn btn-success" onclick="launchTool('deeplink')">
+          🔗 Deep Linking (選擇內容)
+        </button>
+        <button class="btn btn-secondary" onclick="window.open('http://localhost:8080', '_blank')">
+          🌐 直接開啟 (無 LTI)
+        </button>
+      </div>
+    </div>
+
+    <!-- 啟動視窗 -->
+    <div class="card" id="launchCard" style="display: none;">
+      <h2>📺 金門語教材</h2>
+      <div style="margin-bottom: 10px;">
+        <button class="btn btn-secondary" onclick="closeLaunch()">✕ 關閉</button>
+        <button class="btn btn-secondary" onclick="openInNewWindow()">↗ 新視窗開啟</button>
+      </div>
+      <div class="iframe-container">
+        <iframe id="toolFrame" src="about:blank"></iframe>
+      </div>
+    </div>
+
+    <!-- 測試日誌 -->
+    <div class="card">
+      <h2>📝 測試日誌</h2>
+      <div class="log-box" id="logBox">等待操作...</div>
+      <div style="margin-top: 10px;">
+        <button class="btn btn-secondary" onclick="clearLog()">清除日誌</button>
+        <button class="btn btn-secondary" onclick="testFullFlow()">🧪 測試完整流程</button>
+      </div>
+    </div>
+
+    <!-- 說明 -->
+    <div class="card">
+      <h2>📖 使用說明</h2>
+      <ol style="line-height: 2; padding-left: 20px; color: #ccc;">
+        <li>確保兩個服務都已啟動（綠色勾勾）</li>
+        <li>點擊「一般學習啟動」體驗完整 LTI 流程</li>
+        <li>點擊「Deep Linking」可以選擇要新增到課程的內容</li>
+        <li>學習進度會自動同步回 BeyondBridge 平台</li>
+      </ol>
+      <div style="margin-top: 15px; padding: 15px; background: rgba(102,126,234,0.1); border-radius: 8px;">
+        <strong>💡 提示：</strong>如果服務未啟動，請在終端機執行：
+        <pre style="margin-top: 10px; color: #60a5fa;">
+# 啟動 BeyondBridge Platform
+cd /Users/justin/beyondbridge_backup_20251221_020738/backend
+PORT=3002 node src/server.js
+
+# 啟動金門語教材 Tool (另一個終端機)
+cd /Users/justin/金門語教材
+node lti-local-server.js</pre>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const PLATFORM_URL = 'http://localhost:3002';
+    const TOOL_URL = 'http://localhost:8080';
+
+    // 日誌函數
+    function log(msg, type = 'info') {
+      const box = document.getElementById('logBox');
+      const time = new Date().toLocaleTimeString();
+      box.innerHTML += `<span class="${type}">[${time}] ${msg}</span>\n`;
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function clearLog() {
+      document.getElementById('logBox').innerHTML = '';
+    }
+
+    // 檢查服務狀態
+    async function checkServices() {
+      log('檢查服務狀態...');
+
+      // 檢查 Platform
+      const platformIcon = document.getElementById('platformStatus');
+      try {
+        const res = await fetch(`${PLATFORM_URL}/api/lti/13/config`);
+        if (res.ok) {
+          platformIcon.textContent = '✅';
+          platformIcon.className = 'status-icon success';
+          log('Platform (BeyondBridge) 運行中', 'success');
+        } else {
+          throw new Error('Not OK');
+        }
+      } catch (e) {
+        platformIcon.textContent = '❌';
+        platformIcon.className = 'status-icon error';
+        log('Platform (BeyondBridge) 無法連接', 'error');
+      }
+
+      // 檢查 Tool
+      const toolIcon = document.getElementById('toolStatus');
+      try {
+        const res = await fetch(`${TOOL_URL}/api/health`);
+        if (res.ok) {
+          toolIcon.textContent = '✅';
+          toolIcon.className = 'status-icon success';
+          log('Tool (金門語教材) 運行中', 'success');
+        } else {
+          throw new Error('Not OK');
+        }
+      } catch (e) {
+        toolIcon.textContent = '❌';
+        toolIcon.className = 'status-icon error';
+        log('Tool (金門語教材) 無法連接', 'error');
+      }
+    }
+
+    // 啟動 Tool
+    async function launchTool(type) {
+      log(`啟動 LTI Tool (${type})...`);
+
+      // 生成測試 JWT
+      const payload = {
+        iss: 'https://beyondbridge.edu',
+        sub: 'demo_user_001',
+        aud: 'kinmen-tool',
+        iat: Math.floor(Date.now() / 1000),
+        exp: Math.floor(Date.now() / 1000) + 3600,
+        nonce: Math.random().toString(36).substring(2),
+        name: '示範用戶',
+        email: 'demo@beyondbridge.edu',
+        'https://purl.imsglobal.org/spec/lti/claim/message_type':
+          type === 'deeplink' ? 'LtiDeepLinkingRequest' : 'LtiResourceLinkRequest',
+        'https://purl.imsglobal.org/spec/lti/claim/version': '1.3.0',
+        'https://purl.imsglobal.org/spec/lti/claim/deployment_id': 'demo_deployment',
+        'https://purl.imsglobal.org/spec/lti/claim/target_link_uri': `${TOOL_URL}/index.html`,
+        'https://purl.imsglobal.org/spec/lti/claim/roles': [
+          'http://purl.imsglobal.org/vocab/lis/v2/membership#Learner'
+        ],
+        'https://purl.imsglobal.org/spec/lti/claim/context': {
+          id: 'demo_course',
+          label: '示範課程',
+          title: '金門語教材示範課程'
+        },
+        'https://purl.imsglobal.org/spec/lti/claim/resource_link': {
+          id: 'demo_resource',
+          title: '金門語學習'
+        },
+        'https://purl.imsglobal.org/spec/lti-ags/claim/endpoint': {
+          scope: ['https://purl.imsglobal.org/spec/lti-ags/scope/score'],
+          lineitems: `${PLATFORM_URL}/api/lti/13/ags/courses/demo_course/lineitems`
+        }
+      };
+
+      if (type === 'deeplink') {
+        payload['https://purl.imsglobal.org/spec/lti-dl/claim/deep_linking_settings'] = {
+          deep_link_return_url: `${PLATFORM_URL}/api/lti/13/dl/callback`,
+          accept_types: ['ltiResourceLink'],
+          accept_multiple: true,
+          data: JSON.stringify({ courseId: 'demo_course', toolId: 'kinmen-tool' })
+        };
+      }
+
+      // 建立 JWT (無簽名)
+      const header = btoa(JSON.stringify({ alg: 'none', typ: 'JWT' })).replace(/=/g, '');
+      const body = btoa(JSON.stringify(payload)).replace(/=/g, '');
+      const jwt = `${header}.${body}.`;
+
+      log('生成 LTI Launch JWT', 'success');
+      log(`JWT 長度: ${jwt.length} 字元`);
+
+      // 建立表單並提交
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = `${TOOL_URL}/api/lti/launch`;
+      form.target = 'toolFrame';
+
+      const tokenInput = document.createElement('input');
+      tokenInput.type = 'hidden';
+      tokenInput.name = 'id_token';
+      tokenInput.value = jwt;
+      form.appendChild(tokenInput);
+
+      const stateInput = document.createElement('input');
+      stateInput.type = 'hidden';
+      stateInput.name = 'state';
+      stateInput.value = 'demo_state_' + Date.now();
+      form.appendChild(stateInput);
+
+      document.body.appendChild(form);
+
+      // 顯示 iframe
+      document.getElementById('launchCard').style.display = 'block';
+      document.getElementById('toolFrame').src = 'about:blank';
+
+      form.submit();
+      form.remove();
+
+      log('已發送 LTI Launch 請求', 'success');
+      log(`目標: ${TOOL_URL}/api/lti/launch`);
+    }
+
+    function closeLaunch() {
+      document.getElementById('launchCard').style.display = 'none';
+      document.getElementById('toolFrame').src = 'about:blank';
+      log('關閉 Tool 視窗');
+    }
+
+    function openInNewWindow() {
+      window.open(TOOL_URL, '_blank', 'width=1024,height=768');
+    }
+
+    // 測試完整流程
+    async function testFullFlow() {
+      log('====== 開始完整流程測試 ======', 'info');
+
+      // Step 1: 檢查服務
+      await checkServices();
+
+      // Step 2: 測試 Token 端點
+      log('測試 OAuth Token 端點...');
+      try {
+        const tokenRes = await fetch(`${PLATFORM_URL}/api/lti/13/token`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: 'grant_type=client_credentials&client_id=test&scope=https://purl.imsglobal.org/spec/lti-ags/scope/score'
+        });
+        const tokenData = await tokenRes.json();
+        if (tokenData.access_token) {
+          log('Token 端點正常 ✓', 'success');
+        } else {
+          log('Token 端點回應異常', 'warn');
+        }
+      } catch (e) {
+        log('Token 端點錯誤: ' + e.message, 'error');
+      }
+
+      // Step 3: 測試進度同步
+      log('測試進度同步端點...');
+      try {
+        const progressRes = await fetch(`${PLATFORM_URL}/api/lti/13/tools/kinmen-tool/progress`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: 'test_user',
+            unit: 'vocabulary',
+            progress: 75,
+            activityProgress: 'InProgress'
+          })
+        });
+        const progressData = await progressRes.json();
+        if (progressData.success) {
+          log('進度同步正常 ✓', 'success');
+        } else {
+          log('進度同步失敗: ' + progressData.message, 'warn');
+        }
+      } catch (e) {
+        log('進度同步錯誤: ' + e.message, 'error');
+      }
+
+      log('====== 流程測試完成 ======', 'info');
+    }
+
+    // 監聽 Tool 訊息
+    window.addEventListener('message', (event) => {
+      log(`收到訊息: ${JSON.stringify(event.data)}`);
+
+      if (event.data.type === 'lti_deep_linking_complete') {
+        log('Deep Linking 完成！新增了 ' + (event.data.items?.length || 0) + ' 個項目', 'success');
+        closeLaunch();
+      } else if (event.data.type === 'lti_progress_update') {
+        log(`進度更新: ${event.data.progress}%`, 'success');
+      }
+    });
+
+    // 頁面載入時檢查服務
+    checkServices();
+  </script>
+</body>
+</html>

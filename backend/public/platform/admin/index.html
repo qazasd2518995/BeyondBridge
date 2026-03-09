@@ -7755,10 +7755,26 @@
         }
 
         // Load Roles
+        function normalizeRolesPayload(payload) {
+            if (Array.isArray(payload)) return payload;
+            if (!payload || typeof payload !== 'object') return [];
+            const systemRoles = Array.isArray(payload.systemRoles) ? payload.systemRoles : [];
+            const customRoles = Array.isArray(payload.customRoles) ? payload.customRoles : [];
+            return [...systemRoles, ...customRoles];
+        }
+
         async function loadRoles() {
             try {
                 const result = await API.request('/roles');
-                const roles = result.success ? (result.data || []) : [];
+                const rolesRaw = result.success ? (result.data || []) : [];
+                const roles = normalizeRolesPayload(rolesRaw).map(role => ({
+                    ...role,
+                    id: role.id || role.roleId || role.shortName || '',
+                    name: role.name || role.nameEn || role.roleId || '-',
+                    description: role.description || '',
+                    isSystem: !!role.isSystem,
+                    userCount: role.userCount || 0
+                }));
                 const container = document.getElementById('rolesListContainer');
                 if (!container) return;
 
@@ -7805,10 +7821,68 @@
             }
         }
 
-        function selectRole(roleId) {
-            console.log('Select role:', roleId);
-            // TODO: Load role permissions
-            document.getElementById('permissionsContainer').innerHTML = '<p style="text-align: center; color: var(--gray-400);">${t('admin.roles.permissionsWip')}</p>';
+        async function selectRole(roleId) {
+            try {
+                const [roleResult, capResult] = await Promise.all([
+                    API.request(`/roles/${roleId}`),
+                    API.request('/roles/capabilities')
+                ]);
+
+                const container = document.getElementById('permissionsContainer');
+                if (!container) return;
+
+                if (!roleResult.success) {
+                    container.innerHTML = '<p style="text-align: center; color: var(--terracotta);">角色資料載入失敗</p>';
+                    return;
+                }
+
+                const role = roleResult.data || {};
+                const roleCaps = Array.isArray(role.capabilities) ? role.capabilities : [];
+                const capabilities = Array.isArray(capResult?.data?.capabilities)
+                    ? capResult.data.capabilities
+                    : [];
+
+                if (capabilities.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; color: var(--gray-400);">無可用權限清單</p>';
+                    return;
+                }
+
+                const grouped = {};
+                capabilities.forEach(cap => {
+                    const category = cap.category || 'system';
+                    if (!grouped[category]) grouped[category] = [];
+                    grouped[category].push(cap);
+                });
+
+                container.innerHTML = `
+                    <div style="margin-bottom: 0.75rem;">
+                        <strong>${role.name || role.nameEn || role.roleId || roleId}</strong>
+                        <p style="margin: 0.25rem 0 0; color: var(--gray-500); font-size: 0.875rem;">
+                            ${role.description || t('admin.roles.noDescription')}
+                        </p>
+                    </div>
+                    ${Object.entries(grouped).map(([category, items]) => `
+                        <div style="margin-bottom: 1rem; border: 1px solid var(--gray-200); border-radius: 8px; padding: 0.75rem;">
+                            <div style="font-weight: 600; margin-bottom: 0.5rem; text-transform: capitalize;">${category}</div>
+                            <div style="display: grid; gap: 0.4rem;">
+                                ${items.map(cap => `
+                                    <label style="display: flex; align-items: flex-start; gap: 0.5rem; font-size: 0.85rem; color: var(--gray-700);">
+                                        <input type="checkbox" disabled ${roleCaps.includes(cap.id) ? 'checked' : ''} />
+                                        <span>
+                                            <strong>${cap.name || cap.id}</strong>
+                                            <div style="font-size: 0.75rem; color: var(--gray-500);">${cap.description || ''}</div>
+                                        </span>
+                                    </label>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `).join('')}
+                `;
+            } catch (error) {
+                console.error('Select role error:', error);
+                const container = document.getElementById('permissionsContainer');
+                if (container) container.innerHTML = '<p style="text-align: center; color: var(--terracotta);">載入角色權限失敗</p>';
+            }
         }
 
         // Load Rubrics

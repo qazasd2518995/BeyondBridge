@@ -4352,8 +4352,51 @@
             }
         }
 
+        function getCurrentPlatformUser() {
+            if (typeof App !== 'undefined' && App.currentUser) return App.currentUser;
+            if (typeof API !== 'undefined' && API.getCurrentUser) return API.getCurrentUser();
+            return null;
+        }
+
+        function isAdminRole(user) {
+            return !!(user && (user.isAdmin || user.role === 'admin'));
+        }
+
+        function isStudentRole(user) {
+            return !!(user && user.role === 'student');
+        }
+
+        function isTeachingRole(user) {
+            if (!user) return false;
+            if (isAdminRole(user)) return true;
+            return ['manager', 'coursecreator', 'educator', 'trainer', 'creator', 'teacher', 'assistant'].includes(user.role);
+        }
+
+        function hasViewAccess(viewName) {
+            const user = getCurrentPlatformUser();
+            if (!user) return true;
+
+            const adminOnlyViews = new Set([
+                'rolesManagement', 'courseCategories', 'auditLogs', 'scormManager', 'ltiManager', 'h5pManager'
+            ]);
+            const teacherOnlyViews = new Set([
+                'classes', 'gradebookManagement', 'questionBank', 'rubrics', 'groupsManager', 'courseCompletionSettings'
+            ]);
+            const studentOnlyViews = new Set(['studentClasses']);
+
+            if (adminOnlyViews.has(viewName)) return isAdminRole(user);
+            if (teacherOnlyViews.has(viewName)) return isTeachingRole(user);
+            if (studentOnlyViews.has(viewName)) return isStudentRole(user);
+            return true;
+        }
+
         // Show different views
         function showView(viewName) {
+            if (!hasViewAccess(viewName)) {
+                showToast('您目前的角色無法存取此頁面');
+                viewName = 'dashboard';
+            }
+
             document.querySelectorAll('.dashboard').forEach(v => v.style.display = 'none');
 
             const viewMap = {
@@ -4471,7 +4514,7 @@
 
         // 導航到指定頁面並更新 active 狀態
         function navigateTo(element, viewName) {
-            event.preventDefault();
+            if (typeof event !== 'undefined' && event?.preventDefault) event.preventDefault();
             // 移除所有 nav-item 的 active 狀態
             document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
             // 設定當前項目為 active
@@ -5354,8 +5397,10 @@
                 }
             } else if (viewName === 'discussions') {
                 App.loadDiscussions();
-            } else if (viewName === 'classes' || viewName === 'studentClasses') {
-                App.loadClasses();
+            } else if (viewName === 'classes') {
+                if (typeof loadClasses === 'function') loadClasses();
+            } else if (viewName === 'studentClasses') {
+                if (typeof loadStudentClasses === 'function') loadStudentClasses();
             } else if (viewName === 'quizzes') {
                 App.loadQuizzes();
             } else if (viewName === 'settings') {
@@ -5410,7 +5455,7 @@
         // 載入橋隊列表
         async function loadClasses() {
             try {
-                const result = await API.classes.list();
+                const result = await API.classes.list('owned');
                 if (result.success) {
                     classesCache = result.data || [];
                     renderClassesList();
@@ -5424,11 +5469,7 @@
         // 渲染橋隊列表
         function renderClassesList() {
             const container = document.getElementById('classesListContainer');
-            const user = API.getCurrentUser();
-            const userId = user?.userId;
-
-            // 只顯示建橋者自己創建的橋隊
-            const filtered = classesCache.filter(c => c.teacherId === userId);
+            const filtered = classesCache;
 
             if (filtered.length === 0) {
                 container.innerHTML = `

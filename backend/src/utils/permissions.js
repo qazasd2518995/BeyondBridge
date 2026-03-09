@@ -1274,7 +1274,8 @@ async function createCustomRole(roleData) {
   const roleId = db.generateId('role');
 
   // Validate capabilities
-  const validCapabilities = roleData.capabilities.filter(cap => CAPABILITIES[cap]);
+  const requestedCapabilities = Array.isArray(roleData.capabilities) ? roleData.capabilities : [];
+  const validCapabilities = requestedCapabilities.filter(cap => CAPABILITIES[cap]);
 
   const role = {
     PK: 'ROLES',
@@ -1317,11 +1318,12 @@ async function updateCustomRole(roleId, updates) {
   const validUpdates = {};
   if (updates.name) validUpdates.name = updates.name;
   if (updates.nameEn) validUpdates.nameEn = updates.nameEn;
-  if (updates.description) validUpdates.description = updates.description;
-  if (updates.capabilities) {
-    validUpdates.capabilities = updates.capabilities.filter(cap => CAPABILITIES[cap]);
+  if (updates.description !== undefined) validUpdates.description = updates.description;
+  if (updates.capabilities !== undefined) {
+    const nextCapabilities = Array.isArray(updates.capabilities) ? updates.capabilities : [];
+    validUpdates.capabilities = nextCapabilities.filter(cap => CAPABILITIES[cap]);
   }
-  if (updates.sortOrder) validUpdates.sortOrder = updates.sortOrder;
+  if (updates.sortOrder !== undefined) validUpdates.sortOrder = updates.sortOrder;
 
   validUpdates.updatedAt = new Date().toISOString();
 

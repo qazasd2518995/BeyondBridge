@@ -301,8 +301,9 @@ const API = {
       });
     },
 
-    async getMyCourses() {
-      return API.request('/courses/my');
+    async getMyCourses(role = 'student') {
+      const qs = role ? `?role=${encodeURIComponent(role)}` : '';
+      return API.request(`/courses/my${qs}`);
     },
 
     async enroll(courseId, enrollmentKey = null) {
@@ -511,26 +512,127 @@ const API = {
 
   // ===== 班級 API =====
   classes: {
-    async list() {
-      return API.request('/classes');
+    normalizeMemberPayload(member = {}) {
+      const displayName = member.displayName || member.userName || member.name || '';
+      const email = member.email || member.userEmail || '';
+      return {
+        ...member,
+        displayName,
+        userName: member.userName || displayName,
+        email,
+        userEmail: member.userEmail || email
+      };
+    },
+
+    normalizeClassPayload(classData = {}) {
+      const classId = classData.classId || classData.id || '';
+      const name = classData.name || classData.className || '';
+      const members = Array.isArray(classData.members)
+        ? classData.members.map(member => this.normalizeMemberPayload(member))
+        : [];
+      const assignments = Array.isArray(classData.assignments) ? classData.assignments : [];
+
+      return {
+        ...classData,
+        classId,
+        id: classId,
+        name,
+        className: name,
+        description: classData.description || '',
+        subject: classData.subject || '',
+        teacherName: classData.teacherName || classData.instructorName || '',
+        members,
+        assignments,
+        memberCount: classData.memberCount ?? members.length,
+        assignmentCount: classData.assignmentCount ?? assignments.length
+      };
+    },
+
+    normalizeClassList(payload) {
+      if (!Array.isArray(payload)) return [];
+      return payload.map(cls => this.normalizeClassPayload(cls));
+    },
+
+    filterByScope(classes, options = {}) {
+      const user = API.getCurrentUser();
+      const scope = typeof options === 'string' ? options : options.scope;
+      const includeArchived = typeof options === 'object' && options.includeArchived === true;
+
+      let result = Array.isArray(classes) ? classes : [];
+
+      if (!includeArchived) {
+        result = result.filter(cls => cls.status !== 'archived');
+      }
+
+      if (!scope || !user) return result;
+
+      if (scope === 'owned') {
+        if (user.isAdmin) return result;
+        return result.filter(cls => cls.teacherId === user.userId);
+      }
+
+      if (scope === 'enrolled') {
+        if (user.isAdmin) return result;
+        return result.filter(cls => cls.isEnrolled === true || cls.teacherId !== user.userId);
+      }
+
+      return result;
+    },
+
+    async list(options = {}) {
+      const result = await API.request('/classes');
+      if (!result?.success) return result;
+
+      const normalized = this.normalizeClassList(result.data);
+      return {
+        ...result,
+        data: this.filterByScope(normalized, options)
+      };
     },
 
     async get(classId) {
-      return API.request(`/classes/${classId}`);
+      const result = await API.request(`/classes/${classId}`);
+      if (!result?.success) return result;
+      return {
+        ...result,
+        data: this.normalizeClassPayload(result.data || {})
+      };
     },
 
     async create(data) {
-      return API.request('/classes', {
+      const payload = { ...(data || {}) };
+      if (!payload.name && payload.className) {
+        payload.name = payload.className;
+      }
+      delete payload.className;
+
+      const result = await API.request('/classes', {
         method: 'POST',
-        body: data
+        body: payload
       });
+      if (!result?.success) return result;
+      return {
+        ...result,
+        data: this.normalizeClassPayload(result.data || {})
+      };
     },
 
     async update(classId, data) {
-      return API.request(`/classes/${classId}`, {
+      const payload = { ...(data || {}) };
+      if (!payload.name && payload.className) {
+        payload.name = payload.className;
+      }
+      delete payload.className;
+
+      const result = await API.request(`/classes/${classId}`, {
         method: 'PUT',
-        body: data
+        body: payload
       });
+      if (!result?.success) return result;
+      return {
+        ...result,
+        data: this.normalizeClassPayload(result.data || {})
+      };
     },
 
     async delete(classId) {
@@ -1159,17 +1261,19 @@ const API = {
     },
 
     async upload(file, folder = '') {
-      const formData = new FormData();
-      formData.append('file', file);
-      if (folder) formData.append('folder', folder);
+      const dataUrl = await this.fileToBase64(file);
+      const content = String(dataUrl).includes(',') ? String(dataUrl).split(',')[1] : String(dataUrl);
 
-      return fetch(`${API.baseUrl}/files/upload`, {
+      return API.request('/files/upload', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${API.accessToken}`
-        },
-        body: formData
-      }).then(res => res.json());
+        body: {
+          filename: file.name,
+          contentType: file.type || 'application/octet-stream',
+          size: file.size,
+          content,
+          folder
+        }
+      });
     },
 
     async delete(fileId) {
@@ -1197,12 +1301,77 @@ const API = {
 
   // ===== 角色權限 API =====
   roles: {
+    normalizeRolePayload(role = {}) {
+      const id = role.id || role.roleId || role.shortName || '';
+      return {
+        ...role,
+        id,
+        roleId: id,
+        shortName: role.shortName || role.roleId || role.id || role.nameEn || '',
+        name: role.name || role.nameEn || id,
+        description: role.description || '',
+        capabilities: Array.isArray(role.capabilities) ? role.capabilities : [],
+        isSystem: !!role.isSystem,
+        userCount: role.userCount || 0,
+        createdAt: role.createdAt || null
+      };
+    },
+
+    normalizeRoleList(payload) {
+      if (Array.isArray(payload)) {
+        return payload.map(role => this.normalizeRolePayload(role));
+      }
+
+      if (payload && typeof payload === 'object') {
+        const systemRoles = Array.isArray(payload.systemRoles) ? payload.systemRoles : [];
+        const customRoles = Array.isArray(payload.customRoles) ? payload.customRoles : [];
+        return [...systemRoles, ...customRoles]
+          .map(role => this.normalizeRolePayload(role))
+          .sort((a, b) => (a.sortOrder || 999) - (b.sortOrder || 999));
+      }
+
+      return [];
+    },
+
+    normalizeCapabilities(payload) {
+      let capabilities = [];
+
+      if (Array.isArray(payload)) {
+        capabilities = payload;
+      } else if (payload && Array.isArray(payload.capabilities)) {
+        capabilities = payload.capabilities;
+      } else if (payload && payload.grouped && typeof payload.grouped === 'object') {
+        capabilities = Object.values(payload.grouped).flat();
+      }
+
+      return capabilities
+        .map(cap => {
+          const id = cap.id || cap.name || cap.capability || '';
+          return {
+            ...cap,
+            id,
+            name: cap.name || cap.nameEn || id
+          };
+        })
+        .filter(cap => !!cap.id);
+    },
+
     async list() {
-      return API.request('/roles');
+      const result = await API.request('/roles');
+      if (!result?.success) return result;
+      return {
+        ...result,
+        data: this.normalizeRoleList(result.data)
+      };
     },
 
     async get(roleId) {
-      return API.request(`/roles/${roleId}`);
+      const result = await API.request(`/roles/${roleId}`);
+      if (!result?.success) return result;
+      return {
+        ...result,
+        data: this.normalizeRolePayload(result.data || {})
+      };
     },
 
     async create(data) {
@@ -1226,20 +1395,41 @@ const API = {
     },
 
     async getCapabilities() {
-      return API.request('/roles/capabilities');
+      const result = await API.request('/roles/capabilities');
+      if (!result?.success) return result;
+      return {
+        ...result,
+        data: this.normalizeCapabilities(result.data)
+      };
     },
 
-    async assignRole(courseId, userId, role) {
+    async assignRole(userIdOrCourseId, roleIdOrUserId, contextOrRole = {}) {
+      // 相容舊版：assignRole(courseId, userId, role)
+      if (typeof contextOrRole === 'string') {
+        return this.setCourseRole(userIdOrCourseId, roleIdOrUserId, contextOrRole);
+      }
+
+      const userId = userIdOrCourseId;
+      const roleId = roleIdOrUserId;
+      const context = contextOrRole || {};
+
       return API.request('/roles/assignments', {
         method: 'POST',
-        body: { courseId, userId, role }
+        body: { userId, roleId, ...context }
       });
     },
 
-    async removeRole(courseId, userId) {
-      return API.request('/roles/assignments', {
-        method: 'DELETE',
-        body: { courseId, userId }
+    async setCourseRole(courseId, userId, role) {
+      return API.request(`/roles/course/${courseId}/user/${userId}`, {
+        method: 'PUT',
+        body: { role }
+      });
+    },
+
+    async removeRole(assignmentId, userId) {
+      const qs = userId ? `?userId=${encodeURIComponent(userId)}` : '';
+      return API.request(`/roles/assignments/${encodeURIComponent(assignmentId)}${qs}`, {
+        method: 'DELETE'
       });
     },
 
@@ -1777,7 +1967,7 @@ const API = {
     async addMember(courseId, groupId, userId) {
       return API.request(`/courses/${courseId}/groups/${groupId}/members`, {
         method: 'POST',
-        body: { userId }
+        body: { userIds: [userId] }
       });
     },
 

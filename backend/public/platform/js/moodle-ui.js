@@ -4603,7 +4603,9 @@ const MoodleUI = {
       const status = result.data;
       if (!status.enabled) return '';
 
-      const progress = status.completedCriteria / status.totalCriteria * 100;
+      const progress = status.totalCriteria > 0
+        ? (status.completedCriteria / status.totalCriteria) * 100
+        : 0;
 
       return `
         <div class="completion-status-card">
@@ -4718,7 +4720,7 @@ const MoodleUI = {
       const result = await API.roles.list();
       const rolesList = document.getElementById('rolesList');
 
-      if (!result.success || !result.data?.length) {
+      if (!result.success || !Array.isArray(result.data) || result.data.length === 0) {
         rolesList.innerHTML = `
           <div class="empty-state-small">
             <p>${t('moodleRoles.noRoles')}</p>
@@ -4729,6 +4731,10 @@ const MoodleUI = {
 
       const roleIcons = {
         admin: '👑',
+        manager: '🛡️',
+        coursecreator: '🧩',
+        teacher: '📘',
+        assistant: '🧑‍🏫',
         educator: '📚',
         trainer: '🎓',
         creator: '✏️',
@@ -4738,8 +4744,8 @@ const MoodleUI = {
 
       rolesList.innerHTML = result.data.map(role => `
         <div class="role-item ${role.isSystem ? 'system-role' : ''}"
-             onclick="MoodleUI.selectRole('${role.id}')"
-             data-role-id="${role.id}">
+             onclick="MoodleUI.selectRole('${role.id || role.roleId}')"
+             data-role-id="${role.id || role.roleId}">
           <span class="role-icon">${roleIcons[role.shortName] || '🔐'}</span>
           <div class="role-info">
             <span class="role-name">${role.name}</span>
@@ -4774,7 +4780,10 @@ const MoodleUI = {
 
       const role = result.data;
       const capResult = await API.roles.getCapabilities();
-      const allCapabilities = capResult.success ? capResult.data : [];
+      const allCapabilities = (capResult.success && Array.isArray(capResult.data)) ? capResult.data : [];
+      const createdAtText = role.createdAt
+        ? new Date(role.createdAt).toLocaleDateString('zh-TW')
+        : '-';
 
       document.getElementById('roleDetailPanel').innerHTML = `
         <div class="role-detail-content">
@@ -4795,7 +4804,7 @@ const MoodleUI = {
             </div>
             <div class="info-row">
               <span class="label">${t('common.createdAt')}</span>
-              <span class="value">${new Date(role.createdAt).toLocaleDateString('zh-TW')}</span>
+              <span class="value">${createdAtText}</span>
             </div>
           </div>
 
@@ -4808,10 +4817,10 @@ const MoodleUI = {
 
           ${!role.isSystem ? `
             <div class="role-actions">
-              <button class="btn-secondary" onclick="MoodleUI.editRole('${role.id}')">
+              <button class="btn-secondary" onclick="MoodleUI.editRole('${role.id || role.roleId}')">
                 ${t('moodleRoles.editRole')}
               </button>
-              <button class="btn-danger" onclick="MoodleUI.deleteRole('${role.id}')">
+              <button class="btn-danger" onclick="MoodleUI.deleteRole('${role.id || role.roleId}')">
                 ${t('moodleRoles.deleteRole')}
               </button>
             </div>
@@ -4855,10 +4864,10 @@ const MoodleUI = {
           ${caps.map(cap => `
             <label class="capability-item ${isReadOnly ? 'readonly' : ''}">
               <input type="checkbox"
-                     ${roleCapabilities.includes(cap.name) ? 'checked' : ''}
+                     ${roleCapabilities.includes(cap.id) ? 'checked' : ''}
                      ${isReadOnly ? 'disabled' : ''}
-                     data-capability="${cap.name}">
-              <span class="cap-name">${cap.displayName || cap.name}</span>
+                     data-capability="${cap.id}">
+              <span class="cap-name">${cap.displayName || cap.name || cap.id}</span>
               <span class="cap-desc">${cap.description || ''}</span>
             </label>
           `).join('')}
@@ -4877,7 +4886,7 @@ const MoodleUI = {
 
     try {
       const capResult = await API.roles.getCapabilities();
-      const allCapabilities = capResult.success ? capResult.data : [];
+      const allCapabilities = (capResult.success && Array.isArray(capResult.data)) ? capResult.data : [];
 
       modal.innerHTML = `
         <div class="modal-content modal-lg">
@@ -4938,7 +4947,7 @@ const MoodleUI = {
     try {
       const result = await API.roles.create({
         name: formData.get('name'),
-        shortName: formData.get('shortName'),
+        nameEn: formData.get('shortName') || formData.get('name'),
         description: formData.get('description'),
         capabilities
       });
@@ -5712,13 +5721,15 @@ const MoodleUI = {
   },
 
   renderBadgesPage(container, badges, stats) {
+    const user = (typeof API !== 'undefined' && API.getCurrentUser) ? API.getCurrentUser() : null;
+    const canManage = !!(user && (user.isAdmin || ['manager', 'coursecreator', 'educator', 'trainer', 'creator', 'teacher', 'assistant'].includes(user.role)));
     const filtered = this.currentBadgesFilter === 'all' ? badges :
       badges.filter(b => b.status === this.currentBadgesFilter || b.type === this.currentBadgesFilter);
 
     container.innerHTML = `
       <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
         <h2 style="margin:0;">${t('moodleBadges.title')}</h2>
-        <button onclick="MoodleUI.openCreateBadgeModal()" class="btn-primary">${t('moodleBadges.createBadge')}</button>
+        ${canManage ? `<button onclick="MoodleUI.openCreateBadgeModal()" class="btn-primary">${t('moodleBadges.createBadge')}</button>` : ''}
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:1rem;margin-bottom:1.5rem;">
         <div style="padding:1rem;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border-radius:8px;">
@@ -5768,6 +5779,8 @@ const MoodleUI = {
     if (!container) return;
     container.innerHTML = `<div class="loading">${t('common.loading')}</div>`;
     try {
+      const user = (typeof API !== 'undefined' && API.getCurrentUser) ? API.getCurrentUser() : null;
+      const canManage = !!(user && (user.isAdmin || ['manager', 'coursecreator', 'educator', 'trainer', 'creator', 'teacher', 'assistant'].includes(user.role)));
       const [badgeResult, recipientsResult] = await Promise.all([
         API.badges.get(badgeId),
         API.badges.getRecipients(badgeId)
@@ -5793,10 +5806,12 @@ const MoodleUI = {
               <span>${t('moodleBadges.issuedLabel')}：${b.issuedCount || 0}</span>
             </div>
           </div>
-          <div style="display:flex;flex-direction:column;gap:0.5rem;">
-            <button onclick="MoodleUI.openIssueBadgeModal('${badgeId}')" class="btn-primary btn-sm">${t('moodleBadges.issueBadge')}</button>
-            <button onclick="MoodleUI.deleteBadge('${badgeId}')" class="btn-sm" style="background:#fee2e2;color:#dc2626;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;">${t('moodleGradeCategory.delete')}</button>
-          </div>
+          ${canManage ? `
+            <div style="display:flex;flex-direction:column;gap:0.5rem;">
+              <button onclick="MoodleUI.openIssueBadgeModal('${badgeId}')" class="btn-primary btn-sm">${t('moodleBadges.issueBadge')}</button>
+              <button onclick="MoodleUI.deleteBadge('${badgeId}')" class="btn-sm" style="background:#fee2e2;color:#dc2626;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;">${t('moodleGradeCategory.delete')}</button>
+            </div>
+          ` : ''}
         </div>
         ${(b.criteria || []).length > 0 ? `
           <div style="margin-bottom:1.5rem;padding:1rem;background:var(--gray-50);border-radius:8px;">
@@ -5819,7 +5834,7 @@ const MoodleUI = {
                     <td style="padding:8px;border:1px solid var(--gray-200);">${r.userName || r.userId || '—'}</td>
                     <td style="padding:8px;border:1px solid var(--gray-200);">${this.formatDate(r.issuedAt || r.createdAt, 'datetime')}</td>
                     <td style="padding:8px;text-align:center;border:1px solid var(--gray-200);">
-                      <button onclick="MoodleUI.revokeBadge('${badgeId}','${r.userId}')" class="btn-sm" style="background:#fee2e2;color:#dc2626;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:0.8rem;">${t('moodleBadges.revoke')}</button>
+                      ${canManage ? `<button onclick="MoodleUI.revokeBadge('${badgeId}','${r.userId}')" class="btn-sm" style="background:#fee2e2;color:#dc2626;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:0.8rem;">${t('moodleBadges.revoke')}</button>` : ''}
                     </td>
                   </tr>
                 `).join('')}
@@ -5981,6 +5996,8 @@ const MoodleUI = {
   },
 
   renderLearningPathsPage(container, paths) {
+    const user = (typeof API !== 'undefined' && API.getCurrentUser) ? API.getCurrentUser() : null;
+    const canManage = !!(user && (user.isAdmin || ['manager', 'coursecreator', 'educator', 'trainer', 'creator', 'teacher', 'assistant'].includes(user.role)));
     const difficultyLabels = { beginner: t('moodlePaths.beginner'), intermediate: t('moodlePaths.intermediate'), advanced: t('moodlePaths.advanced') };
     const difficultyColors = { beginner: '#dcfce7', intermediate: '#fef3c7', advanced: '#fee2e2' };
     const difficultyText = { beginner: '#166534', intermediate: '#92400e', advanced: '#dc2626' };
@@ -5988,7 +6005,7 @@ const MoodleUI = {
     container.innerHTML = `
       <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
         <h2 style="margin:0;">${t('moodlePaths.title')}</h2>
-        <button onclick="MoodleUI.openCreateLearningPathModal()" class="btn-primary">${t('moodlePaths.create')}</button>
+        ${canManage ? `<button onclick="MoodleUI.openCreateLearningPathModal()" class="btn-primary">${t('moodlePaths.create')}</button>` : ''}
       </div>
       <div class="card-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1rem;">
         ${paths.length === 0 ? `<p style="color:var(--gray-400);grid-column:1/-1;text-align:center;padding:3rem;">${t('moodlePaths.noPaths')}</p>` :
@@ -6027,6 +6044,8 @@ const MoodleUI = {
     if (!container) return;
     container.innerHTML = `<div class="loading">${t('common.loading')}</div>`;
     try {
+      const user = (typeof API !== 'undefined' && API.getCurrentUser) ? API.getCurrentUser() : null;
+      const canManage = !!(user && (user.isAdmin || ['manager', 'coursecreator', 'educator', 'trainer', 'creator', 'teacher', 'assistant'].includes(user.role)));
       const [pathResult, reportResult] = await Promise.all([
         API.learningPaths.get(pathId),
         API.learningPaths.getReport(pathId).catch(() => ({ success: false }))
@@ -6048,7 +6067,7 @@ const MoodleUI = {
           </div>
           <div style="display:flex;gap:0.5rem;">
             <button onclick="MoodleUI.enrollLearningPath('${pathId}')" class="btn-primary btn-sm">${t('moodlePaths.enroll')}</button>
-            <button onclick="MoodleUI.deleteLearningPath('${pathId}')" class="btn-sm" style="background:#fee2e2;color:#dc2626;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;">${t('moodleGradeCategory.delete')}</button>
+            ${canManage ? `<button onclick="MoodleUI.deleteLearningPath('${pathId}')" class="btn-sm" style="background:#fee2e2;color:#dc2626;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;">${t('moodleGradeCategory.delete')}</button>` : ''}
           </div>
         </div>
         ${progress != null ? `
@@ -8110,7 +8129,7 @@ const MoodleUI = {
       ]);
       if (!roleResult.success) { showToast(t('moodleRoles.loadFailed')); return; }
       const role = roleResult.data;
-      const allCapabilities = capResult.success ? capResult.data : [];
+      const allCapabilities = (capResult.success && Array.isArray(capResult.data)) ? capResult.data : [];
 
       this.createModal('editRoleModal', t('moodleRoles.editRoleTitle'), `
         <form onsubmit="event.preventDefault(); MoodleUI.saveRole('${roleId}')">
@@ -8127,8 +8146,9 @@ const MoodleUI = {
             <div class="capabilities-checkboxes" style="max-height:300px;overflow-y:auto">
               ${allCapabilities.map(cap => `
                 <label style="display:block;padding:4px 0">
-                  <input type="checkbox" name="capabilities" value="${cap}"
-                    ${(role.capabilities || []).includes(cap) ? 'checked' : ''}> ${cap}
+                  <input type="checkbox" name="capabilities" value="${cap.id}"
+                    ${(role.capabilities || []).includes(cap.id) ? 'checked' : ''}>
+                  ${cap.name || cap.id}
                 </label>
               `).join('')}
             </div>
