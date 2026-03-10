@@ -2404,15 +2404,28 @@
 
         .activity-bottom-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
             gap: 1rem;
+            align-items: start;
+        }
+
+        .activity-heatmap-card {
+            overflow: visible;
+        }
+
+        .heatmap-scroll {
+            width: 100%;
+            overflow: auto;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 0.25rem;
         }
 
         .heatmap-container {
             display: grid;
-            grid-template-columns: auto repeat(24, 1fr);
-            gap: 2px;
+            grid-template-columns: 56px repeat(24, minmax(24px, 1fr));
+            gap: 3px;
             font-size: 0.7rem;
+            min-width: 760px;
         }
 
         .heatmap-row-label {
@@ -2420,6 +2433,7 @@
             text-align: right;
             color: var(--text-secondary);
             font-size: 0.7rem;
+            white-space: nowrap;
         }
 
         .heatmap-cell {
@@ -4061,13 +4075,15 @@
 
                 <!-- Activity Heatmap and Top Users -->
                 <div class="activity-bottom-grid">
-                    <div class="card">
+                    <div class="card activity-heatmap-card">
                         <div class="card-header">
                             <h3 data-i18n="admin.userActivity.heatmap">活動時段熱力圖</h3>
                         </div>
                         <div class="card-body">
-                            <div class="heatmap-container" id="activityHeatmap">
-                                <!-- Heatmap will be rendered here -->
+                            <div class="heatmap-scroll">
+                                <div class="heatmap-container" id="activityHeatmap">
+                                    <!-- Heatmap will be rendered here -->
+                                </div>
                             </div>
                             <div class="heatmap-legend">
                                 <span data-i18n="admin.userActivity.less">較少</span>
@@ -7955,8 +7971,11 @@
         // Load Audit Logs
         async function loadAuditLogs() {
             try {
-                const result = await API.request('/audit-logs');
-                const logs = result.success ? result.data : [];
+                const result = await API.auditLogs.list({ limit: 100 });
+                const payload = result?.success ? result.data : null;
+                const logs = Array.isArray(payload)
+                    ? payload
+                    : (Array.isArray(payload?.logs) ? payload.logs : []);
                 const tbody = document.getElementById('auditLogsTableBody');
                 if (!tbody) return;
 
@@ -7975,11 +7994,11 @@
 
                 tbody.innerHTML = logs.slice(0, 100).map(log => `
                     <tr>
-                        <td>${new Date(log.timestamp).toLocaleString('zh-TW')}</td>
+                        <td>${new Date(log.timestamp || log.createdAt || Date.now()).toLocaleString('zh-TW')}</td>
                         <td>${log.userName || log.userId}</td>
-                        <td><span class="badge badge-info">${actionLabels[log.action] || log.action}</span></td>
-                        <td>${log.resourceType || '-'}</td>
-                        <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis;">${log.details || '-'}</td>
+                        <td><span class="badge badge-info">${actionLabels[log.action] || log.action || log.eventType || '-'}</span></td>
+                        <td>${log.resourceType || log.targetType || '-'}</td>
+                        <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis;">${log.details || log.description || '-'}</td>
                     </tr>
                 `).join('');
             } catch (error) {
@@ -7999,34 +8018,45 @@
                     const { status, services, system } = result.data;
 
                     // 更新服務狀態卡片
-                    updateStatusCard('API', services.api);
-                    updateStatusCard('DB', services.database);
-                    updateStatusCard('Storage', services.storage);
+                    updateStatusCard('API', services?.api);
+                    updateStatusCard('DB', services?.database);
+                    updateStatusCard('Storage', services?.storage);
 
                     // 更新記憶體狀態
-                    const memoryUsed = system.memory.heapUsed;
-                    const memoryTotal = system.memory.heapTotal;
-                    const memoryPercent = Math.round((memoryUsed / memoryTotal) * 100);
+                    const memory = system?.memory || {};
+                    const rawUsed = Number(memory.heapUsed ?? memory.used ?? 0);
+                    const rawTotal = Number(memory.heapTotal ?? memory.total ?? 0);
+                    const hasByteValues = rawUsed > 1024 * 1024 || rawTotal > 1024 * 1024;
+                    const memoryUsed = hasByteValues ? (rawUsed / 1024 / 1024) : rawUsed;
+                    const memoryTotal = hasByteValues ? (rawTotal / 1024 / 1024) : rawTotal;
+                    const fallbackPercent = (rawTotal > 0) ? Math.round((rawUsed / rawTotal) * 100) : 0;
+                    const memoryPercent = Math.min(100, Math.max(0, Number(memory.percent ?? fallbackPercent) || 0));
 
                     document.getElementById('memoryStatus').textContent = `${memoryPercent}%`;
                     document.getElementById('memoryPercent').textContent = `${memoryPercent}%`;
                     document.getElementById('memoryBar').style.width = `${memoryPercent}%`;
                     document.getElementById('memoryDetail').textContent =
-                        t('admin.systemMonitor.memoryUsage', { used: (memoryUsed / 1024 / 1024).toFixed(1), total: (memoryTotal / 1024 / 1024).toFixed(1) });
+                        t('admin.systemMonitor.memoryUsage', { used: memoryUsed.toFixed(1), total: memoryTotal.toFixed(1) });
 
                     // 根據使用率設定顏色
                     const memoryBar = document.getElementById('memoryBar');
+                    const memoryStatus = document.getElementById('memoryStatus');
                     memoryBar.classList.remove('warning', 'danger');
+                    memoryStatus.classList.remove('warning');
                     if (memoryPercent > 80) {
                         memoryBar.classList.add('danger');
-                        document.getElementById('memoryStatus').classList.add('warning');
+                        memoryStatus.classList.add('warning');
                     } else if (memoryPercent > 60) {
                         memoryBar.classList.add('warning');
                     }
 
                     // 更新運行時間
-                    document.getElementById('uptimeValue').textContent = formatUptime(system.uptime);
-                    document.getElementById('nodeVersion').textContent = system.nodeVersion;
+                    const uptimeRaw = system?.uptime;
+                    const uptimeSeconds = (typeof uptimeRaw === 'number')
+                        ? uptimeRaw
+                        : (Number(uptimeRaw?.seconds) || (Number(uptimeRaw?.hours) || 0) * 3600 + (Number(uptimeRaw?.minutes) || 0) * 60);
+                    document.getElementById('uptimeValue').textContent = formatUptime(uptimeSeconds);
+                    document.getElementById('nodeVersion').textContent = system?.nodeVersion || '-';
                 }
 
                 // 載入錯誤日誌
@@ -8036,7 +8066,7 @@
             }
         }
 
-        function updateStatusCard(type, status) {
+        function updateStatusCard(type, statusInput) {
             const cardId = `statusCard${type}`;
             const statusId = type.toLowerCase() + 'Status';
             const card = document.getElementById(cardId);
@@ -8045,6 +8075,7 @@
             if (!card || !statusEl) return;
 
             const icon = card.querySelector('.status-icon');
+            const status = (typeof statusInput === 'string') ? statusInput : statusInput?.status;
 
             // 移除所有狀態類別
             icon.classList.remove('healthy', 'warning', 'error');
@@ -8054,7 +8085,7 @@
                 icon.classList.add('healthy');
                 statusEl.classList.add('healthy');
                 statusEl.textContent = t('admin.systemMonitor.running');
-            } else if (status === 'warning') {
+            } else if (status === 'warning' || status === 'degraded') {
                 icon.classList.add('warning');
                 statusEl.classList.add('warning');
                 statusEl.textContent = t('admin.systemMonitor.warning');
@@ -8066,9 +8097,10 @@
         }
 
         function formatUptime(seconds) {
-            const days = Math.floor(seconds / 86400);
-            const hours = Math.floor((seconds % 86400) / 3600);
-            const minutes = Math.floor((seconds % 3600) / 60);
+            const safeSeconds = Number(seconds) || 0;
+            const days = Math.floor(safeSeconds / 86400);
+            const hours = Math.floor((safeSeconds % 86400) / 3600);
+            const minutes = Math.floor((safeSeconds % 3600) / 60);
 
             if (days > 0) {
                 return t('admin.systemMonitor.uptimeDays', { days, hours });
