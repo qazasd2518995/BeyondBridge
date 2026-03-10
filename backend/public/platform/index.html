@@ -51,6 +51,15 @@
             --danger: #F56565;
             --info: #4299E1;
 
+            /* 語意表面 / 文字色 */
+            --text-primary: var(--charcoal);
+            --text-secondary: var(--gray-500);
+            --surface-light: #F2F6FC;
+            --surface-soft: #EBF1F8;
+            --blue: #2B6CB0;
+            --blue-light: rgba(43, 108, 176, 0.14);
+            --sand-light: rgba(197, 208, 220, 0.38);
+
             /* 圓角規範 */
             --radius-sm: 4px;
             --radius-md: 8px;
@@ -89,6 +98,25 @@
             background: linear-gradient(135deg, var(--cream) 0%, var(--cream-dark) 100%);
             color: var(--charcoal);
             line-height: 1.6;
+        }
+
+        :where(
+            a,
+            button,
+            input,
+            select,
+            textarea,
+            .nav-item,
+            .icon-btn,
+            .quick-action-btn,
+            .teacher-action-btn,
+            .card-action,
+            .btn-primary,
+            .btn-sm,
+            .btn-icon
+        ):focus-visible {
+            outline: 2px solid var(--olive);
+            outline-offset: 2px;
         }
 
         /* Layout */
@@ -801,6 +829,664 @@
             font-weight: 600;
         }
 
+        .quick-actions.tiles {
+            gap: 0.75rem;
+            margin-top: 0;
+        }
+
+        .quick-action-btn.tile {
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            gap: 0.5rem;
+            min-height: 108px;
+            padding: 1rem;
+            border-width: 1px;
+            transform: none;
+            background: linear-gradient(180deg, var(--surface-light) 0%, var(--white) 100%);
+            color: var(--text-primary);
+        }
+
+        .quick-action-btn.tile::before {
+            width: 100%;
+            height: 3px;
+            transform: scaleX(0);
+            transform-origin: left;
+        }
+
+        .quick-action-btn.tile:hover {
+            transform: translateY(-2px);
+            color: var(--olive-deep);
+            border-color: var(--olive-light);
+            background: linear-gradient(180deg, var(--white) 0%, var(--surface-light) 100%);
+        }
+
+        .quick-action-btn.tile:hover::before {
+            transform: scaleX(1);
+        }
+
+        .quick-action-btn.tile svg {
+            width: 24px;
+            height: 24px;
+            margin-bottom: 0.25rem;
+        }
+
+        .quick-action-btn.tile span {
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .section-card {
+            margin-bottom: 1.5rem;
+        }
+
+        .card-accent-terracotta {
+            border-left: 4px solid var(--terracotta);
+        }
+
+        .card-accent-olive {
+            border-left: 4px solid var(--olive);
+        }
+
+        .section-title-inline {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .section-title-inline svg {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+        }
+
+        .status-count {
+            background: var(--terracotta);
+            color: var(--white);
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            line-height: 1.2;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+        }
+
+        .empty-state.compact {
+            padding: 1.5rem;
+        }
+
+        .empty-state svg {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 0.5rem;
+            opacity: 0.5;
+        }
+
+        .empty-state-link {
+            color: var(--olive);
+            text-decoration: underline;
+            text-underline-offset: 2px;
+            font-weight: 500;
+        }
+
+        .badges-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 1rem;
+        }
+
+        .badges-grid .empty-state {
+            grid-column: 1 / -1;
+        }
+
+        .weekly-stats {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 1rem;
+        }
+
+        .weekly-stat-item {
+            background: linear-gradient(180deg, var(--surface-light) 0%, var(--white) 100%);
+            border: 1px solid var(--sand);
+            border-radius: var(--radius-md);
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .weekly-stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--olive);
+        }
+
+        .weekly-stat-value.tone-terracotta { color: var(--terracotta); }
+        .weekly-stat-value.tone-blue { color: var(--blue); }
+        .weekly-stat-value.tone-success { color: var(--success); }
+
+        .weekly-stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        .pending-tasks-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 1rem;
+        }
+
+        .pending-task-item {
+            border: 1px solid var(--sand);
+            border-radius: var(--radius-lg);
+            padding: 1.25rem;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition-base);
+        }
+
+        .pending-task-item:hover {
+            transform: translateY(-3px);
+            border-color: var(--olive-light);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .pending-task-item.tone-terracotta {
+            background: linear-gradient(135deg, rgba(26, 107, 74, 0.14) 0%, var(--white) 100%);
+        }
+
+        .pending-task-item.tone-blue {
+            background: linear-gradient(135deg, rgba(43, 108, 176, 0.14) 0%, var(--white) 100%);
+        }
+
+        .pending-task-item.tone-sand {
+            background: linear-gradient(135deg, var(--sand-light) 0%, var(--white) 100%);
+        }
+
+        .pending-task-item.tone-olive {
+            background: linear-gradient(135deg, rgba(45, 43, 107, 0.14) 0%, var(--white) 100%);
+        }
+
+        .pending-task-count {
+            font-size: 2rem;
+            font-weight: 700;
+            line-height: 1;
+            color: var(--olive);
+        }
+
+        .pending-task-count.tone-terracotta { color: var(--terracotta); }
+        .pending-task-count.tone-blue { color: var(--blue); }
+        .pending-task-count.tone-sand { color: var(--olive-deep); }
+        .pending-task-count.tone-olive { color: var(--olive); }
+
+        .pending-task-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 0.35rem;
+        }
+
+        .teacher-quick-actions {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.75rem;
+        }
+
+        .teacher-action-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            width: 100%;
+            border: 1px solid var(--sand);
+            border-radius: var(--radius-md);
+            padding: 1rem;
+            cursor: pointer;
+            text-align: left;
+            background: linear-gradient(180deg, var(--surface-light) 0%, var(--white) 100%);
+            color: var(--text-primary);
+            transition: var(--transition-base);
+        }
+
+        .teacher-action-btn:hover {
+            transform: translateY(-2px);
+            border-color: var(--olive-light);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .teacher-action-btn svg {
+            width: 24px;
+            height: 24px;
+            flex-shrink: 0;
+        }
+
+        .teacher-action-btn span {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .teacher-action-btn.tone-olive { background: linear-gradient(135deg, rgba(45, 43, 107, 0.16) 0%, var(--white) 100%); }
+        .teacher-action-btn.tone-terracotta { background: linear-gradient(135deg, rgba(26, 107, 74, 0.16) 0%, var(--white) 100%); }
+        .teacher-action-btn.tone-blue { background: linear-gradient(135deg, rgba(43, 108, 176, 0.16) 0%, var(--white) 100%); }
+        .teacher-action-btn.tone-sand { background: linear-gradient(135deg, var(--sand-light) 0%, var(--white) 100%); }
+
+        .card-body-flush {
+            padding: 0;
+        }
+
+        .bridge-view-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .bridge-view-description {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .bridge-primary-btn,
+        .bridge-secondary-btn {
+            border: none;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            transition: var(--transition-base);
+        }
+
+        .bridge-primary-btn {
+            background: linear-gradient(135deg, var(--olive) 0%, var(--olive-deep) 100%);
+            color: var(--cream);
+            box-shadow: 0 2px 8px rgba(45, 43, 107, 0.24);
+        }
+
+        .bridge-primary-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .bridge-secondary-btn {
+            background: var(--gray-200);
+            color: var(--gray-700, #374151);
+        }
+
+        .bridge-secondary-btn:hover {
+            background: var(--gray-300);
+        }
+
+        .bridge-primary-btn svg,
+        .bridge-secondary-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .bridge-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--gray-400);
+        }
+
+        .bridge-state svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .bridge-state-title {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .bridge-state-desc {
+            font-size: 0.9rem;
+            color: var(--gray-400);
+        }
+
+        .bridge-state-error {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--gray-400);
+        }
+
+        .bridge-class-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.25rem;
+        }
+
+        .bridge-class-card {
+            background: var(--white);
+            border-radius: var(--radius-xl);
+            overflow: hidden;
+            border: 1px solid var(--gray-100);
+            box-shadow: var(--shadow-sm);
+            cursor: pointer;
+            transition: var(--transition-base);
+        }
+
+        .bridge-class-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+            border-color: var(--sand);
+        }
+
+        .bridge-class-card-accent {
+            height: 8px;
+        }
+
+        .bridge-class-card-body {
+            padding: 1.5rem;
+        }
+
+        .bridge-class-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .bridge-class-card-title {
+            font-size: 1.15rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+            color: var(--charcoal);
+        }
+
+        .bridge-class-card-subject {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .bridge-class-enrolled {
+            background: var(--olive);
+            color: var(--white);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .bridge-class-card-desc {
+            font-size: 0.9rem;
+            color: var(--gray-600);
+            margin-bottom: 1rem;
+            line-height: 1.5;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .bridge-class-card-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.75rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--gray-100);
+        }
+
+        .bridge-class-stats {
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+            flex-wrap: wrap;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .bridge-class-stat {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .bridge-class-stat svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .bridge-class-teacher {
+            font-size: 0.8rem;
+            color: var(--gray-400);
+            white-space: nowrap;
+        }
+
+        .bridge-student-class-card {
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            border: 1px solid var(--gray-100);
+            cursor: pointer;
+            transition: var(--transition-base);
+        }
+
+        .bridge-student-class-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-sm);
+            border-color: var(--sand);
+        }
+
+        .bridge-student-class-main {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .bridge-student-class-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--olive) 0%, var(--olive-light) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--cream);
+            flex-shrink: 0;
+        }
+
+        .bridge-student-class-icon svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .bridge-student-class-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .bridge-student-class-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+            color: var(--charcoal);
+        }
+
+        .bridge-student-class-subject {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .bridge-student-class-teacher {
+            color: var(--gray-400);
+            font-size: 0.8rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .bridge-student-class-teacher svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        .bridge-student-class-footer {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--gray-100);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .bridge-student-class-joined {
+            font-size: 0.8rem;
+            color: var(--gray-400);
+        }
+
+        .bridge-student-class-link {
+            font-size: 0.8rem;
+            color: var(--olive);
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .bridge-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .bridge-modal-overlay.open {
+            display: flex;
+        }
+
+        .bridge-modal-panel {
+            width: min(420px, 100%);
+            background: var(--cream);
+            border-radius: var(--radius-xl);
+            overflow: hidden;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .bridge-modal-panel.wide {
+            width: min(550px, 100%);
+        }
+
+        .bridge-modal-header {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .bridge-modal-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--charcoal);
+        }
+
+        .bridge-modal-close {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0.5rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            color: var(--gray-600);
+        }
+
+        .bridge-modal-close:hover {
+            background: var(--gray-100);
+        }
+
+        .bridge-modal-close svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .bridge-modal-body {
+            padding: 2rem;
+        }
+
+        .bridge-modal-desc {
+            margin-bottom: 1.25rem;
+            color: var(--gray-600);
+            font-size: 0.95rem;
+        }
+
+        .bridge-modal-footer {
+            padding: 1rem 2rem;
+            border-top: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+        }
+
+        .bridge-form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .bridge-form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--gray-600);
+            font-size: 0.9rem;
+        }
+
+        .bridge-form-control {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            font-size: 1rem;
+            background: var(--white);
+            color: var(--charcoal);
+            font-family: inherit;
+        }
+
+        .bridge-form-control:focus-visible {
+            outline: 2px solid var(--olive);
+            outline-offset: 1px;
+            border-color: var(--olive);
+        }
+
+        .bridge-form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 1rem;
+        }
+
+        .bridge-join-code-input {
+            width: 100%;
+            padding: 1rem;
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            font-size: 1.5rem;
+            text-align: center;
+            letter-spacing: 0.25rem;
+            text-transform: uppercase;
+            background: var(--white);
+            color: var(--charcoal);
+        }
+
         /* Calendar Widget */
         .calendar-header {
             display: flex;
@@ -1150,6 +1836,14 @@
             .resource-grid {
                 grid-template-columns: repeat(2, 1fr);
             }
+
+            .pending-tasks-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .bridge-class-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
         }
 
         @media (max-width: 768px) {
@@ -1173,6 +1867,34 @@
 
             .resource-grid {
                 grid-template-columns: 1fr;
+            }
+
+            .quick-actions,
+            .weekly-stats,
+            .teacher-quick-actions,
+            .pending-tasks-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .bridge-view-toolbar {
+                align-items: stretch;
+            }
+
+            .bridge-primary-btn,
+            .bridge-secondary-btn {
+                justify-content: center;
+            }
+
+            .bridge-class-grid,
+            .bridge-form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .bridge-modal-header,
+            .bridge-modal-body,
+            .bridge-modal-footer {
+                padding-left: 1rem;
+                padding-right: 1rem;
             }
 
             .search-box {
@@ -1601,23 +2323,23 @@
                 <div id="urgentAlertContainer"></div>
 
                 <!-- Urgent Deadlines Section - Only for Students -->
-                <div class="urgent-deadlines-section" id="urgentDeadlinesSection" style="margin-bottom: 1.5rem;">
-                    <div class="card" style="border-left: 4px solid var(--terracotta);">
+                <div class="urgent-deadlines-section section-card" id="urgentDeadlinesSection">
+                    <div class="card card-accent-terracotta">
                         <div class="card-header">
-                            <h2 class="card-title" style="display: flex; align-items: center; gap: 0.5rem;">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="var(--terracotta)" stroke-width="2" style="width: 20px; height: 20px;">
+                            <h2 class="card-title section-title-inline">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="var(--terracotta)" stroke-width="2">
                                     <circle cx="12" cy="12" r="10"/>
                                     <line x1="12" y1="8" x2="12" y2="12"/>
                                     <line x1="12" y1="16" x2="12.01" y2="16"/>
                                 </svg>
                                 <span data-i18n="dashboard.urgentDeadlines">即將截止</span>
                             </h2>
-                            <span class="deadline-count" style="background: var(--terracotta); color: white; padding: 2px 10px; border-radius: 12px; font-size: 0.75rem;" id="deadlineCount">0 項</span>
+                            <span class="deadline-count status-count" id="deadlineCount">0 項</span>
                         </div>
                         <div class="card-body">
                             <div class="deadline-list" id="deadlineList">
-                                <div class="empty-state" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width: 48px; height: 48px; margin-bottom: 0.5rem; opacity: 0.5;">
+                                <div class="empty-state">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                                         <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
                                         <polyline points="22,4 12,14.01 9,11.01"/>
                                     </svg>
@@ -1687,10 +2409,10 @@
                     <!-- Left Column -->
                     <div>
                         <!-- Continue Learning Section -->
-                        <div class="card" style="margin-bottom: 1.5rem;">
+                        <div class="card section-card">
                             <div class="card-header">
-                                <h2 class="card-title" style="display: flex; align-items: center; gap: 0.5rem;">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="var(--olive)" stroke-width="2" style="width: 20px; height: 20px;">
+                                <h2 class="card-title section-title-inline">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="var(--olive)" stroke-width="2">
                                         <polygon points="5,3 19,12 5,21"/>
                                     </svg>
                                     <span data-i18n="dashboard.continueLearning">繼續學習</span>
@@ -1699,13 +2421,13 @@
                             </div>
                             <div class="card-body">
                                 <div class="course-list">
-                                    <div class="empty-state" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width: 48px; height: 48px; margin-bottom: 0.5rem; opacity: 0.5;">
+                                    <div class="empty-state">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                                             <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/>
                                             <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>
                                         </svg>
                                         <p data-i18n="dashboard.noCourses">尚無進行中的課程</p>
-                                        <a href="#" data-i18n="dashboard.browseCourses" onclick="showView('moodleCourses'); MoodleUI.loadCourses();" style="color: var(--olive); text-decoration: underline;">瀏覽課程</a>
+                                        <a href="#" class="empty-state-link" data-i18n="dashboard.browseCourses" onclick="showView('moodleCourses'); MoodleUI.loadCourses();">瀏覽課程</a>
                                     </div>
                                 </div>
                             </div>
@@ -1714,8 +2436,8 @@
                         <!-- Recent Achievements Section -->
                         <div class="card" id="recentAchievementsCard">
                             <div class="card-header">
-                                <h2 class="card-title" style="display: flex; align-items: center; gap: 0.5rem;">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" style="width: 20px; height: 20px;">
+                                <h2 class="card-title section-title-inline">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2">
                                         <circle cx="12" cy="8" r="6"/>
                                         <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/>
                                     </svg>
@@ -1724,9 +2446,9 @@
                                 <a href="#" class="card-action" data-i18n="common.viewAll" onclick="showView('badges'); MoodleUI.openBadges();">查看全部</a>
                             </div>
                             <div class="card-body">
-                                <div class="badges-grid" id="recentBadgesList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 1rem;">
-                                    <div class="empty-state" style="text-align: center; padding: 2rem; color: var(--text-secondary); grid-column: 1/-1;">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width: 48px; height: 48px; margin-bottom: 0.5rem; opacity: 0.5;">
+                                <div class="badges-grid" id="recentBadgesList">
+                                    <div class="empty-state">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                                             <circle cx="12" cy="8" r="6"/>
                                             <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/>
                                         </svg>
@@ -1740,10 +2462,10 @@
                     <!-- Right Column -->
                     <div>
                         <!-- Learning Stats This Week -->
-                        <div class="card" style="margin-bottom: 1.5rem;">
+                        <div class="card section-card">
                             <div class="card-header">
-                                <h2 class="card-title" style="display: flex; align-items: center; gap: 0.5rem;">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" style="width: 20px; height: 20px;">
+                                <h2 class="card-title section-title-inline">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2">
                                         <line x1="18" y1="20" x2="18" y2="10"/>
                                         <line x1="12" y1="20" x2="12" y2="4"/>
                                         <line x1="6" y1="20" x2="6" y2="14"/>
@@ -1752,35 +2474,35 @@
                                 </h2>
                             </div>
                             <div class="card-body">
-                                <div class="weekly-stats" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                                    <div class="weekly-stat-item" style="background: var(--surface-light); padding: 1rem; border-radius: 8px; text-align: center;">
-                                        <div class="weekly-stat-value" style="font-size: 1.5rem; font-weight: 600; color: var(--olive);" id="weeklyCompletedItems">0</div>
-                                        <div class="weekly-stat-label" style="font-size: 0.75rem; color: var(--text-secondary);" data-i18n="dashboard.weeklyCompleted">本週完成項目</div>
+                                <div class="weekly-stats">
+                                    <div class="weekly-stat-item">
+                                        <div class="weekly-stat-value" id="weeklyCompletedItems">0</div>
+                                        <div class="weekly-stat-label" data-i18n="dashboard.weeklyCompleted">本週完成項目</div>
                                     </div>
-                                    <div class="weekly-stat-item" style="background: var(--surface-light); padding: 1rem; border-radius: 8px; text-align: center;">
-                                        <div class="weekly-stat-value" style="font-size: 1.5rem; font-weight: 600; color: var(--terracotta);" id="weeklyStudyMinutes">0</div>
-                                        <div class="weekly-stat-label" style="font-size: 0.75rem; color: var(--text-secondary);" data-i18n="dashboard.studyMinutes">學習分鐘數</div>
+                                    <div class="weekly-stat-item">
+                                        <div class="weekly-stat-value tone-terracotta" id="weeklyStudyMinutes">0</div>
+                                        <div class="weekly-stat-label" data-i18n="dashboard.studyMinutes">學習分鐘數</div>
                                     </div>
-                                    <div class="weekly-stat-item" style="background: var(--surface-light); padding: 1rem; border-radius: 8px; text-align: center;">
-                                        <div class="weekly-stat-value" style="font-size: 1.5rem; font-weight: 600; color: var(--blue);" id="weeklyLoginDays">0</div>
-                                        <div class="weekly-stat-label" style="font-size: 0.75rem; color: var(--text-secondary);" data-i18n="dashboard.loginStreak">連續登入天數</div>
+                                    <div class="weekly-stat-item">
+                                        <div class="weekly-stat-value tone-blue" id="weeklyLoginDays">0</div>
+                                        <div class="weekly-stat-label" data-i18n="dashboard.loginStreak">連續登入天數</div>
                                     </div>
-                                    <div class="weekly-stat-item" style="background: var(--surface-light); padding: 1rem; border-radius: 8px; text-align: center;">
-                                        <div class="weekly-stat-value" style="font-size: 1.5rem; font-weight: 600; color: var(--success);" id="weeklyQuizScore">-</div>
-                                        <div class="weekly-stat-label" style="font-size: 0.75rem; color: var(--text-secondary);" data-i18n="dashboard.avgQuizScore">平均測驗分數</div>
+                                    <div class="weekly-stat-item">
+                                        <div class="weekly-stat-value tone-success" id="weeklyQuizScore">-</div>
+                                        <div class="weekly-stat-label" data-i18n="dashboard.avgQuizScore">平均測驗分數</div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Recent Activity -->
-                        <div class="card" style="margin-bottom: 1.5rem;">
+                        <div class="card section-card">
                             <div class="card-header">
                                 <h2 class="card-title" data-i18n="dashboard.recentActivity">最近活動</h2>
                             </div>
                             <div class="card-body">
                                 <div class="activity-list">
-                                    <div class="empty-state" style="text-align: center; padding: 1.5rem; color: var(--text-secondary);">
+                                    <div class="empty-state compact">
                                         <p data-i18n="dashboard.noActivity">尚無活動記錄</p>
                                     </div>
                                 </div>
@@ -1793,33 +2515,33 @@
                                 <h2 class="card-title" data-i18n="dashboard.quickActions">快速操作</h2>
                             </div>
                             <div class="card-body">
-                                <div class="quick-actions" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
-                                    <a href="#" class="quick-action-btn" onclick="showView('moodleCourses'); MoodleUI.loadCourses();" style="display: flex; flex-direction: column; align-items: center; padding: 1rem; background: var(--surface-light); border-radius: 8px; text-decoration: none; color: var(--text-primary); transition: all 0.2s;">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--olive)" stroke-width="2" style="width: 24px; height: 24px; margin-bottom: 0.5rem;">
+                                <div class="quick-actions tiles">
+                                    <a href="#" class="quick-action-btn tile" onclick="showView('moodleCourses'); MoodleUI.loadCourses();">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--olive)" stroke-width="2">
                                             <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/>
                                             <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>
                                         </svg>
-                                        <span style="font-size: 0.8rem;" data-i18n="dashboard.myCourses">我的課程</span>
+                                        <span data-i18n="dashboard.myCourses">我的課程</span>
                                     </a>
-                                    <a href="#" class="quick-action-btn" onclick="showView('moodleAssignments'); MoodleUI.loadAssignments();" style="display: flex; flex-direction: column; align-items: center; padding: 1rem; background: var(--surface-light); border-radius: 8px; text-decoration: none; color: var(--text-primary); transition: all 0.2s;">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--terracotta)" stroke-width="2" style="width: 24px; height: 24px; margin-bottom: 0.5rem;">
+                                    <a href="#" class="quick-action-btn tile" onclick="showView('moodleAssignments'); MoodleUI.loadAssignments();">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--terracotta)" stroke-width="2">
                                             <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
                                             <polyline points="14,2 14,8 20,8"/>
                                             <line x1="12" y1="18" x2="12" y2="12"/>
                                             <line x1="9" y1="15" x2="15" y2="15"/>
                                         </svg>
-                                        <span style="font-size: 0.8rem;" data-i18n="dashboard.pendingAssignments">待交作業</span>
+                                        <span data-i18n="dashboard.pendingAssignments">待交作業</span>
                                     </a>
-                                    <a href="#" class="quick-action-btn" onclick="showView('moodleQuizzes'); MoodleUI.loadQuizzes();" style="display: flex; flex-direction: column; align-items: center; padding: 1rem; background: var(--surface-light); border-radius: 8px; text-decoration: none; color: var(--text-primary); transition: all 0.2s;">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" style="width: 24px; height: 24px; margin-bottom: 0.5rem;">
+                                    <a href="#" class="quick-action-btn tile" onclick="showView('moodleQuizzes'); MoodleUI.loadQuizzes();">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2">
                                             <circle cx="12" cy="12" r="10"/>
                                             <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/>
                                             <line x1="12" y1="17" x2="12.01" y2="17"/>
                                         </svg>
-                                        <span style="font-size: 0.8rem;" data-i18n="dashboard.pendingQuizzes">待考測驗</span>
+                                        <span data-i18n="dashboard.pendingQuizzes">待考測驗</span>
                                     </a>
-                                    <a href="#" class="quick-action-btn" onclick="showView('moodleGradebook'); MoodleUI.loadGradebook();" style="display: flex; flex-direction: column; align-items: center; padding: 1rem; background: var(--surface-light); border-radius: 8px; text-decoration: none; color: var(--text-primary); transition: all 0.2s;">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" style="width: 24px; height: 24px; margin-bottom: 0.5rem;">
+                                    <a href="#" class="quick-action-btn tile" onclick="showView('moodleGradebook'); MoodleUI.loadGradebook();">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2">
                                             <line x1="8" y1="6" x2="21" y2="6"/>
                                             <line x1="8" y1="12" x2="21" y2="12"/>
                                             <line x1="8" y1="18" x2="21" y2="18"/>
@@ -1827,7 +2549,7 @@
                                             <line x1="3" y1="12" x2="3.01" y2="12"/>
                                             <line x1="3" y1="18" x2="3.01" y2="18"/>
                                         </svg>
-                                        <span style="font-size: 0.8rem;" data-i18n="dashboard.myGrades">我的成績</span>
+                                        <span data-i18n="dashboard.myGrades">我的成績</span>
                                     </a>
                                 </div>
                             </div>
@@ -1863,11 +2585,11 @@
                 </div>
 
                 <!-- Pending Tasks Section -->
-                <div class="pending-tasks-section" style="margin-bottom: 1.5rem;">
-                    <div class="card" style="border-left: 4px solid var(--olive);">
+                <div class="pending-tasks-section section-card">
+                    <div class="card card-accent-olive">
                         <div class="card-header">
-                            <h2 class="card-title" style="display: flex; align-items: center; gap: 0.5rem;">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="var(--olive)" stroke-width="2" style="width: 20px; height: 20px;">
+                            <h2 class="card-title section-title-inline">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="var(--olive)" stroke-width="2">
                                     <circle cx="12" cy="12" r="10"/>
                                     <polyline points="12,6 12,12 16,14"/>
                                 </svg>
@@ -1875,22 +2597,22 @@
                             </h2>
                         </div>
                         <div class="card-body">
-                            <div class="pending-tasks-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem;">
-                                <div class="pending-task-item" style="background: var(--terracotta-light); padding: 1.25rem; border-radius: 12px; text-align: center; cursor: pointer;" onclick="showView('moodleAssignments'); MoodleUI.loadAssignments();">
-                                    <div class="pending-task-count" id="pendingAssignments" style="font-size: 2rem; font-weight: 700; color: var(--terracotta);">0</div>
-                                    <div class="pending-task-label" style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.25rem;" data-i18n="teacher.pendingAssignments">待批改作業</div>
+                            <div class="pending-tasks-grid">
+                                <div class="pending-task-item tone-terracotta" onclick="showView('moodleAssignments'); MoodleUI.loadAssignments();">
+                                    <div class="pending-task-count tone-terracotta" id="pendingAssignments">0</div>
+                                    <div class="pending-task-label" data-i18n="teacher.pendingAssignments">待批改作業</div>
                                 </div>
-                                <div class="pending-task-item" style="background: var(--blue-light, #E3F2FD); padding: 1.25rem; border-radius: 12px; text-align: center; cursor: pointer;" onclick="showView('moodleQuizzes'); MoodleUI.loadQuizzes();">
-                                    <div class="pending-task-count" id="pendingQuizzes" style="font-size: 2rem; font-weight: 700; color: var(--blue, #1976D2);">0</div>
-                                    <div class="pending-task-label" style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.25rem;" data-i18n="teacher.pendingQuizReview">待審核測驗</div>
+                                <div class="pending-task-item tone-blue" onclick="showView('moodleQuizzes'); MoodleUI.loadQuizzes();">
+                                    <div class="pending-task-count tone-blue" id="pendingQuizzes">0</div>
+                                    <div class="pending-task-label" data-i18n="teacher.pendingQuizReview">待審核測驗</div>
                                 </div>
-                                <div class="pending-task-item" style="background: var(--sand-light); padding: 1.25rem; border-radius: 12px; text-align: center; cursor: pointer;" onclick="showView('moodleForums'); MoodleUI.loadForums();">
-                                    <div class="pending-task-count" id="pendingForums" style="font-size: 2rem; font-weight: 700; color: var(--sand);">0</div>
-                                    <div class="pending-task-label" style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.25rem;" data-i18n="teacher.pendingForumReplies">待回覆討論</div>
+                                <div class="pending-task-item tone-sand" onclick="showView('moodleForums'); MoodleUI.loadForums();">
+                                    <div class="pending-task-count tone-sand" id="pendingForums">0</div>
+                                    <div class="pending-task-label" data-i18n="teacher.pendingForumReplies">待回覆討論</div>
                                 </div>
-                                <div class="pending-task-item" style="background: var(--olive-light); padding: 1.25rem; border-radius: 12px; text-align: center; cursor: pointer;" onclick="showView('moodleNotifications'); MoodleUI.loadNotifications();">
-                                    <div class="pending-task-count" id="pendingNotifications" style="font-size: 2rem; font-weight: 700; color: var(--olive);">0</div>
-                                    <div class="pending-task-label" style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.25rem;" data-i18n="teacher.newNotifications">新通知</div>
+                                <div class="pending-task-item tone-olive" onclick="showView('moodleNotifications'); MoodleUI.loadNotifications();">
+                                    <div class="pending-task-count tone-olive" id="pendingNotifications">0</div>
+                                    <div class="pending-task-label" data-i18n="teacher.newNotifications">新通知</div>
                                 </div>
                             </div>
                         </div>
@@ -1957,10 +2679,10 @@
                 <div class="content-grid">
                     <!-- Left Column: My Courses -->
                     <div>
-                        <div class="card" style="margin-bottom: 1.5rem;">
+                        <div class="card section-card">
                             <div class="card-header">
-                                <h2 class="card-title" style="display: flex; align-items: center; gap: 0.5rem;">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="var(--olive)" stroke-width="2" style="width: 20px; height: 20px;">
+                                <h2 class="card-title section-title-inline">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="var(--olive)" stroke-width="2">
                                         <polygon points="12,2 2,7 12,12 22,7"/>
                                         <polyline points="2,17 12,22 22,17"/>
                                         <polyline points="2,12 12,17 22,12"/>
@@ -1971,14 +2693,14 @@
                             </div>
                             <div class="card-body">
                                 <div class="teacher-course-list" id="teacherCourseList">
-                                    <div class="empty-state" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width: 48px; height: 48px; margin-bottom: 0.5rem; opacity: 0.5;">
+                                    <div class="empty-state">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                                             <polygon points="12,2 2,7 12,12 22,7"/>
                                             <polyline points="2,17 12,22 22,17"/>
                                             <polyline points="2,12 12,17 22,12"/>
                                         </svg>
                                         <p data-i18n="teacher.noCourses">尚未建立任何課程</p>
-                                        <a href="#" data-i18n="teacher.createFirstCourse" onclick="MoodleUI.showCreateCourseModal();" style="color: var(--olive); text-decoration: underline;">建立第一個課程</a>
+                                        <a href="#" class="empty-state-link" data-i18n="teacher.createFirstCourse" onclick="MoodleUI.showCreateCourseModal();">建立第一個課程</a>
                                     </div>
                                 </div>
                             </div>
@@ -1990,37 +2712,37 @@
                                 <h2 class="card-title" data-i18n="teacher.quickActions">快捷操作</h2>
                             </div>
                             <div class="card-body">
-                                <div class="teacher-quick-actions" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem;">
-                                    <button class="teacher-action-btn" onclick="MoodleUI.showCreateCourseModal();" style="display: flex; align-items: center; gap: 0.75rem; padding: 1rem; background: var(--olive-light); border: none; border-radius: 8px; cursor: pointer; text-align: left;">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--olive)" stroke-width="2" style="width: 24px; height: 24px; flex-shrink: 0;">
+                                <div class="teacher-quick-actions">
+                                    <button class="teacher-action-btn tone-olive" onclick="MoodleUI.showCreateCourseModal();">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--olive)" stroke-width="2">
                                             <polygon points="12,2 2,7 12,12 22,7"/>
                                             <line x1="12" y1="12" x2="12" y2="22"/>
                                             <line x1="7" y1="17" x2="17" y2="17"/>
                                         </svg>
-                                        <span style="font-size: 0.9rem; font-weight: 500;" data-i18n="teacher.addCourse">新增課程</span>
+                                        <span data-i18n="teacher.addCourse">新增課程</span>
                                     </button>
-                                    <button class="teacher-action-btn" onclick="MoodleUI.showCreateAssignmentModal();" style="display: flex; align-items: center; gap: 0.75rem; padding: 1rem; background: var(--terracotta-light); border: none; border-radius: 8px; cursor: pointer; text-align: left;">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--terracotta)" stroke-width="2" style="width: 24px; height: 24px; flex-shrink: 0;">
+                                    <button class="teacher-action-btn tone-terracotta" onclick="MoodleUI.showCreateAssignmentModal();">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--terracotta)" stroke-width="2">
                                             <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
                                             <polyline points="14,2 14,8 20,8"/>
                                             <line x1="12" y1="18" x2="12" y2="12"/>
                                             <line x1="9" y1="15" x2="15" y2="15"/>
                                         </svg>
-                                        <span style="font-size: 0.9rem; font-weight: 500;" data-i18n="teacher.addAssignment">新增作業</span>
+                                        <span data-i18n="teacher.addAssignment">新增作業</span>
                                     </button>
-                                    <button class="teacher-action-btn" onclick="MoodleUI.showCreateQuizModal();" style="display: flex; align-items: center; gap: 0.75rem; padding: 1rem; background: var(--blue-light, #E3F2FD); border: none; border-radius: 8px; cursor: pointer; text-align: left;">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--blue, #1976D2)" stroke-width="2" style="width: 24px; height: 24px; flex-shrink: 0;">
+                                    <button class="teacher-action-btn tone-blue" onclick="MoodleUI.showCreateQuizModal();">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--blue, #1976D2)" stroke-width="2">
                                             <circle cx="12" cy="12" r="10"/>
                                             <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/>
                                             <line x1="12" y1="17" x2="12.01" y2="17"/>
                                         </svg>
-                                        <span style="font-size: 0.9rem; font-weight: 500;" data-i18n="teacher.addQuiz">新增測驗</span>
+                                        <span data-i18n="teacher.addQuiz">新增測驗</span>
                                     </button>
-                                    <button class="teacher-action-btn" onclick="MoodleUI.showCreateAnnouncementModal();" style="display: flex; align-items: center; gap: 0.75rem; padding: 1rem; background: var(--sand-light); border: none; border-radius: 8px; cursor: pointer; text-align: left;">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--sand)" stroke-width="2" style="width: 24px; height: 24px; flex-shrink: 0;">
+                                    <button class="teacher-action-btn tone-sand" onclick="MoodleUI.showCreateAnnouncementModal();">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--sand)" stroke-width="2">
                                             <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
                                         </svg>
-                                        <span style="font-size: 0.9rem; font-weight: 500;" data-i18n="teacher.postAnnouncement">發布公告</span>
+                                        <span data-i18n="teacher.postAnnouncement">發布公告</span>
                                     </button>
                                 </div>
                             </div>
@@ -2030,10 +2752,10 @@
                     <!-- Right Column: Grading Queue, Student Alerts & Activity -->
                     <div>
                         <!-- Grading Queue -->
-                        <div class="card grading-queue" style="margin-bottom: 1.5rem;">
+                        <div class="card grading-queue section-card">
                             <div class="card-header">
-                                <h2 class="card-title" style="display: flex; align-items: center; gap: 0.5rem;">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="var(--olive)" stroke-width="2" style="width: 20px; height: 20px;">
+                                <h2 class="card-title section-title-inline">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="var(--olive)" stroke-width="2">
                                         <path d="M9 11l3 3L22 4"/>
                                         <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
                                     </svg>
@@ -2041,10 +2763,10 @@
                                 </h2>
                                 <a href="#" class="card-action" data-i18n="common.viewAll" onclick="showView('moodleAssignments'); MoodleUI.loadAssignments();">查看全部</a>
                             </div>
-                            <div class="card-body" style="padding: 0;">
+                            <div class="card-body card-body-flush">
                                 <div id="gradingQueueList">
-                                    <div class="empty-state" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width: 48px; height: 48px; margin-bottom: 0.5rem; opacity: 0.5;">
+                                    <div class="empty-state">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                                             <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
                                             <polyline points="22,4 12,14.01 9,11.01"/>
                                         </svg>
@@ -2055,22 +2777,22 @@
                         </div>
 
                         <!-- Student Alerts -->
-                        <div class="card" style="margin-bottom: 1.5rem;">
+                        <div class="card section-card">
                             <div class="card-header">
-                                <h2 class="card-title" style="display: flex; align-items: center; gap: 0.5rem;">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="var(--terracotta)" stroke-width="2" style="width: 20px; height: 20px;">
+                                <h2 class="card-title section-title-inline">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="var(--terracotta)" stroke-width="2">
                                         <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
                                         <line x1="12" y1="9" x2="12" y2="13"/>
                                         <line x1="12" y1="17" x2="12.01" y2="17"/>
                                     </svg>
                                     <span data-i18n="teacher.studentAlerts">學生狀態警示</span>
                                 </h2>
-                                <span class="alert-count" id="studentAlertCount" style="background: var(--terracotta); color: white; padding: 2px 10px; border-radius: 12px; font-size: 0.75rem;">0 項</span>
+                                <span class="alert-count status-count" id="studentAlertCount">0 項</span>
                             </div>
                             <div class="card-body">
                                 <div class="student-alerts-list" id="studentAlertsList">
-                                    <div class="empty-state" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width: 48px; height: 48px; margin-bottom: 0.5rem; opacity: 0.5;">
+                                    <div class="empty-state">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                                             <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
                                             <polyline points="22,4 12,14.01 9,11.01"/>
                                         </svg>
@@ -2083,8 +2805,8 @@
                         <!-- Recent Submissions -->
                         <div class="card">
                             <div class="card-header">
-                                <h2 class="card-title" style="display: flex; align-items: center; gap: 0.5rem;">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="var(--blue, #1976D2)" stroke-width="2" style="width: 20px; height: 20px;">
+                                <h2 class="card-title section-title-inline">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="var(--blue, #1976D2)" stroke-width="2">
                                         <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
                                         <polyline points="14,2 14,8 20,8"/>
                                     </svg>
@@ -2094,7 +2816,7 @@
                             </div>
                             <div class="card-body">
                                 <div class="recent-submissions-list" id="recentSubmissionsList">
-                                    <div class="empty-state" style="text-align: center; padding: 1.5rem; color: var(--text-secondary);">
+                                    <div class="empty-state compact">
                                         <p data-i18n="teacher.noSubmissions">尚無新的提交記錄</p>
                                     </div>
                                 </div>
@@ -2142,12 +2864,12 @@
             <!-- Classes View - 建橋者的橋隊管理 -->
             <div class="dashboard" id="classesView" style="display: none;">
                 <!-- Classes Header -->
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <div class="bridge-view-toolbar">
                     <div>
-                        <p style="color: var(--gray-500); font-size: 0.9rem;" data-i18n="classes.manageDescription">管理您搭建的橋隊與探橋者</p>
+                        <p class="bridge-view-description" data-i18n="classes.manageDescription">管理您搭建的橋隊與探橋者</p>
                     </div>
-                    <button onclick="openCreateClassModal()" style="padding: 0.75rem 1.5rem; background: var(--olive); color: var(--cream); border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 0.5rem;">
-                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    <button onclick="openCreateClassModal()" class="bridge-primary-btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                         <span data-i18n="classes.createNew">搭建新橋</span>
                     </button>
                 </div>
@@ -2155,14 +2877,14 @@
                 <!-- Classes List -->
                 <div class="classes-list" id="classesListContainer">
                     <!-- 橋隊卡片會由 JavaScript 動態載入 -->
-                    <div style="text-align: center; padding: 4rem 2rem; color: var(--gray-400);">
-                        <svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="currentColor" stroke-width="1" style="margin-bottom: 1rem; opacity: 0.5;">
+                    <div class="bridge-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
                             <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
                             <circle cx="9" cy="7" r="4"/>
                             <path d="M23 21v-2a4 4 0 00-3-3.87"/>
                             <path d="M16 3.13a4 4 0 010 7.75"/>
                         </svg>
-                        <p style="font-size: 1.1rem; margin-bottom: 0.5rem;" data-i18n="common.loading">載入中...</p>
+                        <p class="bridge-state-title" data-i18n="common.loading">載入中...</p>
                     </div>
                 </div>
             </div>
@@ -2177,12 +2899,12 @@
             <!-- Student Classes View - 探橋者的橋隊 -->
             <div class="dashboard" id="studentClassesView" style="display: none;">
                 <!-- Student Classes Header -->
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <div class="bridge-view-toolbar">
                     <div>
-                        <p style="color: var(--gray-500); font-size: 0.9rem;" data-i18n="classes.studentDescription">查看您已加入的橋隊和探橋進度</p>
+                        <p class="bridge-view-description" data-i18n="classes.studentDescription">查看您已加入的橋隊和探橋進度</p>
                     </div>
-                    <button onclick="openStudentJoinClassModal()" style="padding: 0.75rem 1.5rem; background: var(--olive); color: var(--cream); border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 0.5rem;">
-                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    <button onclick="openStudentJoinClassModal()" class="bridge-primary-btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                         <span data-i18n="classes.joinNew">加入新橋隊</span>
                     </button>
                 </div>
@@ -2190,34 +2912,34 @@
                 <!-- Enrolled Classes List -->
                 <div id="studentClassesList">
                     <!-- 橋隊卡片會由 JavaScript 動態載入 -->
-                    <div style="text-align: center; padding: 4rem 2rem; color: var(--gray-400);">
-                        <svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="currentColor" stroke-width="1" style="margin-bottom: 1rem; opacity: 0.5;">
+                    <div class="bridge-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
                             <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
                             <circle cx="9" cy="7" r="4"/>
                             <path d="M23 21v-2a4 4 0 00-3-3.87"/>
                             <path d="M16 3.13a4 4 0 010 7.75"/>
                         </svg>
-                        <p style="font-size: 1.1rem; margin-bottom: 0.5rem;" data-i18n="common.loading">載入中...</p>
+                        <p class="bridge-state-title" data-i18n="common.loading">載入中...</p>
                     </div>
                 </div>
             </div>
 
             <!-- Student Join Class Modal -->
-            <div id="studentJoinClassModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;">
-                <div style="width: 90%; max-width: 400px; background: var(--cream); border-radius: 16px; overflow: hidden;">
-                    <div style="padding: 1.5rem 2rem; border-bottom: 1px solid var(--gray-200); display: flex; justify-content: space-between; align-items: center;">
-                        <h3 style="font-size: 1.2rem; font-weight: 600;" data-i18n="classes.joinTitle">加入橋隊</h3>
-                        <button onclick="closeStudentJoinClassModal()" style="background: none; border: none; cursor: pointer; padding: 0.5rem;">
-                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            <div id="studentJoinClassModal" class="bridge-modal-overlay" onclick="if(event.target === this) closeStudentJoinClassModal()">
+                <div class="bridge-modal-panel">
+                    <div class="bridge-modal-header">
+                        <h3 class="bridge-modal-title" data-i18n="classes.joinTitle">加入橋隊</h3>
+                        <button onclick="closeStudentJoinClassModal()" class="bridge-modal-close">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                         </button>
                     </div>
-                    <div style="padding: 2rem;">
-                        <p style="margin-bottom: 1.25rem; color: var(--gray-600);" data-i18n="classes.joinDescription">請輸入建橋者提供的橋樑通行碼來加入橋隊：</p>
-                        <input type="text" id="studentInviteCodeInput" data-i18n-placeholder="classes.inviteCodePlaceholder" placeholder="例如：ABC123" maxlength="6" style="width: 100%; padding: 1rem; border: 1px solid var(--gray-200); border-radius: 8px; font-size: 1.5rem; text-align: center; letter-spacing: 0.25rem; text-transform: uppercase;">
+                    <div class="bridge-modal-body">
+                        <p class="bridge-modal-desc" data-i18n="classes.joinDescription">請輸入建橋者提供的橋樑通行碼來加入橋隊：</p>
+                        <input type="text" id="studentInviteCodeInput" data-i18n-placeholder="classes.inviteCodePlaceholder" placeholder="例如：ABC123" maxlength="6" class="bridge-join-code-input">
                     </div>
-                    <div style="padding: 1rem 2rem; border-top: 1px solid var(--gray-200); display: flex; justify-content: flex-end; gap: 0.75rem;">
-                        <button onclick="closeStudentJoinClassModal()" style="padding: 0.75rem 1.5rem; background: var(--gray-200); border: none; border-radius: 8px; cursor: pointer;" data-i18n="common.cancel">取消</button>
-                        <button onclick="submitStudentJoinClass()" style="padding: 0.75rem 1.5rem; background: var(--olive); color: var(--cream); border: none; border-radius: 8px; cursor: pointer; font-weight: 500;" data-i18n="classes.joinSubmit">加入橋隊</button>
+                    <div class="bridge-modal-footer">
+                        <button onclick="closeStudentJoinClassModal()" class="bridge-secondary-btn" data-i18n="common.cancel">取消</button>
+                        <button onclick="submitStudentJoinClass()" class="bridge-primary-btn" data-i18n="classes.joinSubmit">加入橋隊</button>
                     </div>
                 </div>
             </div>
@@ -5534,17 +6256,17 @@
 
             if (filtered.length === 0) {
                 container.innerHTML = `
-                    <div style="text-align: center; padding: 4rem 2rem; color: var(--gray-400);">
-                        <svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="currentColor" stroke-width="1" style="margin-bottom: 1rem; opacity: 0.5;">
+                    <div class="bridge-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
                             <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
                             <circle cx="9" cy="7" r="4"/>
                             <path d="M23 21v-2a4 4 0 00-3-3.87"/>
                             <path d="M16 3.13a4 4 0 010 7.75"/>
                         </svg>
-                        <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">
+                        <p class="bridge-state-title">
                             您尚未搭建任何橋
                         </p>
-                        <p style="font-size: 0.9rem;">
+                        <p class="bridge-state-desc">
                             點擊「搭建新橋」開始管理您的探橋者
                         </p>
                     </div>
@@ -5553,31 +6275,31 @@
             }
 
             container.innerHTML = `
-                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem;">
+                <div class="bridge-class-grid">
                     ${filtered.map(cls => `
-                        <div class="class-card" onclick="openClassDetail('${cls.classId}')" style="background: var(--white); border-radius: 16px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); cursor: pointer; transition: all 0.2s;">
-                            <div style="height: 8px; background: ${getClassColor(cls.subject)};"></div>
-                            <div style="padding: 1.5rem;">
-                                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+                        <div class="bridge-class-card" onclick="openClassDetail('${cls.classId}')">
+                            <div class="bridge-class-card-accent" style="background: ${getClassColor(cls.subject)};"></div>
+                            <div class="bridge-class-card-body">
+                                <div class="bridge-class-card-header">
                                     <div>
-                                        <h3 style="font-size: 1.2rem; font-weight: 600; margin-bottom: 0.25rem;">${cls.name}</h3>
-                                        <p style="font-size: 0.85rem; color: var(--gray-500);">${cls.subject || '一般課程'}</p>
+                                        <h3 class="bridge-class-card-title">${cls.name}</h3>
+                                        <p class="bridge-class-card-subject">${cls.subject || '一般課程'}</p>
                                     </div>
-                                    ${cls.isEnrolled ? '<span style="background: var(--olive); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem;">已加入</span>' : ''}
+                                    ${cls.isEnrolled ? '<span class="bridge-class-enrolled">已加入</span>' : ''}
                                 </div>
-                                <p style="font-size: 0.9rem; color: var(--gray-600); margin-bottom: 1rem; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${cls.description || '尚無說明'}</p>
-                                <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 1rem; border-top: 1px solid var(--gray-100);">
-                                    <div style="display: flex; gap: 1.5rem; font-size: 0.85rem; color: var(--gray-500);">
-                                        <span style="display: flex; align-items: center; gap: 0.25rem;">
+                                <p class="bridge-class-card-desc">${cls.description || '尚無說明'}</p>
+                                <div class="bridge-class-card-meta">
+                                    <div class="bridge-class-stats">
+                                        <span class="bridge-class-stat">
                                             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
                                             ${cls.memberCount || 0} 位探橋者
                                         </span>
-                                        <span style="display: flex; align-items: center; gap: 0.25rem;">
+                                        <span class="bridge-class-stat">
                                             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
                                             ${cls.assignmentCount || 0} 項作業
                                         </span>
                                     </div>
-                                    <span style="font-size: 0.8rem; color: var(--gray-400);">${cls.teacherName || '建橋者'}</span>
+                                    <span class="bridge-class-teacher">${cls.teacherName || '建橋者'}</span>
                                 </div>
                             </div>
                         </div>
@@ -5603,32 +6325,32 @@
         function openCreateClassModal() {
             const modal = document.createElement('div');
             modal.id = 'createClassModal';
-            modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;';
+            modal.className = 'bridge-modal-overlay open';
             modal.innerHTML = `
-                <div style="width:90%;max-width:500px;background:var(--cream);border-radius:16px;overflow:hidden;">
-                    <div style="padding:1.5rem 2rem;border-bottom:1px solid var(--gray-200);display:flex;justify-content:space-between;align-items:center;">
-                        <h3 style="font-size:1.2rem;font-weight:600;">搭建新橋</h3>
-                        <button onclick="closeCreateClassModal()" style="background:none;border:none;cursor:pointer;padding:0.5rem;">
-                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                <div class="bridge-modal-panel wide">
+                    <div class="bridge-modal-header">
+                        <h3 class="bridge-modal-title">搭建新橋</h3>
+                        <button onclick="closeCreateClassModal()" class="bridge-modal-close">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                         </button>
                     </div>
-                    <div style="padding:2rem;">
-                        <div style="margin-bottom:1.25rem;">
-                            <label style="display:block;margin-bottom:0.5rem;font-weight:500;">橋樑名稱 *</label>
-                            <input type="text" id="newClassName" placeholder="例如：九年級數學橋" style="width:100%;padding:0.75rem 1rem;border:1px solid var(--gray-200);border-radius:8px;font-size:1rem;">
+                    <div class="bridge-modal-body">
+                        <div class="bridge-form-group">
+                            <label class="bridge-form-label">橋樑名稱 *</label>
+                            <input type="text" id="newClassName" placeholder="例如：九年級數學橋" class="bridge-form-control">
                         </div>
-                        <div style="margin-bottom:1.25rem;">
-                            <label style="display:block;margin-bottom:0.5rem;font-weight:500;">科目</label>
-                            <input type="text" id="newClassSubject" placeholder="例如：數學、英文、程式設計" style="width:100%;padding:0.75rem 1rem;border:1px solid var(--gray-200);border-radius:8px;font-size:1rem;">
+                        <div class="bridge-form-group">
+                            <label class="bridge-form-label">科目</label>
+                            <input type="text" id="newClassSubject" placeholder="例如：數學、英文、程式設計" class="bridge-form-control">
                         </div>
-                        <div style="margin-bottom:1.25rem;">
-                            <label style="display:block;margin-bottom:0.5rem;font-weight:500;">橋樑說明</label>
-                            <textarea id="newClassDesc" rows="3" placeholder="輸入橋樑說明（選填）" style="width:100%;padding:0.75rem 1rem;border:1px solid var(--gray-200);border-radius:8px;font-size:1rem;resize:vertical;"></textarea>
+                        <div class="bridge-form-group">
+                            <label class="bridge-form-label">橋樑說明</label>
+                            <textarea id="newClassDesc" rows="3" placeholder="輸入橋樑說明（選填）" class="bridge-form-control"></textarea>
                         </div>
                     </div>
-                    <div style="padding:1rem 2rem;border-top:1px solid var(--gray-200);display:flex;justify-content:flex-end;gap:0.75rem;">
-                        <button onclick="closeCreateClassModal()" style="padding:0.75rem 1.5rem;background:var(--gray-200);border:none;border-radius:8px;cursor:pointer;">取消</button>
-                        <button onclick="submitCreateClass()" style="padding:0.75rem 1.5rem;background:var(--olive);color:var(--cream);border:none;border-radius:8px;cursor:pointer;font-weight:500;">搭建橋樑</button>
+                    <div class="bridge-modal-footer">
+                        <button onclick="closeCreateClassModal()" class="bridge-secondary-btn">取消</button>
+                        <button onclick="submitCreateClass()" class="bridge-primary-btn">搭建橋樑</button>
                     </div>
                 </div>
             `;
@@ -5878,47 +6600,47 @@
         function openAddAssignmentModal(classId) {
             const modal = document.createElement('div');
             modal.id = 'addAssignmentModal';
-            modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;';
+            modal.className = 'bridge-modal-overlay open';
             modal.innerHTML = `
-                <div style="width:90%;max-width:550px;background:var(--cream);border-radius:16px;overflow:hidden;">
-                    <div style="padding:1.5rem 2rem;border-bottom:1px solid var(--gray-200);display:flex;justify-content:space-between;align-items:center;">
-                        <h3 style="font-size:1.2rem;font-weight:600;">新增作業/建材</h3>
-                        <button onclick="closeAddAssignmentModal()" style="background:none;border:none;cursor:pointer;padding:0.5rem;">
-                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                <div class="bridge-modal-panel wide">
+                    <div class="bridge-modal-header">
+                        <h3 class="bridge-modal-title">新增作業/建材</h3>
+                        <button onclick="closeAddAssignmentModal()" class="bridge-modal-close">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                         </button>
                     </div>
-                    <div style="padding:2rem;">
-                        <div style="margin-bottom:1.25rem;">
-                            <label style="display:block;margin-bottom:0.5rem;font-weight:500;">類型 *</label>
-                            <select id="assignmentType" style="width:100%;padding:0.75rem 1rem;border:1px solid var(--gray-200);border-radius:8px;font-size:1rem;background:white;">
+                    <div class="bridge-modal-body">
+                        <div class="bridge-form-group">
+                            <label class="bridge-form-label">類型 *</label>
+                            <select id="assignmentType" class="bridge-form-control">
                                 <option value="material">建材</option>
                                 <option value="quiz">測驗</option>
                                 <option value="practice">練習</option>
                                 <option value="exam">考試</option>
                             </select>
                         </div>
-                        <div style="margin-bottom:1.25rem;">
-                            <label style="display:block;margin-bottom:0.5rem;font-weight:500;">標題 *</label>
-                            <input type="text" id="assignmentTitle" placeholder="例如：第一章講義" style="width:100%;padding:0.75rem 1rem;border:1px solid var(--gray-200);border-radius:8px;font-size:1rem;">
+                        <div class="bridge-form-group">
+                            <label class="bridge-form-label">標題 *</label>
+                            <input type="text" id="assignmentTitle" placeholder="例如：第一章講義" class="bridge-form-control">
                         </div>
-                        <div style="margin-bottom:1.25rem;">
-                            <label style="display:block;margin-bottom:0.5rem;font-weight:500;">說明</label>
-                            <textarea id="assignmentDesc" rows="2" placeholder="輸入說明（選填）" style="width:100%;padding:0.75rem 1rem;border:1px solid var(--gray-200);border-radius:8px;font-size:1rem;resize:vertical;"></textarea>
+                        <div class="bridge-form-group">
+                            <label class="bridge-form-label">說明</label>
+                            <textarea id="assignmentDesc" rows="2" placeholder="輸入說明（選填）" class="bridge-form-control"></textarea>
                         </div>
-                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+                        <div class="bridge-form-grid">
                             <div>
-                                <label style="display:block;margin-bottom:0.5rem;font-weight:500;">截止日期</label>
-                                <input type="date" id="assignmentDue" style="width:100%;padding:0.75rem 1rem;border:1px solid var(--gray-200);border-radius:8px;font-size:1rem;">
+                                <label class="bridge-form-label">截止日期</label>
+                                <input type="date" id="assignmentDue" class="bridge-form-control">
                             </div>
                             <div>
-                                <label style="display:block;margin-bottom:0.5rem;font-weight:500;">分數</label>
-                                <input type="number" id="assignmentPoints" placeholder="0" min="0" style="width:100%;padding:0.75rem 1rem;border:1px solid var(--gray-200);border-radius:8px;font-size:1rem;">
+                                <label class="bridge-form-label">分數</label>
+                                <input type="number" id="assignmentPoints" placeholder="0" min="0" class="bridge-form-control">
                             </div>
                         </div>
                     </div>
-                    <div style="padding:1rem 2rem;border-top:1px solid var(--gray-200);display:flex;justify-content:flex-end;gap:0.75rem;">
-                        <button onclick="closeAddAssignmentModal()" style="padding:0.75rem 1.5rem;background:var(--gray-200);border:none;border-radius:8px;cursor:pointer;">取消</button>
-                        <button onclick="submitAddAssignment('${classId}')" style="padding:0.75rem 1.5rem;background:var(--olive);color:var(--cream);border:none;border-radius:8px;cursor:pointer;font-weight:500;">新增</button>
+                    <div class="bridge-modal-footer">
+                        <button onclick="closeAddAssignmentModal()" class="bridge-secondary-btn">取消</button>
+                        <button onclick="submitAddAssignment('${classId}')" class="bridge-primary-btn">新增</button>
                     </div>
                 </div>
             `;
@@ -6025,14 +6747,14 @@
 
         // 開啟探橋者加入橋隊 Modal
         function openStudentJoinClassModal() {
-            document.getElementById('studentJoinClassModal').style.display = 'flex';
+            document.getElementById('studentJoinClassModal').classList.add('open');
             document.getElementById('studentInviteCodeInput').value = '';
             document.getElementById('studentInviteCodeInput').focus();
         }
 
         // 關閉探橋者加入橋隊 Modal
         function closeStudentJoinClassModal() {
-            document.getElementById('studentJoinClassModal').style.display = 'none';
+            document.getElementById('studentJoinClassModal').classList.remove('open');
         }
 
         // 提交加入橋隊
@@ -6067,7 +6789,7 @@
                 const result = await API.classes.list('enrolled');
                 if (!result.success) {
                     container.innerHTML = `
-                        <div style="text-align: center; padding: 4rem 2rem; color: var(--gray-400);">
+                        <div class="bridge-state-error">
                             <p>載入橋隊失敗，請重試</p>
                         </div>
                     `;
@@ -6078,47 +6800,47 @@
 
                 if (classes.length === 0) {
                     container.innerHTML = `
-                        <div style="text-align: center; padding: 4rem 2rem; color: var(--gray-400);">
-                            <svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="currentColor" stroke-width="1" style="margin-bottom: 1rem; opacity: 0.5;">
+                        <div class="bridge-state">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
                                 <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
                                 <circle cx="9" cy="7" r="4"/>
                                 <path d="M23 21v-2a4 4 0 00-3-3.87"/>
                                 <path d="M16 3.13a4 4 0 010 7.75"/>
                             </svg>
-                            <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">尚未加入任何橋隊</p>
-                            <p style="font-size: 0.9rem; color: var(--gray-400);">請點擊上方「加入新橋隊」輸入建橋者提供的通行碼</p>
+                            <p class="bridge-state-title">尚未加入任何橋隊</p>
+                            <p class="bridge-state-desc">請點擊上方「加入新橋隊」輸入建橋者提供的通行碼</p>
                         </div>
                     `;
                     return;
                 }
 
                 container.innerHTML = `
-                    <div style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));">
+                    <div class="bridge-class-grid">
                         ${classes.map(cls => `
-                            <div onclick="openStudentClassDetail('${cls.classId}')" style="background: var(--white); border-radius: 12px; padding: 1.5rem; cursor: pointer; transition: all 0.2s; border: 1px solid var(--gray-100);" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow='none'">
-                                <div style="display: flex; align-items: flex-start; gap: 1rem;">
-                                    <div style="width: 48px; height: 48px; background: linear-gradient(135deg, var(--olive) 0%, var(--olive-light) 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
-                                        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--cream)" stroke-width="2">
+                            <div onclick="openStudentClassDetail('${cls.classId}')" class="bridge-student-class-card">
+                                <div class="bridge-student-class-main">
+                                    <div class="bridge-student-class-icon">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                             <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
                                             <circle cx="9" cy="7" r="4"/>
                                             <path d="M23 21v-2a4 4 0 00-3-3.87"/>
                                             <path d="M16 3.13a4 4 0 010 7.75"/>
                                         </svg>
                                     </div>
-                                    <div style="flex: 1;">
-                                        <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.25rem;">${cls.name}</h3>
-                                        <p style="color: var(--gray-500); font-size: 0.85rem; margin-bottom: 0.5rem;">${cls.subject || '一般課程'}</p>
-                                        <p style="color: var(--gray-400); font-size: 0.8rem;">
-                                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; vertical-align: middle; margin-right: 0.25rem;"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                    <div class="bridge-student-class-content">
+                                        <h3 class="bridge-student-class-title">${cls.name}</h3>
+                                        <p class="bridge-student-class-subject">${cls.subject || '一般課程'}</p>
+                                        <p class="bridge-student-class-teacher">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                                             ${cls.teacherName || '建橋者'}
                                         </p>
                                     </div>
                                 </div>
-                                <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--gray-100); display: flex; justify-content: space-between; align-items: center;">
-                                    <span style="font-size: 0.8rem; color: var(--gray-400);">
+                                <div class="bridge-student-class-footer">
+                                    <span class="bridge-student-class-joined">
                                         加入時間：${cls.joinedAt ? new Date(cls.joinedAt).toLocaleDateString('zh-TW') : '-'}
                                     </span>
-                                    <span style="font-size: 0.8rem; color: var(--olive); font-weight: 500;">
+                                    <span class="bridge-student-class-link">
                                         查看詳情 →
                                     </span>
                                 </div>
@@ -6130,7 +6852,7 @@
             } catch (error) {
                 console.error('Load student classes error:', error);
                 container.innerHTML = `
-                    <div style="text-align: center; padding: 4rem 2rem; color: var(--gray-400);">
+                    <div class="bridge-state-error">
                         <p>載入橋隊失敗，請重試</p>
                     </div>
                 `;
@@ -6339,23 +7061,19 @@
             });
         });
 
-        // Quick action buttons
-        document.querySelectorAll('.quick-action-btn').forEach((btn, index) => {
+        // Keep native inline handlers for role-specific navigation/actions.
+        // Only attach fallback handlers when an element has no explicit onclick.
+        document.querySelectorAll('.quick-action-btn').forEach((btn) => {
+            if (btn.hasAttribute('onclick')) return;
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
-                if (index === 0) {
-                    document.querySelectorAll('.nav-item')[1].click();
-                } else {
-                    showToast('已發送聯絡請求給顧問團隊！');
-                }
             });
         });
 
-        // Card action links
-        document.querySelectorAll('.card-action').forEach(link => {
+        document.querySelectorAll('.card-action').forEach((link) => {
+            if (link.hasAttribute('onclick')) return;
             link.addEventListener('click', (e) => {
                 e.preventDefault();
-                document.querySelectorAll('.nav-item')[2].click();
             });
         });
 
