@@ -84,6 +84,10 @@
             min-height: 100vh;
         }
 
+        .admin-container[hidden] {
+            display: none !important;
+        }
+
         /* Sidebar - 精緻漸層設計 */
         .admin-sidebar {
             width: 280px;
@@ -196,6 +200,16 @@
         .nav-item:hover svg {
             opacity: 1;
             transform: scale(1.1);
+        }
+
+        .nav-item-utility {
+            font-size: 0.85rem;
+            opacity: 0.7;
+        }
+
+        .nav-item-utility svg {
+            width: 18px;
+            height: 18px;
         }
 
         .nav-badge {
@@ -2703,6 +2717,16 @@
             color: var(--gray-500);
         }
 
+        .admin-role-label {
+            font-weight: 500;
+        }
+
+        .admin-role-label.role-educator { color: #3b82f6; }
+        .admin-role-label.role-trainer { color: #f59e0b; }
+        .admin-role-label.role-creator { color: #8b5cf6; }
+        .admin-role-label.role-student { color: #10b981; }
+        .admin-role-label.role-admin { color: #6b7280; }
+
         .admin-table-truncate {
             max-width: 300px;
             white-space: nowrap;
@@ -3696,7 +3720,7 @@
     </div>
 
     <!-- Admin Panel -->
-    <div id="adminPanel" class="admin-container" style="display: none;">
+    <div id="adminPanel" class="admin-container" hidden>
         <!-- Sidebar -->
         <aside class="admin-sidebar">
             <div class="admin-logo">
@@ -3748,7 +3772,7 @@
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                     </svg>
                     <span data-i18n="admin.nav.support">客服中心</span>
-                    <span class="nav-badge" id="waitingChatsBadge" style="background: var(--terracotta);">0</span>
+                    <span class="nav-badge" id="waitingChatsBadge">0</span>
                 </a>
 
                 <div class="nav-section" data-i18n="admin.nav.integrations">外部整合</div>
@@ -3858,8 +3882,8 @@
                     </svg>
                     <span data-i18n="admin.nav.logout">登出</span>
                 </a>
-                <a class="nav-item" onclick="event.preventDefault(); if(typeof I18n!=='undefined') I18n.setLocale(I18n.getLocale()==='zh-TW'?'en':'zh-TW');" style="cursor:pointer; font-size:0.85rem; opacity:0.7;">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;">
+                <a class="nav-item nav-item-utility" onclick="event.preventDefault(); if(typeof I18n!=='undefined') I18n.setLocale(I18n.getLocale()==='zh-TW'?'en':'zh-TW');">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="10"/>
                         <line x1="2" y1="12" x2="22" y2="12"/>
                         <path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
@@ -4566,7 +4590,7 @@
                                 </tr>
                             </thead>
                             <tbody id="coursesTableBody">
-                                <tr><td colspan="6" style="text-align: center; padding: 2rem;" data-i18n="common.loading">載入中...</td></tr>
+                                <tr><td colspan="6" class="admin-table-state" data-i18n="common.loading">載入中...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -4639,7 +4663,7 @@
                                     </tr>
                                 </thead>
                                 <tbody id="questionsTableBody">
-                                    <tr><td colspan="6" style="text-align: center; padding: 2rem;" data-i18n="common.loading">載入中...</td></tr>
+                                    <tr><td colspan="6" class="admin-table-state" data-i18n="common.loading">載入中...</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -5707,7 +5731,7 @@
                     <p class="confirm-dialog-message" id="confirmDialogMessage" data-i18n="admin.confirm.message">您確定要執行此操作嗎？</p>
                 </div>
             </div>
-            <div class="confirm-dialog-body" id="confirmDialogBody" style="display: none;">
+            <div class="confirm-dialog-body" id="confirmDialogBody" hidden>
                 <!-- 可選的輸入欄位區域 -->
             </div>
             <div class="confirm-dialog-footer">
@@ -5789,7 +5813,7 @@
                 // 處理輸入框
                 const bodyEl = document.getElementById('confirmDialogBody');
                 if (input) {
-                    bodyEl.style.display = 'block';
+                    bodyEl.hidden = false;
                     bodyEl.innerHTML = `
                         <input type="text"
                                class="confirm-dialog-input"
@@ -5806,7 +5830,7 @@
                         inputEl.classList.remove('error');
                     });
                 } else {
-                    bodyEl.style.display = 'none';
+                    bodyEl.hidden = true;
                     bodyEl.innerHTML = '';
                     this.currentInputValidator = null;
                 }
@@ -6427,11 +6451,11 @@
                 const filterCount = Object.keys(this.filters).length;
                 if (filterCount === 0) {
                     tagsContainer.innerHTML = '';
-                    tagsContainer.style.display = 'none';
+                    tagsContainer.hidden = true;
                     return;
                 }
 
-                tagsContainer.style.display = 'flex';
+                tagsContainer.hidden = false;
                 tagsContainer.innerHTML = Object.entries(this.filters).map(([key, value]) => {
                     const label = this.getFilterLabel(key, value);
                     return `
@@ -6573,7 +6597,7 @@
                         <div class="filter-grid">
                             ${fieldsHtml}
                         </div>
-                        <div class="filter-tags" id="${this.panelId}Tags" style="display: none;"></div>
+                        <div class="filter-tags" id="${this.panelId}Tags" hidden></div>
                     </div>
                 `;
             }
@@ -7035,7 +7059,7 @@
                 const result = await API.auth.login(email, password);
                 if (result.success && result.data.user.isAdmin) {
                     document.getElementById('loginView').style.display = 'none';
-                    document.getElementById('adminPanel').style.display = 'flex';
+                    document.getElementById('adminPanel').hidden = false;
                     document.getElementById('adminName').textContent = result.data.user.displayName;
                     loadDashboard();
                 } else if (result.success && !result.data.user.isAdmin) {
@@ -7152,7 +7176,7 @@
                                 </tr>
                             `).join('');
                         } else {
-                            tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; padding: 2rem; color: var(--text-secondary);">${t('admin.users.noUsers')}</td></tr>`;
+                            tbody.innerHTML = renderAdminTableState(3, t('admin.users.noUsers'));
                         }
                     }
 
@@ -7350,7 +7374,6 @@
                 tbody.innerHTML = users.map(u => {
                     const role = u.role || 'educator';
                     const roleName = roleNames[role] || role;
-                    const roleColor = getRoleColor(role);
                     const isSelected = BatchOperations.selectedItems.has(u.userId);
 
                     return `
@@ -7367,7 +7390,7 @@
                                     </div>
                                 </div>
                             </td>
-                            <td><span style="color: ${roleColor}; font-weight: 500;">${roleName}</span></td>
+                            <td><span class="admin-role-label role-${escapeHtml(String(role))}">${escapeHtml(String(roleName))}</span></td>
                             <td>${u.subscriptionTier || 'free'}</td>
                             <td><span class="status-badge ${u.status}">${u.status}</span></td>
                             <td>${formatDate(u.createdAt)}</td>
@@ -7465,17 +7488,6 @@
 
                 showToast(t('admin.users.exported', { count: users.length }), 'success');
             }
-        }
-
-        // 取得角色對應顏色
-        function getRoleColor(role) {
-            const colors = {
-                'educator': '#3b82f6',
-                'trainer': '#f59e0b',
-                'creator': '#8b5cf6',
-                'student': '#10b981'
-            };
-            return colors[role] || '#6b7280';
         }
 
         // Load Resources
@@ -10199,7 +10211,7 @@
 
             const headers = Object.keys(data[0]);
             const rowsHtml = data.map(row => `
-                <tr>${headers.map(header => `<td style="border:1px solid #ddd;padding:6px 8px;">${String(row[header] ?? '')}</td>`).join('')}</tr>
+                <tr>${headers.map(header => `<td class="pdf-export-cell">${String(row[header] ?? '')}</td>`).join('')}</tr>
             `).join('');
 
             const html = `
@@ -10213,6 +10225,7 @@
                         h1 { font-size: 18px; margin-bottom: 12px; }
                         table { border-collapse: collapse; width: 100%; font-size: 12px; }
                         th { border: 1px solid #ddd; padding: 6px 8px; background: #f5f5f5; text-align: left; }
+                        .pdf-export-cell { border: 1px solid #ddd; padding: 6px 8px; }
                     </style>
                 </head>
                 <body>
@@ -11161,7 +11174,7 @@
         // Check auth on load - 如果未登入或非管理員，跳轉到主平台
         if (API.isLoggedIn() && API.isAdmin()) {
             document.getElementById('loginView').style.display = 'none';
-            document.getElementById('adminPanel').style.display = 'flex';
+            document.getElementById('adminPanel').hidden = false;
             const user = API.getCurrentUser();
             if (user) document.getElementById('adminName').textContent = user.displayName;
             loadDashboard();
