@@ -5531,6 +5531,45 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="exportDataModal">
+        <div class="modal admin-resource-modal">
+            <div class="modal-header">
+                <h3 id="exportDataModalTitle">匯出資料</h3>
+                <button class="modal-close" onclick="closeModal('exportDataModal')">&times;</button>
+            </div>
+            <div class="modal-body admin-resource-body">
+                <form id="exportDataForm" class="admin-resource-form">
+                    <input type="hidden" name="type" value="">
+
+                    <div class="admin-resource-section">
+                        <h4 class="admin-resource-section-title">匯出設定</h4>
+                        <div class="form-group compact">
+                            <label for="exportFormatSelect">匯出格式</label>
+                            <select id="exportFormatSelect" name="format" class="form-input">
+                                <option value="csv">CSV</option>
+                                <option value="json">JSON</option>
+                                <option value="pdf">PDF</option>
+                            </select>
+                        </div>
+                        <div id="exportDateRangeField" class="form-group compact is-spaced admin-resource-field" hidden>
+                            <label for="exportRangeSelect">日期範圍</label>
+                            <select id="exportRangeSelect" name="range" class="form-input">
+                                <option value="7d">最近 7 天</option>
+                                <option value="30d">最近 30 天</option>
+                                <option value="90d">最近 90 天</option>
+                            </select>
+                        </div>
+                        <p id="exportModalDescription" class="admin-card-caption">匯出將根據目前可用資料產生檔案。</p>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('exportDataModal')" data-i18n="common.cancel">取消</button>
+                <button class="btn btn-primary" onclick="submitExportForm()">開始匯出</button>
+            </div>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="createAnnouncementModal">
         <div class="modal">
             <div class="modal-header">
@@ -9812,27 +9851,169 @@
         // ========================================
         // Phase 3: 數據匯出功能
         // ========================================
+        const ADMIN_EXPORT_HISTORY_KEY = 'beyondbridge.admin.exportHistory.v1';
+        let recentExportHistory = [];
+
+        function getExportTypeMeta(type) {
+            const labels = {
+                users: t('admin.dataExport.userData'),
+                courses: t('admin.dataExport.courseData'),
+                licenses: t('admin.dataExport.licenseData'),
+                analytics: t('admin.dataExport.analyticsReport')
+            };
+
+            return {
+                label: labels[type] || type,
+                filename: `${type}_export`
+            };
+        }
+
+        function getExportRangeLabel(range) {
+            const mapping = {
+                '7d': t('admin.userActivity.last7d'),
+                '30d': t('admin.userActivity.last30d'),
+                '90d': t('admin.userActivity.last90d')
+            };
+            return mapping[range] || '-';
+        }
+
+        function hydrateRecentExportHistory() {
+            try {
+                const raw = localStorage.getItem(ADMIN_EXPORT_HISTORY_KEY);
+                const parsed = raw ? JSON.parse(raw) : [];
+                recentExportHistory = Array.isArray(parsed) ? parsed : [];
+            } catch (error) {
+                console.error('Load export history error:', error);
+                recentExportHistory = [];
+            }
+        }
+
+        function persistRecentExportHistory() {
+            try {
+                localStorage.setItem(ADMIN_EXPORT_HISTORY_KEY, JSON.stringify(recentExportHistory.slice(0, 20)));
+            } catch (error) {
+                console.error('Persist export history error:', error);
+            }
+        }
+
+        function recordRecentExport(entry) {
+            recentExportHistory = [
+                {
+                    id: `export_${Date.now()}`,
+                    exportedAt: new Date().toISOString(),
+                    status: 'success',
+                    count: 0,
+                    range: '',
+                    ...entry
+                },
+                ...recentExportHistory.filter((item) => item.id !== entry.id)
+            ].slice(0, 20);
+
+            persistRecentExportHistory();
+            renderRecentExportsTable();
+        }
+
+        function renderRecentExportsTable() {
+            const tbody = document.getElementById('recentExportsTable');
+            if (!tbody) return;
+
+            if (!Array.isArray(recentExportHistory) || recentExportHistory.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="admin-table-state">
+                            <span data-i18n="admin.dataExport.noExports">${t('admin.dataExport.noExports')}</span>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = recentExportHistory.map((entry) => {
+                const exportMeta = getExportTypeMeta(entry.type);
+                const statusClass = entry.status === 'success' ? 'badge-success' : 'badge-warning';
+                const statusLabel = entry.status === 'success' ? '完成' : '失敗';
+                const rangeLabel = entry.type === 'analytics'
+                    ? getExportRangeLabel(entry.range)
+                    : '全部資料';
+                const exportTime = entry.exportedAt ? formatDate(entry.exportedAt) : '-';
+                const countLabel = Number.isFinite(Number(entry.count)) ? `${entry.count} 筆` : '-';
+
+                return `
+                    <tr>
+                        <td>
+                            <div class="admin-table-stack">
+                                <strong>${escapeHtml(exportMeta.label)}</strong>
+                                <span class="admin-table-subtitle">${escapeHtml(countLabel)}</span>
+                            </div>
+                        </td>
+                        <td><span class="badge badge-info">${escapeHtml(String(entry.format || '').toUpperCase())}</span></td>
+                        <td>${escapeHtml(rangeLabel)}</td>
+                        <td>${escapeHtml(exportTime)}</td>
+                        <td><span class="badge ${statusClass}">${escapeHtml(statusLabel)}</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-secondary" onclick="rerunRecentExport('${escapeHtml(String(entry.id))}')">再次匯出</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
         function loadDataExport() {
-            // 數據匯出視圖只需要初始化，不需要載入資料
-            // 可以載入最近匯出記錄（如果有實現）
+            hydrateRecentExportHistory();
+            renderRecentExportsTable();
         }
 
         function showExportModal(type) {
-            const typeNames = {
-                'users': t('admin.dataExport.userData'),
-                'courses': t('admin.dataExport.courseData'),
-                'licenses': t('admin.dataExport.licenseData'),
-                'analytics': t('admin.dataExport.analyticsData')
-            };
-            const typeLabel = typeNames[type] || type;
-            const input = window.prompt(`${typeLabel} ${t('admin.dataExport.chooseFormat')} (csv/json/pdf)`, 'csv');
-            if (input === null) return;
-            const format = String(input).trim().toLowerCase();
+            const form = document.getElementById('exportDataForm');
+            const titleEl = document.getElementById('exportDataModalTitle');
+            const descriptionEl = document.getElementById('exportModalDescription');
+            const rangeField = document.getElementById('exportDateRangeField');
+            const rangeSelect = document.getElementById('exportRangeSelect');
+            if (!form || !titleEl || !descriptionEl || !rangeField || !rangeSelect) return;
+
+            const exportMeta = getExportTypeMeta(type);
+            const currentRange = document.getElementById('activityDateRange')?.value || '30d';
+
+            form.reset();
+            form.querySelector('[name="type"]').value = type;
+            form.querySelector('[name="format"]').value = 'csv';
+            titleEl.textContent = `${exportMeta.label}匯出`;
+            descriptionEl.textContent = type === 'analytics'
+                ? '將依據指定日期範圍匯出活動分析資料。'
+                : '將根據目前可用資料產生檔案。';
+            rangeField.hidden = type !== 'analytics';
+            rangeSelect.value = ['7d', '30d', '90d'].includes(currentRange) ? currentRange : '30d';
+
+            openModal('exportDataModal');
+        }
+
+        async function submitExportForm() {
+            const form = document.getElementById('exportDataForm');
+            if (!form) return;
+
+            const type = form.querySelector('[name="type"]').value || '';
+            const format = String(form.querySelector('[name="format"]').value || 'csv').toLowerCase();
+            const range = form.querySelector('[name="range"]').value || '30d';
+
             if (!['csv', 'json', 'pdf'].includes(format)) {
-                alert(t('admin.error.operationFailed'));
+                showToast(t('admin.error.operationFailed'), 'error');
                 return;
             }
-            executeExport(type, format);
+
+            const success = await executeExport(type, format, { range });
+            if (success) {
+                closeModal('exportDataModal');
+            }
+        }
+
+        async function rerunRecentExport(exportId) {
+            const entry = recentExportHistory.find((item) => item.id === exportId);
+            if (!entry) {
+                showToast(t('admin.error.operationFailed'), 'error');
+                return;
+            }
+
+            await executeExport(entry.type, entry.format, { range: entry.range || '30d' });
         }
 
         function buildAnalyticsExportRecords(data = {}) {
@@ -9869,82 +10050,111 @@
             return records;
         }
 
-        async function executeExport(type, format) {
+        async function executeExport(type, format, options = {}) {
             try {
                 let records = [];
                 let message = '';
+                let exportedAt = new Date().toISOString();
+                const exportMeta = getExportTypeMeta(type);
+                const exportRange = options.range || (document.getElementById('activityDateRange')?.value || '30d');
 
                 switch (type) {
                     case 'users': {
                         const result = await API.admin.export.users({ format });
                         if (!result.success) {
-                            alert(result.message || t('admin.error.operationFailed'));
-                            return;
+                            showToast(result.message || t('admin.error.operationFailed'), 'error');
+                            recordRecentExport({ type, format, status: 'failed', count: 0, range: '' });
+                            return false;
                         }
                         records = Array.isArray(result?.data?.records) ? result.data.records : [];
                         message = result.message || '';
+                        exportedAt = result?.data?.exportedAt || exportedAt;
                         break;
                     }
                     case 'courses': {
                         const result = await API.admin.export.courses({ format });
                         if (!result.success) {
-                            alert(result.message || t('admin.error.operationFailed'));
-                            return;
+                            showToast(result.message || t('admin.error.operationFailed'), 'error');
+                            recordRecentExport({ type, format, status: 'failed', count: 0, range: '' });
+                            return false;
                         }
                         records = Array.isArray(result?.data?.records) ? result.data.records : [];
                         message = result.message || '';
+                        exportedAt = result?.data?.exportedAt || exportedAt;
                         break;
                     }
                     case 'licenses': {
                         const result = await API.admin.export.licenses({ format });
                         if (!result.success) {
-                            alert(result.message || t('admin.error.operationFailed'));
-                            return;
+                            showToast(result.message || t('admin.error.operationFailed'), 'error');
+                            recordRecentExport({ type, format, status: 'failed', count: 0, range: '' });
+                            return false;
                         }
                         records = Array.isArray(result?.data?.records) ? result.data.records : [];
                         message = result.message || '';
+                        exportedAt = result?.data?.exportedAt || exportedAt;
                         break;
                     }
                     case 'analytics': {
-                        const range = document.getElementById('activityDateRange')?.value || '30d';
-                        const result = await API.admin.analytics.getUserActivity(range, 'day');
+                        const result = await API.admin.analytics.getUserActivity(exportRange, 'day');
                         if (!result.success) {
-                            alert(result.message || t('admin.error.operationFailed'));
-                            return;
+                            showToast(result.message || t('admin.error.operationFailed'), 'error');
+                            recordRecentExport({ type, format, status: 'failed', count: 0, range: exportRange });
+                            return false;
                         }
                         records = buildAnalyticsExportRecords(result.data || {});
                         message = result.message || '';
+                        exportedAt = new Date().toISOString();
                         break;
                     }
                     default: {
-                        alert(t('admin.error.operationFailed'));
-                        return;
+                        showToast(t('admin.error.operationFailed'), 'error');
+                        return false;
                     }
                 }
 
                 if (!records.length) {
-                    alert(t('admin.dataExport.noData'));
-                    return;
+                    showToast(t('admin.dataExport.noData'), 'error');
+                    return false;
                 }
+
+                const baseFilename = `${exportMeta.filename}_${new Date(exportedAt).toISOString().slice(0, 10)}`;
 
                 if (format === 'csv') {
-                    downloadCSV(records, `${type}_export`);
+                    downloadCSV(records, baseFilename);
                 } else if (format === 'json') {
-                    downloadJSON(records, `${type}_export`);
+                    downloadJSON(records, baseFilename);
                 } else {
-                    downloadPDF(records, `${type}_export`, t('admin.dataExport.exportTitle'));
+                    downloadPDF(records, baseFilename, t('admin.dataExport.exportTitle'));
                 }
 
+                recordRecentExport({
+                    type,
+                    format,
+                    status: 'success',
+                    count: records.length,
+                    range: type === 'analytics' ? exportRange : '',
+                    exportedAt
+                });
                 showToast(message || '匯出完成');
+                return true;
             } catch (error) {
                 console.error('Export error:', error);
-                alert(t('admin.dataExport.exportFailed') + error.message);
+                recordRecentExport({
+                    type,
+                    format,
+                    status: 'failed',
+                    count: 0,
+                    range: type === 'analytics' ? (options.range || '30d') : ''
+                });
+                showToast(t('admin.dataExport.exportFailed') + error.message, 'error');
+                return false;
             }
         }
 
         function downloadCSV(data, filename) {
             if (!data || data.length === 0) {
-                alert(t('admin.dataExport.noData'));
+                showToast(t('admin.dataExport.noData'), 'error');
                 return;
             }
 
@@ -9963,21 +10173,27 @@
             const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
-            link.download = `${filename}_${new Date().toISOString().slice(0, 10)}.csv`;
+            link.download = `${filename}.csv`;
+            document.body.appendChild(link);
             link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(link.href);
         }
 
         function downloadJSON(data, filename) {
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
-            link.download = `${filename}_${new Date().toISOString().slice(0, 10)}.json`;
+            link.download = `${filename}.json`;
+            document.body.appendChild(link);
             link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(link.href);
         }
 
         function downloadPDF(data, filename, title = '') {
             if (!Array.isArray(data) || data.length === 0) {
-                alert(t('admin.dataExport.noData'));
+                showToast(t('admin.dataExport.noData'), 'error');
                 return;
             }
 
@@ -10011,7 +10227,7 @@
 
             const printWindow = window.open('', '_blank');
             if (!printWindow) {
-                alert(t('admin.error.operationFailed'));
+                showToast(t('admin.error.operationFailed'), 'error');
                 return;
             }
 
