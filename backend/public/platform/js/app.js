@@ -576,25 +576,25 @@ const App = {
     if (notifyEmail) notifyEmail.checked = notifications.email === true;
 
     // 更新頂部 banner
-    const profileBanner = settingsView.querySelector('.card-body');
-    if (profileBanner) {
-      const initial = (user.displayNameZh || user.displayName || t('app.user'))[0];
-      const avatarDiv = profileBanner.querySelector('div[style*="width: 80px"]');
-      if (avatarDiv) avatarDiv.textContent = initial;
+    const initial = (user.displayNameZh || user.displayName || t('app.user'))[0];
+    const heroInitial = document.getElementById('settingsProfileInitial');
+    const heroName = document.getElementById('settingsProfileName');
+    const heroEmail = document.getElementById('settingsProfileEmail');
+    const heroTier = document.getElementById('settingsHeroTier');
+    const heroJoinDate = document.getElementById('settingsHeroJoinDate');
+    const heroLicense = document.getElementById('settingsHeroLicense');
 
-      const nameH2 = profileBanner.querySelector('h2');
-      if (nameH2) nameH2.textContent = user.displayName || user.displayNameZh || t('app.user');
-
-      const emailP = profileBanner.querySelector('p');
-      if (emailP) emailP.textContent = user.email || '';
-
-      // 更新會員資訊
-      const infoSpans = profileBanner.querySelectorAll('div[style*="display: flex; gap: 1.5rem"] span');
-      if (infoSpans.length >= 3) {
-        infoSpans[0].innerHTML = `<strong>${t('settings.memberLevel')}</strong> ${user.subscriptionTier === 'professional' ? t('settings.tierPro') : user.subscriptionTier === 'basic' ? t('settings.tierBasic') : t('settings.tierFree')}`;
-        infoSpans[1].innerHTML = `<strong>${t('settings.joinDate')}</strong> ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW') : '-'}`;
-        infoSpans[2].innerHTML = `<strong>${t('settings.licenseQuota')}</strong> ${user.licenseUsed || 0}/${user.licenseQuota || 0}`;
-      }
+    if (heroInitial) heroInitial.textContent = initial;
+    if (heroName) heroName.textContent = user.displayName || user.displayNameZh || t('app.user');
+    if (heroEmail) heroEmail.textContent = user.email || '';
+    if (heroTier) {
+      heroTier.innerHTML = `<strong>${t('settings.memberLevel')}</strong> ${user.subscriptionTier === 'professional' ? t('settings.tierPro') : user.subscriptionTier === 'basic' ? t('settings.tierBasic') : t('settings.tierFree')}`;
+    }
+    if (heroJoinDate) {
+      heroJoinDate.innerHTML = `<strong>${t('settings.joinDate')}</strong> ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW') : '-'}`;
+    }
+    if (heroLicense) {
+      heroLicense.innerHTML = `<strong>${t('settings.licenseQuota')}</strong> ${user.licenseUsed || 0}/${user.licenseQuota || 0}`;
     }
   },
 

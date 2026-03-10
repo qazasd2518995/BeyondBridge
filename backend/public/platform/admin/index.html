@@ -2473,6 +2473,268 @@
             box-shadow: 0 0 0 4px rgba(168, 184, 154, 0.2);
         }
 
+        .admin-toolbar-inline {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .admin-filter-field {
+            width: 200px;
+            max-width: 100%;
+        }
+
+        .admin-filter-field.is-medium {
+            width: 150px;
+        }
+
+        .admin-filter-field.is-small {
+            width: 120px;
+        }
+
+        .admin-panel-split {
+            display: grid;
+            grid-template-columns: 280px minmax(0, 1fr);
+            gap: 1rem;
+        }
+
+        .admin-content-padding {
+            padding: 1rem;
+        }
+
+        .admin-section-spacing {
+            margin-bottom: 1.5rem;
+        }
+
+        .admin-inline-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--success);
+            color: white;
+            border-radius: 999px;
+            font-size: 0.85rem;
+        }
+
+        .admin-inline-status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: white;
+        }
+
+        .admin-tree-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .admin-tree-branch {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+
+        .admin-tree-children {
+            margin-left: 1rem;
+            padding-left: 0.75rem;
+            border-left: 1px solid var(--gray-100);
+        }
+
+        .admin-tree-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            width: 100%;
+            padding: 0.7rem 0.9rem;
+            border: 1px solid var(--gray-100);
+            border-radius: 10px;
+            background: white;
+            color: var(--charcoal);
+            text-align: left;
+        }
+
+        button.admin-tree-item {
+            cursor: pointer;
+            transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        button.admin-tree-item:hover {
+            border-color: var(--olive-light);
+            background: var(--surface-light);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .admin-tree-item.is-active {
+            border-color: var(--olive);
+            background: rgba(168, 184, 154, 0.14);
+            box-shadow: 0 0 0 3px rgba(168, 184, 154, 0.12);
+        }
+
+        .admin-tree-copy {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            min-width: 0;
+        }
+
+        .admin-tree-title {
+            font-weight: 500;
+            color: var(--charcoal);
+        }
+
+        .admin-tree-meta {
+            font-size: 0.75rem;
+            color: var(--gray-400);
+            white-space: nowrap;
+        }
+
+        .admin-card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1rem;
+            padding: 1rem;
+        }
+
+        .admin-card-grid .admin-empty-state {
+            grid-column: 1 / -1;
+        }
+
+        .admin-entity-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1rem;
+            border: 1px solid var(--gray-100);
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
+            gap: 0.85rem;
+        }
+
+        .admin-entity-card-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .admin-entity-card-main {
+            display: flex;
+            gap: 1rem;
+            min-width: 0;
+        }
+
+        .admin-entity-card-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 14px;
+            background: rgba(168, 184, 154, 0.18);
+            color: var(--olive-deep);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .admin-entity-card-copy {
+            min-width: 0;
+        }
+
+        .admin-entity-card-title {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--charcoal);
+        }
+
+        .admin-entity-card-desc {
+            font-size: 0.875rem;
+            color: var(--gray-500);
+            line-height: 1.5;
+            margin-top: 0.4rem;
+        }
+
+        .admin-entity-card-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-shrink: 0;
+        }
+
+        .admin-entity-card-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            margin-top: auto;
+            color: var(--gray-400);
+            font-size: 0.75rem;
+        }
+
+        .admin-entity-card-stats {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .admin-table-state {
+            text-align: center;
+            padding: 2rem;
+            color: var(--gray-400);
+        }
+
+        .admin-table-state.is-error {
+            color: var(--danger);
+        }
+
+        .admin-table-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+        }
+
+        .admin-table-subtitle {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+        }
+
+        .admin-table-truncate {
+            max-width: 300px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .admin-table-truncate.is-url {
+            max-width: 200px;
+        }
+
+        .admin-card-body-scroll {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .admin-card-caption {
+            font-size: 0.85rem;
+            color: var(--gray-500);
+        }
+
+        .admin-monitor-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .admin-monitor-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
         .role-stats {
             display: grid;
             grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -2842,6 +3104,7 @@
 
         .meter-fill {
             height: 100%;
+            width: 0%;
             background: linear-gradient(90deg, var(--olive), var(--olive-light));
             border-radius: 4px;
             transition: width 0.5s ease;
@@ -3249,6 +3512,7 @@
             .activity-charts-grid,
             .activity-bottom-grid,
             .role-layout,
+            .admin-panel-split,
             .admin-support-workspace {
                 grid-template-columns: 1fr;
             }
@@ -3266,6 +3530,7 @@
             .admin-pending-body,
             .admin-pending-meta,
             .admin-toolbar-group,
+            .admin-toolbar-inline,
             .admin-support-window-head,
             .admin-support-actions,
             .admin-support-input-row,
@@ -3276,7 +3541,10 @@
 
             .admin-search-input,
             .admin-audit-field,
-            .admin-audit-field.is-wide {
+            .admin-audit-field.is-wide,
+            .admin-filter-field,
+            .admin-filter-field.is-medium,
+            .admin-filter-field.is-small {
                 width: 100%;
             }
 
@@ -3287,6 +3555,10 @@
 
             .admin-support-send {
                 width: 100%;
+            }
+
+            .admin-card-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -4033,15 +4305,15 @@
                 <div class="admin-header">
                     <h2 data-i18n="admin.support.title">客服中心</h2>
                     <div class="admin-header-actions">
-                        <div id="adminOnlineStatus" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background: var(--success); color: white; border-radius: 20px; font-size: 0.85rem;">
-                            <span style="width: 8px; height: 8px; border-radius: 50%; background: white;"></span>
+                        <div id="adminOnlineStatus" class="admin-inline-status">
+                            <span class="admin-inline-status-dot"></span>
                             <span data-i18n="admin.support.online">在線服務中</span>
                         </div>
                     </div>
                 </div>
 
                 <!-- Support Stats -->
-                <div class="stats-grid" style="margin-bottom: 1.5rem;">
+                <div class="stats-grid admin-section-spacing">
                     <div class="stat-card">
                         <div class="stat-value" id="waitingChatsCount">0</div>
                         <div class="stat-label" data-i18n="admin.support.waiting">需處理</div>
@@ -4153,7 +4425,7 @@
                 <div class="admin-header">
                     <h2 data-i18n="admin.courses.title">課程管理</h2>
                     <div class="admin-header-actions">
-                        <button class="btn-primary" onclick="openCreateCourseModal()">
+                        <button class="btn btn-primary" onclick="openCreateCourseModal()">
                             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                             <span data-i18n="admin.courses.addCourse">新增課程</span>
                         </button>
@@ -4162,9 +4434,9 @@
                 <div class="card">
                     <div class="card-header">
                         <h3 data-i18n="admin.courses.allCourses">所有課程</h3>
-                        <div style="display: flex; gap: 0.5rem;">
-                            <input type="text" placeholder="搜尋課程..." data-i18n-placeholder="admin.courses.searchPlaceholder" class="form-input" style="width: 200px;" id="searchCoursesInput">
-                            <select class="form-select" style="width: 150px;" id="filterCourseStatus">
+                        <div class="admin-toolbar-inline">
+                            <input type="text" placeholder="搜尋課程..." data-i18n-placeholder="admin.courses.searchPlaceholder" class="form-input admin-filter-field" id="searchCoursesInput" oninput="filterCourses()">
+                            <select class="form-select admin-filter-field is-medium" id="filterCourseStatus" onchange="filterCourses()">
                                 <option value="" data-i18n="admin.courses.allStatus">所有狀態</option>
                                 <option value="published" data-i18n="admin.courses.published">已發布</option>
                                 <option value="draft" data-i18n="admin.courses.draft">草稿</option>
@@ -4197,7 +4469,7 @@
                 <div class="admin-header">
                     <h2 data-i18n="admin.categories.title">課程類別</h2>
                     <div class="admin-header-actions">
-                        <button class="btn-primary" onclick="openCreateCategoryModal()">
+                        <button class="btn btn-primary" onclick="openCreateCategoryModal()">
                             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                             <span data-i18n="admin.categories.addCategory">新增類別</span>
                         </button>
@@ -4205,8 +4477,8 @@
                 </div>
                 <div class="card">
                     <div class="card-header"><h3 data-i18n="admin.categories.treeStructure">類別樹狀結構</h3></div>
-                    <div id="categoriesTreeContainer" style="padding: 1rem;">
-                        <p style="text-align: center; color: var(--gray-400);" data-i18n="common.loading">載入中...</p>
+                    <div id="categoriesTreeContainer" class="admin-content-padding">
+                        <div class="admin-empty-state" data-i18n="common.loading">載入中...</div>
                     </div>
                 </div>
             </div>
@@ -4216,26 +4488,26 @@
                 <div class="admin-header">
                     <h2 data-i18n="admin.questionBank.title">題庫管理</h2>
                     <div class="admin-header-actions">
-                        <button class="btn-secondary" onclick="importQuestions()" data-i18n="admin.questionBank.import">匯入題目</button>
-                        <button class="btn-primary" onclick="openCreateQuestionModal()">
+                        <button class="btn btn-secondary" onclick="importQuestions()" data-i18n="admin.questionBank.import">匯入題目</button>
+                        <button class="btn btn-primary" onclick="openCreateQuestionModal()">
                             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                             <span data-i18n="admin.questionBank.addQuestion">新增題目</span>
                         </button>
                     </div>
                 </div>
-                <div style="display: grid; grid-template-columns: 280px 1fr; gap: 1rem;">
+                <div class="admin-panel-split">
                     <div class="card">
                         <div class="card-header"><h3 data-i18n="admin.questionBank.categories">題目類別</h3></div>
-                        <div id="questionCategoriesTree" style="padding: 0.5rem;">
-                            <p style="text-align: center; color: var(--gray-400); padding: 1rem;" data-i18n="common.loading">載入中...</p>
+                        <div id="questionCategoriesTree" class="admin-content-padding">
+                            <div class="admin-empty-state" data-i18n="common.loading">載入中...</div>
                         </div>
                     </div>
                     <div class="card">
                         <div class="card-header">
                             <h3 data-i18n="admin.questionBank.list">題目列表</h3>
-                            <div style="display: flex; gap: 0.5rem;">
-                                <input type="text" placeholder="搜尋題目..." data-i18n-placeholder="admin.questionBank.searchPlaceholder" class="form-input" style="width: 200px;" id="searchQuestionsInput">
-                                <select class="form-select" style="width: 150px;" id="filterQuestionType">
+                            <div class="admin-toolbar-inline">
+                                <input type="text" placeholder="搜尋題目..." data-i18n-placeholder="admin.questionBank.searchPlaceholder" class="form-input admin-filter-field" id="searchQuestionsInput" oninput="filterQuestionBank()">
+                                <select class="form-select admin-filter-field is-medium" id="filterQuestionType" onchange="filterQuestionBank()">
                                     <option value="" data-i18n="admin.questionBank.allTypes">所有題型</option>
                                     <option value="multiple_choice" data-i18n="admin.questionBank.multipleChoice">單選題</option>
                                     <option value="multiple_select" data-i18n="admin.questionBank.multipleSelect">多選題</option>
@@ -4271,21 +4543,21 @@
                 <div class="admin-header">
                     <h2 data-i18n="admin.badges.title">徽章系統</h2>
                     <div class="admin-header-actions">
-                        <button class="btn-primary" onclick="openCreateBadgeModal()">
+                        <button class="btn btn-primary" onclick="openCreateBadgeModal()">
                             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                             <span data-i18n="admin.badges.addBadge">新增徽章</span>
                         </button>
                     </div>
                 </div>
-                <div class="stats-grid" style="margin-bottom: 1.5rem;">
+                <div class="stats-grid admin-section-spacing">
                     <div class="stat-card"><div class="stat-value" id="totalBadgesCount">0</div><div class="stat-label" data-i18n="admin.badges.totalBadges">徽章總數</div></div>
                     <div class="stat-card"><div class="stat-value" id="activeBadgesCount">0</div><div class="stat-label" data-i18n="admin.badges.active">啟用中</div></div>
                     <div class="stat-card"><div class="stat-value" id="awardedBadgesCount">0</div><div class="stat-label" data-i18n="admin.badges.awarded">已頒發</div></div>
                 </div>
                 <div class="card">
                     <div class="card-header"><h3 data-i18n="admin.badges.list">徽章列表</h3></div>
-                    <div id="badgesGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; padding: 1rem;">
-                        <p style="text-align: center; color: var(--gray-400); grid-column: 1/-1;" data-i18n="common.loading">載入中...</p>
+                    <div id="badgesGrid" class="admin-card-grid">
+                        <div class="admin-empty-state" data-i18n="common.loading">載入中...</div>
                     </div>
                 </div>
             </div>
@@ -4295,7 +4567,7 @@
                 <div class="admin-header">
                     <h2 data-i18n="admin.paths.title">學習路徑</h2>
                     <div class="admin-header-actions">
-                        <button class="btn-primary" onclick="openCreatePathModal()">
+                        <button class="btn btn-primary" onclick="openCreatePathModal()">
                             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                             <span data-i18n="admin.paths.addPath">新增路徑</span>
                         </button>
@@ -4303,8 +4575,8 @@
                 </div>
                 <div class="card">
                     <div class="card-header"><h3 data-i18n="admin.paths.list">學習路徑列表</h3></div>
-                    <div id="learningPathsContainer" style="padding: 1rem;">
-                        <p style="text-align: center; color: var(--gray-400);" data-i18n="common.loading">載入中...</p>
+                    <div id="learningPathsContainer" class="admin-card-grid">
+                        <div class="admin-empty-state" data-i18n="common.loading">載入中...</div>
                     </div>
                 </div>
             </div>
@@ -4314,13 +4586,13 @@
                 <div class="admin-header">
                     <h2 data-i18n="admin.scorm.title">SCORM 學習包</h2>
                     <div class="admin-header-actions">
-                        <button class="btn-primary" onclick="openUploadScormModal()">
+                        <button class="btn btn-primary" onclick="openUploadScormModal()">
                             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                             <span data-i18n="admin.scorm.uploadPackage">上傳 SCORM 包</span>
                         </button>
                     </div>
                 </div>
-                <div class="stats-grid" style="margin-bottom: 1.5rem;">
+                <div class="stats-grid admin-section-spacing">
                     <div class="stat-card"><div class="stat-value" id="totalScormCount">0</div><div class="stat-label" data-i18n="admin.scorm.totalPackages">SCORM 包總數</div></div>
                     <div class="stat-card"><div class="stat-value" id="scorm12Count">0</div><div class="stat-label">SCORM 1.2</div></div>
                     <div class="stat-card"><div class="stat-value" id="scorm2004Count">0</div><div class="stat-label">SCORM 2004</div></div>
@@ -4329,7 +4601,7 @@
                     <div class="card-header"><h3 data-i18n="admin.scorm.list">SCORM 學習包列表</h3></div>
                     <table class="data-table">
                         <thead><tr><th data-i18n="admin.scorm.nameCol">名稱</th><th data-i18n="admin.scorm.version">版本</th><th data-i18n="admin.scorm.course">課程</th><th data-i18n="admin.scorm.completions">完成次數</th><th data-i18n="admin.scorm.uploadDate">上傳日期</th><th data-i18n="admin.scorm.actions">操作</th></tr></thead>
-                        <tbody id="scormTableBody"><tr><td colspan="6" style="text-align: center; padding: 2rem;" data-i18n="common.loading">載入中...</td></tr></tbody>
+                        <tbody id="scormTableBody"><tr><td colspan="6" class="admin-table-state" data-i18n="common.loading">載入中...</td></tr></tbody>
                     </table>
                 </div>
             </div>
@@ -4339,7 +4611,7 @@
                 <div class="admin-header">
                     <h2 data-i18n="admin.lti.title">LTI 外部工具</h2>
                     <div class="admin-header-actions">
-                        <button class="btn-primary" onclick="openCreateLtiModal()">
+                        <button class="btn btn-primary" onclick="openCreateLtiModal()">
                             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                             <span data-i18n="admin.lti.addTool">新增 LTI 工具</span>
                         </button>
@@ -4348,11 +4620,11 @@
                 <div class="card">
                     <div class="card-header">
                         <h3 data-i18n="admin.lti.configuredTools">已設定的 LTI 工具</h3>
-                        <span style="font-size: 0.85rem; color: var(--gray-500);" data-i18n="admin.lti.versionSupport">支援 LTI 1.1 / 1.3</span>
+                        <span class="admin-card-caption" data-i18n="admin.lti.versionSupport">支援 LTI 1.1 / 1.3</span>
                     </div>
                     <table class="data-table">
                         <thead><tr><th data-i18n="admin.lti.nameCol">工具名稱</th><th data-i18n="admin.lti.vendor">供應商</th><th data-i18n="admin.lti.version">版本</th><th data-i18n="admin.lti.status">狀態</th><th data-i18n="admin.lti.usageCount">使用次數</th><th data-i18n="admin.lti.actions">操作</th></tr></thead>
-                        <tbody id="ltiTableBody"><tr><td colspan="6" style="text-align: center; padding: 2rem;" data-i18n="common.loading">載入中...</td></tr></tbody>
+                        <tbody id="ltiTableBody"><tr><td colspan="6" class="admin-table-state" data-i18n="common.loading">載入中...</td></tr></tbody>
                     </table>
                 </div>
             </div>
@@ -4362,14 +4634,14 @@
                 <div class="admin-header">
                     <h2 data-i18n="admin.h5p.title">H5P 互動內容</h2>
                     <div class="admin-header-actions">
-                        <button class="btn-secondary" onclick="updateH5pLibraries()" data-i18n="admin.h5p.updateLibraries">更新函式庫</button>
-                        <button class="btn-primary" onclick="openCreateH5pModal()">
+                        <button class="btn btn-secondary" onclick="updateH5pLibraries()" data-i18n="admin.h5p.updateLibraries">更新函式庫</button>
+                        <button class="btn btn-primary" onclick="openCreateH5pModal()">
                             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                             <span data-i18n="admin.h5p.addContent">新增 H5P 內容</span>
                         </button>
                     </div>
                 </div>
-                <div class="stats-grid" style="margin-bottom: 1.5rem;">
+                <div class="stats-grid admin-section-spacing">
                     <div class="stat-card"><div class="stat-value" id="totalH5pCount">0</div><div class="stat-label" data-i18n="admin.h5p.totalContent">H5P 內容總數</div></div>
                     <div class="stat-card"><div class="stat-value" id="h5pLibrariesCount">0</div><div class="stat-label" data-i18n="admin.h5p.installedLibraries">已安裝函式庫</div></div>
                     <div class="stat-card"><div class="stat-value" id="h5pInteractionsCount">0</div><div class="stat-label" data-i18n="admin.h5p.interactions">互動次數</div></div>
@@ -4377,15 +4649,15 @@
                 <div class="card">
                     <div class="card-header">
                         <h3 data-i18n="admin.h5p.list">H5P 內容列表</h3>
-                        <select class="form-select" style="width: 180px;" id="filterH5pType">
+                        <select class="form-select admin-filter-field" id="filterH5pType" onchange="filterH5pContent()">
                             <option value="" data-i18n="admin.h5p.allTypes">所有類型</option>
                             <option value="InteractiveVideo" data-i18n="admin.h5p.interactiveVideo">互動影片</option>
                             <option value="CoursePresentation" data-i18n="admin.h5p.coursePresentation">課程簡報</option>
                             <option value="QuestionSet" data-i18n="admin.h5p.questionSet">題目集</option>
                         </select>
                     </div>
-                    <div id="h5pGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; padding: 1rem;">
-                        <p style="text-align: center; color: var(--gray-400); grid-column: 1/-1;" data-i18n="common.loading">載入中...</p>
+                    <div id="h5pGrid" class="admin-card-grid">
+                        <div class="admin-empty-state" data-i18n="common.loading">載入中...</div>
                     </div>
                 </div>
             </div>
@@ -4469,7 +4741,7 @@
                 <div class="card">
                     <table class="data-table">
                         <thead><tr><th data-i18n="admin.auditLogs.time">時間</th><th data-i18n="admin.auditLogs.user">用戶</th><th data-i18n="admin.auditLogs.actionType">操作類型</th><th data-i18n="admin.auditLogs.target">目標</th><th data-i18n="admin.auditLogs.ipAddress">IP 位址</th><th data-i18n="admin.auditLogs.details">詳細</th></tr></thead>
-                        <tbody id="auditLogsTableBody"><tr><td colspan="6" style="text-align: center; padding: 2rem;" data-i18n="common.loading">載入中...</td></tr></tbody>
+                        <tbody id="auditLogsTableBody"><tr><td colspan="6" class="admin-table-state" data-i18n="common.loading">載入中...</td></tr></tbody>
                     </table>
                     <div class="admin-pagination-wrap">
                         <div id="auditLogsPagination"></div>
@@ -4482,12 +4754,12 @@
                 <div class="admin-header">
                     <h2 data-i18n="admin.systemMonitor.title">系統監控</h2>
                     <div class="admin-header-actions">
-                        <label class="toggle-switch" style="display: flex; align-items: center; gap: 0.5rem;">
+                        <label class="toggle-switch admin-monitor-toggle">
                             <input type="checkbox" id="autoRefreshToggle" onchange="toggleAutoRefresh(this.checked)">
                             <span class="toggle-slider"></span>
-                            <span style="font-size: 0.875rem; color: var(--text-secondary);" data-i18n="admin.systemMonitor.autoRefresh">自動更新 (30秒)</span>
+                            <span class="admin-monitor-label" data-i18n="admin.systemMonitor.autoRefresh">自動更新 (30秒)</span>
                         </label>
-                        <button class="btn-secondary" onclick="loadSystemHealth()">
+                        <button class="btn btn-secondary" onclick="loadSystemHealth()">
                             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
                                 <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
@@ -4566,7 +4838,7 @@
                                     <span id="memoryPercent">0%</span>
                                 </div>
                                 <div class="meter-bar">
-                                    <div class="meter-fill" id="memoryBar" style="width: 0%"></div>
+                                    <div class="meter-fill" id="memoryBar"></div>
                                 </div>
                                 <div class="meter-detail" id="memoryDetail" data-i18n="admin.systemMonitor.memoryDetail">已使用 0 MB / 總共 0 MB</div>
                             </div>
@@ -4585,14 +4857,14 @@
                     <div class="card">
                         <div class="card-header">
                             <h3 data-i18n="admin.systemMonitor.errorLogs">最近錯誤日誌</h3>
-                            <select class="form-select" id="errorSeverityFilter" onchange="filterErrors()" style="width: 120px;">
+                            <select class="form-select admin-filter-field is-small" id="errorSeverityFilter" onchange="filterErrors()">
                                 <option value="" data-i18n="admin.systemMonitor.allLevels">全部等級</option>
                                 <option value="error" data-i18n="admin.systemMonitor.error">錯誤</option>
                                 <option value="warning" data-i18n="admin.systemMonitor.warning">警告</option>
                                 <option value="info" data-i18n="admin.systemMonitor.info">資訊</option>
                             </select>
                         </div>
-                        <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                        <div class="card-body admin-card-body-scroll">
                             <div class="error-log-list" id="errorLogList">
                                 <div class="empty-state">
                                     <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -6462,6 +6734,13 @@
         let currentSupportFilter = 'waiting';
         let adminAuditLogs = [];
         let filteredAdminAuditLogs = [];
+        let adminCourses = [];
+        let adminCourseCategories = [];
+        let adminQuestionCategories = [];
+        let adminQuestions = [];
+        let currentQuestionCategoryFilter = '';
+        let adminBadges = [];
+        let adminH5pContents = [];
 
         // 用戶管理全域變數
         let allUsers = [];
@@ -7891,7 +8170,7 @@
             if (!tbody) return;
 
             if (!Array.isArray(logs) || logs.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--gray-400);">${t('admin.auditLogs.noLogs')}</td></tr>`;
+                tbody.innerHTML = renderAdminTableState(6, t('admin.auditLogs.noLogs'));
                 return;
             }
 
@@ -8353,34 +8632,471 @@
 
         // ========== New View Load Functions ==========
 
+        function getAdminCollection(payload) {
+            if (Array.isArray(payload)) return payload;
+            if (!payload || typeof payload !== 'object') return [];
+            return [
+                payload.items,
+                payload.records,
+                payload.rows,
+                payload.data,
+                payload.results,
+                payload.categories,
+                payload.questions
+            ].find(Array.isArray) || [];
+        }
+
+        function renderAdminTableState(colspan, message, tone = 'default') {
+            return `
+                <tr>
+                    <td colspan="${colspan}" class="admin-table-state${tone === 'error' ? ' is-error' : ''}">
+                        ${escapeHtml(message)}
+                    </td>
+                </tr>
+            `;
+        }
+
+        function renderAdminEmptyState(message, tone = 'default') {
+            return `<div class="admin-empty-state${tone === 'error' ? ' is-error' : ''}">${escapeHtml(message)}</div>`;
+        }
+
+        function getCourseStatusMeta(course = {}) {
+            const rawStatus = String(
+                course.status
+                || (course.isArchived ? 'archived' : '')
+                || (course.isPublished ? 'published' : '')
+                || 'draft'
+            ).toLowerCase();
+
+            if (rawStatus === 'published' || rawStatus === 'active') {
+                return { value: 'published', label: t('admin.courses.published'), badgeClass: 'badge-success' };
+            }
+            if (rawStatus === 'archived') {
+                return { value: 'archived', label: t('admin.courses.archived'), badgeClass: 'badge-warning' };
+            }
+            return { value: 'draft', label: t('admin.courses.draft'), badgeClass: 'badge-info' };
+        }
+
+        function renderCoursesTable(courses) {
+            const tbody = document.getElementById('coursesTableBody');
+            if (!tbody) return;
+
+            if (!Array.isArray(courses) || courses.length === 0) {
+                tbody.innerHTML = renderAdminTableState(6, t('admin.courses.noCourses'));
+                return;
+            }
+
+            tbody.innerHTML = courses.map((course) => {
+                const courseId = course.id || course.courseId || '';
+                const title = course.title || course.name || t('admin.courses.untitled');
+                const category = course.categoryName || course.category || t('admin.courses.uncategorized');
+                const instructor = course.instructorName || course.teacherName || course.ownerName || '-';
+                const enrolledCount = course.enrolledCount ?? course.studentCount ?? course.enrollmentCount ?? 0;
+                const statusMeta = getCourseStatusMeta(course);
+
+                return `
+                    <tr>
+                        <td>
+                            <div class="admin-table-stack">
+                                <strong>${escapeHtml(String(title))}</strong>
+                                <span class="admin-table-subtitle">${escapeHtml(String(course.shortName || course.code || ''))}</span>
+                            </div>
+                        </td>
+                        <td>${escapeHtml(String(category))}</td>
+                        <td>${escapeHtml(String(instructor))}</td>
+                        <td>${escapeHtml(String(enrolledCount))}</td>
+                        <td><span class="badge ${statusMeta.badgeClass}">${escapeHtml(String(statusMeta.label))}</span></td>
+                        <td>
+                            <button class="btn-icon" onclick="editCourse('${escapeHtml(String(courseId))}')" title="${t('common.edit')}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                            <button class="btn-icon" onclick="deleteCourse('${escapeHtml(String(courseId))}')" title="${t('common.delete')}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function filterCourses() {
+            const query = (document.getElementById('searchCoursesInput')?.value || '').trim().toLowerCase();
+            const status = (document.getElementById('filterCourseStatus')?.value || '').trim().toLowerCase();
+
+            const filtered = adminCourses.filter((course) => {
+                const title = String(course.title || course.name || '').toLowerCase();
+                const category = String(course.categoryName || course.category || '').toLowerCase();
+                const instructor = String(course.instructorName || course.teacherName || course.ownerName || '').toLowerCase();
+                const statusMeta = getCourseStatusMeta(course);
+                const matchesQuery = !query || title.includes(query) || category.includes(query) || instructor.includes(query);
+                const matchesStatus = !status || statusMeta.value === status;
+                return matchesQuery && matchesStatus;
+            });
+
+            renderCoursesTable(filtered);
+        }
+
+        function renderCourseCategoryTree(categories, parentId = null) {
+            const items = categories.filter((cat) => {
+                const normalizedParent = cat.parentId ?? cat.parentCategoryId ?? null;
+                return normalizedParent === parentId;
+            });
+
+            if (items.length === 0) return '';
+
+            const wrapperClass = parentId === null ? 'admin-tree-list' : 'admin-tree-children';
+            return `
+                <div class="${wrapperClass}">
+                    ${items.map((cat) => {
+                        const catId = cat.id || cat.categoryId || '';
+                        const children = renderCourseCategoryTree(categories, catId);
+                        return `
+                            <div class="admin-tree-branch">
+                                <div class="admin-tree-item">
+                                    <div class="admin-tree-copy">
+                                        <span>📁</span>
+                                        <span class="admin-tree-title">${escapeHtml(String(cat.name || t('admin.categories.untitled')))}</span>
+                                    </div>
+                                    <span class="admin-tree-meta">${escapeHtml(String(cat.courseCount || 0))} ${t('admin.categories.courseUnit')}</span>
+                                </div>
+                                ${children}
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+
+        function renderQuestionCategoryList(categories) {
+            const container = document.getElementById('questionCategoriesTree');
+            if (!container) return;
+
+            const allItem = `
+                <button type="button" class="admin-tree-item ${currentQuestionCategoryFilter ? '' : 'is-active'}" onclick="filterQuestionsByCategory('')">
+                    <div class="admin-tree-copy">
+                        <span>📁</span>
+                        <span class="admin-tree-title">${t('admin.questionBank.allQuestions')}</span>
+                    </div>
+                    <span class="admin-tree-meta">${escapeHtml(String(adminQuestions.length || 0))}</span>
+                </button>
+            `;
+
+            if (!Array.isArray(categories) || categories.length === 0) {
+                container.innerHTML = `
+                    <div class="admin-tree-list">
+                        ${allItem}
+                    </div>
+                    ${renderAdminEmptyState(t('admin.questionBank.noCategories'))}
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="admin-tree-list">
+                    ${allItem}
+                    ${categories.map((cat) => {
+                        const catId = cat.id || cat.categoryId || '';
+                        const isActive = currentQuestionCategoryFilter === catId;
+                        return `
+                            <button type="button" class="admin-tree-item ${isActive ? 'is-active' : ''}" onclick="filterQuestionsByCategory('${escapeHtml(String(catId))}')">
+                                <div class="admin-tree-copy">
+                                    <span>📂</span>
+                                    <span class="admin-tree-title">${escapeHtml(String(cat.name || t('admin.questionBank.uncategorized')))}</span>
+                                </div>
+                                <span class="admin-tree-meta">${escapeHtml(String(cat.questionCount || 0))}</span>
+                            </button>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+
+        function renderQuestionTable(questions) {
+            const tbody = document.getElementById('questionsTableBody');
+            if (!tbody) return;
+
+            if (!Array.isArray(questions) || questions.length === 0) {
+                tbody.innerHTML = renderAdminTableState(6, t('admin.questionBank.noQuestions'));
+                return;
+            }
+
+            const typeLabels = {
+                multiple_choice: t('admin.questionBank.multipleChoice'),
+                multiple_select: t('admin.questionBank.multipleSelect'),
+                true_false: t('admin.questionBank.trueFalse'),
+                short_answer: t('admin.questionBank.shortAnswer'),
+                essay: t('admin.questionBank.essay')
+            };
+
+            const difficultyLabels = {
+                easy: { text: t('admin.questionBank.easy'), class: 'badge-success' },
+                medium: { text: t('admin.questionBank.medium'), class: 'badge-warning' },
+                hard: { text: t('admin.questionBank.hard'), class: 'badge-danger' }
+            };
+
+            tbody.innerHTML = questions.map((question) => {
+                const questionId = question.id || question.questionId || '';
+                const content = question.text || question.content || question.title || '-';
+                const category = question.categoryName || question.category || '';
+                const difficulty = difficultyLabels[question.difficulty] || { text: question.difficulty || '-', class: 'badge-info' };
+
+                return `
+                    <tr>
+                        <td><input type="checkbox" value="${escapeHtml(String(questionId))}"></td>
+                        <td class="admin-table-truncate" title="${escapeHtml(String(content))}">
+                            <div class="admin-table-stack">
+                                <span>${escapeHtml(String(content))}</span>
+                                <span class="admin-table-subtitle">${escapeHtml(String(category))}</span>
+                            </div>
+                        </td>
+                        <td>${escapeHtml(String(typeLabels[question.type] || question.type || '-'))}</td>
+                        <td><span class="badge ${difficulty.class}">${escapeHtml(String(difficulty.text))}</span></td>
+                        <td>${escapeHtml(String(question.usageCount || 0))}</td>
+                        <td>
+                            <button class="btn-icon" onclick="editQuestion('${escapeHtml(String(questionId))}')" title="${t('common.edit')}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                            <button class="btn-icon" onclick="deleteQuestion('${escapeHtml(String(questionId))}')" title="${t('common.delete')}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function filterQuestionBank() {
+            const query = (document.getElementById('searchQuestionsInput')?.value || '').trim().toLowerCase();
+            const type = (document.getElementById('filterQuestionType')?.value || '').trim().toLowerCase();
+
+            const filtered = adminQuestions.filter((question) => {
+                const content = String(question.text || question.content || question.title || '').toLowerCase();
+                const categoryId = String(question.categoryId || question.category?.id || question.topicId || '').toLowerCase();
+                const categoryName = String(question.categoryName || question.category || '').toLowerCase();
+                const typeValue = String(question.type || '').toLowerCase();
+
+                const matchesQuery = !query || content.includes(query) || categoryName.includes(query);
+                const matchesType = !type || typeValue === type;
+                const matchesCategory = !currentQuestionCategoryFilter || categoryId === currentQuestionCategoryFilter.toLowerCase();
+
+                return matchesQuery && matchesType && matchesCategory;
+            });
+
+            renderQuestionTable(filtered);
+        }
+
+        function renderBadgesGrid(badges) {
+            const grid = document.getElementById('badgesGrid');
+            if (!grid) return;
+
+            if (!Array.isArray(badges) || badges.length === 0) {
+                grid.innerHTML = renderAdminEmptyState(t('admin.badges.noBadges'));
+                return;
+            }
+
+            grid.innerHTML = badges.map((badge) => {
+                const badgeId = badge.id || badge.badgeId || '';
+                const icon = badge.icon || '🏆';
+                const statusLabel = badge.isActive ? t('admin.filter.active') : t('admin.badges.inactive');
+                const statusClass = badge.isActive ? 'badge-success' : 'badge-warning';
+                return `
+                    <div class="admin-entity-card">
+                        <div class="admin-entity-card-head">
+                            <div class="admin-entity-card-main">
+                                <div class="admin-entity-card-icon">${escapeHtml(String(icon))}</div>
+                                <div class="admin-entity-card-copy">
+                                    <h4 class="admin-entity-card-title">${escapeHtml(String(badge.name || t('admin.badges.unnamed')))}</h4>
+                                    <p class="admin-entity-card-desc">${escapeHtml(String(badge.description || t('admin.badges.noDescription')))}</p>
+                                </div>
+                            </div>
+                            <div class="admin-entity-card-actions">
+                                <button class="btn-icon" onclick="editBadge('${escapeHtml(String(badgeId))}')" title="${t('common.edit')}"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                            </div>
+                        </div>
+                        <div class="admin-entity-card-meta">
+                            <span class="badge ${statusClass}">${escapeHtml(String(statusLabel))}</span>
+                            <div class="admin-entity-card-stats">
+                                <span>${escapeHtml(t('admin.badges.awarded', { count: badge.awardedCount || 0 }))}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderH5pGrid(contents) {
+            const grid = document.getElementById('h5pGrid');
+            if (!grid) return;
+
+            if (!Array.isArray(contents) || contents.length === 0) {
+                grid.innerHTML = renderAdminEmptyState(t('admin.h5p.noContent'));
+                return;
+            }
+
+            grid.innerHTML = contents.map((content) => {
+                const contentId = content.id || content.contentId || '';
+                const libraryName = content.libraryName || 'Unknown';
+                const createdAt = content.createdAt ? new Date(content.createdAt).toLocaleDateString('zh-TW') : '-';
+
+                return `
+                    <div class="admin-entity-card">
+                        <div class="admin-entity-card-head">
+                            <div class="admin-entity-card-main">
+                                <div class="admin-entity-card-icon">H5</div>
+                                <div class="admin-entity-card-copy">
+                                    <h4 class="admin-entity-card-title">${escapeHtml(String(content.title || '-'))}</h4>
+                                    <p class="admin-entity-card-desc">${escapeHtml(String(content.courseName || t('admin.courses.uncategorized')))}</p>
+                                </div>
+                            </div>
+                            <div class="admin-entity-card-actions">
+                                <button class="btn-icon" onclick="previewH5p('${escapeHtml(String(contentId))}')" title="${t('common.preview')}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+                                <button class="btn-icon" onclick="editH5p('${escapeHtml(String(contentId))}')" title="${t('common.edit')}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                                <button class="btn-icon" onclick="deleteH5p('${escapeHtml(String(contentId))}')" title="${t('common.delete')}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+                            </div>
+                        </div>
+                        <div class="admin-entity-card-meta">
+                            <span class="badge badge-info">${escapeHtml(String(libraryName))}</span>
+                            <div class="admin-entity-card-stats">
+                                <span>${escapeHtml(String(createdAt))}</span>
+                                <span>${escapeHtml(String(content.interactionCount || 0))} ${t('admin.h5p.interactions')}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function filterH5pContent() {
+            const selectedType = (document.getElementById('filterH5pType')?.value || '').trim();
+            const filtered = adminH5pContents.filter((content) => !selectedType || content.libraryName === selectedType);
+            renderH5pGrid(filtered);
+        }
+
+        function getToolHostname(url) {
+            if (!url) return '-';
+            try {
+                return new URL(url).hostname;
+            } catch (error) {
+                return url;
+            }
+        }
+
+        function renderLearningPathsGrid(paths) {
+            const container = document.getElementById('learningPathsContainer');
+            if (!container) return;
+
+            if (!Array.isArray(paths) || paths.length === 0) {
+                container.innerHTML = renderAdminEmptyState(t('admin.paths.noPaths'));
+                return;
+            }
+
+            container.innerHTML = paths.map((path) => {
+                const statusClass = path.isActive ? 'badge-success' : 'badge-warning';
+                const statusLabel = path.isActive ? t('admin.filter.active') : t('admin.paths.inactive');
+
+                return `
+                    <div class="admin-entity-card">
+                        <div class="admin-entity-card-head">
+                            <div class="admin-entity-card-main">
+                                <div class="admin-entity-card-icon">🧭</div>
+                                <div class="admin-entity-card-copy">
+                                    <h4 class="admin-entity-card-title">${escapeHtml(String(path.name || t('admin.paths.list')))}</h4>
+                                    <p class="admin-entity-card-desc">${escapeHtml(String(path.description || t('admin.paths.noDescription')))}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="admin-entity-card-meta">
+                            <span class="badge ${statusClass}">${escapeHtml(String(statusLabel))}</span>
+                            <div class="admin-entity-card-stats">
+                                <span>${escapeHtml(t('admin.paths.courseCount', { count: path.courseCount || 0 }))}</span>
+                                <span>${escapeHtml(t('admin.paths.enrolledCount', { count: path.enrolledCount || 0 }))}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderScormTable(packages) {
+            const tbody = document.getElementById('scormTableBody');
+            if (!tbody) return;
+
+            if (!Array.isArray(packages) || packages.length === 0) {
+                tbody.innerHTML = renderAdminTableState(6, t('admin.scorm.noPackages'));
+                return;
+            }
+
+            tbody.innerHTML = packages.map((pkg) => {
+                const packageId = pkg.id || pkg.packageId || '';
+                const rawVersion = String(pkg.version || '');
+                const versionLabel = rawVersion === 'scorm_1.2'
+                    ? 'SCORM 1.2'
+                    : rawVersion === 'scorm_2004'
+                        ? 'SCORM 2004'
+                        : `SCORM ${rawVersion || '1.2'}`;
+                const packageDate = pkg.uploadedAt || pkg.createdAt;
+
+                return `
+                    <tr>
+                        <td>
+                            <div class="admin-table-stack">
+                                <strong>${escapeHtml(String(pkg.title || pkg.name || '-'))}</strong>
+                                <span class="admin-table-subtitle">${escapeHtml(String(pkg.description || ''))}</span>
+                            </div>
+                        </td>
+                        <td><span class="badge badge-info">${escapeHtml(versionLabel)}</span></td>
+                        <td>${escapeHtml(String(pkg.courseName || pkg.courseId || '-'))}</td>
+                        <td>${escapeHtml(String(pkg.completionCount || 0))}</td>
+                        <td>${escapeHtml(packageDate ? new Date(packageDate).toLocaleDateString('zh-TW') : '-')}</td>
+                        <td>
+                            <button class="btn-icon" onclick="previewScorm('${escapeHtml(String(packageId))}')" title="${t('common.preview')}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+                            <button class="btn-icon" onclick="deleteScorm('${escapeHtml(String(packageId))}')" title="${t('common.delete')}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderLtiTable(tools) {
+            const tbody = document.getElementById('ltiTableBody');
+            if (!tbody) return;
+
+            if (!Array.isArray(tools) || tools.length === 0) {
+                tbody.innerHTML = renderAdminTableState(6, t('admin.lti.noTools'));
+                return;
+            }
+
+            tbody.innerHTML = tools.map((tool) => {
+                const toolId = tool.id || tool.toolId || '';
+                const vendor = tool.vendor || tool.provider || tool.platformName || getToolHostname(tool.toolUrl);
+                const isActive = tool.isActive ?? String(tool.status || '').toLowerCase() === 'active';
+                const usageCount = tool.launchCount ?? tool.usageCount ?? 0;
+
+                return `
+                    <tr>
+                        <td>
+                            <div class="admin-table-stack">
+                                <strong>${escapeHtml(String(tool.name || '-'))}</strong>
+                                <span class="admin-table-subtitle admin-table-truncate is-url" title="${escapeHtml(String(tool.toolUrl || '-'))}">${escapeHtml(String(tool.toolUrl || '-'))}</span>
+                            </div>
+                        </td>
+                        <td>${escapeHtml(String(vendor || '-'))}</td>
+                        <td><span class="badge badge-info">LTI ${escapeHtml(String(tool.version || tool.ltiVersion || '1.3'))}</span></td>
+                        <td><span class="badge ${isActive ? 'badge-success' : 'badge-warning'}">${isActive ? t('admin.filter.active') : t('admin.lti.inactive')}</span></td>
+                        <td>${escapeHtml(String(usageCount))}</td>
+                        <td>
+                            <button class="btn-icon" onclick="editLti('${escapeHtml(String(toolId))}')" title="${t('common.edit')}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                            <button class="btn-icon" onclick="deleteLti('${escapeHtml(String(toolId))}')" title="${t('common.delete')}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
         // Load Courses
         async function loadCourses() {
             try {
                 const result = await API.request('/courses');
-                const courses = result.success ? result.data : [];
-                const tbody = document.getElementById('coursesTableBody');
-                if (!tbody) return;
-
-                if (courses.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--gray-400);">${t('admin.courses.noCourses')}</td></tr>`;
-                    return;
-                }
-
-                tbody.innerHTML = courses.map(course => `
-                    <tr>
-                        <td><strong>${course.title || course.name}</strong></td>
-                        <td>${course.categoryName || t('admin.courses.uncategorized')}</td>
-                        <td>${course.instructorName || '-'}</td>
-                        <td>${course.enrolledCount || 0}</td>
-                        <td><span class="badge ${course.status === 'published' ? 'badge-success' : 'badge-warning'}">${course.status === 'published' ? t('admin.courses.published') : t('admin.courses.draft')}</span></td>
-                        <td>
-                            <button class="btn-icon" onclick="editCourse('${course.id}')" title="${t('common.edit')}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-                            <button class="btn-icon" onclick="deleteCourse('${course.id}')" title="${t('common.delete')}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
-                        </td>
-                    </tr>
-                `).join('');
+                adminCourses = result.success ? getAdminCollection(result.data) : [];
+                filterCourses();
             } catch (error) {
                 console.error('Load courses error:', error);
+                const tbody = document.getElementById('coursesTableBody');
+                if (tbody) {
+                    tbody.innerHTML = renderAdminTableState(6, t('admin.courses.loading'), 'error');
+                }
             }
         }
 
@@ -8388,41 +9104,32 @@
         async function loadCourseCategories() {
             try {
                 const result = await API.request('/course-categories');
-                const categories = result.success ? (result.data || []) : [];
+                adminCourseCategories = result.success ? getAdminCollection(result.data) : [];
                 const container = document.getElementById('categoriesTreeContainer');
                 if (!container) return;
 
-                if (categories.length === 0) {
-                    // 顯示預設類別
+                if (adminCourseCategories.length === 0) {
                     container.innerHTML = `
-                        <div class="category-item" style="padding: 0.5rem; border-bottom: 1px solid var(--gray-200);">
-                            <span>📁 ${t('admin.categories.allCourses')}</span>
-                            <span style="float: right; color: var(--gray-400);">${0} ${t('admin.categories.courseUnit')}</span>
+                        <div class="admin-tree-list">
+                            <div class="admin-tree-item">
+                                <div class="admin-tree-copy">
+                                    <span>📁</span>
+                                    <span class="admin-tree-title">${t('admin.categories.allCourses')}</span>
+                                </div>
+                                <span class="admin-tree-meta">0 ${t('admin.categories.courseUnit')}</span>
+                            </div>
                         </div>
-                        <p style="text-align: center; color: var(--gray-400); padding: 1rem; font-size: 0.875rem;">${t('admin.categories.addHint')}</p>
+                        ${renderAdminEmptyState(t('admin.categories.addHint'))}
                     `;
                     return;
                 }
 
-                container.innerHTML = renderCategoryTree(categories);
+                container.innerHTML = renderCourseCategoryTree(adminCourseCategories);
             } catch (error) {
                 console.error('Load categories error:', error);
                 const container = document.getElementById('categoriesTreeContainer');
-                if (container) container.innerHTML = `<p style="text-align: center; color: var(--gray-400); padding: 1rem;">${t('admin.categories.loading')}</p>`;
+                if (container) container.innerHTML = renderAdminEmptyState(t('admin.categories.loading'), 'error');
             }
-        }
-
-        function renderCategoryTree(categories, parentId = null, level = 0) {
-            const items = categories.filter(c => c.parentId === parentId);
-            if (items.length === 0) return '';
-
-            return items.map(cat => `
-                <div class="category-item" style="padding-left: ${level * 20}px; padding: 0.5rem; border-bottom: 1px solid var(--gray-200);">
-                    <span style="margin-left: ${level * 20}px;">${'└ '.repeat(level > 0 ? 1 : 0)}${cat.name}</span>
-                    <span style="float: right; color: var(--gray-400);">${cat.courseCount || 0} ${t('admin.categories.courseUnit')}</span>
-                </div>
-                ${renderCategoryTree(categories, cat.id, level + 1)}
-            `).join('');
         }
 
         // Load Question Bank
@@ -8430,73 +9137,17 @@
             try {
                 // Load categories
                 const catResult = await API.request('/questionbank/categories');
-                const categories = catResult.success ? catResult.data : [];
-                const catContainer = document.getElementById('questionCategoriesTree');
-                if (catContainer) {
-                    if (categories.length === 0) {
-                        catContainer.innerHTML = `
-                            <div class="category-item active" style="padding: 0.5rem; cursor: pointer;">
-                                <span>📁 ${t('admin.questionBank.allQuestions')}</span>
-                            </div>
-                            <p style="text-align: center; color: var(--gray-400); padding: 1rem; font-size: 0.875rem;">${t('admin.questionBank.noCategories')}</p>
-                        `;
-                    } else {
-                        catContainer.innerHTML = `
-                            <div class="category-item active" style="padding: 0.5rem; cursor: pointer; background: var(--olive-100); border-radius: 4px;">
-                                <span>📁 ${t('admin.questionBank.allQuestions')}</span>
-                            </div>
-                            ${categories.map(cat => `
-                                <div class="category-item" style="padding: 0.5rem; cursor: pointer;" onclick="filterQuestionsByCategory('${cat.id}')">
-                                    <span>📂 ${cat.name}</span>
-                                    <span style="color: var(--gray-400); font-size: 0.75rem;">(${cat.questionCount || 0})</span>
-                                </div>
-                            `).join('')}
-                        `;
-                    }
-                }
+                adminQuestionCategories = catResult.success ? getAdminCollection(catResult.data) : [];
 
                 // Load questions
                 const result = await API.request('/questionbank');
-                const questions = result.success ? result.data : [];
-                const tbody = document.getElementById('questionsTableBody');
-                if (!tbody) return;
-
-                if (questions.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--gray-400);">${t('admin.questionBank.noQuestions')}</td></tr>`;
-                    return;
-                }
-
-                const typeLabels = {
-                    'multiple_choice': t('admin.questionBank.multipleChoice'),
-                    'multiple_select': t('admin.questionBank.multipleSelect'),
-                    'true_false': t('admin.questionBank.trueFalse'),
-                    'short_answer': t('admin.questionBank.shortAnswer'),
-                    'essay': t('admin.questionBank.essay')
-                };
-
-                const difficultyLabels = {
-                    'easy': { text: t('admin.questionBank.easy'), class: 'badge-success' },
-                    'medium': { text: t('admin.questionBank.medium'), class: 'badge-warning' },
-                    'hard': { text: t('admin.questionBank.hard'), class: 'badge-danger' }
-                };
-
-                tbody.innerHTML = questions.map(q => `
-                    <tr>
-                        <td><input type="checkbox" value="${q.id}"></td>
-                        <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${q.text || q.content}</td>
-                        <td>${typeLabels[q.type] || q.type}</td>
-                        <td><span class="badge ${(difficultyLabels[q.difficulty] || {}).class || 'badge-info'}">${(difficultyLabels[q.difficulty] || {}).text || q.difficulty || '-'}</span></td>
-                        <td>${q.usageCount || 0}</td>
-                        <td>
-                            <button class="btn-icon" onclick="editQuestion('${q.id}')" title="${t('common.edit')}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-                            <button class="btn-icon" onclick="deleteQuestion('${q.id}')" title="${t('common.delete')}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
-                        </td>
-                    </tr>
-                `).join('');
+                adminQuestions = result.success ? getAdminCollection(result.data) : [];
+                renderQuestionCategoryList(adminQuestionCategories);
+                filterQuestionBank();
             } catch (error) {
                 console.error('Load question bank error:', error);
                 const tbody = document.getElementById('questionsTableBody');
-                if (tbody) tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--gray-400);">${t('admin.questionBank.loading')}</td></tr>`;
+                if (tbody) tbody.innerHTML = renderAdminTableState(6, t('admin.questionBank.loading'), 'error');
             }
         }
 
@@ -8504,46 +9155,21 @@
         async function loadBadges() {
             try {
                 const result = await API.request('/badges');
-                const badges = result.success ? (result.data || []) : [];
+                adminBadges = result.success ? getAdminCollection(result.data) : [];
 
                 // Update stats (with null checks)
                 const totalBadgesEl = document.getElementById('totalBadgesCount');
                 const activeBadgesEl = document.getElementById('activeBadgesCount');
                 const awardedBadgesEl = document.getElementById('awardedBadgesCount');
-                if (totalBadgesEl) totalBadgesEl.textContent = badges.length;
-                if (activeBadgesEl) activeBadgesEl.textContent = badges.filter(b => b.isActive).length;
-                if (awardedBadgesEl) awardedBadgesEl.textContent = badges.reduce((sum, b) => sum + (b.awardedCount || 0), 0);
+                if (totalBadgesEl) totalBadgesEl.textContent = adminBadges.length;
+                if (activeBadgesEl) activeBadgesEl.textContent = adminBadges.filter((badge) => badge.isActive).length;
+                if (awardedBadgesEl) awardedBadgesEl.textContent = adminBadges.reduce((sum, badge) => sum + (badge.awardedCount || 0), 0);
 
-                const grid = document.getElementById('badgesGrid');
-                if (!grid) return;
-
-                if (badges.length === 0) {
-                    grid.innerHTML = `<p style="text-align: center; color: var(--gray-400); grid-column: 1/-1; padding: 2rem;">${t('admin.badges.noBadges')}</p>`;
-                    return;
-                }
-
-                grid.innerHTML = badges.map(badge => `
-                    <div class="badge-card" style="background: white; border-radius: 8px; padding: 1rem; box-shadow: var(--shadow-sm);">
-                        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem;">
-                            <div style="width: 50px; height: 50px; background: var(--olive-100); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
-                                ${badge.icon || '🏆'}
-                            </div>
-                            <div>
-                                <h4 style="margin: 0;">${badge.name}</h4>
-                                <span class="badge ${badge.isActive ? 'badge-success' : 'badge-warning'}">${badge.isActive ? t('admin.filter.active') : t('admin.badges.inactive')}</span>
-                            </div>
-                        </div>
-                        <p style="color: var(--gray-500); font-size: 0.875rem; margin: 0.5rem 0;">${badge.description || t('admin.badges.noDescription')}</p>
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem;">
-                            <span style="color: var(--gray-400); font-size: 0.75rem;">${t('admin.badges.awarded', { count: badge.awardedCount || 0 })}</span>
-                            <div>
-                                <button class="btn-icon" onclick="editBadge('${badge.id}')" title="${t('common.edit')}"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-                            </div>
-                        </div>
-                    </div>
-                `).join('');
+                renderBadgesGrid(adminBadges);
             } catch (error) {
                 console.error('Load badges error:', error);
+                const grid = document.getElementById('badgesGrid');
+                if (grid) grid.innerHTML = renderAdminEmptyState(t('admin.badges.loading'), 'error');
             }
         }
 
@@ -8551,34 +9177,12 @@
         async function loadLearningPaths() {
             try {
                 const result = await API.request('/learning-paths');
-                const paths = result.success ? (result.data || []) : [];
-                const container = document.getElementById('learningPathsContainer');
-                if (!container) return;
-
-                if (paths.length === 0) {
-                    container.innerHTML = `<p style="text-align: center; color: var(--gray-400); padding: 2rem;">${t('admin.paths.noPaths')}</p>`;
-                    return;
-                }
-
-                container.innerHTML = paths.map(path => `
-                    <div style="background: white; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; box-shadow: var(--shadow-sm);">
-                        <div style="display: flex; justify-content: space-between; align-items: start;">
-                            <div>
-                                <h4 style="margin: 0 0 0.5rem 0;">${path.name}</h4>
-                                <p style="color: var(--gray-500); font-size: 0.875rem; margin: 0;">${path.description || t('admin.paths.noDescription')}</p>
-                            </div>
-                            <span class="badge ${path.isActive ? 'badge-success' : 'badge-warning'}">${path.isActive ? t('admin.filter.active') : t('admin.paths.inactive')}</span>
-                        </div>
-                        <div style="margin-top: 1rem; display: flex; gap: 1rem; color: var(--gray-400); font-size: 0.875rem;">
-                            <span>${t('admin.paths.courseCount', { count: path.courseCount || 0 })}</span>
-                            <span>${t('admin.paths.enrolledCount', { count: path.enrolledCount || 0 })}</span>
-                        </div>
-                    </div>
-                `).join('');
+                const paths = result.success ? getAdminCollection(result.data) : [];
+                renderLearningPathsGrid(paths);
             } catch (error) {
                 console.error('Load learning paths error:', error);
                 const container = document.getElementById('learningPathsContainer');
-                if (container) container.innerHTML = `<p style="text-align: center; color: var(--gray-400); padding: 2rem;">${t('admin.paths.loading')}</p>`;
+                if (container) container.innerHTML = renderAdminEmptyState(t('admin.paths.loading'), 'error');
             }
         }
 
@@ -8586,41 +9190,21 @@
         async function loadScorm() {
             try {
                 const result = await API.request('/scorm');
-                const packages = result.success ? (result.data || []) : [];
+                const packages = result.success ? getAdminCollection(result.data) : [];
 
                 // Update stats (with null checks)
                 const totalScormEl = document.getElementById('totalScormCount');
                 const scorm12El = document.getElementById('scorm12Count');
                 const scorm2004El = document.getElementById('scorm2004Count');
                 if (totalScormEl) totalScormEl.textContent = packages.length;
-                if (scorm12El) scorm12El.textContent = packages.filter(p => p.version === '1.2').length;
-                if (scorm2004El) scorm2004El.textContent = packages.filter(p => p.version === '2004').length;
+                if (scorm12El) scorm12El.textContent = packages.filter((p) => ['1.2', 'scorm_1.2'].includes(String(p.version))).length;
+                if (scorm2004El) scorm2004El.textContent = packages.filter((p) => ['2004', 'scorm_2004'].includes(String(p.version))).length;
 
-                const tbody = document.getElementById('scormTableBody');
-                if (!tbody) return;
-
-                if (packages.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--gray-400);">${t('admin.scorm.noPackages')}</td></tr>`;
-                    return;
-                }
-
-                tbody.innerHTML = packages.map(pkg => `
-                    <tr>
-                        <td>${pkg.title || pkg.name || '-'}</td>
-                        <td><span class="badge badge-info">SCORM ${pkg.version || '1.2'}</span></td>
-                        <td>${pkg.courseName || '-'}</td>
-                        <td>${pkg.completionCount || 0}</td>
-                        <td>${pkg.uploadedAt ? new Date(pkg.uploadedAt).toLocaleDateString('zh-TW') : '-'}</td>
-                        <td>
-                            <button class="btn-icon" onclick="previewScorm('${pkg.id}')" title="${t('common.preview')}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
-                            <button class="btn-icon" onclick="deleteScorm('${pkg.id}')" title="${t('common.delete')}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
-                        </td>
-                    </tr>
-                `).join('');
+                renderScormTable(packages);
             } catch (error) {
                 console.error('Load SCORM error:', error);
                 const tbody = document.getElementById('scormTableBody');
-                if (tbody) tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--gray-400);">${t('admin.scorm.loading')}</td></tr>`;
+                if (tbody) tbody.innerHTML = renderAdminTableState(6, t('admin.scorm.loading'), 'error');
             }
         }
 
@@ -8628,36 +9212,12 @@
         async function loadLti() {
             try {
                 const result = await API.request('/lti/tools');
-                const tools = result.success ? (result.data || []) : [];
-
-                // Update stats (with null checks)
-                const totalLtiEl = document.getElementById('totalLtiCount');
-                const activeLtiEl = document.getElementById('activeLtiCount');
-                if (totalLtiEl) totalLtiEl.textContent = tools.length;
-                if (activeLtiEl) activeLtiEl.textContent = tools.filter(t => t.isActive).length;
-
-                const tbody = document.getElementById('ltiTableBody');
-                if (!tbody) return;
-
-                if (tools.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 2rem; color: var(--gray-400);">${t('admin.lti.noTools')}</td></tr>`;
-                    return;
-                }
-
-                tbody.innerHTML = tools.map(tool => `
-                    <tr>
-                        <td>${tool.name}</td>
-                        <td><span class="badge badge-info">LTI ${tool.version || '1.3'}</span></td>
-                        <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;">${tool.url}</td>
-                        <td><span class="badge ${tool.isActive ? 'badge-success' : 'badge-warning'}">${tool.isActive ? t('admin.filter.active') : t('admin.lti.inactive')}</span></td>
-                        <td>
-                            <button class="btn-icon" onclick="editLti('${tool.id}')" title="${t('common.edit')}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-                            <button class="btn-icon" onclick="deleteLti('${tool.id}')" title="${t('common.delete')}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
-                        </td>
-                    </tr>
-                `).join('');
+                const tools = result.success ? getAdminCollection(result.data) : [];
+                renderLtiTable(tools);
             } catch (error) {
                 console.error('Load LTI error:', error);
+                const tbody = document.getElementById('ltiTableBody');
+                if (tbody) tbody.innerHTML = renderAdminTableState(6, t('admin.lti.noTools'), 'error');
             }
         }
 
@@ -8665,42 +9225,22 @@
         async function loadH5p() {
             try {
                 const result = await API.request('/h5p');
-                const contents = result.success ? (result.data || []) : [];
+                adminH5pContents = result.success ? getAdminCollection(result.data) : [];
 
                 // Update stats (with null checks)
                 const totalH5pEl = document.getElementById('totalH5pCount');
-                const h5pTypesEl = document.getElementById('h5pTypesCount');
+                const h5pLibrariesEl = document.getElementById('h5pLibrariesCount');
                 const h5pInteractionsEl = document.getElementById('h5pInteractionsCount');
-                if (totalH5pEl) totalH5pEl.textContent = contents.length;
-                const types = [...new Set(contents.filter(c => c.libraryName).map(c => c.libraryName))];
-                if (h5pTypesEl) h5pTypesEl.textContent = types.length;
-                if (h5pInteractionsEl) h5pInteractionsEl.textContent = contents.reduce((sum, c) => sum + (c.interactionCount || 0), 0);
+                if (totalH5pEl) totalH5pEl.textContent = adminH5pContents.length;
+                const libraryTypes = [...new Set(adminH5pContents.filter((content) => content.libraryName).map((content) => content.libraryName))];
+                if (h5pLibrariesEl) h5pLibrariesEl.textContent = libraryTypes.length;
+                if (h5pInteractionsEl) h5pInteractionsEl.textContent = adminH5pContents.reduce((sum, content) => sum + (content.interactionCount || 0), 0);
 
-                const tbody = document.getElementById('h5pTableBody');
-                if (!tbody) return;
-
-                if (contents.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 2rem; color: var(--gray-400);">${t('admin.h5p.noContent')}</td></tr>`;
-                    return;
-                }
-
-                tbody.innerHTML = contents.map(content => `
-                    <tr>
-                        <td>${content.title || '-'}</td>
-                        <td><span class="badge badge-info">${content.libraryName || 'Unknown'}</span></td>
-                        <td>${content.courseName || '-'}</td>
-                        <td>${content.createdAt ? new Date(content.createdAt).toLocaleDateString('zh-TW') : '-'}</td>
-                        <td>
-                            <button class="btn-icon" onclick="previewH5p('${content.id}')" title="${t('common.preview')}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
-                            <button class="btn-icon" onclick="editH5p('${content.id}')" title="${t('common.edit')}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-                            <button class="btn-icon" onclick="deleteH5p('${content.id}')" title="${t('common.delete')}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
-                        </td>
-                    </tr>
-                `).join('');
+                filterH5pContent();
             } catch (error) {
                 console.error('Load H5P error:', error);
-                const tbody = document.getElementById('h5pTableBody');
-                if (tbody) tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 2rem; color: var(--gray-400);">${t('admin.h5p.loading')}</td></tr>`;
+                const grid = document.getElementById('h5pGrid');
+                if (grid) grid.innerHTML = renderAdminEmptyState(t('admin.h5p.loading'), 'error');
             }
         }
 
@@ -8870,7 +9410,7 @@
             const tbody = document.getElementById('auditLogsTableBody');
             try {
                 if (tbody) {
-                    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--gray-400);">${t('common.loading')}</td></tr>`;
+                    tbody.innerHTML = renderAdminTableState(6, t('common.loading'));
                 }
 
                 const filters = getAuditLogFilters();
@@ -8888,7 +9428,7 @@
             } catch (error) {
                 console.error('Load audit logs error:', error);
                 if (tbody) {
-                    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--danger);">${t('admin.auditLogs.loadFailed') || '載入失敗'}</td></tr>`;
+                    tbody.innerHTML = renderAdminTableState(6, t('admin.auditLogs.loadFailed') || '載入失敗', 'error');
                 }
             }
         }
@@ -9987,6 +10527,51 @@
             );
         }
 
+        async function previewScorm(packageId) {
+            try {
+                const result = await API.scorm.get(packageId);
+                if (!result.success || !result.data) {
+                    showToast(result.message || '無法載入 SCORM 包資訊', 'error');
+                    return;
+                }
+
+                const pkg = result.data;
+                const launchUrl = pkg.entryUrl || pkg.manifestUrl;
+                if (launchUrl) {
+                    window.open(launchUrl, '_blank', 'noopener');
+                    return;
+                }
+
+                alert([
+                    `名稱: ${pkg.name || '-'}`,
+                    `課程: ${pkg.courseId || '-'}`,
+                    `版本: ${pkg.version || '-'}`,
+                    `建立時間: ${pkg.createdAt ? new Date(pkg.createdAt).toLocaleString('zh-TW') : '-'}`
+                ].join('\n'));
+            } catch (error) {
+                console.error('Preview SCORM error:', error);
+                showToast('無法預覽 SCORM 包', 'error');
+            }
+        }
+
+        async function deleteScorm(packageId) {
+            if (!window.confirm('確定要刪除此 SCORM 包嗎？')) return;
+
+            try {
+                const result = await API.scorm.delete(packageId);
+                if (!result.success) {
+                    showToast(result.message || '刪除 SCORM 包失敗', 'error');
+                    return;
+                }
+
+                showToast(result.message || 'SCORM 包已刪除');
+                loadScorm();
+            } catch (error) {
+                console.error('Delete SCORM error:', error);
+                showToast('刪除 SCORM 包失敗', 'error');
+            }
+        }
+
         async function openCreateLtiModal() {
             const name = promptRequiredField('請輸入 LTI 工具名稱');
             if (name === null) return;
@@ -10007,6 +10592,62 @@
                 loadLti,
                 'LTI 工具建立成功'
             );
+        }
+
+        async function editLti(toolId) {
+            try {
+                const result = await API.ltiTools.get(toolId);
+                const tool = result.success ? result.data : null;
+                if (!tool) {
+                    showToast(result.message || '找不到 LTI 工具', 'error');
+                    return;
+                }
+
+                const name = promptRequiredField('請輸入 LTI 工具名稱', tool.name || '');
+                if (name === null) return;
+                const toolUrl = promptRequiredField('請輸入工具 URL', tool.toolUrl || '');
+                if (toolUrl === null) return;
+                const description = promptOptionalField('工具描述（可留空）', tool.description || '');
+                if (description === null) return;
+                const versionInput = promptOptionalField('LTI 版本（1.1/1.3）', tool.version || tool.ltiVersion || '1.3');
+                if (versionInput === null) return;
+
+                const updateResult = await API.ltiTools.update(toolId, {
+                    name,
+                    toolUrl,
+                    description,
+                    version: versionInput === '1.1' ? '1.1' : '1.3'
+                });
+
+                if (!updateResult.success) {
+                    showToast(updateResult.message || '更新 LTI 工具失敗', 'error');
+                    return;
+                }
+
+                showToast(updateResult.message || 'LTI 工具更新成功');
+                loadLti();
+            } catch (error) {
+                console.error('Edit LTI error:', error);
+                showToast('更新 LTI 工具失敗', 'error');
+            }
+        }
+
+        async function deleteLti(toolId) {
+            if (!window.confirm('確定要刪除此 LTI 工具嗎？')) return;
+
+            try {
+                const result = await API.ltiTools.delete(toolId);
+                if (!result.success) {
+                    showToast(result.message || '刪除 LTI 工具失敗', 'error');
+                    return;
+                }
+
+                showToast(result.message || 'LTI 工具已刪除');
+                loadLti();
+            } catch (error) {
+                console.error('Delete LTI error:', error);
+                showToast('刪除 LTI 工具失敗', 'error');
+            }
         }
 
         async function openCreateH5pModal() {
@@ -10106,7 +10747,11 @@
             );
         }
 
-        function filterQuestionsByCategory(categoryId) { console.log('Filter by category:', categoryId); }
+        function filterQuestionsByCategory(categoryId) {
+            currentQuestionCategoryFilter = String(categoryId || '');
+            renderQuestionCategoryList(adminQuestionCategories);
+            filterQuestionBank();
+        }
 
         // 請求通知權限（由用戶互動觸發）
         function requestAdminNotificationPermission() {
