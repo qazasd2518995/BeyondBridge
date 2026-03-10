@@ -446,6 +446,41 @@ const App = {
           </svg>
           ${t('nav.courseCategories')}
         </a>
+        <a href="#" class="nav-item" data-view="auditLogs" onclick="showView('auditLogs'); MoodleUI.openAuditLogs();">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+            <path d="M14 2v6h6"/>
+            <path d="M16 13H8M16 17H8M10 9H8"/>
+          </svg>
+          ${t('admin.nav.auditLogs')}
+        </a>
+        <a href="#" class="nav-item" data-view="scormManager" onclick="showView('scormManager'); MoodleUI.openScormManager();">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+            <line x1="12" y1="22.08" x2="12" y2="12"/>
+          </svg>
+          ${t('admin.nav.scorm')}
+        </a>
+        <a href="#" class="nav-item" data-view="ltiManager" onclick="showView('ltiManager'); MoodleUI.openLtiManager();">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="18" cy="5" r="3"/>
+            <circle cx="6" cy="12" r="3"/>
+            <circle cx="18" cy="19" r="3"/>
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+          </svg>
+          ${t('admin.nav.lti')}
+        </a>
+        <a href="#" class="nav-item" data-view="h5pManager" onclick="showView('h5pManager'); MoodleUI.openH5pManager();">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+            <line x1="8" y1="21" x2="16" y2="21"/>
+            <line x1="12" y1="17" x2="12" y2="21"/>
+            <path d="M7 8h2v6H7zM11 8h2v6h-2zM15 8h2v6h-2"/>
+          </svg>
+          ${t('admin.nav.h5p')}
+        </a>
         <a href="#" class="nav-item" onclick="window.location.href='/admin';">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="3" y="3" width="7" height="9"/>
@@ -681,17 +716,24 @@ const App = {
       // 處理作業截止日期
       if (assignmentsRes.success && assignmentsRes.data) {
         assignmentsRes.data.forEach(assignment => {
-          if (assignment.dueDate) {
-            const dueDate = new Date(assignment.dueDate);
-            if (dueDate > now && dueDate <= sevenDaysLater && assignment.status !== 'submitted') {
-              deadlines.push({
-                type: 'assignment',
-                title: assignment.title,
-                dueDate: dueDate,
-                courseTitle: assignment.courseTitle,
-                id: assignment.assignmentId
-              });
-            }
+          if (!assignment.dueDate) return;
+
+          const dueDate = new Date(assignment.dueDate);
+          const submitted = Boolean(
+            assignment.submitted === true ||
+            assignment.submissionStatus?.submitted === true ||
+            assignment.submission?.submitted === true ||
+            assignment.submission?.submittedAt
+          );
+
+          if (dueDate > now && dueDate <= sevenDaysLater && !submitted) {
+            deadlines.push({
+              type: 'assignment',
+              title: assignment.title,
+              dueDate,
+              courseTitle: assignment.courseTitle || assignment.courseName || '',
+              id: assignment.assignmentId
+            });
           }
         });
       }
@@ -699,17 +741,24 @@ const App = {
       // 處理測驗截止日期
       if (quizzesRes.success && quizzesRes.data) {
         quizzesRes.data.forEach(quiz => {
-          if (quiz.endDate || quiz.dueDate) {
-            const dueDate = new Date(quiz.endDate || quiz.dueDate);
-            if (dueDate > now && dueDate <= sevenDaysLater && quiz.status !== 'completed') {
-              deadlines.push({
-                type: 'quiz',
-                title: quiz.title,
-                dueDate: dueDate,
-                courseTitle: quiz.courseTitle,
-                id: quiz.quizId
-              });
-            }
+          const dueDateValue = quiz.closeDate || quiz.endDate || quiz.dueDate;
+          if (!dueDateValue) return;
+
+          const dueDate = new Date(dueDateValue);
+          const completed = Boolean(
+            quiz.completed === true ||
+            quiz.userStatus?.lastAttemptAt ||
+            (quiz.userStatus?.bestScore !== undefined && quiz.userStatus?.bestScore !== null)
+          );
+
+          if (dueDate > now && dueDate <= sevenDaysLater && !completed) {
+            deadlines.push({
+              type: 'quiz',
+              title: quiz.title,
+              dueDate,
+              courseTitle: quiz.courseTitle || quiz.courseName || '',
+              id: quiz.quizId
+            });
           }
         });
       }
@@ -2939,7 +2988,7 @@ const App = {
       container.innerHTML = `
         <div class="discussions-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
           <span style="color:var(--gray-500);">${posts.length} ${t('app.discussionCount')}</span>
-          <button onclick="typeof MoodleUI !== 'undefined' && MoodleUI.showCreateDiscussionForm ? MoodleUI.showCreateDiscussionForm() : (typeof openNewPostModal === 'function' ? openNewPostModal() : showToast(t('toast.featureInDevelopment')))" class="btn-primary" style="padding:0.75rem 1.5rem;background:var(--olive);color:var(--cream);border:none;border-radius:8px;cursor:pointer;font-weight:500;display:flex;align-items:center;gap:0.5rem;">
+          <button onclick="showView('moodleForums'); if (typeof MoodleUI !== 'undefined' && typeof MoodleUI.loadForums === 'function') { MoodleUI.loadForums(); }" class="btn-primary" style="padding:0.75rem 1.5rem;background:var(--olive);color:var(--cream);border:none;border-radius:8px;cursor:pointer;font-weight:500;display:flex;align-items:center;gap:0.5rem;">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             ${t('app.startDiscussion')}
           </button>

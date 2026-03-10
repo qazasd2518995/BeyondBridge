@@ -990,100 +990,174 @@ router.post('/licenses/grant', async (req, res) => {
  */
 router.get('/analytics/overview', async (req, res) => {
   try {
-    const [users, resources, licenses] = await Promise.all([
+    const [users, resources, licenses, chatRooms] = await Promise.all([
       db.scan({ filter: { expression: 'entityType = :type', values: { ':type': 'USER' } } }),
       db.scan({ filter: { expression: 'entityType = :type', values: { ':type': 'RESOURCE' } } }),
-      db.scan({ filter: { expression: 'entityType = :type', values: { ':type': 'LICENSE' } } })
+      db.scan({ filter: { expression: 'entityType = :type', values: { ':type': 'LICENSE' } } }),
+      db.scan({ filter: { expression: 'entityType = :type', values: { ':type': 'CHAT_ROOM' } } })
     ]);
 
     const now = new Date();
-    const thisMonth = now.toISOString().substring(0, 7);
-    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().substring(0, 7);
+    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const thisMonthKey = thisMonthStart.toISOString().slice(0, 7);
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastMonthKey = lastMonthStart.toISOString().slice(0, 7);
+    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
 
-    // 按月統計用戶增長
-    const usersByMonth = {};
-    let newUsersThisMonth = 0;
-    let newUsersLastMonth = 0;
-    users.forEach(u => {
-      const month = u.createdAt?.substring(0, 7) || 'unknown';
-      usersByMonth[month] = (usersByMonth[month] || 0) + 1;
-      if (month === thisMonth) newUsersThisMonth++;
-      if (month === lastMonth) newUsersLastMonth++;
-    });
+    const parseDate = (value) => {
+      if (!value) return null;
+      const d = new Date(value);
+      return Number.isNaN(d.getTime()) ? null : d;
+    };
 
-    // 生成用戶增長趨勢（最近6個月）
+    const toMonthKey = (value) => {
+      const d = parseDate(value);
+      return d ? d.toISOString().slice(0, 7) : null;
+    };
+
+    const isResourcePublished = (resource) => {
+      if (!resource?.status) return true;
+      return resource.status === 'published';
+    };
+
+    const isActiveLicenseAt = (license, atDate) => {
+      const rawStatus = (license?.status || 'pending').toLowerCase();
+      if (rawStatus !== 'active') return false;
+
+      const atTs = atDate.getTime();
+      const start = parseDate(license.startDate || license.approvedAt || license.createdAt);
+      const expiry = parseDate(license.expiryDate || license.expiresAt);
+
+      if (start && start.getTime() > atTs) return false;
+      if (expiry && expiry.getTime() < atTs) return false;
+      return true;
+    };
+
+    const resolveLicenseStatus = (license) => {
+      const rawStatus = (license?.status || 'pending').toLowerCase();
+      if (rawStatus === 'rejected') return 'rejected';
+      if (rawStatus === 'pending') return 'pending';
+      if (isActiveLicenseAt(license, now)) return 'active';
+      return 'expired';
+    };
+
+    // 用戶成長統計（最近 6 個月）
+    const userCreatedTimes = users.map(u => parseDate(u.createdAt)?.getTime() ?? null);
+    const usersWithoutCreatedAt = userCreatedTimes.filter(ts => ts === null).length;
+
+    const newUsersThisMonth = users.reduce((sum, user) => (
+      sum + (toMonthKey(user.createdAt) === thisMonthKey ? 1 : 0)
+    ), 0);
+    const newUsersLastMonth = users.reduce((sum, user) => (
+      sum + (toMonthKey(user.createdAt) === lastMonthKey ? 1 : 0)
+    ), 0);
+
     const userGrowthTrend = [];
-    let cumulativeTotal = 0;
-    const sortedMonths = Object.keys(usersByMonth).sort();
     for (let i = 0; i < 6; i++) {
-      const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
-      const monthKey = d.toISOString().substring(0, 7);
-      const monthLabel = `${d.getMonth() + 1}月`;
-      const newUsers = usersByMonth[monthKey] || 0;
-      cumulativeTotal += newUsers;
+      const monthStart = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+      const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0, 23, 59, 59, 999);
+      const monthStartTs = monthStart.getTime();
+      const monthEndTs = monthEnd.getTime();
+
+      const newUsers = userCreatedTimes.filter(ts => ts !== null && ts >= monthStartTs && ts <= monthEndTs).length;
+      const totalUsers = usersWithoutCreatedAt +
+        userCreatedTimes.filter(ts => ts !== null && ts <= monthEndTs).length;
+
       userGrowthTrend.push({
-        label: monthLabel,
-        total: users.filter(u => u.createdAt && u.createdAt.substring(0, 7) <= monthKey).length,
-        newUsers: newUsers
+        label: `${monthStart.getMonth() + 1}月`,
+        total: totalUsers,
+        newUsers
       });
     }
 
-    // 資源分類統計
-    const resourcesByCategory = {};
-    resources.forEach(r => {
-      const cat = r.category || 'other';
-      resourcesByCategory[cat] = (resourcesByCategory[cat] || 0) + 1;
-    });
-    const resourceCategories = Object.entries(resourcesByCategory).map(([name, count]) => ({
-      name,
-      count
-    }));
+    // 角色、分類與授權狀態（以前端圖表可直接使用的 key-value map 回傳）
+    const userRoles = users.reduce((acc, user) => {
+      const role = user.role || 'student';
+      acc[role] = (acc[role] || 0) + 1;
+      return acc;
+    }, {});
 
-    // 用戶角色分布
-    const userRoleCount = {};
-    users.forEach(u => {
-      const role = u.role || 'student';
-      userRoleCount[role] = (userRoleCount[role] || 0) + 1;
-    });
-    const userRoles = Object.entries(userRoleCount).map(([role, count]) => ({
-      role,
-      count
-    }));
+    const resourceCategories = resources.reduce((acc, resource) => {
+      const category = resource.category || 'other';
+      acc[category] = (acc[category] || 0) + 1;
+      return acc;
+    }, {});
 
-    // 授權狀態統計
-    const licenseStatusCount = { active: 0, pending: 0, expired: 0 };
-    licenses.forEach(l => {
-      const status = l.status || 'pending';
-      if (licenseStatusCount[status] !== undefined) {
-        licenseStatusCount[status]++;
+    const licenseStatus = licenses.reduce((acc, license) => {
+      const status = resolveLicenseStatus(license);
+      acc[status] = (acc[status] || 0) + 1;
+      return acc;
+    }, { active: 0, pending: 0, expired: 0, rejected: 0 });
+
+    // 授權分佈（用於熱門資源授權數）
+    const licensedCountByResource = {};
+    const activeLicensedCountByResource = {};
+    licenses.forEach(license => {
+      const resourceId = license.resourceId;
+      if (!resourceId) return;
+
+      const status = resolveLicenseStatus(license);
+      if (status !== 'rejected') {
+        licensedCountByResource[resourceId] = (licensedCountByResource[resourceId] || 0) + 1;
+      }
+      if (status === 'active') {
+        activeLicensedCountByResource[resourceId] = (activeLicensedCountByResource[resourceId] || 0) + 1;
       }
     });
-    const licenseStatus = Object.entries(licenseStatusCount).map(([status, count]) => ({
-      status,
-      count
-    }));
 
-    // 熱門資源
     const topResources = resources
-      .sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
-      .slice(0, 5)
-      .map(r => ({
-        title: r.title,
-        views: r.viewCount || 0,
-        rating: r.averageRating || 0
-      }));
+      .map(resource => ({
+        resourceId: resource.resourceId,
+        title: resource.title,
+        category: resource.category || 'other',
+        viewCount: Number(resource.viewCount || 0),
+        views: Number(resource.viewCount || 0), // backward compatibility
+        rating: Number(resource.averageRating || 0),
+        licensedCount: licensedCountByResource[resource.resourceId] || 0,
+        activeLicensedCount: activeLicensedCountByResource[resource.resourceId] || 0
+      }))
+      .sort((a, b) => (
+        b.viewCount - a.viewCount ||
+        b.activeLicensedCount - a.activeLicensedCount ||
+        b.licensedCount - a.licensedCount
+      ))
+      .slice(0, 5);
 
-    // 計算資源數量變化
-    const resourcesThisMonth = resources.filter(r => r.createdAt?.substring(0, 7) === thisMonth).length;
-    const resourcesLastMonth = resources.filter(r => r.createdAt?.substring(0, 7) === lastMonth).length;
+    // 指標數據
+    const totalResources = resources.length;
+    const totalResourcesLastMonth = resources.reduce((sum, resource) => {
+      const createdAt = parseDate(resource.createdAt);
+      return sum + (!createdAt || createdAt <= lastMonthEnd ? 1 : 0);
+    }, 0);
 
-    // 計算授權數量變化
-    const activeLicenses = licenses.filter(l => l.status === 'active').length;
-    const licensesLastMonth = licenses.filter(l => l.createdAt?.substring(0, 7) === lastMonth && l.status === 'active').length;
+    const publishedResources = resources.reduce((sum, resource) => (
+      sum + (isResourcePublished(resource) ? 1 : 0)
+    ), 0);
+    const publishedResourcesLastMonth = resources.reduce((sum, resource) => {
+      const createdAt = parseDate(resource.createdAt);
+      const existedByLastMonth = !createdAt || createdAt <= lastMonthEnd;
+      return sum + (existedByLastMonth && isResourcePublished(resource) ? 1 : 0);
+    }, 0);
 
-    // 平均評分
-    const avgRating = resources.length > 0
-      ? resources.reduce((sum, r) => sum + (r.averageRating || 0), 0) / resources.length
+    const activeLicenses = licenses.filter(license => isActiveLicenseAt(license, now)).length;
+    const activeLicensesLastMonth = licenses.filter(license => isActiveLicenseAt(license, lastMonthEnd)).length;
+
+    const ratedResources = resources
+      .map(resource => Number(resource.averageRating || 0))
+      .filter(score => score > 0);
+    const avgRating = ratedResources.length > 0
+      ? ratedResources.reduce((sum, score) => sum + score, 0) / ratedResources.length
+      : 0;
+
+    // 客服統計（聊天系統）
+    const totalChats = chatRooms.length;
+    const closedChats = chatRooms.filter(room => room.status === 'closed').length;
+    const ratedChats = chatRooms.filter(room => Number(room.rating?.score) > 0);
+    const avgSupportRating = ratedChats.length > 0
+      ? ratedChats.reduce((sum, room) => sum + Number(room.rating.score), 0) / ratedChats.length
+      : 0;
+    const satisfactionRate = ratedChats.length > 0
+      ? Math.round((ratedChats.filter(room => Number(room.rating.score) >= 4).length / ratedChats.length) * 100)
       : 0;
 
     res.json({
@@ -1093,22 +1167,29 @@ router.get('/analytics/overview', async (req, res) => {
           totalUsers: users.length,
           newUsersThisMonth,
           newUsersLastMonth,
-          totalResources: resources.length,
-          resourcesLastMonth,
+          totalResources,
+          totalResourcesLastMonth,
+          publishedResources,
+          publishedResourcesLastMonth,
+          resourcesLastMonth: publishedResourcesLastMonth, // backward compatibility
           activeLicenses,
-          licensesLastMonth,
+          activeLicensesLastMonth,
+          licensesLastMonth: activeLicensesLastMonth, // backward compatibility
           avgCustomerRating: Math.round(avgRating * 10) / 10
         },
         userGrowthTrend,
         userRoles,
+        userRolesList: Object.entries(userRoles).map(([role, count]) => ({ role, count })),
         resourceCategories,
+        resourceCategoriesList: Object.entries(resourceCategories).map(([name, count]) => ({ name, count })),
         licenseStatus,
+        licenseStatusList: Object.entries(licenseStatus).map(([status, count]) => ({ status, count })),
         topResources,
         supportStats: {
-          totalChats: 0,
-          closedChats: 0,
-          avgRating: 0,
-          satisfactionRate: 0
+          totalChats,
+          closedChats,
+          avgRating: Math.round(avgSupportRating * 10) / 10,
+          satisfactionRate
         }
       }
     });

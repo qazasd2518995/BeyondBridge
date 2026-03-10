@@ -13,6 +13,7 @@ const MoodleUI = {
   currentQuizCourseId: null,
   currentForumCourseId: null,
   currentQuestionBankCategoryFilter: null,
+  currentCalendarEvents: [],
 
   teachingRoles: new Set(['manager', 'coursecreator', 'educator', 'trainer', 'creator', 'teacher', 'assistant']),
 
@@ -38,6 +39,136 @@ const MoodleUI = {
     if (!this.isTeachingRole(user)) return false;
     if (!course) return true;
     return this.isCourseOwner(course, user);
+  },
+
+  normalizeAssignmentState(assignment = {}) {
+    const submission = assignment.submission || null;
+    const submissionStatus = assignment.submissionStatus || {};
+
+    const submitted = Boolean(
+      assignment.submitted === true ||
+      submissionStatus.submitted === true ||
+      submission?.submitted === true ||
+      submission?.submittedAt
+    );
+
+    const hasGrade = (
+      submission?.grade !== undefined && submission?.grade !== null
+    ) || (
+      submissionStatus.grade !== undefined && submissionStatus.grade !== null
+    );
+
+    const graded = Boolean(
+      assignment.graded === true ||
+      submissionStatus.graded === true ||
+      submission?.gradedAt ||
+      hasGrade
+    );
+
+    return {
+      ...assignment,
+      submitted,
+      graded,
+      grade: assignment.grade ?? submission?.grade ?? submissionStatus.grade ?? null
+    };
+  },
+
+  normalizeQuizState(quiz = {}) {
+    const userStatus = quiz.userStatus || {};
+    const attempts = Array.isArray(quiz.attempts) ? quiz.attempts : [];
+    const completedAttempts = attempts.filter(a => a.status === 'completed').length;
+    const bestScore = quiz.bestScore ?? userStatus.bestScore ?? null;
+    const attemptCount = Number(userStatus.attemptCount ?? attempts.length ?? 0);
+    const completed = Boolean(
+      quiz.completed === true ||
+      completedAttempts > 0 ||
+      userStatus.lastAttemptAt ||
+      (bestScore !== null && bestScore !== undefined)
+    );
+
+    const maxAttemptsRaw = Number(quiz.maxAttempts);
+    const maxAttempts = Number.isFinite(maxAttemptsRaw) ? maxAttemptsRaw : null;
+    const canAttempt = userStatus.canAttempt !== undefined
+      ? Boolean(userStatus.canAttempt)
+      : (maxAttempts === null || maxAttempts === 0 || attemptCount < maxAttempts);
+
+    return {
+      ...quiz,
+      completed,
+      bestScore,
+      attemptCount,
+      canAttempt
+    };
+  },
+
+  getCalendarEventDate(event = {}) {
+    return event.startDate || event.start || event.dueDate || event.endDate || event.end || null;
+  },
+
+  toLocalDateKey(value) {
+    if (!value) return null;
+    const date = value instanceof Date ? new Date(value) : new Date(value);
+    if (Number.isNaN(date.getTime())) return null;
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  },
+
+  getEventsForLocalDate(events = [], dateValue) {
+    const dayKey = this.toLocalDateKey(dateValue);
+    if (!dayKey) return [];
+    return (Array.isArray(events) ? events : []).filter(event =>
+      this.toLocalDateKey(this.getCalendarEventDate(event)) === dayKey
+    );
+  },
+
+  getCalendarEventTypeLabel(type = '') {
+    const labels = {
+      assignment: '作業',
+      quiz: '測驗',
+      course: '課程',
+      forum: '討論',
+      personal: '個人'
+    };
+    return labels[type] || '事件';
+  },
+
+  handleCalendarEventClick(encodedType = '', encodedCourseId = '') {
+    const eventType = decodeURIComponent(encodedType || '');
+    const courseId = decodeURIComponent(encodedCourseId || '');
+
+    this.closeModal('calendarDayEventsModal');
+
+    if (eventType === 'assignment') {
+      showView('moodleAssignments');
+      this.loadAssignments(courseId || undefined);
+      return;
+    }
+
+    if (eventType === 'quiz') {
+      showView('moodleQuizzes');
+      this.loadQuizzes(courseId || undefined);
+      return;
+    }
+
+    if (eventType === 'forum') {
+      showView('moodleForums');
+      this.loadForums(courseId || undefined);
+      return;
+    }
+
+    if (eventType === 'course') {
+      showView('moodleCourses');
+      if (courseId) {
+        this.openCourse(courseId);
+      } else {
+        this.loadCourses();
+      }
+      return;
+    }
+
+    showView('moodleCalendar');
   },
 
   /**
@@ -1553,7 +1684,9 @@ const MoodleUI = {
         if (courseResult.success) courseName = courseResult.data.title || courseResult.data.name || '';
       } catch(e) {}
 
-      assignments = assignments.map(a => ({ ...a, courseName, courseId }));
+      assignments = assignments.map(a =>
+        this.normalizeAssignmentState({ ...a, courseName, courseId })
+      );
 
       // 篩選
       if (filter === 'pending') {
@@ -1575,6 +1708,8 @@ const MoodleUI = {
     const container = document.getElementById('assignmentsList');
     if (!container) return;
 
+    const normalizedAssignments = (Array.isArray(assignments) ? assignments : [])
+      .map(a => this.normalizeAssignmentState(a));
     const user = API.getCurrentUser();
     const isTeacher = this.isTeachingRole(user);
 
@@ -1587,7 +1722,7 @@ const MoodleUI = {
             </button>
             <div>
               <h2 style="font-size: 1.3rem; font-weight: 700; margin: 0;">${courseName} — ${t('moodleAssignment.title')}</h2>
-              <p style="color: var(--gray-500); margin: 0.25rem 0 0; font-size: 0.85rem;">${assignments.length} 份作業</p>
+              <p style="color: var(--gray-500); margin: 0.25rem 0 0; font-size: 0.85rem;">${normalizedAssignments.length} 份作業</p>
             </div>
           </div>
           ${isTeacher ? `
@@ -1600,7 +1735,7 @@ const MoodleUI = {
       </div>
     `;
 
-    if (assignments.length === 0) {
+    if (normalizedAssignments.length === 0) {
       container.innerHTML = header + `<div style="text-align: center; padding: 4rem 2rem; color: var(--gray-400);">
         <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1" style="margin-bottom: 1rem; opacity: 0.5;"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
         <p style="font-size: 1.05rem;">${isTeacher ? '尚未建立作業' : t('moodleAssignment.noAssignments')}</p>
@@ -1609,7 +1744,7 @@ const MoodleUI = {
       return;
     }
 
-    container.innerHTML = header + `<div style="padding: 0 1.5rem 1.5rem;">` + assignments.map(a => {
+    container.innerHTML = header + `<div style="padding: 0 1.5rem 1.5rem;">` + normalizedAssignments.map(a => {
       const isOverdue = a.dueDate && new Date(a.dueDate) < new Date();
       const submissions = a.stats?.totalSubmissions || 0;
       const graded = a.stats?.gradedCount || 0;
@@ -1671,12 +1806,15 @@ const MoodleUI = {
     const container = document.getElementById('assignmentsList');
     if (!container) return;
 
-    if (assignments.length === 0) {
+    const normalizedAssignments = (Array.isArray(assignments) ? assignments : [])
+      .map(a => this.normalizeAssignmentState(a));
+
+    if (normalizedAssignments.length === 0) {
       container.innerHTML = `<div class="empty-list">${t('moodleAssignment.noAssignments')}</div>`;
       return;
     }
 
-    container.innerHTML = assignments.map(a => {
+    container.innerHTML = normalizedAssignments.map(a => {
       const isOverdue = a.dueDate && new Date(a.dueDate) < new Date() && !a.submitted;
       const statusClass = a.graded ? 'graded' : a.submitted ? 'submitted' : isOverdue ? 'overdue' : 'pending';
       const statusText = a.graded ? t('moodleAssignment.statusGraded') : a.submitted ? t('moodleAssignment.statusSubmitted') : isOverdue ? t('moodleAssignment.statusOverdue') : t('moodleAssignment.statusPending');
@@ -1723,10 +1861,29 @@ const MoodleUI = {
         return;
       }
 
-      const assignment = result.data;
+      const assignment = this.normalizeAssignmentState(result.data || {});
       const container = document.getElementById('assignmentDetailContent');
       const user = API.getCurrentUser();
-      const isTeacher = assignment.teacherId === user?.userId;
+      let isTeacher = false;
+      if (this.isTeachingRole(user)) {
+        isTeacher = Boolean(
+          user?.isAdmin ||
+          assignment.teacherId === user?.userId ||
+          assignment.instructorId === user?.userId ||
+          assignment.createdBy === user?.userId
+        );
+
+        if (!isTeacher && assignment.courseId) {
+          try {
+            const courseResult = await API.courses.get(assignment.courseId);
+            if (courseResult.success) {
+              isTeacher = this.canTeachCourse(courseResult.data, user);
+            }
+          } catch (courseError) {
+            console.warn('Resolve assignment teacher role failed:', courseError);
+          }
+        }
+      }
 
       container.innerHTML = `
         <div class="assignment-detail">
@@ -1976,7 +2133,9 @@ const MoodleUI = {
         if (courseResult.success) courseName = courseResult.data.title || courseResult.data.name || '';
       } catch(e) {}
 
-      quizzes = quizzes.map(q => ({ ...q, courseName, courseId }));
+      quizzes = quizzes.map(q =>
+        this.normalizeQuizState({ ...q, courseName, courseId })
+      );
 
       const now = new Date();
       if (filter === 'available') {
@@ -2000,6 +2159,8 @@ const MoodleUI = {
     const container = document.getElementById('quizzesList');
     if (!container) return;
 
+    const normalizedQuizzes = (Array.isArray(quizzes) ? quizzes : [])
+      .map(q => this.normalizeQuizState(q));
     const user = API.getCurrentUser();
     const isTeacher = this.isTeachingRole(user);
 
@@ -2012,7 +2173,7 @@ const MoodleUI = {
             </button>
             <div>
               <h2 style="font-size: 1.3rem; font-weight: 700; margin: 0;">${courseName} — ${t('moodleQuiz.title')}</h2>
-              <p style="color: var(--gray-500); margin: 0.25rem 0 0; font-size: 0.85rem;">${quizzes.length} 份測驗</p>
+              <p style="color: var(--gray-500); margin: 0.25rem 0 0; font-size: 0.85rem;">${normalizedQuizzes.length} 份測驗</p>
             </div>
           </div>
           ${isTeacher ? `
@@ -2025,7 +2186,7 @@ const MoodleUI = {
       </div>
     `;
 
-    if (quizzes.length === 0) {
+    if (normalizedQuizzes.length === 0) {
       container.innerHTML = header + `<div style="text-align: center; padding: 4rem 2rem; color: var(--gray-400);">
         <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1" style="margin-bottom: 1rem; opacity: 0.5;"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
         <p style="font-size: 1.05rem;">${isTeacher ? '尚未建立測驗' : t('moodleQuiz.noQuizzes')}</p>
@@ -2034,7 +2195,7 @@ const MoodleUI = {
       return;
     }
 
-    container.innerHTML = header + `<div style="padding: 0 1.5rem 1.5rem;">` + quizzes.map(q => {
+    container.innerHTML = header + `<div style="padding: 0 1.5rem 1.5rem;">` + normalizedQuizzes.map(q => {
       const now = new Date();
       const isOpen = (!q.openDate || new Date(q.openDate) <= now) && (!q.closeDate || new Date(q.closeDate) >= now);
       const qCount = q.questionCount || q.questions?.length || 0;
@@ -2079,14 +2240,16 @@ const MoodleUI = {
               <h3 style="font-size: 1rem; font-weight: 600; margin: 0 0 0.25rem;">${q.title}</h3>
               <p style="color: var(--gray-500); font-size: 0.85rem; margin: 0;">${q.description || ''}</p>
               <p style="color: var(--gray-400); font-size: 0.8rem; margin: 0.25rem 0 0;">
-                ${qCount} 題 · ${q.timeLimit ? q.timeLimit + ' 分鐘' : '不限時'} · 最多 ${q.maxAttempts || 1} 次
+                ${qCount} 題 · ${q.timeLimit ? q.timeLimit + ' 分鐘' : '不限時'} · ${(q.maxAttempts === 0 || q.maxAttempts === null || q.maxAttempts === undefined) ? '不限次數' : `最多 ${q.maxAttempts} 次`}
               </p>
             </div>
             <div style="flex-shrink: 0;">
               ${q.completed ? `
                 <span style="padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 500; background: #dcfce7; color: #16a34a;">已完成</span>
-              ` : isOpen ? `
+              ` : isOpen && q.canAttempt !== false ? `
                 <button onclick="event.stopPropagation(); MoodleUI.startQuiz('${q.quizId}')" style="padding: 0.5rem 1rem; background: var(--olive); color: var(--cream); border: none; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 500;">開始作答</button>
+              ` : isOpen ? `
+                <span style="padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 500; background: #fef3c7; color: #92400e;">已達作答上限</span>
               ` : `
                 <span style="padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 500; background: #f3f4f6; color: #6b7280;">未開放</span>
               `}
@@ -2104,12 +2267,15 @@ const MoodleUI = {
     const container = document.getElementById('quizzesList');
     if (!container) return;
 
-    if (quizzes.length === 0) {
+    const normalizedQuizzes = (Array.isArray(quizzes) ? quizzes : [])
+      .map(q => this.normalizeQuizState(q));
+
+    if (normalizedQuizzes.length === 0) {
       container.innerHTML = `<div class="empty-list">${t('moodleQuiz.noQuizzes')}</div>`;
       return;
     }
 
-    container.innerHTML = quizzes.map(q => {
+    container.innerHTML = normalizedQuizzes.map(q => {
       const now = new Date();
       const isOpen = (!q.openDate || new Date(q.openDate) <= now) && (!q.closeDate || new Date(q.closeDate) >= now);
 
@@ -2128,15 +2294,17 @@ const MoodleUI = {
             <p class="quiz-meta">
               ${q.timeLimit ? `${t('moodleQuiz.timeLimitMin')} ${q.timeLimit} ${t('moodleQuiz.minutes')}` : t('moodleQuiz.noTimeLimit')} ·
               ${q.questionCount || q.questions?.length || 0} ${t('moodleQuiz.questionsUnit')} ·
-              ${q.attempts || 1} ${t('moodleQuiz.attemptsAllowed')}
+              ${(q.maxAttempts === 0 || q.maxAttempts === null || q.maxAttempts === undefined) ? t('moodleQuiz.unlimited') : q.maxAttempts} ${t('moodleQuiz.attemptsAllowed')}
             </p>
           </div>
           <div class="quiz-status">
             ${q.completed ? `
               <span class="completed">${t('moodleQuiz.completed')}</span>
               <span class="score">${q.bestScore || '-'} ${t('moodleQuiz.score')}</span>
-            ` : isOpen ? `
+            ` : isOpen && q.canAttempt !== false ? `
               <button class="btn-primary" onclick="event.stopPropagation(); MoodleUI.startQuiz('${q.quizId}')">${t('moodleQuiz.startQuiz')}</button>
+            ` : isOpen ? `
+              <span class="not-available">已達作答上限</span>
             ` : `
               <span class="not-available">${t('moodleQuiz.notAvailable')}</span>
             `}
@@ -2596,6 +2764,7 @@ const MoodleUI = {
     });
 
     const events = result.success ? result.data || [] : [];
+    this.currentCalendarEvents = events;
 
     // 產生日曆
     const firstDay = new Date(year, month, 1).getDay();
@@ -2621,7 +2790,8 @@ const MoodleUI = {
     // 本月日期
     for (let day = 1; day <= daysInMonth; day++) {
       const isToday = today.getDate() === day && today.getMonth() === month && today.getFullYear() === year;
-      const dayEvents = events.filter(e => new Date(e.startDate || e.dueDate).getDate() === day);
+      const dayDate = new Date(year, month, day);
+      const dayEvents = this.getEventsForLocalDate(events, dayDate);
 
       html += `
         <div class="calendar-day ${isToday ? 'today' : ''}" onclick="MoodleUI.openDayEvents(${year}, ${month}, ${day})">
@@ -2662,19 +2832,24 @@ const MoodleUI = {
         return;
       }
 
-      container.innerHTML = events.map(e => `
-        <div class="event-item">
-          <div class="event-date">
-            <span class="day">${new Date(e.startDate || e.dueDate).getDate()}</span>
-            <span class="month">${new Date(e.startDate || e.dueDate).toLocaleDateString(I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW', { month: 'short' })}</span>
+      container.innerHTML = events.map(e => {
+        const eventDateValue = this.getCalendarEventDate(e);
+        const eventDate = eventDateValue ? new Date(eventDateValue) : null;
+        const validDate = eventDate && !Number.isNaN(eventDate.getTime()) ? eventDate : new Date();
+        return `
+          <div class="event-item">
+            <div class="event-date">
+              <span class="day">${validDate.getDate()}</span>
+              <span class="month">${validDate.toLocaleDateString(I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW', { month: 'short' })}</span>
+            </div>
+            <div class="event-info">
+              <div class="event-title">${e.title}</div>
+              <div class="event-course">${e.courseName || ''}</div>
+              <div class="event-time">${e.type === 'assignment' ? t('moodleCalendar.duePrefix') : ''}：${validDate.toLocaleTimeString(I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW', { hour: '2-digit', minute: '2-digit' })}</div>
+            </div>
           </div>
-          <div class="event-info">
-            <div class="event-title">${e.title}</div>
-            <div class="event-course">${e.courseName || ''}</div>
-            <div class="event-time">${e.type === 'assignment' ? t('moodleCalendar.duePrefix') : ''}：${new Date(e.startDate || e.dueDate).toLocaleTimeString(I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW', { hour: '2-digit', minute: '2-digit' })}</div>
-          </div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
     } catch (error) {
       console.error('Load upcoming events error:', error);
     }
@@ -2805,7 +2980,12 @@ const MoodleUI = {
         return;
       }
 
-      const quiz = result.data;
+      const quiz = this.normalizeQuizState(result.data || {});
+      const attemptsHistory = Array.isArray(quiz.myAttempts)
+        ? quiz.myAttempts
+        : (Array.isArray(quiz.attempts) ? quiz.attempts : []);
+      const attemptsAllowedRaw = Number(quiz.maxAttempts);
+      const attemptsAllowed = Number.isFinite(attemptsAllowedRaw) ? attemptsAllowedRaw : 0;
       const now = new Date();
       const isOpen = (!quiz.openDate || new Date(quiz.openDate) <= now) &&
                      (!quiz.closeDate || new Date(quiz.closeDate) >= now);
@@ -2833,7 +3013,7 @@ const MoodleUI = {
             </div>
             <div class="info-item">
               <span class="label">${t('moodleQuiz.attemptsAllowed')}</span>
-              <span class="value">${quiz.attempts === 0 ? t('moodleQuiz.unlimited') : quiz.attempts || 1} ${t('moodleQuiz.times')}</span>
+              <span class="value">${attemptsAllowed === 0 ? t('moodleQuiz.unlimited') : attemptsAllowed} ${t('moodleQuiz.times')}</span>
             </div>
             <div class="info-item">
               <span class="label">${t('moodleQuiz.openDate')}</span>
@@ -2844,7 +3024,7 @@ const MoodleUI = {
               <span class="value">${quiz.closeDate ? new Date(quiz.closeDate).toLocaleString(I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW') : t('moodleQuiz.noLimit')}</span>
             </div>
           </div>
-          ${quiz.myAttempts && quiz.myAttempts.length > 0 ? `
+          ${attemptsHistory.length > 0 ? `
             <div class="quiz-attempts-history">
               <h3>${t('moodleQuiz.attemptHistory')}</h3>
               <table class="data-table">
@@ -2857,12 +3037,12 @@ const MoodleUI = {
                   </tr>
                 </thead>
                 <tbody>
-                  ${quiz.myAttempts.map((a, i) => `
+                  ${attemptsHistory.map((a, i) => `
                     <tr>
                       <td>${i + 1}</td>
-                      <td>${new Date(a.startedAt).toLocaleString(I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW')}</td>
-                      <td>${a.completedAt ? new Date(a.completedAt).toLocaleString(I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW') : '-'}</td>
-                      <td>${a.score !== undefined ? a.score + ' ' + t('moodleQuiz.pointsSuffix') : '-'}</td>
+                      <td>${a.startedAt ? new Date(a.startedAt).toLocaleString(I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW') : '-'}</td>
+                      <td>${(a.completedAt || a.submittedAt) ? new Date(a.completedAt || a.submittedAt).toLocaleString(I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW') : '-'}</td>
+                      <td>${a.score !== undefined && a.score !== null ? a.score + ' ' + t('moodleQuiz.pointsSuffix') : (a.percentage !== undefined && a.percentage !== null ? `${a.percentage}%` : '-')}</td>
                     </tr>
                   `).join('')}
                 </tbody>
@@ -2870,11 +3050,13 @@ const MoodleUI = {
             </div>
           ` : ''}
           <div class="quiz-action">
-            ${isOpen ? `
+            ${isOpen && quiz.canAttempt !== false ? `
               <button onclick="MoodleUI.startQuiz('${quizId}')" class="btn-primary btn-lg">
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5,3 19,12 5,21"/></svg>
                 ${t('moodleQuiz.startQuiz')}
               </button>
+            ` : isOpen ? `
+              <p class="not-available-message">已達作答上限</p>
             ` : `
               <p class="not-available-message">${t('moodleQuiz.notOpenMsg')}</p>
             `}
@@ -3152,9 +3334,71 @@ const MoodleUI = {
   /**
    * 開啟某一天的事件
    */
-  openDayEvents(year, month, day) {
-    // 可以展開顯示當天的所有事件
-    showToast(`${year}/${month + 1}/${day} ${t('moodleCalendar.eventsOf')}`);
+  async openDayEvents(year, month, day) {
+    const selectedDate = new Date(year, month, day);
+    const dateLabel = `${year}/${month + 1}/${day}`;
+
+    let monthEvents = Array.isArray(this.currentCalendarEvents) ? this.currentCalendarEvents : [];
+    if (monthEvents.length === 0) {
+      try {
+        const result = await API.calendar.getEvents({
+          start: new Date(year, month, 1).toISOString(),
+          end: new Date(year, month + 1, 0).toISOString()
+        });
+        monthEvents = result.success ? (result.data || []) : [];
+        this.currentCalendarEvents = monthEvents;
+      } catch (error) {
+        console.error('Load calendar day events error:', error);
+      }
+    }
+
+    const dayEvents = this.getEventsForLocalDate(monthEvents, selectedDate)
+      .sort((a, b) => {
+        const aTs = new Date(this.getCalendarEventDate(a) || 0).getTime();
+        const bTs = new Date(this.getCalendarEventDate(b) || 0).getTime();
+        return aTs - bTs;
+      });
+
+    if (dayEvents.length === 0) {
+      showToast(`${dateLabel} ${t('moodleCalendar.noEvents')}`);
+      return;
+    }
+
+    const bodyHtml = `
+      <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+        ${dayEvents.map(event => {
+          const eventDateValue = this.getCalendarEventDate(event);
+          const eventDate = eventDateValue ? new Date(eventDateValue) : null;
+          const validDate = eventDate && !Number.isNaN(eventDate.getTime()) ? eventDate : null;
+          const eventType = event.type || '';
+          const encodedType = encodeURIComponent(eventType);
+          const encodedCourseId = encodeURIComponent(event.courseId || '');
+          return `
+            <button type="button"
+              onclick="MoodleUI.handleCalendarEventClick('${encodedType}', '${encodedCourseId}')"
+              style="width: 100%; border: 1px solid var(--gray-200); border-radius: 10px; background: var(--white); text-align: left; padding: 0.85rem 1rem; cursor: pointer;">
+              <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem;">
+                <div>
+                  <div style="font-size: 0.78rem; color: var(--gray-500); margin-bottom: 0.2rem;">${this.getCalendarEventTypeLabel(eventType)}</div>
+                  <div style="font-size: 0.95rem; font-weight: 600; color: var(--charcoal);">${event.title || '未命名事件'}</div>
+                  ${event.courseName ? `<div style="font-size: 0.78rem; color: var(--gray-500); margin-top: 0.15rem;">${event.courseName}</div>` : ''}
+                </div>
+                <div style="font-size: 0.78rem; color: var(--gray-500); white-space: nowrap;">
+                  ${validDate ? validDate.toLocaleTimeString(I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW', { hour: '2-digit', minute: '2-digit' }) : '--:--'}
+                </div>
+              </div>
+            </button>
+          `;
+        }).join('')}
+      </div>
+    `;
+
+    this.createModal(
+      'calendarDayEventsModal',
+      `${dateLabel} ${t('moodleCalendar.eventsOf')}`,
+      bodyHtml,
+      { maxWidth: '560px' }
+    );
   },
 
   // ==================== 通知系統 ====================

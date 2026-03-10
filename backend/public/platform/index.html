@@ -4380,7 +4380,7 @@
                 'rolesManagement', 'courseCategories', 'auditLogs', 'scormManager', 'ltiManager', 'h5pManager'
             ]);
             const teacherOnlyViews = new Set([
-                'classes', 'gradebookManagement', 'questionBank', 'rubrics', 'groupsManager', 'courseCompletionSettings'
+                'teacherDashboard', 'classes', 'gradebookManagement', 'questionBank', 'rubrics', 'groupsManager', 'courseCompletionSettings'
             ]);
             const studentOnlyViews = new Set(['studentClasses']);
 
@@ -4390,17 +4390,28 @@
             return true;
         }
 
+        function resolvePrimaryViewName(viewName) {
+            const user = getCurrentPlatformUser();
+            if (viewName === 'discussions') return 'moodleForums';
+            if (viewName === 'dashboard' && user && isTeachingRole(user) && !isStudentRole(user)) {
+                return 'teacherDashboard';
+            }
+            return viewName;
+        }
+
         // Show different views
         function showView(viewName) {
+            viewName = resolvePrimaryViewName(viewName);
             if (!hasViewAccess(viewName)) {
                 showToast('您目前的角色無法存取此頁面');
-                viewName = 'dashboard';
+                viewName = resolvePrimaryViewName('dashboard');
             }
 
             document.querySelectorAll('.dashboard').forEach(v => v.style.display = 'none');
 
             const viewMap = {
                 'dashboard': 'dashboardView',
+                'teacherDashboard': 'teacherDashboardView',
                 'library': 'libraryView',
                 'courses': 'coursesView',
                 'licenses': 'licensesView',
@@ -4439,7 +4450,7 @@
                 'courseCompletionSettings': 'courseCompletionSettingsView'
             };
 
-            const viewId = viewMap[viewName] || 'dashboardView';
+            const viewId = viewMap[viewName] || (viewName === 'teacherDashboard' ? 'teacherDashboardView' : 'dashboardView');
             const viewElement = document.getElementById(viewId);
             if (viewElement) {
                 viewElement.style.display = 'block';
@@ -4461,7 +4472,8 @@
                 return;
             }
 
-            document.getElementById('pageTitle').innerHTML = pageTitles[viewName] || pageTitles['dashboard'];
+            const pageTitleView = viewName === 'teacherDashboard' ? 'dashboard' : viewName;
+            document.getElementById('pageTitle').innerHTML = pageTitles[pageTitleView] || pageTitles['dashboard'];
 
             // 自動更新側邊欄 nav-item 的 active 狀態
             updateNavActiveState(viewName);
@@ -4483,6 +4495,8 @@
 
         // 更新側邊欄導航的 active 狀態
         function updateNavActiveState(viewName) {
+            const navViewName = viewName === 'teacherDashboard' ? 'dashboard' : viewName;
+
             // 移除所有 nav-item 的 active 狀態
             document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
 
@@ -4491,14 +4505,14 @@
             document.querySelectorAll('.nav-item').forEach(item => {
                 const onclick = item.getAttribute('onclick') || '';
                 // 檢查 onclick 是否包含 showView('viewName') 或 navigateTo(this, 'viewName')
-                if (onclick.includes(`showView('${viewName}')`) ||
-                    onclick.includes(`navigateTo(this, '${viewName}')`)) {
+                if (onclick.includes(`showView('${navViewName}')`) ||
+                    onclick.includes(`navigateTo(this, '${navViewName}')`)) {
                     item.classList.add('active');
                 }
             });
 
             // 特殊處理：dashboard 對應第一個 nav-item (我的學習)
-            if (viewName === 'dashboard') {
+            if (navViewName === 'dashboard') {
                 const dashboardNav = document.querySelector('.nav-item.active') ||
                                      document.querySelector('.sidebar-nav .nav-item');
                 if (dashboardNav && !document.querySelector('.nav-item.active')) {
@@ -5125,7 +5139,20 @@
             });
             btn.style.background = 'var(--olive)';
             btn.style.color = 'var(--cream)';
-            showToast(`顯示${btn.textContent}`);
+
+            const filterMap = {
+                all: 'all',
+                latest: 'recent',
+                popular: 'active',
+                unanswered: 'unanswered',
+                my: 'mine'
+            };
+            const filter = filterMap[tabName] || 'all';
+
+            showView('moodleForums');
+            if (typeof MoodleUI !== 'undefined' && MoodleUI.loadForums) {
+                MoodleUI.loadForums(undefined, filter);
+            }
         }
 
         function openNewPostModal() {
@@ -5225,7 +5252,8 @@
         }
 
         function toggleReplies(postId) {
-            showToast('正在載入回覆...');
+            if (!postId) return;
+            openReplyModal(postId);
         }
 
         async function loadDiscussions(filter = 'all') {
@@ -5381,35 +5409,39 @@
         // 頁面切換時載入對應資料
         const originalShowView = showView;
         showView = function(viewName) {
-            originalShowView(viewName);
+            const resolvedViewName = resolvePrimaryViewName(viewName);
+            const finalViewName = hasViewAccess(resolvedViewName) ? resolvedViewName : resolvePrimaryViewName('dashboard');
+            originalShowView(resolvedViewName);
 
             // 更新麵包屑導航
             if (typeof MoodleUI !== 'undefined' && MoodleUI.updateBreadcrumb) {
-                MoodleUI.updateBreadcrumb(viewName);
+                MoodleUI.updateBreadcrumb(finalViewName);
             }
 
             // 根據視圖載入相應資料
             // 注意：consultations 視圖現已由 chat.js 處理
-            if (viewName === 'dashboard') {
+            if (finalViewName === 'dashboard') {
                 // 初始化學生儀表板
                 if (typeof MoodleUI !== 'undefined' && MoodleUI.initStudentDashboard) {
                     MoodleUI.initStudentDashboard();
                 }
-            } else if (viewName === 'discussions') {
-                App.loadDiscussions();
-            } else if (viewName === 'classes') {
+            } else if (finalViewName === 'moodleForums' && viewName === 'discussions') {
+                if (typeof MoodleUI !== 'undefined' && MoodleUI.loadForums) {
+                    MoodleUI.loadForums();
+                }
+            } else if (finalViewName === 'classes') {
                 if (typeof loadClasses === 'function') loadClasses();
-            } else if (viewName === 'studentClasses') {
+            } else if (finalViewName === 'studentClasses') {
                 if (typeof loadStudentClasses === 'function') loadStudentClasses();
-            } else if (viewName === 'quizzes') {
+            } else if (finalViewName === 'quizzes') {
                 App.loadQuizzes();
-            } else if (viewName === 'settings') {
+            } else if (finalViewName === 'settings') {
                 // 進入設定頁面時重新載入用戶資料
                 const user = API.getCurrentUser();
                 if (user) {
                     App.updateSettingsUI(user);
                 }
-            } else if (viewName === 'teacherDashboard') {
+            } else if (finalViewName === 'teacherDashboard') {
                 // 初始化教師儀表板
                 if (typeof MoodleUI !== 'undefined' && MoodleUI.initTeacherDashboard) {
                     MoodleUI.initTeacherDashboard();
@@ -5421,8 +5453,10 @@
         };
 
         function openReplyModal(postId) {
+            if (!postId) return;
             const modal = document.createElement('div');
             modal.id = 'replyModal';
+            modal.dataset.postId = String(postId);
             modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;';
             modal.innerHTML = `
                 <div style="width:90%;max-width:500px;background:var(--cream);border-radius:16px;overflow:hidden;">
@@ -5430,7 +5464,7 @@
                         <h3>回覆討論</h3>
                     </div>
                     <div style="padding:2rem;">
-                        <textarea rows="4" placeholder="輸入您的回覆..." style="width:100%;padding:0.75rem 1rem;border:1px solid var(--gray-200);border-radius:8px;font-size:1rem;resize:vertical;"></textarea>
+                        <textarea id="replyContentInput" rows="4" placeholder="輸入您的回覆..." style="width:100%;padding:0.75rem 1rem;border:1px solid var(--gray-200);border-radius:8px;font-size:1rem;resize:vertical;"></textarea>
                     </div>
                     <div style="padding:1rem 2rem;border-top:1px solid var(--gray-200);display:flex;justify-content:flex-end;gap:0.75rem;">
                         <button onclick="closeReplyModal()" style="padding:0.75rem 1.5rem;background:var(--gray-200);border:none;border-radius:8px;cursor:pointer;">取消</button>
@@ -5447,9 +5481,33 @@
             if (modal) modal.remove();
         }
 
-        function submitReply() {
-            showToast('回覆已送出！');
-            closeReplyModal();
+        async function submitReply() {
+            const modal = document.getElementById('replyModal');
+            if (!modal) return;
+
+            const postId = modal.dataset.postId;
+            const content = modal.querySelector('#replyContentInput')?.value?.trim();
+            if (!postId || !content) {
+                showToast('請輸入回覆內容');
+                return;
+            }
+
+            try {
+                const result = await API.discussions.reply(postId, content);
+                if (!result.success) {
+                    showToast(result.message || '回覆送出失敗');
+                    return;
+                }
+
+                showToast('回覆已送出！');
+                closeReplyModal();
+                if (typeof App !== 'undefined' && typeof App.loadDiscussionsListView === 'function') {
+                    App.loadDiscussionsListView();
+                }
+            } catch (error) {
+                console.error('Submit reply error:', error);
+                showToast('回覆送出失敗');
+            }
         }
 
         // ===== 橋隊管理功能（建橋者用）=====

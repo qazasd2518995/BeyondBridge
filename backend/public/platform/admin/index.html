@@ -6339,12 +6339,15 @@
 
                 const data = result.data;
                 const metrics = data.metrics || {};
+                const publishedResources = metrics.publishedResources ?? metrics.totalResources ?? 0;
+                const publishedResourcesLastMonth = metrics.publishedResourcesLastMonth ?? metrics.resourcesLastMonth ?? 0;
+                const activeLicensesLastMonth = metrics.activeLicensesLastMonth ?? metrics.licensesLastMonth ?? 0;
 
                 // ========== Update Key Metrics ==========
                 updateMetricCard('metricTotalUsers', 'metricUsersTrend', metrics.totalUsers || 0, metrics.newUsersThisMonth || 0, t('admin.analytics.thisMonth'));
                 updateMetricCard('metricNewUsers', 'metricNewUsersTrend', metrics.newUsersThisMonth || 0, metrics.newUsersLastMonth || 0);
-                updateMetricCard('metricResources', 'metricResourcesTrend', metrics.totalResources || 0, metrics.resourcesLastMonth || 0);
-                updateMetricCard('metricLicenses', 'metricLicensesTrend', metrics.activeLicenses || 0, metrics.licensesLastMonth || 0);
+                updateMetricCard('metricResources', 'metricResourcesTrend', publishedResources, publishedResourcesLastMonth);
+                updateMetricCard('metricLicenses', 'metricLicensesTrend', metrics.activeLicenses || 0, activeLicensesLastMonth);
 
                 const ratingEl = document.getElementById('metricRating');
                 if (ratingEl) ratingEl.textContent = metrics.avgCustomerRating && metrics.avgCustomerRating > 0 ? metrics.avgCustomerRating.toFixed(1) : '-';
@@ -6437,9 +6440,18 @@
 
             if (userRolesChart) userRolesChart.destroy();
 
+            const roleMap = Array.isArray(roles)
+                ? roles.reduce((acc, item) => {
+                    if (!item) return acc;
+                    const key = item.role || item.name || 'unknown';
+                    acc[key] = (acc[key] || 0) + (Number(item.count) || 0);
+                    return acc;
+                }, {})
+                : (roles && typeof roles === 'object' ? roles : {});
+
             const roleLabels = { educator: t('admin.analytics.roleTeacher'), student: t('admin.analytics.roleStudent'), trainer: t('admin.analytics.roleTrainer'), admin: t('admin.roles.admin') };
-            const labels = Object.keys(roles).map(r => roleLabels[r] || r);
-            const values = Object.values(roles);
+            const labels = Object.keys(roleMap).map(r => roleLabels[r] || r);
+            const values = Object.values(roleMap);
 
             userRolesChart = new Chart(ctx, {
                 type: 'doughnut',
@@ -6465,13 +6477,22 @@
 
             if (resourceCategoriesChart) resourceCategoriesChart.destroy();
 
+            const categoryMap = Array.isArray(categories)
+                ? categories.reduce((acc, item) => {
+                    if (!item) return acc;
+                    const key = item.name || item.category || 'other';
+                    acc[key] = (acc[key] || 0) + (Number(item.count) || 0);
+                    return acc;
+                }, {})
+                : (categories && typeof categories === 'object' ? categories : {});
+
             const categoryLabels = {
                 math: t('admin.resources.subMath'), chinese: t('admin.resources.subChinese'), english: t('admin.resources.subEnglish'), science: t('admin.resources.subScience'),
                 social: t('admin.resources.subSocial'), business: t('admin.resources.subBusiness'), technology: t('admin.resources.subTechnology'),
                 arts: t('admin.resources.subArts'), art: t('admin.resources.subArt'), pe: t('admin.resources.subPE'), other: t('admin.resources.subOther')
             };
-            const labels = Object.keys(categories).map(c => categoryLabels[c] || c);
-            const values = Object.values(categories);
+            const labels = Object.keys(categoryMap).map(c => categoryLabels[c] || c);
+            const values = Object.values(categoryMap);
 
             resourceCategoriesChart = new Chart(ctx, {
                 type: 'bar',
@@ -6499,11 +6520,20 @@
 
             if (licenseStatusChart) licenseStatusChart.destroy();
 
+            const statusMap = Array.isArray(status)
+                ? status.reduce((acc, item) => {
+                    if (!item) return acc;
+                    const key = item.status || item.name || 'unknown';
+                    acc[key] = (acc[key] || 0) + (Number(item.count) || 0);
+                    return acc;
+                }, {})
+                : (status && typeof status === 'object' ? status : {});
+
             const statusLabels = { pending: t('admin.filter.pending'), active: t('admin.analytics.inUse'), expired: t('admin.licenses.expired'), rejected: t('admin.analytics.rejected') };
             const statusColors = { pending: '#ffc107', active: '#28a745', expired: '#6c757d', rejected: '#dc3545' };
-            const labels = Object.keys(status).map(s => statusLabels[s] || s);
-            const values = Object.values(status);
-            const colors = Object.keys(status).map(s => statusColors[s] || '#ccc');
+            const labels = Object.keys(statusMap).map(s => statusLabels[s] || s);
+            const values = Object.values(statusMap);
+            const colors = Object.keys(statusMap).map(s => statusColors[s] || '#ccc');
 
             licenseStatusChart = new Chart(ctx, {
                 type: 'doughnut',
@@ -6528,7 +6558,7 @@
             if (!tbody) return;
 
             if (!resources || resources.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color: var(--gray-400);">${t('admin.analytics.noData')}</td></tr>';
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color: var(--gray-400);">${t('admin.analytics.noData')}</td></tr>`;
                 return;
             }
 
@@ -6545,7 +6575,7 @@
                         <div style="font-weight: 500;">${escapeHtml(r.title || '')}</div>
                         <div style="font-size: 0.75rem; color: var(--gray-500);">${categoryLabels[r.category] || r.category || '-'}</div>
                     </td>
-                    <td>${(r.viewCount || 0).toLocaleString()}</td>
+                    <td>${(r.viewCount || r.views || 0).toLocaleString()}</td>
                     <td>${r.rating && r.rating > 0 ? r.rating.toFixed(1) : '-'}</td>
                     <td>${r.licensedCount || 0}</td>
                 </tr>
