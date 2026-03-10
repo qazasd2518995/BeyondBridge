@@ -2724,6 +2724,10 @@
             color: var(--gray-500);
         }
 
+        .admin-section-offset {
+            margin-top: 1.5rem;
+        }
+
         .admin-monitor-toggle {
             display: flex;
             align-items: center;
@@ -3478,6 +3482,12 @@
         .heatmap-cell.level-3 { background: #6f9b5e; }
         .heatmap-cell.level-4 { background: var(--olive); }
 
+        .heatmap-hour-label {
+            text-align: center;
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+        }
+
         .heatmap-legend {
             display: flex;
             align-items: center;
@@ -3497,6 +3507,99 @@
             width: 12px;
             height: 12px;
             border-radius: 2px;
+        }
+
+        .legend-item.level-0 { background: #f0f4f0; }
+        .legend-item.level-1 { background: #c5d5c0; }
+        .legend-item.level-2 { background: #9ab88f; }
+        .legend-item.level-3 { background: #6f9b5e; }
+        .legend-item.level-4 { background: var(--olive); }
+
+        .admin-chart-shell {
+            height: 300px;
+        }
+
+        .admin-analytics-state {
+            grid-column: 1 / -1;
+            padding: 1rem;
+            text-align: center;
+            color: var(--text-secondary);
+        }
+
+        .admin-resource-modal {
+            max-width: 680px;
+        }
+
+        .admin-resource-body {
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .admin-resource-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .admin-resource-section {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .admin-resource-section-title {
+            margin: 0 0 15px 0;
+            font-size: 14px;
+            color: #64748b;
+        }
+
+        .admin-resource-grid {
+            display: grid;
+            gap: 15px;
+        }
+
+        .admin-resource-grid.is-three {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .admin-resource-grid.is-two {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .admin-resource-form .form-group.compact {
+            margin-bottom: 0;
+        }
+
+        .admin-resource-form .form-group.compact.is-spaced {
+            margin-top: 15px;
+        }
+
+        .admin-resource-inline-help {
+            color: #94a3b8;
+            font-weight: 400;
+        }
+
+        .admin-resource-audience {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .admin-resource-check {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .admin-resource-upload-note {
+            color: #64748b;
+            display: block;
+            margin-top: 5px;
+        }
+
+        .admin-resource-field[hidden] {
+            display: none !important;
         }
 
         /* 響應式調整 */
@@ -3534,7 +3637,8 @@
             .admin-support-window-head,
             .admin-support-actions,
             .admin-support-input-row,
-            .admin-audit-filters {
+            .admin-audit-filters,
+            .admin-resource-audience {
                 flex-direction: column;
                 align-items: stretch;
             }
@@ -3546,6 +3650,11 @@
             .admin-filter-field.is-medium,
             .admin-filter-field.is-small {
                 width: 100%;
+            }
+
+            .admin-resource-grid.is-two,
+            .admin-resource-grid.is-three {
+                grid-template-columns: 1fr;
             }
 
             .support-tab-list {
@@ -4272,7 +4381,7 @@
                                 </tr>
                             </thead>
                             <tbody id="topResourcesBody">
-                                <tr><td colspan="5" style="text-align:center; color: var(--gray-400);" data-i18n="common.loading">載入中...</td></tr>
+                                <tr><td colspan="5" class="admin-table-state" data-i18n="common.loading">載入中...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -4945,14 +5054,15 @@
                         <h3 data-i18n="admin.dataExport.analyticsReport">分析報表</h3>
                         <p data-i18n="admin.dataExport.analyticsReportDesc">生成自訂日期範圍的綜合分析報表</p>
                         <div class="export-formats">
+                            <span class="format-badge">CSV</span>
+                            <span class="format-badge">JSON</span>
                             <span class="format-badge">PDF</span>
-                            <span class="format-badge">Excel</span>
                         </div>
                     </div>
                 </div>
 
                 <!-- Recent Exports -->
-                <div class="card" style="margin-top: 1.5rem;">
+                <div class="card admin-section-offset">
                     <div class="card-header">
                         <h3 data-i18n="admin.dataExport.recentExports">最近匯出記錄</h3>
                     </div>
@@ -4969,7 +5079,7 @@
                         </thead>
                         <tbody id="recentExportsTable">
                             <tr>
-                                <td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                                <td colspan="6" class="admin-table-state">
                                     <span data-i18n="admin.dataExport.noExports">尚無匯出記錄</span>
                                 </td>
                             </tr>
@@ -4983,7 +5093,7 @@
                 <div class="admin-header">
                     <h2 data-i18n="admin.automation.title">自動化規則</h2>
                     <div class="admin-header-actions">
-                        <button class="btn-primary" onclick="openAutomationModal()">
+                        <button class="btn btn-primary" onclick="openAutomationModal()">
                             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
                                 <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
                             </svg>
@@ -4993,7 +5103,7 @@
                 </div>
 
                 <!-- Automation Stats -->
-                <div class="stats-grid" style="margin-bottom: 1.5rem;">
+                <div class="stats-grid admin-section-spacing">
                     <div class="stat-card">
                         <div class="stat-value" id="totalRulesCount">0</div>
                         <div class="stat-label" data-i18n="admin.automation.totalRules">總規則數</div>
@@ -5016,8 +5126,8 @@
                 <div class="card">
                     <div class="card-header">
                         <h3 data-i18n="admin.automation.ruleList">規則列表</h3>
-                        <div style="display: flex; gap: 0.5rem;">
-                            <select class="form-select" id="ruleTypeFilter" onchange="filterRules()" style="width: 150px;">
+                        <div class="admin-toolbar-inline">
+                            <select class="form-select admin-filter-field is-medium" id="ruleTypeFilter" onchange="filterRules()">
                                 <option value="" data-i18n="admin.automation.allTypes">全部類型</option>
                                 <option value="AUTO_APPROVE_LICENSE" data-i18n="admin.automation.autoApprove">自動核准授權</option>
                                 <option value="AUTO_SEND_NOTIFICATION" data-i18n="admin.automation.autoNotify">自動發送通知</option>
@@ -5025,7 +5135,7 @@
                                 <option value="AUTO_ARCHIVE_COURSE" data-i18n="admin.automation.autoArchive">自動封存課程</option>
                                 <option value="SCHEDULED_REPORT" data-i18n="admin.automation.scheduledReport">定期報表</option>
                             </select>
-                            <select class="form-select" id="ruleStatusFilter" onchange="filterRules()" style="width: 120px;">
+                            <select class="form-select admin-filter-field is-small" id="ruleStatusFilter" onchange="filterRules()">
                                 <option value="" data-i18n="admin.automation.allStatus">全部狀態</option>
                                 <option value="active" data-i18n="admin.automation.enabled">啟用</option>
                                 <option value="inactive" data-i18n="admin.automation.disabled">停用</option>
@@ -5047,7 +5157,7 @@
                         </thead>
                         <tbody id="automationRulesTable">
                             <tr>
-                                <td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                                <td colspan="8" class="admin-table-state">
                                     <span data-i18n="admin.automation.noRules">${t('admin.automation.noRules')}</span>
                                 </td>
                             </tr>
@@ -5061,13 +5171,13 @@
                 <div class="admin-header">
                     <h2 data-i18n="admin.userActivity.title">用戶活動分析</h2>
                     <div class="admin-header-actions">
-                        <select class="form-select" id="activityDateRange" onchange="loadUserActivity()" style="width: 150px;">
+                        <select class="form-select admin-filter-field is-medium" id="activityDateRange" onchange="loadUserActivity()">
                             <option value="7d" data-i18n="admin.userActivity.last7d">最近 7 天</option>
                             <option value="30d" selected data-i18n="admin.userActivity.last30d">最近 30 天</option>
                             <option value="90d" data-i18n="admin.userActivity.last90d">最近 90 天</option>
                             <option value="custom" data-i18n="admin.userActivity.custom">自訂範圍</option>
                         </select>
-                        <button class="btn-secondary" onclick="exportActivityReport()">
+                        <button class="btn btn-secondary" onclick="exportActivityReport()">
                             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                                 <polyline points="7 10 12 15 17 10"/>
@@ -5121,7 +5231,7 @@
                             <h3 data-i18n="admin.userActivity.trendChart">活躍用戶趨勢</h3>
                         </div>
                         <div class="card-body">
-                            <div class="chart-container" style="height: 300px;">
+                            <div class="chart-container admin-chart-shell">
                                 <canvas id="activityTrendChart"></canvas>
                             </div>
                         </div>
@@ -5131,7 +5241,7 @@
                             <h3 data-i18n="admin.userActivity.behaviorDistribution">行為分布</h3>
                         </div>
                         <div class="card-body">
-                            <div class="chart-container" style="height: 300px;">
+                            <div class="chart-container admin-chart-shell">
                                 <canvas id="behaviorDistributionChart"></canvas>
                             </div>
                         </div>
@@ -5153,11 +5263,11 @@
                             <div class="heatmap-legend">
                                 <span data-i18n="admin.userActivity.less">較少</span>
                                 <div class="legend-scale">
-                                    <div class="legend-item" style="background: #f0f4f0;"></div>
-                                    <div class="legend-item" style="background: #c5d5c0;"></div>
-                                    <div class="legend-item" style="background: #9ab88f;"></div>
-                                    <div class="legend-item" style="background: #6f9b5e;"></div>
-                                    <div class="legend-item" style="background: var(--olive);"></div>
+                                    <div class="legend-item level-0"></div>
+                                    <div class="legend-item level-1"></div>
+                                    <div class="legend-item level-2"></div>
+                                    <div class="legend-item level-3"></div>
+                                    <div class="legend-item level-4"></div>
                                 </div>
                                 <span data-i18n="admin.userActivity.more">較多</span>
                             </div>
@@ -5179,7 +5289,7 @@
                             </thead>
                             <tbody id="topActiveUsersTable">
                                 <tr>
-                                    <td colspan="5" style="text-align: center; padding: 2rem; color: var(--text-secondary);" data-i18n="common.loading">
+                                    <td colspan="5" class="admin-table-state" data-i18n="common.loading">
                                         載入中...
                                     </td>
                                 </tr>
@@ -5193,18 +5303,18 @@
 
     <!-- Modals -->
     <div class="modal-overlay" id="createResourceModal">
-        <div class="modal" style="max-width: 600px;">
+        <div class="modal admin-resource-modal">
             <div class="modal-header">
                 <h3 id="resourceModalTitle" data-i18n="admin.resourceModal.title">新增教材</h3>
                 <button class="modal-close" onclick="closeModal('createResourceModal')">&times;</button>
             </div>
-            <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
-                <form id="createResourceForm">
+            <div class="modal-body admin-resource-body">
+                <form id="createResourceForm" class="admin-resource-form">
                     <input type="hidden" name="resourceId" value="">
 
                     <!-- 基本資訊 -->
-                    <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                        <h4 style="margin: 0 0 15px 0; font-size: 14px; color: #64748b;" data-i18n="admin.resourceModal.basicInfo">基本資訊</h4>
+                    <div class="admin-resource-section">
+                        <h4 class="admin-resource-section-title" data-i18n="admin.resourceModal.basicInfo">基本資訊</h4>
                         <div class="form-group">
                             <label data-i18n="admin.resourceModal.titleLabel">標題 *</label>
                             <input type="text" name="title" class="form-input" required placeholder="請輸入教材標題" data-i18n-placeholder="admin.resourceModal.titlePlaceholder">
@@ -5216,10 +5326,10 @@
                     </div>
 
                     <!-- 分類設定 -->
-                    <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                        <h4 style="margin: 0 0 15px 0; font-size: 14px; color: #64748b;" data-i18n="admin.resourceModal.categorySetting">分類設定</h4>
-                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
-                            <div class="form-group" style="margin-bottom: 0;">
+                    <div class="admin-resource-section">
+                        <h4 class="admin-resource-section-title" data-i18n="admin.resourceModal.categorySetting">分類設定</h4>
+                        <div class="admin-resource-grid is-three">
+                            <div class="form-group compact">
                                 <label data-i18n="admin.resourceModal.typeLabel">類型 *</label>
                                 <select name="type" class="form-input" required>
                                     <option value="video" data-i18n="admin.resourceModal.typeVideo">影音教材</option>
@@ -5228,7 +5338,7 @@
                                     <option value="quiz" data-i18n="admin.resourceModal.typeQuiz">測驗題庫</option>
                                 </select>
                             </div>
-                            <div class="form-group" style="margin-bottom: 0;">
+                            <div class="form-group compact">
                                 <label data-i18n="admin.resourceModal.categoryLabel">分類 *</label>
                                 <select name="category" class="form-input" required>
                                     <option value="math" data-i18n="admin.resourceModal.catMath">數學</option>
@@ -5241,7 +5351,7 @@
                                     <option value="arts" data-i18n="admin.resourceModal.catArts">藝術人文</option>
                                 </select>
                             </div>
-                            <div class="form-group" style="margin-bottom: 0;">
+                            <div class="form-group compact">
                                 <label data-i18n="admin.resourceModal.gradeLabel">適用年級 *</label>
                                 <select name="gradeLevel" class="form-input" required>
                                     <option value="elementary" data-i18n="admin.resourceModal.gradeElementary">國小</option>
@@ -5255,27 +5365,27 @@
                     </div>
 
                     <!-- 內容資訊 -->
-                    <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                        <h4 style="margin: 0 0 15px 0; font-size: 14px; color: #64748b;" data-i18n="admin.resourceModal.contentInfo">內容資訊</h4>
-                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
-                            <div class="form-group" style="margin-bottom: 0;">
+                    <div class="admin-resource-section">
+                        <h4 class="admin-resource-section-title" data-i18n="admin.resourceModal.contentInfo">內容資訊</h4>
+                        <div class="admin-resource-grid is-two">
+                            <div class="form-group compact">
                                 <label data-i18n="admin.resourceModal.durationLabel">時長（分鐘）</label>
                                 <input type="number" name="duration" class="form-input" min="0" placeholder="例：60" data-i18n-placeholder="admin.resourceModal.durationPlaceholder">
                             </div>
-                            <div class="form-group" style="margin-bottom: 0;">
+                            <div class="form-group compact">
                                 <label data-i18n="admin.resourceModal.unitCountLabel">單元數</label>
                                 <input type="number" name="unitCount" class="form-input" min="0" placeholder="例：12" data-i18n-placeholder="admin.resourceModal.unitCountPlaceholder">
                             </div>
                         </div>
-                        <div class="form-group" style="margin-top: 15px; margin-bottom: 0;">
-                            <label data-i18n="admin.resourceModal.tagsLabel">標籤 <span style="color: #94a3b8; font-weight: normal;" data-i18n="admin.resourceModal.tagsHint">（用逗號分隔）</span></label>
+                        <div class="form-group compact is-spaced">
+                            <label data-i18n="admin.resourceModal.tagsLabel">標籤 <span class="admin-resource-inline-help" data-i18n="admin.resourceModal.tagsHint">（用逗號分隔）</span></label>
                             <input type="text" name="tags" class="form-input" placeholder="例：代數, 方程式, 基礎數學" data-i18n-placeholder="admin.resourceModal.tagsPlaceholder">
                         </div>
                     </div>
 
                     <!-- 內容來源 -->
-                    <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                        <h4 style="margin: 0 0 15px 0; font-size: 14px; color: #64748b;" data-i18n="admin.resourceModal.contentSource">內容來源</h4>
+                    <div class="admin-resource-section">
+                        <h4 class="admin-resource-section-title" data-i18n="admin.resourceModal.contentSource">內容來源</h4>
                         <div class="form-group">
                             <label data-i18n="admin.resourceModal.sourceType">來源類型</label>
                             <select name="contentType" class="form-input" onchange="toggleContentFields(this.value)">
@@ -5287,40 +5397,40 @@
                                 <option value="upload" data-i18n="admin.resourceModal.sourceUpload">直接上傳檔案</option>
                             </select>
                         </div>
-                        <div id="contentUrlField" style="display:none;">
-                            <div class="form-group" style="margin-bottom: 0;">
+                        <div id="contentUrlField" class="admin-resource-field" hidden>
+                            <div class="form-group compact">
                                 <label id="contentUrlLabel" data-i18n="admin.resourceModal.contentUrl">內容 URL</label>
                                 <input type="url" name="contentUrl" class="form-input" placeholder="https://...">
                             </div>
                         </div>
-                        <div id="contentEmbedField" style="display:none;">
-                            <div class="form-group" style="margin-bottom: 0;">
+                        <div id="contentEmbedField" class="admin-resource-field" hidden>
+                            <div class="form-group compact">
                                 <label data-i18n="admin.resourceModal.embedCode">嵌入碼</label>
                                 <textarea name="contentEmbed" class="form-input" rows="4" placeholder='<iframe src="..."></iframe>'></textarea>
                             </div>
                         </div>
-                        <div id="contentUploadField" style="display:none;">
-                            <div class="form-group" style="margin-bottom: 0;">
+                        <div id="contentUploadField" class="admin-resource-field" hidden>
+                            <div class="form-group compact">
                                 <label data-i18n="admin.resourceModal.selectFile">選擇檔案（最大 50MB）</label>
                                 <input type="file" id="resourceFileInput" class="form-input"
                                        accept=".pdf,.ppt,.pptx,.doc,.docx,.xls,.xlsx,.zip,.mp4,.mp3,.png,.jpg">
-                                <small id="uploadFileInfo" style="color: #64748b; display: block; margin-top: 5px;"></small>
+                                <small id="uploadFileInfo" class="admin-resource-upload-note"></small>
                             </div>
                         </div>
                     </div>
 
                     <!-- 定價設定 -->
-                    <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                        <h4 style="margin: 0 0 15px 0; font-size: 14px; color: #64748b;" data-i18n="admin.resourceModal.pricingSetting">定價設定</h4>
-                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
-                            <div class="form-group" style="margin-bottom: 0;">
+                    <div class="admin-resource-section">
+                        <h4 class="admin-resource-section-title" data-i18n="admin.resourceModal.pricingSetting">定價設定</h4>
+                        <div class="admin-resource-grid is-two">
+                            <div class="form-group compact">
                                 <label data-i18n="admin.resourceModal.pricingModel">定價模式</label>
                                 <select name="pricingModel" class="form-input" onchange="togglePriceField(this.value)">
                                     <option value="license" data-i18n="admin.resourceModal.pricingLicense">授權制</option>
                                     <option value="free" data-i18n="admin.resourceModal.pricingFree">免費</option>
                                 </select>
                             </div>
-                            <div class="form-group" style="margin-bottom: 0;" id="priceFieldGroup">
+                            <div class="form-group compact" id="priceFieldGroup">
                                 <label data-i18n="admin.resourceModal.priceLabel">價格（NT$）</label>
                                 <input type="number" name="price" class="form-input" min="0" placeholder="例：1200" data-i18n-placeholder="admin.resourceModal.pricePlaceholder">
                             </div>
@@ -5328,18 +5438,18 @@
                     </div>
 
                     <!-- 目標受眾 -->
-                    <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                        <h4 style="margin: 0 0 15px 0; font-size: 14px; color: #64748b;" data-i18n="admin.resourceModal.targetAudience">目標受眾</h4>
-                        <div style="display: flex; gap: 20px;">
-                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <div class="admin-resource-section">
+                        <h4 class="admin-resource-section-title" data-i18n="admin.resourceModal.targetAudience">目標受眾</h4>
+                        <div class="admin-resource-audience">
+                            <label class="admin-resource-check">
                                 <input type="checkbox" name="targetAudience" value="educator" checked>
                                 <span data-i18n="admin.resourceModal.audienceTeacher">教師</span>
                             </label>
-                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <label class="admin-resource-check">
                                 <input type="checkbox" name="targetAudience" value="student" checked>
                                 <span data-i18n="admin.resourceModal.audienceStudent">學生</span>
                             </label>
-                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <label class="admin-resource-check">
                                 <input type="checkbox" name="targetAudience" value="trainer">
                                 <span data-i18n="admin.resourceModal.audienceTrainer">培訓師</span>
                             </label>
@@ -5347,9 +5457,9 @@
                     </div>
 
                     <!-- 發布狀態 -->
-                    <div style="background: #f8fafc; padding: 15px; border-radius: 8px;">
-                        <h4 style="margin: 0 0 15px 0; font-size: 14px; color: #64748b;" data-i18n="admin.resourceModal.publishStatus">發布狀態</h4>
-                        <div class="form-group" style="margin-bottom: 0;">
+                    <div class="admin-resource-section">
+                        <h4 class="admin-resource-section-title" data-i18n="admin.resourceModal.publishStatus">發布狀態</h4>
+                        <div class="form-group compact">
                             <select name="status" class="form-input">
                                 <option value="draft" data-i18n="admin.resourceModal.statusDraft">草稿</option>
                                 <option value="published" data-i18n="admin.resourceModal.statusPublished">已發布</option>
@@ -5361,6 +5471,62 @@
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeModal('createResourceModal')" data-i18n="common.cancel">取消</button>
                 <button class="btn btn-primary" onclick="submitResourceForm()" data-i18n="common.save">儲存</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="automationRuleModal">
+        <div class="modal admin-resource-modal">
+            <div class="modal-header">
+                <h3 id="automationModalTitle" data-i18n="admin.automation.addRule">新增規則</h3>
+                <button class="modal-close" onclick="closeModal('automationRuleModal')">&times;</button>
+            </div>
+            <div class="modal-body admin-resource-body">
+                <form id="automationRuleForm" class="admin-resource-form">
+                    <input type="hidden" name="ruleId" value="">
+
+                    <div class="admin-resource-section">
+                        <h4 class="admin-resource-section-title" data-i18n="admin.resourceModal.basicInfo">基本資訊</h4>
+                        <div class="form-group compact">
+                            <label data-i18n="admin.automation.ruleName">規則名稱</label>
+                            <input type="text" name="name" class="form-input" required>
+                        </div>
+                        <div class="form-group compact is-spaced">
+                            <label data-i18n="admin.automation.typeCol">類型</label>
+                            <select name="type" class="form-input" required>
+                                <option value="AUTO_APPROVE_LICENSE" data-i18n="admin.automation.autoApprove">自動核准授權</option>
+                                <option value="AUTO_SEND_NOTIFICATION" data-i18n="admin.automation.autoNotify">自動發送通知</option>
+                                <option value="AUTO_SUSPEND_USER" data-i18n="admin.automation.autoSuspend">自動停用用戶</option>
+                                <option value="AUTO_ARCHIVE_COURSE" data-i18n="admin.automation.autoArchive">自動封存課程</option>
+                                <option value="SCHEDULED_REPORT" data-i18n="admin.automation.scheduledReport">定期報表</option>
+                            </select>
+                        </div>
+                        <div class="form-group compact is-spaced">
+                            <label class="admin-resource-check">
+                                <input type="checkbox" name="isActive" checked>
+                                <span data-i18n="admin.automation.enabled">啟用</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="admin-resource-section">
+                        <h4 class="admin-resource-section-title" data-i18n="admin.automation.condition">條件</h4>
+                        <div class="form-group compact">
+                            <textarea name="conditions" class="form-input" rows="8" spellcheck="false">{}</textarea>
+                        </div>
+                    </div>
+
+                    <div class="admin-resource-section">
+                        <h4 class="admin-resource-section-title" data-i18n="admin.automation.action">動作</h4>
+                        <div class="form-group compact">
+                            <textarea name="actions" class="form-input" rows="8" spellcheck="false">{}</textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('automationRuleModal')" data-i18n="common.cancel">取消</button>
+                <button class="btn btn-primary" onclick="submitAutomationRuleForm()" data-i18n="common.save">儲存</button>
             </div>
         </div>
     </div>
@@ -7478,11 +7644,16 @@
             const valueEl = document.getElementById(valueId);
             const trendEl = document.getElementById(trendId);
             if (valueEl) valueEl.textContent = current;
-            if (trendEl && previous > 0) {
+            if (!trendEl) return;
+
+            if (previous > 0) {
                 const change = Math.round(((current - previous) / previous) * 100);
                 const isUp = change >= 0;
                 trendEl.className = `metric-trend ${isUp ? 'up' : 'down'}`;
                 trendEl.textContent = `${isUp ? '↑' : '↓'} ${Math.abs(change)}%${suffix ? ' ' + suffix : ''}`;
+            } else {
+                trendEl.className = 'metric-trend neutral';
+                trendEl.textContent = suffix ? `0% ${suffix}` : '0%';
             }
         }
 
@@ -7648,7 +7819,7 @@
             if (!tbody) return;
 
             if (!resources || resources.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color: var(--gray-400);">${t('admin.analytics.noData')}</td></tr>`;
+                tbody.innerHTML = renderAdminTableState(5, t('admin.analytics.noData'));
                 return;
             }
 
@@ -7660,10 +7831,12 @@
 
             tbody.innerHTML = resources.map((r, i) => `
                 <tr>
-                    <td style="font-weight: 600; color: var(--olive);">${i + 1}</td>
+                    <td><strong>${i + 1}</strong></td>
                     <td>
-                        <div style="font-weight: 500;">${escapeHtml(r.title || '')}</div>
-                        <div style="font-size: 0.75rem; color: var(--gray-500);">${categoryLabels[r.category] || r.category || '-'}</div>
+                        <div class="admin-table-stack">
+                            <strong>${escapeHtml(r.title || '')}</strong>
+                            <span class="admin-table-subtitle">${escapeHtml(categoryLabels[r.category] || r.category || '-')}</span>
+                        </div>
                     </td>
                     <td>${(r.viewCount || r.views || 0).toLocaleString()}</td>
                     <td>${r.rating && r.rating > 0 ? r.rating.toFixed(1) : '-'}</td>
@@ -7770,11 +7943,8 @@
         // 切換價格欄位顯示
         function togglePriceField(pricingModel) {
             const priceGroup = document.getElementById('priceFieldGroup');
-            if (pricingModel === 'free') {
-                priceGroup.style.display = 'none';
-            } else {
-                priceGroup.style.display = 'block';
-            }
+            if (!priceGroup) return;
+            priceGroup.hidden = pricingModel === 'free';
         }
 
         function toggleContentFields(type) {
@@ -7782,23 +7952,25 @@
             const embedField = document.getElementById('contentEmbedField');
             const uploadField = document.getElementById('contentUploadField');
             const urlLabel = document.getElementById('contentUrlLabel');
-            urlField.style.display = 'none';
-            embedField.style.display = 'none';
-            uploadField.style.display = 'none';
+            if (!urlField || !embedField || !uploadField || !urlLabel) return;
+
+            urlField.hidden = true;
+            embedField.hidden = true;
+            uploadField.hidden = true;
 
             if (type === 'video') {
                 urlLabel.textContent = t('admin.resourceModal.videoUrl');
-                urlField.style.display = 'block';
+                urlField.hidden = false;
             } else if (type === 'file') {
                 urlLabel.textContent = t('admin.resourceModal.fileShareUrl');
-                urlField.style.display = 'block';
+                urlField.hidden = false;
             } else if (type === 'webpage') {
                 urlLabel.textContent = t('admin.resourceModal.webUrl');
-                urlField.style.display = 'block';
+                urlField.hidden = false;
             } else if (type === 'embed') {
-                embedField.style.display = 'block';
+                embedField.hidden = false;
             } else if (type === 'upload') {
-                uploadField.style.display = 'block';
+                uploadField.hidden = false;
             }
         }
 
@@ -7807,7 +7979,7 @@
             document.getElementById('createResourceForm').reset();
             document.getElementById('resourceModalTitle').textContent = t('admin.resources.createTitle');
             document.querySelector('#createResourceForm [name="resourceId"]').value = '';
-            document.getElementById('priceFieldGroup').style.display = 'block';
+            document.getElementById('priceFieldGroup').hidden = false;
             toggleContentFields('');
             document.getElementById('uploadFileInfo').textContent = '';
             openModal('createResourceModal');
@@ -9923,19 +10095,19 @@
                     <td>
                         <label class="rule-status-toggle">
                             <input type="checkbox" ${rule.isActive ? 'checked' : ''}
-                                   onchange="toggleAutomationRule('${rule.id}')">
+                                   onchange="toggleAutomationRule('${escapeHtml(String(rule.id || rule.ruleId || ''))}')">
                             <span class="rule-toggle-slider"></span>
                         </label>
                     </td>
-                    <td><strong>${rule.name}</strong></td>
-                    <td><span class="rule-type-badge ${typeClasses[rule.type] || ''}">${typeLabels[rule.type] || rule.type}</span></td>
-                    <td style="font-size: 0.85rem;">${rule.conditionSummary || '-'}</td>
-                    <td style="font-size: 0.85rem;">${rule.actionSummary || '-'}</td>
+                    <td><strong>${escapeHtml(String(rule.name || '-'))}</strong></td>
+                    <td><span class="rule-type-badge ${typeClasses[rule.type] || ''}">${escapeHtml(String(typeLabels[rule.type] || rule.type || '-'))}</span></td>
+                    <td class="admin-table-truncate">${escapeHtml(String(rule.conditionSummary || '-'))}</td>
+                    <td class="admin-table-truncate">${escapeHtml(String(rule.actionSummary || '-'))}</td>
                     <td>${rule.lastTriggered ? formatDate(rule.lastTriggered) : t('admin.automation.never')}</td>
                     <td>${rule.triggerCount || 0}</td>
                     <td>
-                        <button class="btn btn-sm btn-secondary" onclick="editAutomationRule('${rule.id}')">${t('common.edit')}</button>
-                        <button class="btn btn-sm btn-danger" onclick="deleteAutomationRule('${rule.id}')">${t('common.delete')}</button>
+                        <button class="btn btn-sm btn-secondary" onclick="editAutomationRule('${escapeHtml(String(rule.id || rule.ruleId || ''))}')">${t('common.edit')}</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteAutomationRule('${escapeHtml(String(rule.id || rule.ruleId || ''))}')">${t('common.delete')}</button>
                     </td>
                 </tr>
             `).join('');
@@ -9945,13 +10117,7 @@
             const tbody = document.getElementById('automationRulesTable');
             if (!tbody) return;
 
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
-                        ${t('admin.automation.noRules')}
-                    </td>
-                </tr>
-            `;
+            tbody.innerHTML = renderAdminTableState(8, t('admin.automation.noRules'));
         }
 
         function filterRules() {
@@ -9992,71 +10158,80 @@
             return JSON.parse(raw);
         }
 
-        async function openAutomationModal() {
-            const name = promptRequiredField('規則名稱');
-            if (name === null) return;
-            const typeInput = promptOptionalField('規則類型（AUTO_APPROVE_LICENSE / AUTO_SEND_NOTIFICATION / AUTO_SUSPEND_USER / AUTO_ARCHIVE_COURSE / SCHEDULED_REPORT）', 'AUTO_SEND_NOTIFICATION');
-            if (typeInput === null) return;
-            const conditionsInput = promptOptionalField('觸發條件 JSON（可留空）', '{}');
-            if (conditionsInput === null) return;
-            const actionsInput = promptOptionalField('執行動作 JSON（可留空）', '{}');
-            if (actionsInput === null) return;
+        function openAutomationModal() {
+            const form = document.getElementById('automationRuleForm');
+            if (!form) return;
 
-            try {
-                const result = await API.admin.automation.createRule({
-                    name,
-                    type: typeInput || 'AUTO_SEND_NOTIFICATION',
-                    conditions: parseJsonInput(conditionsInput, {}),
-                    actions: parseJsonInput(actionsInput, {})
-                });
-
-                if (!result.success) {
-                    alert(result.message || t('admin.error.operationFailed'));
-                    return;
-                }
-
-                showToast(result.message || '規則建立成功');
-                await loadAutomationRules();
-            } catch (error) {
-                console.error('Create automation rule error:', error);
-                alert(t('admin.error.operationFailed') + ': ' + error.message);
-            }
+            form.reset();
+            form.querySelector('[name="ruleId"]').value = '';
+            form.querySelector('[name="type"]').value = 'AUTO_SEND_NOTIFICATION';
+            form.querySelector('[name="conditions"]').value = '{}';
+            form.querySelector('[name="actions"]').value = '{}';
+            form.querySelector('[name="isActive"]').checked = true;
+            document.getElementById('automationModalTitle').textContent = t('admin.automation.addRule');
+            openModal('automationRuleModal');
         }
 
-        async function editAutomationRule(ruleId) {
+        function editAutomationRule(ruleId) {
             const rule = automationRulesData.find(item => (item.id || item.ruleId) === ruleId);
             if (!rule) {
-                alert(t('admin.error.operationFailed'));
+                showToast(t('admin.error.operationFailed'), 'error');
                 return;
             }
 
-            const name = promptRequiredField('規則名稱', rule.name || '');
-            if (name === null) return;
-            const typeInput = promptOptionalField('規則類型（AUTO_APPROVE_LICENSE / AUTO_SEND_NOTIFICATION / AUTO_SUSPEND_USER / AUTO_ARCHIVE_COURSE / SCHEDULED_REPORT）', rule.type || 'AUTO_SEND_NOTIFICATION');
-            if (typeInput === null) return;
-            const conditionsInput = promptOptionalField('觸發條件 JSON（可留空）', JSON.stringify(rule.conditions || {}, null, 2));
-            if (conditionsInput === null) return;
-            const actionsInput = promptOptionalField('執行動作 JSON（可留空）', JSON.stringify(rule.actions || {}, null, 2));
-            if (actionsInput === null) return;
+            const form = document.getElementById('automationRuleForm');
+            if (!form) return;
+
+            form.querySelector('[name="ruleId"]').value = rule.id || rule.ruleId || '';
+            form.querySelector('[name="name"]').value = rule.name || '';
+            form.querySelector('[name="type"]').value = rule.type || 'AUTO_SEND_NOTIFICATION';
+            form.querySelector('[name="conditions"]').value = JSON.stringify(rule.conditions || {}, null, 2);
+            form.querySelector('[name="actions"]').value = JSON.stringify(rule.actions || {}, null, 2);
+            form.querySelector('[name="isActive"]').checked = rule.isActive !== false;
+            document.getElementById('automationModalTitle').textContent = t('common.edit');
+            openModal('automationRuleModal');
+        }
+
+        async function submitAutomationRuleForm() {
+            const form = document.getElementById('automationRuleForm');
+            if (!form) return;
+
+            const ruleId = form.querySelector('[name="ruleId"]').value || '';
+            const name = form.querySelector('[name="name"]').value.trim();
+            const type = form.querySelector('[name="type"]').value || 'AUTO_SEND_NOTIFICATION';
+            const conditionsRaw = form.querySelector('[name="conditions"]').value;
+            const actionsRaw = form.querySelector('[name="actions"]').value;
+            const isActive = form.querySelector('[name="isActive"]').checked;
+
+            if (!name) {
+                showToast(t('admin.error.operationFailed'), 'error');
+                return;
+            }
 
             try {
-                const result = await API.admin.automation.updateRule(ruleId, {
+                const payload = {
                     name,
-                    type: typeInput || rule.type,
-                    conditions: parseJsonInput(conditionsInput, {}),
-                    actions: parseJsonInput(actionsInput, {})
-                });
+                    type,
+                    isActive,
+                    conditions: parseJsonInput(conditionsRaw, {}),
+                    actions: parseJsonInput(actionsRaw, {})
+                };
+
+                const result = ruleId
+                    ? await API.admin.automation.updateRule(ruleId, payload)
+                    : await API.admin.automation.createRule(payload);
 
                 if (!result.success) {
-                    alert(result.message || t('admin.error.operationFailed'));
+                    showToast(result.message || t('admin.error.operationFailed'), 'error');
                     return;
                 }
 
-                showToast(result.message || '規則更新成功');
+                showToast(result.message || (ruleId ? '規則更新成功' : '規則建立成功'));
+                closeModal('automationRuleModal');
                 await loadAutomationRules();
             } catch (error) {
-                console.error('Update automation rule error:', error);
-                alert(t('admin.error.operationFailed') + ': ' + error.message);
+                console.error('Submit automation rule error:', error);
+                showToast(t('admin.error.operationFailed') + ': ' + error.message, 'error');
             }
         }
 
@@ -10261,7 +10436,7 @@
 
             if (!matrix) {
                 container.innerHTML = `
-                    <div style="padding: 1rem; text-align: center; color: var(--text-secondary);">
+                    <div class="admin-analytics-state">
                         ${t('admin.analytics.noData')}
                     </div>
                 `;
@@ -10285,7 +10460,7 @@
             // 時段標題行
             html += '<div class="heatmap-row-label"></div>';
             hours.forEach(h => {
-                html += `<div style="text-align: center; font-size: 0.65rem; color: var(--text-secondary);">${h}</div>`;
+                html += `<div class="heatmap-hour-label">${h}</div>`;
             });
 
             // 每日數據行
@@ -10315,22 +10490,16 @@
 
             const list = Array.isArray(users) ? users : [];
             if (list.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="5" style="text-align:center; color: var(--text-secondary);">
-                            ${t('admin.analytics.noData')}
-                        </td>
-                    </tr>
-                `;
+                tbody.innerHTML = renderAdminTableState(5, t('admin.analytics.noData'));
                 return;
             }
 
             tbody.innerHTML = list.map(u => `
                 <tr>
                     <td><strong>${u.rank || ''}</strong></td>
-                    <td>${u.name || u.userId || '-'}</td>
-                    <td><span class="role-badge role-${u.role}">${roleMap[u.role] || u.role}</span></td>
-                    <td>${u.count || 0}</td>
+                    <td>${escapeHtml(String(u.name || u.userId || '-'))}</td>
+                    <td><span class="role-badge role-${escapeHtml(String(u.role || 'unknown'))}">${escapeHtml(String(roleMap[u.role] || u.role || '-'))}</span></td>
+                    <td>${escapeHtml(String(u.count || 0))}</td>
                     <td>${u.lastActive ? formatDate(u.lastActive) : '-'}</td>
                 </tr>
             `).join('');
