@@ -4110,6 +4110,43 @@
             border-color: var(--olive-light);
             background: var(--cream);
         }
+        .dialog-message {
+            margin: 0;
+            color: var(--charcoal);
+            line-height: 1.7;
+            white-space: pre-wrap;
+        }
+        .dialog-input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+        .dialog-input-label {
+            font-size: 0.9rem;
+            color: var(--gray-500);
+        }
+        .dialog-input {
+            width: 100%;
+            padding: 0.85rem 1rem;
+            border: 1px solid var(--sand);
+            border-radius: var(--radius-md);
+            background: var(--cream);
+            color: var(--charcoal);
+            transition: var(--transition-fast);
+        }
+        .dialog-input:focus {
+            outline: none;
+            border-color: var(--olive);
+            box-shadow: 0 0 0 3px rgba(45, 43, 107, 0.12);
+        }
+        .dialog-danger {
+            background: linear-gradient(135deg, var(--terracotta) 0%, #a9563d 100%) !important;
+            box-shadow: 0 2px 8px rgba(193, 122, 94, 0.24) !important;
+        }
+        .dialog-danger:hover {
+            box-shadow: 0 6px 16px rgba(193, 122, 94, 0.32) !important;
+        }
 
         /* Notification Panel */
         .notification-panel {
@@ -6456,6 +6493,165 @@
             setTimeout(() => toast.classList.remove('active'), 3000);
         }
 
+        const platformDialogState = {
+            active: null
+        };
+
+        function getDialogLabel(key, fallback) {
+            if (typeof t !== 'function') return fallback;
+            const translated = t(key);
+            return translated && translated !== key ? translated : fallback;
+        }
+
+        function closePlatformDialog(result) {
+            const dialog = platformDialogState.active;
+            if (!dialog) return;
+
+            platformDialogState.active = null;
+            document.removeEventListener('keydown', dialog.handleKeydown);
+            dialog.overlay.remove();
+            dialog.resolve(result);
+        }
+
+        function openPlatformDialog(options = {}) {
+            const isPrompt = options.type === 'prompt';
+            const title = options.title || getDialogLabel('common.confirm', '確認');
+            const confirmLabel = options.confirmLabel || getDialogLabel('common.confirm', '確認');
+            const cancelLabel = options.cancelLabel || getDialogLabel('common.cancel', '取消');
+
+            if (platformDialogState.active) {
+                closePlatformDialog(isPrompt ? null : false);
+            }
+
+            return new Promise(resolve => {
+                const overlay = document.createElement('div');
+                overlay.className = 'modal-overlay active';
+
+                const modal = document.createElement('div');
+                modal.className = 'modal active';
+                modal.setAttribute('role', 'dialog');
+                modal.setAttribute('aria-modal', 'true');
+                modal.style.width = '90%';
+                modal.style.maxWidth = options.maxWidth || '520px';
+
+                const header = document.createElement('div');
+                header.className = 'modal-header';
+
+                const heading = document.createElement('h2');
+                heading.textContent = title;
+
+                const closeButton = document.createElement('button');
+                closeButton.type = 'button';
+                closeButton.className = 'modal-close';
+                closeButton.setAttribute('aria-label', cancelLabel);
+                closeButton.innerHTML = '&times;';
+                closeButton.addEventListener('click', () => closePlatformDialog(isPrompt ? null : false));
+
+                header.appendChild(heading);
+                header.appendChild(closeButton);
+
+                const body = document.createElement('div');
+                body.className = 'modal-body';
+
+                const message = document.createElement('p');
+                message.className = 'dialog-message';
+                message.textContent = options.message || '';
+                body.appendChild(message);
+
+                let input = null;
+                if (isPrompt) {
+                    const group = document.createElement('label');
+                    group.className = 'dialog-input-group';
+
+                    input = document.createElement('input');
+                    input.type = options.inputType || 'text';
+                    input.className = 'dialog-input';
+                    input.value = options.defaultValue || '';
+                    input.placeholder = options.placeholder || '';
+                    input.autocomplete = 'off';
+
+                    if (options.inputLabel) {
+                        const inputLabel = document.createElement('span');
+                        inputLabel.className = 'dialog-input-label';
+                        inputLabel.textContent = options.inputLabel;
+                        group.appendChild(inputLabel);
+                    }
+                    group.appendChild(input);
+                    body.appendChild(group);
+                }
+
+                const footer = document.createElement('div');
+                footer.className = 'modal-footer';
+
+                const cancelButton = document.createElement('button');
+                cancelButton.type = 'button';
+                cancelButton.className = 'btn-secondary';
+                cancelButton.textContent = cancelLabel;
+                cancelButton.addEventListener('click', () => closePlatformDialog(isPrompt ? null : false));
+
+                const confirmButton = document.createElement('button');
+                confirmButton.type = 'button';
+                confirmButton.className = `btn-primary${options.tone === 'danger' ? ' dialog-danger' : ''}`;
+                confirmButton.textContent = confirmLabel;
+                confirmButton.addEventListener('click', () => {
+                    const value = input ? input.value.trim() : true;
+                    closePlatformDialog(input ? value : true);
+                });
+
+                footer.appendChild(cancelButton);
+                footer.appendChild(confirmButton);
+
+                modal.appendChild(header);
+                modal.appendChild(body);
+                modal.appendChild(footer);
+                overlay.appendChild(modal);
+                overlay.addEventListener('click', event => {
+                    if (event.target === overlay) {
+                        closePlatformDialog(isPrompt ? null : false);
+                    }
+                });
+
+                const handleKeydown = event => {
+                    if (event.key === 'Escape') {
+                        event.preventDefault();
+                        closePlatformDialog(isPrompt ? null : false);
+                    }
+                    if (event.key === 'Enter' && (event.target === input || event.target === confirmButton)) {
+                        event.preventDefault();
+                        confirmButton.click();
+                    }
+                };
+
+                platformDialogState.active = {
+                    overlay,
+                    resolve,
+                    handleKeydown
+                };
+
+                document.body.appendChild(overlay);
+                document.addEventListener('keydown', handleKeydown);
+
+                window.requestAnimationFrame(() => {
+                    (input || confirmButton).focus();
+                    if (input) input.select();
+                });
+            });
+        }
+
+        function showConfirmDialog(messageOrOptions) {
+            const options = typeof messageOrOptions === 'string'
+                ? { message: messageOrOptions }
+                : (messageOrOptions || {});
+            return openPlatformDialog({ ...options, type: 'confirm' });
+        }
+
+        function showPromptDialog(messageOrOptions) {
+            const options = typeof messageOrOptions === 'string'
+                ? { message: messageOrOptions }
+                : (messageOrOptions || {});
+            return openPlatformDialog({ ...options, type: 'prompt' });
+        }
+
         // ========== 影音橋段功能 ==========
 
         // 影片資料（實際上應從 API 載入）
@@ -7754,7 +7950,12 @@
 
         // 刪除作業
         async function deleteAssignment(classId, assignmentId) {
-            if (!confirm('確定要刪除此作業嗎？')) return;
+            const confirmed = await showConfirmDialog({
+                message: '確定要刪除此作業嗎？',
+                confirmLabel: '刪除',
+                tone: 'danger'
+            });
+            if (!confirmed) return;
 
             try {
                 const result = await API.classes.deleteAssignment(classId, assignmentId);
@@ -7772,7 +7973,12 @@
 
         // 移除成員
         async function removeMember(classId, userId) {
-            if (!confirm('確定要移除此成員嗎？')) return;
+            const confirmed = await showConfirmDialog({
+                message: '確定要移除此成員嗎？',
+                confirmLabel: '移除',
+                tone: 'danger'
+            });
+            if (!confirmed) return;
 
             try {
                 const result = await API.classes.removeMember(classId, userId);

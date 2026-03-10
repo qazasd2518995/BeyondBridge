@@ -507,18 +507,23 @@
     }
 
     // 關閉聊天室
-    window.closeChatRoom = function() {
+    window.closeChatRoom = async function() {
         if (!currentChatId) return;
 
-        if (confirm('確定要結束這個對話嗎？')) {
-            if (socket && isConnected) {
-                socket.emit('chat:close', { chatId: currentChatId });
-            }
+        const confirmed = await showConfirmDialog({
+            message: '確定要結束這個對話嗎？',
+            confirmLabel: '結束對話',
+            tone: 'danger'
+        });
+        if (!confirmed) return;
 
-            // 顯示評分對話框
-            const ratingModal = document.getElementById('chatRatingModal');
-            if (ratingModal) ratingModal.classList.add('open');
+        if (socket && isConnected) {
+            socket.emit('chat:close', { chatId: currentChatId });
         }
+
+        // 顯示評分對話框
+        const ratingModal = document.getElementById('chatRatingModal');
+        if (ratingModal) ratingModal.classList.add('open');
     };
 
     // 設定評分

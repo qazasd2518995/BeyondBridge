@@ -2314,7 +2314,12 @@ const App = {
    * 移除班級成員
    */
   async removeMember(classId, userId) {
-    if (!confirm(t('confirm.removeMember'))) return;
+    const confirmed = await showConfirmDialog({
+      message: t('confirm.removeMember'),
+      confirmLabel: t('common.delete'),
+      tone: 'danger'
+    });
+    if (!confirmed) return;
 
     try {
       const result = await API.classes.removeMember(classId, userId);
@@ -2345,7 +2350,12 @@ const App = {
    * 刪除班級
    */
   async deleteClass(classId) {
-    if (!confirm(t('confirm.deleteClass'))) return;
+    const confirmed = await showConfirmDialog({
+      message: t('confirm.deleteClass'),
+      confirmLabel: t('common.delete'),
+      tone: 'danger'
+    });
+    if (!confirmed) return;
 
     try {
       const result = await API.classes.delete(classId);
@@ -2721,7 +2731,11 @@ const App = {
     // 檢查是否有未作答的題目
     const unanswered = this.currentQuiz.questions.length - this.quizAnswers.length;
     if (unanswered > 0) {
-      if (!confirm(t('confirm.unansweredQuiz', {n: unanswered}))) {
+      const confirmed = await showConfirmDialog({
+        message: t('confirm.unansweredQuiz', {n: unanswered}),
+        confirmLabel: t('app.submitAnswers')
+      });
+      if (!confirmed) {
         return;
       }
     }
@@ -3072,7 +3086,12 @@ const App = {
   },
 
   async deleteFile(fileId) {
-    if (!confirm(t('confirm.deleteFile'))) return;
+    const confirmed = await showConfirmDialog({
+      message: t('confirm.deleteFile'),
+      confirmLabel: t('common.delete'),
+      tone: 'danger'
+    });
+    if (!confirmed) return;
     try {
       const result = await API.files.delete(fileId);
       if (result.success) {
@@ -3161,7 +3180,11 @@ const App = {
   },
 
   async createGroupPrompt(courseId) {
-    const name = prompt(t('app.enterGroupName'));
+    const name = await showPromptDialog({
+      title: t('app.addGroup'),
+      message: t('app.enterGroupName'),
+      confirmLabel: t('common.confirm')
+    });
     if (!name) return;
     try {
       const result = await API.courseGroups.create(courseId, { name });
@@ -3177,7 +3200,12 @@ const App = {
   },
 
   async deleteGroup(courseId, groupId) {
-    if (!confirm(t('confirm.deleteGroup'))) return;
+    const confirmed = await showConfirmDialog({
+      message: t('confirm.deleteGroup'),
+      confirmLabel: t('common.delete'),
+      tone: 'danger'
+    });
+    if (!confirmed) return;
     try {
       const result = await API.courseGroups.delete(courseId, groupId);
       if (result.success) {

@@ -525,7 +525,12 @@ const MoodleUI = {
   async enrollCourse(courseId) {
     // 檢查是否需要報名密碼
     if (this.currentCourse?.enrollmentKey) {
-      const key = prompt(t('moodleEnroll.enterKey'));
+      const key = await showPromptDialog({
+        title: t('common.confirm'),
+        message: t('moodleEnroll.enterKey'),
+        confirmLabel: t('common.confirm'),
+        placeholder: t('moodleEnroll.enterKey')
+      });
       if (!key) return;
 
       try {
@@ -2487,7 +2492,11 @@ const MoodleUI = {
    * 提交測驗
    */
   async submitQuiz() {
-    if (!confirm(t('moodleQuiz.confirmSubmit'))) return;
+    const confirmed = await showConfirmDialog({
+      message: t('moodleQuiz.confirmSubmit'),
+      confirmLabel: t('common.confirm')
+    });
+    if (!confirmed) return;
 
     try {
       const result = await API.quizzes.submit(
@@ -3996,7 +4005,12 @@ const MoodleUI = {
    * 刪除成績類別
    */
   async deleteGradeCategory(courseId, categoryId) {
-    if (!confirm(t('moodleGradeCategory.confirmDelete'))) return;
+    const confirmed = await showConfirmDialog({
+      message: t('moodleGradeCategory.confirmDelete'),
+      confirmLabel: t('common.delete'),
+      tone: 'danger'
+    });
+    if (!confirmed) return;
 
     try {
       const result = await API.gradebookEnhanced.deleteCategory(courseId, categoryId);
@@ -4594,7 +4608,12 @@ const MoodleUI = {
    * 刪除題目
    */
   async deleteQuestion(questionId) {
-    if (!confirm(t('moodleNewQuestion.confirmDelete'))) return;
+    const confirmed = await showConfirmDialog({
+      message: t('moodleNewQuestion.confirmDelete'),
+      confirmLabel: t('common.delete'),
+      tone: 'danger'
+    });
+    if (!confirmed) return;
 
     try {
       const result = await API.questionBank.delete(questionId);
@@ -4917,7 +4936,11 @@ const MoodleUI = {
    * 自我標記完成
    */
   async selfMarkCompletion(courseId) {
-    if (!confirm(t('moodleCompletion.confirmComplete'))) return;
+    const confirmed = await showConfirmDialog({
+      message: t('moodleCompletion.confirmComplete'),
+      confirmLabel: t('common.confirm')
+    });
+    if (!confirmed) return;
 
     try {
       const result = await API.courseCompletion.selfMark(courseId);
@@ -5239,7 +5262,12 @@ const MoodleUI = {
    * 刪除角色
    */
   async deleteRole(roleId) {
-    if (!confirm(t('moodleRoles.confirmDelete'))) return;
+    const confirmed = await showConfirmDialog({
+      message: t('moodleRoles.confirmDelete'),
+      confirmLabel: t('common.delete'),
+      tone: 'danger'
+    });
+    if (!confirmed) return;
 
     try {
       const result = await API.roles.delete(roleId);
@@ -5639,7 +5667,12 @@ const MoodleUI = {
    * 刪除類別
    */
   async deleteCategory(categoryId) {
-    if (!confirm(t('moodleCategories.confirmDelete'))) return;
+    const confirmed = await showConfirmDialog({
+      message: t('moodleCategories.confirmDelete'),
+      confirmLabel: t('common.delete'),
+      tone: 'danger'
+    });
+    if (!confirmed) return;
 
     try {
       const result = await API.courseCategories.delete(categoryId);
@@ -5922,7 +5955,12 @@ const MoodleUI = {
   },
 
   async deleteRubric(rubricId) {
-    if (!confirm(t('moodleRubrics.confirmDelete'))) return;
+    const confirmed = await showConfirmDialog({
+      message: t('moodleRubrics.confirmDelete'),
+      confirmLabel: t('common.delete'),
+      tone: 'danger'
+    });
+    if (!confirmed) return;
     try {
       const result = await API.rubrics.delete(rubricId);
       if (result.success) { showToast(t('common.deleted')); this.openRubricsManager(); }
@@ -6229,7 +6267,12 @@ const MoodleUI = {
   },
 
   async revokeBadge(badgeId, userId) {
-    if (!confirm(t('moodleBadges.confirmRevoke'))) return;
+    const confirmed = await showConfirmDialog({
+      message: t('moodleBadges.confirmRevoke'),
+      confirmLabel: t('common.confirm'),
+      tone: 'danger'
+    });
+    if (!confirmed) return;
     try {
       const result = await API.badges.revoke(badgeId, userId);
       if (result.success) { showToast(t('moodleBadges.revoked')); this.viewBadgeDetail(badgeId); }
@@ -6238,7 +6281,12 @@ const MoodleUI = {
   },
 
   async deleteBadge(badgeId) {
-    if (!confirm(t('moodleBadges.confirmDelete'))) return;
+    const confirmed = await showConfirmDialog({
+      message: t('moodleBadges.confirmDelete'),
+      confirmLabel: t('common.delete'),
+      tone: 'danger'
+    });
+    if (!confirmed) return;
     try {
       const result = await API.badges.delete(badgeId);
       if (result.success) { showToast(t('common.deleted')); this.openBadges(); }
@@ -6469,7 +6517,12 @@ const MoodleUI = {
   },
 
   async deleteLearningPath(pathId) {
-    if (!confirm(t('moodlePaths.confirmDelete'))) return;
+    const confirmed = await showConfirmDialog({
+      message: t('moodlePaths.confirmDelete'),
+      confirmLabel: t('common.delete'),
+      tone: 'danger'
+    });
+    if (!confirmed) return;
     try {
       const result = await API.learningPaths.delete(pathId);
       if (result.success) { showToast(t('common.deleted')); this.openLearningPaths(); }
@@ -6849,7 +6902,12 @@ const MoodleUI = {
   },
 
   async deleteH5pContent(contentId) {
-    if (!confirm(t('moodleH5p.confirmDelete'))) return;
+    const confirmed = await showConfirmDialog({
+      message: t('moodleH5p.confirmDelete'),
+      confirmLabel: t('common.delete'),
+      tone: 'danger'
+    });
+    if (!confirmed) return;
     try {
       const result = await API.h5p.delete(contentId);
       if (result.success) { showToast(t('common.deleted')); this.openH5pManager(); }
@@ -7101,7 +7159,12 @@ const MoodleUI = {
   },
 
   async deleteLtiTool(toolId) {
-    if (!confirm(t('moodleLtiMgmt.confirmDelete'))) return;
+    const confirmed = await showConfirmDialog({
+      message: t('moodleLtiMgmt.confirmDelete'),
+      confirmLabel: t('common.delete'),
+      tone: 'danger'
+    });
+    if (!confirmed) return;
     try {
       const result = await API.ltiTools.delete(toolId);
       if (result.success) { showToast(t('common.deleted')); this.openLtiManager(); }
@@ -7358,7 +7421,12 @@ const MoodleUI = {
   },
 
   async deleteScormPackage(packageId) {
-    if (!confirm(t('moodleScorm.confirmDelete'))) return;
+    const confirmed = await showConfirmDialog({
+      message: t('moodleScorm.confirmDelete'),
+      confirmLabel: t('common.delete'),
+      tone: 'danger'
+    });
+    if (!confirmed) return;
     try {
       const result = await API.scorm.delete(packageId);
       if (result.success) { showToast(t('common.deleted')); this.openScormManager(); }
@@ -8030,7 +8098,12 @@ const MoodleUI = {
 
   // ======== Delete Activity ========
   async deleteActivity(courseId, sectionId, activityId) {
-    if (!confirm(t('moodleActivityEdit.confirmDelete'))) return;
+    const confirmed = await showConfirmDialog({
+      message: t('moodleActivityEdit.confirmDelete'),
+      confirmLabel: t('common.delete'),
+      tone: 'danger'
+    });
+    if (!confirmed) return;
     try {
       const result = await API.courseActivities.delete(courseId, activityId);
       if (result.success) {
@@ -8376,7 +8449,12 @@ const MoodleUI = {
   },
 
   async deleteQuestionCategory(categoryId) {
-    if (!confirm(t('moodleGradeCategory.confirmDelete'))) return;
+    const confirmed = await showConfirmDialog({
+      message: t('moodleGradeCategory.confirmDelete'),
+      confirmLabel: t('common.delete'),
+      tone: 'danger'
+    });
+    if (!confirmed) return;
     try {
       const result = await API.questionBank.deleteCategory(categoryId);
       if (result.success) {
