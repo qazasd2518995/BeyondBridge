@@ -1968,6 +1968,488 @@
             font-weight: 500;
         }
 
+        .admin-section-card {
+            margin-bottom: 1.5rem;
+        }
+
+        .admin-inline-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .admin-inline-title svg {
+            flex-shrink: 0;
+        }
+
+        .admin-pending-alert {
+            background: linear-gradient(135deg, var(--olive-light) 0%, #E8EAD6 100%);
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-bottom: 1.5rem;
+            border-left: 4px solid var(--olive);
+        }
+
+        .admin-pending-body {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+
+        .admin-pending-meta {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .admin-pending-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--olive);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .admin-pending-title {
+            font-weight: 600;
+            color: var(--olive);
+            margin-bottom: 2px;
+        }
+
+        .admin-pending-copy {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .dashboard-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 1rem;
+        }
+
+        .dashboard-summary-card {
+            padding: 1rem;
+            border-radius: 10px;
+            border: 1px solid transparent;
+        }
+
+        .dashboard-summary-card.tone-blue {
+            background: rgba(227, 242, 253, 0.85);
+            border-color: rgba(25, 118, 210, 0.12);
+        }
+
+        .dashboard-summary-card.tone-olive {
+            background: rgba(168, 184, 154, 0.18);
+            border-color: rgba(74, 93, 35, 0.12);
+        }
+
+        .dashboard-summary-card.tone-terracotta {
+            background: rgba(26, 107, 74, 0.12);
+            border-color: rgba(26, 107, 74, 0.08);
+        }
+
+        .dashboard-summary-card.tone-sand {
+            background: rgba(212, 197, 169, 0.24);
+            border-color: rgba(212, 197, 169, 0.2);
+        }
+
+        .dashboard-summary-label {
+            font-size: 0.8rem;
+            margin-bottom: 4px;
+        }
+
+        .dashboard-summary-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            line-height: 1.1;
+        }
+
+        .dashboard-summary-card.tone-blue .dashboard-summary-label,
+        .dashboard-summary-card.tone-blue .dashboard-summary-value {
+            color: #1976D2;
+        }
+
+        .dashboard-summary-card.tone-olive .dashboard-summary-label,
+        .dashboard-summary-card.tone-olive .dashboard-summary-value {
+            color: var(--olive);
+        }
+
+        .dashboard-summary-card.tone-terracotta .dashboard-summary-label,
+        .dashboard-summary-card.tone-terracotta .dashboard-summary-value {
+            color: var(--terracotta);
+        }
+
+        .dashboard-summary-card.tone-sand .dashboard-summary-label,
+        .dashboard-summary-card.tone-sand .dashboard-summary-value {
+            color: var(--olive-deep);
+        }
+
+        .admin-alert-count {
+            background: var(--terracotta);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+
+        .admin-empty-state {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+        }
+
+        .admin-empty-state svg {
+            width: 48px;
+            height: 48px;
+            opacity: 0.5;
+            margin-bottom: 0.5rem;
+        }
+
+        .admin-empty-state.is-error {
+            color: var(--danger);
+        }
+
+        .system-alert-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            background: var(--surface-light);
+            border-radius: 8px;
+        }
+
+        .system-alert-item + .system-alert-item {
+            margin-top: 0.5rem;
+        }
+
+        .system-alert-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .system-alert-item.severity-high .system-alert-icon {
+            background: var(--terracotta-light);
+            color: var(--terracotta);
+        }
+
+        .system-alert-item.severity-medium .system-alert-icon,
+        .system-alert-item.severity-low .system-alert-icon {
+            background: var(--sand-light);
+            color: var(--olive-deep);
+        }
+
+        .system-alert-title {
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+
+        .system-alert-message {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .admin-toolbar-group {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .admin-search-box {
+            position: relative;
+        }
+
+        .admin-search-box svg {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            opacity: 0.5;
+            width: 16px;
+            height: 16px;
+        }
+
+        .admin-search-input {
+            padding: 0.5rem 1rem 0.5rem 2.5rem;
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            width: 250px;
+            background: white;
+        }
+
+        .admin-search-input:focus {
+            outline: none;
+            border-color: var(--olive);
+            box-shadow: 0 0 0 4px rgba(168, 184, 154, 0.2);
+        }
+
+        .role-stats {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .role-filter-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.25rem;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+        }
+
+        .role-filter-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .role-filter-card.is-selected {
+            border-color: var(--olive);
+            box-shadow: 0 0 0 3px rgba(168, 184, 154, 0.18), var(--shadow-md);
+        }
+
+        .role-filter-summary {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .role-filter-label {
+            font-size: 0.85rem;
+            color: var(--gray-500);
+        }
+
+        .role-filter-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            line-height: 1.1;
+        }
+
+        .role-filter-card.tone-all .role-filter-value { color: var(--olive); }
+        .role-filter-card.tone-educator .role-filter-value { color: #3b82f6; }
+        .role-filter-card.tone-trainer .role-filter-value { color: #f59e0b; }
+        .role-filter-card.tone-creator .role-filter-value { color: #8b5cf6; }
+        .role-filter-card.tone-student .role-filter-value { color: #10b981; }
+
+        .role-filter-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .role-filter-card.tone-all .role-filter-icon { background: rgba(74, 93, 35, 0.1); color: var(--olive); }
+        .role-filter-card.tone-educator .role-filter-icon { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+        .role-filter-card.tone-trainer .role-filter-icon { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+        .role-filter-card.tone-creator .role-filter-icon { background: rgba(139, 92, 246, 0.1); color: #8b5cf6; }
+        .role-filter-card.tone-student .role-filter-icon { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+
+        .role-layout {
+            display: grid;
+            grid-template-columns: 300px minmax(0, 1fr);
+            gap: 1rem;
+        }
+
+        .role-list-container {
+            padding: 0.5rem;
+        }
+
+        .role-item {
+            padding: 0.9rem 1rem;
+            border-bottom: 1px solid var(--gray-200);
+            cursor: pointer;
+            transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+        }
+
+        .role-item:last-child {
+            border-bottom: none;
+        }
+
+        .role-item:hover {
+            background: var(--cream);
+        }
+
+        .role-item.is-active {
+            background: linear-gradient(90deg, rgba(168, 184, 154, 0.18) 0%, rgba(255, 255, 255, 0) 100%);
+            border-left: 3px solid var(--olive);
+        }
+
+        .role-item-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .role-item-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .role-item-badge {
+            margin-left: 0.5rem;
+            font-size: 0.7rem;
+        }
+
+        .role-item-meta {
+            color: var(--gray-400);
+            font-size: 0.75rem;
+            white-space: nowrap;
+        }
+
+        .role-item-desc {
+            margin-top: 0.35rem;
+            font-size: 0.8rem;
+            color: var(--gray-500);
+        }
+
+        .permissions-panel {
+            padding: 1rem;
+        }
+
+        .permissions-panel-header {
+            margin-bottom: 0.75rem;
+        }
+
+        .permissions-panel-title {
+            font-weight: 700;
+            color: var(--olive-deep);
+        }
+
+        .permissions-panel-desc {
+            margin-top: 0.25rem;
+            color: var(--gray-500);
+            font-size: 0.875rem;
+        }
+
+        .capability-section {
+            margin-bottom: 1rem;
+            border: 1px solid var(--gray-200);
+            border-radius: 10px;
+            padding: 0.9rem;
+            background: linear-gradient(180deg, var(--cream) 0%, white 100%);
+        }
+
+        .capability-section-title {
+            font-weight: 600;
+            margin-bottom: 0.65rem;
+            text-transform: capitalize;
+            color: var(--olive-deep);
+        }
+
+        .capability-list {
+            display: grid;
+            gap: 0.6rem;
+        }
+
+        .capability-item {
+            border: 1px solid var(--gray-100);
+            border-radius: 10px;
+            padding: 0.75rem;
+            background: white;
+        }
+
+        .capability-item.is-enabled {
+            border-color: var(--olive-light);
+            background: rgba(168, 184, 154, 0.14);
+        }
+
+        .capability-item-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+
+        .capability-item-name {
+            font-weight: 600;
+        }
+
+        .capability-item-desc {
+            margin-top: 0.25rem;
+            font-size: 0.78rem;
+            color: var(--gray-500);
+        }
+
+        .capability-pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.2rem 0.55rem;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .capability-pill.is-enabled {
+            background: rgba(72, 187, 120, 0.14);
+            color: var(--success);
+        }
+
+        .capability-pill.is-disabled {
+            background: rgba(160, 174, 192, 0.16);
+            color: var(--gray-500);
+        }
+
+        .rubric-list {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .rubric-card {
+            background: white;
+            border-radius: 10px;
+            padding: 1rem;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid rgba(212, 197, 169, 0.16);
+        }
+
+        .rubric-card-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .rubric-card-title {
+            margin: 0 0 0.5rem 0;
+            color: var(--olive-deep);
+        }
+
+        .rubric-card-desc {
+            color: var(--gray-500);
+            font-size: 0.875rem;
+            margin: 0;
+        }
+
+        .rubric-card-meta {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-top: 0.75rem;
+            color: var(--gray-400);
+            font-size: 0.875rem;
+        }
+
         .live-indicator .pulse {
             width: 8px;
             height: 8px;
@@ -2479,13 +2961,15 @@
         @media (max-width: 1200px) {
             .system-status-grid,
             .export-options-grid,
-            .activity-metrics-grid {
+            .activity-metrics-grid,
+            .role-stats {
                 grid-template-columns: repeat(2, 1fr);
             }
 
             .system-metrics-grid,
             .activity-charts-grid,
-            .activity-bottom-grid {
+            .activity-bottom-grid,
+            .role-layout {
                 grid-template-columns: 1fr;
             }
         }
@@ -2493,8 +2977,21 @@
         @media (max-width: 768px) {
             .system-status-grid,
             .export-options-grid,
-            .activity-metrics-grid {
+            .activity-metrics-grid,
+            .role-stats,
+            .dashboard-summary-grid {
                 grid-template-columns: 1fr;
+            }
+
+            .admin-pending-body,
+            .admin-pending-meta,
+            .admin-toolbar-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .admin-search-input {
+                width: 100%;
             }
         }
     </style>
@@ -2708,23 +3205,23 @@
                 </div>
 
                 <!-- Pending Tasks Alert -->
-                <div class="admin-pending-alert" style="background: linear-gradient(135deg, var(--olive-light) 0%, #E8EAD6 100%); border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem; border-left: 4px solid var(--olive);">
-                    <div style="display: flex; align-items: center; justify-content: space-between;">
-                        <div style="display: flex; align-items: center; gap: 1rem;">
-                            <div style="width: 48px; height: 48px; background: var(--olive); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                <div class="admin-pending-alert">
+                    <div class="admin-pending-body">
+                        <div class="admin-pending-meta">
+                            <div class="admin-pending-icon">
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
                                     <circle cx="12" cy="12" r="10"/>
                                     <polyline points="12 6 12 12 16 14"/>
                                 </svg>
                             </div>
                             <div>
-                                <div style="font-weight: 600; color: var(--olive); margin-bottom: 2px;" data-i18n="admin.dashboard.pendingTasks">待處理事項</div>
-                                <div style="font-size: 0.85rem; color: var(--text-secondary);">
+                                <div class="admin-pending-title" data-i18n="admin.dashboard.pendingTasks">待處理事項</div>
+                                <div class="admin-pending-copy">
                                     <span id="pendingLicensesCount">0</span> <span data-i18n="admin.dashboard.licenseApps">筆授權申請</span>、<span id="pendingChatsCount">0</span> <span data-i18n="admin.dashboard.chatMsgs">則客服訊息</span>、<span id="pendingReportsCount">0</span> <span data-i18n="admin.dashboard.reportsPending">件檢舉待審</span>
                                 </div>
                             </div>
                         </div>
-                        <button class="btn btn-primary" onclick="showView('licenses')" style="white-space: nowrap;" data-i18n="admin.dashboard.handleNow">立即處理</button>
+                        <button class="btn btn-primary" onclick="showView('licenses')" data-i18n="admin.dashboard.handleNow">立即處理</button>
                     </div>
                 </div>
 
@@ -2788,9 +3285,9 @@
                     <!-- Left Column -->
                     <div>
                         <!-- System Overview -->
-                        <div class="card" style="margin-bottom: 1.5rem;">
+                        <div class="card admin-section-card">
                             <div class="card-header">
-                                <h3 style="display: flex; align-items: center; gap: 0.5rem;">
+                                <h3 class="admin-inline-title">
                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--olive)" stroke-width="2">
                                         <line x1="18" y1="20" x2="18" y2="10"/>
                                         <line x1="12" y1="20" x2="12" y2="4"/>
@@ -2800,22 +3297,22 @@
                                 </h3>
                             </div>
                             <div class="card-body">
-                                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
-                                    <div style="background: #E3F2FD; padding: 1rem; border-radius: 8px;">
-                                        <div style="font-size: 0.8rem; color: #1976D2; margin-bottom: 4px;" data-i18n="admin.dashboard.weeklyNewUsers">本週新註冊</div>
-                                        <div style="font-size: 1.5rem; font-weight: 700; color: #1976D2;" id="weeklyNewUsers">0</div>
+                                <div class="dashboard-summary-grid">
+                                    <div class="dashboard-summary-card tone-blue">
+                                        <div class="dashboard-summary-label" data-i18n="admin.dashboard.weeklyNewUsers">本週新註冊</div>
+                                        <div class="dashboard-summary-value" id="weeklyNewUsers">0</div>
                                     </div>
-                                    <div style="background: var(--olive-light); padding: 1rem; border-radius: 8px;">
-                                        <div style="font-size: 0.8rem; color: var(--olive); margin-bottom: 4px;" data-i18n="admin.dashboard.weeklyNewCourses">本週新課程</div>
-                                        <div style="font-size: 1.5rem; font-weight: 700; color: var(--olive);" id="weeklyNewCourses">0</div>
+                                    <div class="dashboard-summary-card tone-olive">
+                                        <div class="dashboard-summary-label" data-i18n="admin.dashboard.weeklyNewCourses">本週新課程</div>
+                                        <div class="dashboard-summary-value" id="weeklyNewCourses">0</div>
                                     </div>
-                                    <div style="background: var(--terracotta-light); padding: 1rem; border-radius: 8px;">
-                                        <div style="font-size: 0.8rem; color: var(--terracotta); margin-bottom: 4px;" data-i18n="admin.dashboard.activeLicenses">有效授權</div>
-                                        <div style="font-size: 1.5rem; font-weight: 700; color: var(--terracotta);" id="activeLicenses">0</div>
+                                    <div class="dashboard-summary-card tone-terracotta">
+                                        <div class="dashboard-summary-label" data-i18n="admin.dashboard.activeLicenses">有效授權</div>
+                                        <div class="dashboard-summary-value" id="activeLicenses">0</div>
                                     </div>
-                                    <div style="background: var(--sand-light); padding: 1rem; border-radius: 8px;">
-                                        <div style="font-size: 0.8rem; color: var(--sand); margin-bottom: 4px;" data-i18n="admin.dashboard.pendingRequests">待處理請求</div>
-                                        <div style="font-size: 1.5rem; font-weight: 700; color: var(--sand);" id="pendingRequests">0</div>
+                                    <div class="dashboard-summary-card tone-sand">
+                                        <div class="dashboard-summary-label" data-i18n="admin.dashboard.pendingRequests">待處理請求</div>
+                                        <div class="dashboard-summary-value" id="pendingRequests">0</div>
                                     </div>
                                 </div>
                             </div>
@@ -2824,7 +3321,7 @@
                         <!-- Recent Users -->
                         <div class="card">
                             <div class="card-header">
-                                <h3 style="display: flex; align-items: center; gap: 0.5rem;">
+                                <h3 class="admin-inline-title">
                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue, #1976D2)" stroke-width="2">
                                         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
                                         <circle cx="9" cy="7" r="4"/>
@@ -2853,7 +3350,7 @@
                     <!-- Right Column -->
                     <div>
                         <!-- Quick Actions -->
-                        <div class="card" style="margin-bottom: 1.5rem;">
+                        <div class="card admin-section-card">
                             <div class="card-header">
                                 <h3 data-i18n="admin.dashboard.quickActions">快速操作</h3>
                             </div>
@@ -2897,7 +3394,7 @@
                         <!-- System Alerts -->
                         <div class="card">
                             <div class="card-header">
-                                <h3 style="display: flex; align-items: center; gap: 0.5rem;">
+                                <h3 class="admin-inline-title">
                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--terracotta)" stroke-width="2">
                                         <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
                                         <line x1="12" y1="9" x2="12" y2="13"/>
@@ -2905,12 +3402,12 @@
                                     </svg>
                                     <span data-i18n="admin.dashboard.systemAlerts">系統警示</span>
                                 </h3>
-                                <span id="alertCount" style="background: var(--terracotta); color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem;">0</span>
+                                <span id="alertCount" class="admin-alert-count" hidden>0</span>
                             </div>
                             <div class="card-body">
                                 <div id="systemAlertsList">
-                                    <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
-                                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity: 0.5; margin-bottom: 0.5rem;">
+                                    <div class="admin-empty-state">
+                                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                                             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
                                             <polyline points="22 4 12 14.01 9 11.01"/>
                                         </svg>
@@ -2923,16 +3420,16 @@
                 </div>
             </div>
 
-            <!-- Users View -->
-            <div id="usersView" class="admin-view">
-                <div class="admin-header">
-                    <h2 data-i18n="admin.users.title">用戶管理</h2>
-                    <div style="display: flex; gap: 1rem; align-items: center;">
-                        <div class="search-box" style="position: relative;">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); opacity: 0.5;">
+                <!-- Users View -->
+                <div id="usersView" class="admin-view">
+                    <div class="admin-header">
+                        <h2 data-i18n="admin.users.title">用戶管理</h2>
+                    <div class="admin-toolbar-group">
+                        <div class="admin-search-box">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
                             </svg>
-                            <input type="text" id="userSearchInput" placeholder="搜尋用戶..." data-i18n-placeholder="admin.auditLogs.searchUser" data-i18n-placeholder="admin.users.searchPlaceholder" style="padding: 0.5rem 1rem 0.5rem 2.5rem; border: 1px solid var(--gray-200); border-radius: 8px; width: 250px;" oninput="filterUsers()">
+                            <input type="text" id="userSearchInput" class="admin-search-input" placeholder="搜尋用戶..." data-i18n-placeholder="admin.users.searchPlaceholder" oninput="filterUsers()">
                         </div>
                         <button class="btn btn-primary" onclick="openCreateUserModal()">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -2944,67 +3441,67 @@
                 </div>
 
                 <!-- 角色分類統計 -->
-                <div class="role-stats" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
-                    <div class="stat-card" onclick="filterUsersByRole('all')" style="background: white; border-radius: 12px; padding: 1.25rem; cursor: pointer; border: 2px solid var(--olive); transition: all 0.2s;" id="roleCardAll">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div class="role-stats">
+                    <div class="role-filter-card tone-all is-selected" onclick="filterUsersByRole('all')" id="roleCardAll">
+                        <div class="role-filter-summary">
                             <div>
-                                <div style="font-size: 0.85rem; color: var(--gray-500);" data-i18n="admin.users.allUsers">全部用戶</div>
-                                <div style="font-size: 1.75rem; font-weight: 700; color: var(--olive);" id="countAll">0</div>
+                                <div class="role-filter-label" data-i18n="admin.users.allUsers">全部用戶</div>
+                                <div class="role-filter-value" id="countAll">0</div>
                             </div>
-                            <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(74,93,35,0.1); display: flex; align-items: center; justify-content: center;">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--olive)" stroke-width="2">
+                            <div class="role-filter-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                                 </svg>
                             </div>
                         </div>
                     </div>
-                    <div class="stat-card" onclick="filterUsersByRole('educator')" style="background: white; border-radius: 12px; padding: 1.25rem; cursor: pointer; border: 2px solid transparent; transition: all 0.2s;" id="roleCardEducator">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div class="role-filter-card tone-educator" onclick="filterUsersByRole('educator')" id="roleCardEducator">
+                        <div class="role-filter-summary">
                             <div>
-                                <div style="font-size: 0.85rem; color: var(--gray-500);" data-i18n="admin.users.educator">建橋者</div>
-                                <div style="font-size: 1.75rem; font-weight: 700; color: #3b82f6;" id="countEducator">0</div>
+                                <div class="role-filter-label" data-i18n="admin.users.educator">建橋者</div>
+                                <div class="role-filter-value" id="countEducator">0</div>
                             </div>
-                            <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(59,130,246,0.1); display: flex; align-items: center; justify-content: center;">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2">
+                            <div class="role-filter-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>
                                 </svg>
                             </div>
                         </div>
                     </div>
-                    <div class="stat-card" onclick="filterUsersByRole('trainer')" style="background: white; border-radius: 12px; padding: 1.25rem; cursor: pointer; border: 2px solid transparent; transition: all 0.2s;" id="roleCardTrainer">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div class="role-filter-card tone-trainer" onclick="filterUsersByRole('trainer')" id="roleCardTrainer">
+                        <div class="role-filter-summary">
                             <div>
-                                <div style="font-size: 0.85rem; color: var(--gray-500);" data-i18n="admin.users.trainer">橋樑工匠</div>
-                                <div style="font-size: 1.75rem; font-weight: 700; color: #f59e0b;" id="countTrainer">0</div>
+                                <div class="role-filter-label" data-i18n="admin.users.trainer">橋樑工匠</div>
+                                <div class="role-filter-value" id="countTrainer">0</div>
                             </div>
-                            <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(245,158,11,0.1); display: flex; align-items: center; justify-content: center;">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2">
+                            <div class="role-filter-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
                                 </svg>
                             </div>
                         </div>
                     </div>
-                    <div class="stat-card" onclick="filterUsersByRole('creator')" style="background: white; border-radius: 12px; padding: 1.25rem; cursor: pointer; border: 2px solid transparent; transition: all 0.2s;" id="roleCardCreator">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div class="role-filter-card tone-creator" onclick="filterUsersByRole('creator')" id="roleCardCreator">
+                        <div class="role-filter-summary">
                             <div>
-                                <div style="font-size: 0.85rem; color: var(--gray-500);" data-i18n="admin.users.creator">知識建築師</div>
-                                <div style="font-size: 1.75rem; font-weight: 700; color: #8b5cf6;" id="countCreator">0</div>
+                                <div class="role-filter-label" data-i18n="admin.users.creator">知識建築師</div>
+                                <div class="role-filter-value" id="countCreator">0</div>
                             </div>
-                            <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(139,92,246,0.1); display: flex; align-items: center; justify-content: center;">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2">
+                            <div class="role-filter-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
                                 </svg>
                             </div>
                         </div>
                     </div>
-                    <div class="stat-card" onclick="filterUsersByRole('student')" style="background: white; border-radius: 12px; padding: 1.25rem; cursor: pointer; border: 2px solid transparent; transition: all 0.2s;" id="roleCardStudent">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div class="role-filter-card tone-student" onclick="filterUsersByRole('student')" id="roleCardStudent">
+                        <div class="role-filter-summary">
                             <div>
-                                <div style="font-size: 0.85rem; color: var(--gray-500);" data-i18n="admin.users.student">探橋者</div>
-                                <div style="font-size: 1.75rem; font-weight: 700; color: #10b981;" id="countStudent">0</div>
+                                <div class="role-filter-label" data-i18n="admin.users.student">探橋者</div>
+                                <div class="role-filter-value" id="countStudent">0</div>
                             </div>
-                            <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(16,185,129,0.1); display: flex; align-items: center; justify-content: center;">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2">
+                            <div class="role-filter-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
                                 </svg>
                             </div>
@@ -3599,51 +4096,52 @@
             </div>
 
             <!-- Roles View -->
-            <div id="rolesView" class="admin-view">
-                <div class="admin-header">
-                    <h2 data-i18n="admin.roles.title">角色權限管理</h2>
-                    <div class="admin-header-actions">
-                        <button class="btn-primary" onclick="openCreateRoleModal()">
+                <div id="rolesView" class="admin-view">
+                    <div class="admin-header">
+                        <h2 data-i18n="admin.roles.title">角色權限管理</h2>
+                        <div class="admin-header-actions">
+                        <button class="btn btn-primary" onclick="openCreateRoleModal()">
                             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                             <span data-i18n="admin.roles.addRole">新增角色</span>
                         </button>
+                        </div>
                     </div>
-                </div>
-                <div style="display: grid; grid-template-columns: 300px 1fr; gap: 1rem;">
+                <div class="role-layout">
                     <div class="card">
                         <div class="card-header"><h3 data-i18n="admin.roles.list">角色列表</h3></div>
-                        <div id="rolesListContainer" style="padding: 0.5rem;">
-                            <p style="text-align: center; color: var(--gray-400); padding: 1rem;" data-i18n="common.loading">載入中...</p>
+                        <div id="rolesListContainer" class="role-list-container">
+                            <div class="admin-empty-state" data-i18n="common.loading">載入中...</div>
                         </div>
                     </div>
                     <div class="card">
                         <div class="card-header"><h3 data-i18n="admin.roles.permissions">權限設定</h3></div>
-                        <div id="permissionsContainer" style="padding: 1rem;">
-                            <p style="text-align: center; color: var(--gray-400);" data-i18n="admin.roles.selectRole">請選擇角色以查看權限</p>
+                        <div id="permissionsContainer" class="permissions-panel">
+                            <div class="admin-empty-state" data-i18n="admin.roles.selectRole">請選擇角色以查看權限</div>
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- Rubrics View -->
-            <div id="rubricsView" class="admin-view">
-                <div class="admin-header">
-                    <h2 data-i18n="admin.rubrics.title">評分標準 (Rubrics)</h2>
-                    <div class="admin-header-actions">
-                        <button class="btn-primary" onclick="openCreateRubricModal()">
+                <div id="rubricsView" class="admin-view">
+                    <div class="admin-header">
+                        <h2 data-i18n="admin.rubrics.title">評分標準 (Rubrics)</h2>
+                        <div class="admin-header-actions">
+                        <button class="btn btn-primary" onclick="openCreateRubricModal()">
                             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                             <span data-i18n="admin.rubrics.addRubric">新增評分標準</span>
                         </button>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><h3 data-i18n="admin.rubrics.list">評分標準列表</h3></div>
+                        <div class="card-body">
+                            <div id="rubricsContainer" class="rubric-list">
+                                <div class="admin-empty-state" data-i18n="common.loading">載入中...</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="card">
-                    <div class="card-header"><h3 data-i18n="admin.rubrics.list">評分標準列表</h3></div>
-                    <table class="data-table">
-                        <thead><tr><th data-i18n="admin.rubrics.nameCol">名稱</th><th data-i18n="admin.rubrics.criteriaCount">評分項目數</th><th data-i18n="admin.rubrics.totalScore">總分</th><th data-i18n="admin.rubrics.courseCount">使用課程數</th><th data-i18n="admin.rubrics.createdDate">建立日期</th><th data-i18n="admin.rubrics.actions">操作</th></tr></thead>
-                        <tbody id="rubricsTableBody"><tr><td colspan="6" style="text-align: center; padding: 2rem;" data-i18n="common.loading">載入中...</td></tr></tbody>
-                    </table>
-                </div>
-            </div>
 
             <!-- Audit Logs View -->
             <div id="auditLogsView" class="admin-view">
@@ -5896,14 +6394,14 @@
 
                 if (alertCount) {
                     alertCount.textContent = alerts.length;
-                    alertCount.style.display = alerts.length > 0 ? 'inline-block' : 'none';
+                    alertCount.hidden = alerts.length === 0;
                 }
 
                 if (alertsList) {
                     if (alerts.length === 0) {
                         alertsList.innerHTML = `
-                            <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
-                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity: 0.5; margin-bottom: 0.5rem;">
+                            <div class="admin-empty-state">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                                     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
                                     <polyline points="22 4 12 14.01 9 11.01"/>
                                 </svg>
@@ -5912,17 +6410,17 @@
                         `;
                     } else {
                         alertsList.innerHTML = alerts.map(alert => `
-                            <div style="display: flex; align-items: center; padding: 0.75rem; background: var(--surface-light); border-radius: 8px; margin-bottom: 0.5rem;">
-                                <div style="width: 32px; height: 32px; border-radius: 8px; background: ${alert.severity === 'high' ? 'var(--terracotta-light)' : 'var(--sand-light)'}; display: flex; align-items: center; justify-content: center; margin-right: 0.75rem;">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${alert.severity === 'high' ? 'var(--terracotta)' : 'var(--sand)'}" stroke-width="2">
+                            <div class="system-alert-item severity-${escapeHtml(alert.severity || 'low')}">
+                                <div class="system-alert-icon">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
                                         <line x1="12" y1="9" x2="12" y2="13"/>
                                         <line x1="12" y1="17" x2="12.01" y2="17"/>
                                     </svg>
                                 </div>
-                                <div style="flex: 1;">
-                                    <div style="font-weight: 500; margin-bottom: 2px;">${alert.title}</div>
-                                    <div style="font-size: 0.75rem; color: var(--text-secondary);">${alert.message}</div>
+                                <div>
+                                    <div class="system-alert-title">${escapeHtml(alert.title || '')}</div>
+                                    <div class="system-alert-message">${escapeHtml(alert.message || '')}</div>
                                 </div>
                             </div>
                         `).join('');
@@ -5976,12 +6474,12 @@
             currentRoleFilter = role;
 
             // 更新卡片選中狀態
-            document.querySelectorAll('.role-stats .stat-card').forEach(card => {
-                card.style.borderColor = 'transparent';
+            document.querySelectorAll('.role-stats .role-filter-card').forEach(card => {
+                card.classList.remove('is-selected');
             });
             const selectedCard = document.getElementById(`roleCard${role.charAt(0).toUpperCase() + role.slice(1)}`);
             if (selectedCard) {
-                selectedCard.style.borderColor = 'var(--olive)';
+                selectedCard.classList.add('is-selected');
             }
 
             renderUsers(getFilteredUsers());
@@ -7824,46 +8322,33 @@
                 const container = document.getElementById('rolesListContainer');
                 if (!container) return;
 
-                if (roles.length === 0) {
-                    // 顯示預設角色
-                    const defaultRoles = [
-                        { id: 'admin', name: t('admin.roles.admin'), description: t('admin.roles.adminDesc'), isSystem: true, userCount: 1 },
-                        { id: 'educator', name: t('admin.roles.educatorName'), description: t('admin.roles.educatorDesc'), isSystem: true, userCount: 0 },
-                        { id: 'trainer', name: t('admin.roles.trainerName'), description: t('admin.roles.trainerDesc'), isSystem: true, userCount: 0 },
-                        { id: 'creator', name: t('admin.roles.creatorName'), description: t('admin.roles.creatorDesc'), isSystem: true, userCount: 0 },
-                        { id: 'student', name: t('admin.roles.studentName'), description: t('admin.roles.studentDesc'), isSystem: true, userCount: 0 }
-                    ];
-                    container.innerHTML = defaultRoles.map(role => `
-                        <div class="role-item" style="padding: 0.75rem; border-bottom: 1px solid var(--gray-200); cursor: pointer;" onclick="selectRole('${role.id}')">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <div>
-                                    <strong>${role.name}</strong>
-                                    <span class="badge badge-info" style="margin-left: 0.5rem; font-size: 0.7rem;">${t('admin.roles.system')}</span>
-                                </div>
-                                <span style="color: var(--gray-400); font-size: 0.75rem;">${role.userCount || 0} ${t('admin.roles.userCount')}</span>
-                            </div>
-                            <p style="margin: 0.25rem 0 0 0; font-size: 0.8rem; color: var(--gray-500);">${role.description}</p>
-                        </div>
-                    `).join('');
-                    return;
-                }
+                const defaultRoles = [
+                    { id: 'admin', name: t('admin.roles.admin'), description: t('admin.roles.adminDesc'), isSystem: true, userCount: 1 },
+                    { id: 'educator', name: t('admin.roles.educatorName'), description: t('admin.roles.educatorDesc'), isSystem: true, userCount: 0 },
+                    { id: 'trainer', name: t('admin.roles.trainerName'), description: t('admin.roles.trainerDesc'), isSystem: true, userCount: 0 },
+                    { id: 'creator', name: t('admin.roles.creatorName'), description: t('admin.roles.creatorDesc'), isSystem: true, userCount: 0 },
+                    { id: 'student', name: t('admin.roles.studentName'), description: t('admin.roles.studentDesc'), isSystem: true, userCount: 0 }
+                ];
+                const visibleRoles = roles.length === 0 ? defaultRoles : roles;
 
-                container.innerHTML = roles.map(role => `
-                    <div class="role-item" style="padding: 0.75rem; border-bottom: 1px solid var(--gray-200); cursor: pointer;" onclick="selectRole('${role.id}')">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                container.innerHTML = visibleRoles.map(role => `
+                    <div class="role-item" data-role-id="${escapeHtml(role.id)}" onclick="selectRole('${role.id}')">
+                        <div class="role-item-head">
                             <div>
-                                <strong>${role.name}</strong>
-                                <span class="badge ${role.isSystem ? 'badge-info' : 'badge-success'}" style="margin-left: 0.5rem; font-size: 0.7rem;">${role.isSystem ? t('admin.roles.system') : t('admin.roles.custom')}</span>
+                                <div class="role-item-title">
+                                    <strong>${escapeHtml(role.name)}</strong>
+                                    <span class="badge ${role.isSystem ? 'badge-info' : 'badge-success'} role-item-badge">${role.isSystem ? t('admin.roles.system') : t('admin.roles.custom')}</span>
+                                </div>
                             </div>
-                            <span style="color: var(--gray-400); font-size: 0.75rem;">${role.userCount || 0} ${t('admin.roles.userCount')}</span>
+                            <span class="role-item-meta">${role.userCount || 0} ${t('admin.roles.userCount')}</span>
                         </div>
-                        <p style="margin: 0.25rem 0 0 0; font-size: 0.8rem; color: var(--gray-500);">${role.description || t('admin.roles.noDescription')}</p>
+                        <p class="role-item-desc">${escapeHtml(role.description || t('admin.roles.noDescription'))}</p>
                     </div>
                 `).join('');
             } catch (error) {
                 console.error('Load roles error:', error);
                 const container = document.getElementById('rolesListContainer');
-                if (container) container.innerHTML = `<p style="text-align: center; color: var(--gray-500); padding: 1rem;">${t('admin.roles.loading')}</p>`;
+                if (container) container.innerHTML = `<div class="admin-empty-state is-error">${t('admin.roles.loading')}</div>`;
             }
         }
 
@@ -7877,8 +8362,12 @@
                 const container = document.getElementById('permissionsContainer');
                 if (!container) return;
 
+                document.querySelectorAll('.role-item').forEach((item) => {
+                    item.classList.toggle('is-active', item.dataset.roleId === roleId);
+                });
+
                 if (!roleResult.success) {
-                    container.innerHTML = '<p style="text-align: center; color: var(--terracotta);">角色資料載入失敗</p>';
+                    container.innerHTML = '<div class="admin-empty-state is-error">角色資料載入失敗</div>';
                     return;
                 }
 
@@ -7889,7 +8378,7 @@
                     : [];
 
                 if (capabilities.length === 0) {
-                    container.innerHTML = '<p style="text-align: center; color: var(--gray-400);">無可用權限清單</p>';
+                    container.innerHTML = '<div class="admin-empty-state">無可用權限清單</div>';
                     return;
                 }
 
@@ -7901,24 +8390,24 @@
                 });
 
                 container.innerHTML = `
-                    <div style="margin-bottom: 0.75rem;">
-                        <strong>${role.name || role.nameEn || role.roleId || roleId}</strong>
-                        <p style="margin: 0.25rem 0 0; color: var(--gray-500); font-size: 0.875rem;">
-                            ${role.description || t('admin.roles.noDescription')}
+                    <div class="permissions-panel-header">
+                        <div class="permissions-panel-title">${escapeHtml(role.name || role.nameEn || role.roleId || roleId)}</div>
+                        <p class="permissions-panel-desc">
+                            ${escapeHtml(role.description || t('admin.roles.noDescription'))}
                         </p>
                     </div>
                     ${Object.entries(grouped).map(([category, items]) => `
-                        <div style="margin-bottom: 1rem; border: 1px solid var(--gray-200); border-radius: 8px; padding: 0.75rem;">
-                            <div style="font-weight: 600; margin-bottom: 0.5rem; text-transform: capitalize;">${category}</div>
-                            <div style="display: grid; gap: 0.4rem;">
+                        <div class="capability-section">
+                            <div class="capability-section-title">${escapeHtml(category)}</div>
+                            <div class="capability-list">
                                 ${items.map(cap => `
-                                    <label style="display: flex; align-items: flex-start; gap: 0.5rem; font-size: 0.85rem; color: var(--gray-700);">
-                                        <input type="checkbox" disabled ${roleCaps.includes(cap.id) ? 'checked' : ''} />
-                                        <span>
-                                            <strong>${cap.name || cap.id}</strong>
-                                            <div style="font-size: 0.75rem; color: var(--gray-500);">${cap.description || ''}</div>
-                                        </span>
-                                    </label>
+                                    <div class="capability-item ${roleCaps.includes(cap.id) ? 'is-enabled' : ''}">
+                                        <div class="capability-item-head">
+                                            <span class="capability-item-name">${escapeHtml(cap.name || cap.id)}</span>
+                                            <span class="capability-pill ${roleCaps.includes(cap.id) ? 'is-enabled' : 'is-disabled'}">${roleCaps.includes(cap.id) ? '已啟用' : '未啟用'}</span>
+                                        </div>
+                                        <div class="capability-item-desc">${escapeHtml(cap.description || '')}</div>
+                                    </div>
                                 `).join('')}
                             </div>
                         </div>
@@ -7927,7 +8416,7 @@
             } catch (error) {
                 console.error('Select role error:', error);
                 const container = document.getElementById('permissionsContainer');
-                if (container) container.innerHTML = '<p style="text-align: center; color: var(--terracotta);">載入角色權限失敗</p>';
+                if (container) container.innerHTML = '<div class="admin-empty-state is-error">載入角色權限失敗</div>';
             }
         }
 
@@ -7940,31 +8429,33 @@
                 if (!container) return;
 
                 if (rubrics.length === 0) {
-                    container.innerHTML = `<p style="text-align: center; color: var(--gray-400); padding: 2rem;">${t('admin.rubrics.noRubrics')}</p>`;
+                    container.innerHTML = `<div class="admin-empty-state">${t('admin.rubrics.noRubrics')}</div>`;
                     return;
                 }
 
                 container.innerHTML = rubrics.map(rubric => `
-                    <div style="background: white; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; box-shadow: var(--shadow-sm);">
-                        <div style="display: flex; justify-content: space-between; align-items: start;">
+                    <div class="rubric-card">
+                        <div class="rubric-card-head">
                             <div>
-                                <h4 style="margin: 0 0 0.5rem 0;">${rubric.name || t('admin.rubrics.unnamed')}</h4>
-                                <p style="color: var(--gray-500); font-size: 0.875rem; margin: 0;">${rubric.description || t('admin.rubrics.noDescription')}</p>
+                                <h4 class="rubric-card-title">${escapeHtml(rubric.name || t('admin.rubrics.unnamed'))}</h4>
+                                <p class="rubric-card-desc">${escapeHtml(rubric.description || t('admin.rubrics.noDescription'))}</p>
                             </div>
                             <div>
                                 <button class="btn-icon" onclick="editRubric('${rubric.id}')" title="${t('common.edit')}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
                             </div>
                         </div>
-                        <div style="margin-top: 0.5rem; color: var(--gray-400); font-size: 0.875rem;">
-                            <span>${t('admin.rubrics.criteriaCount', { count: rubric.criteriaCount || 0 })}</span>
-                            <span style="margin-left: 1rem;">${t('admin.rubrics.usageCount', { count: rubric.usageCount || 0 })}</span>
+                        <div class="rubric-card-meta">
+                            <span>${t('admin.rubrics.criteriaCount')}: ${rubric.criteriaCount || 0}</span>
+                            <span>${t('admin.rubrics.totalScore')}: ${rubric.totalScore || 0}</span>
+                            <span>${t('admin.rubrics.courseCount')}: ${rubric.usageCount ?? rubric.courseCount ?? 0}</span>
+                            <span>${t('admin.rubrics.createdDate')}: ${rubric.createdAt ? new Date(rubric.createdAt).toLocaleDateString('zh-TW') : '-'}</span>
                         </div>
                     </div>
                 `).join('');
             } catch (error) {
                 console.error('Load rubrics error:', error);
                 const container = document.getElementById('rubricsContainer');
-                if (container) container.innerHTML = `<p style="text-align: center; color: var(--gray-400); padding: 2rem;">${t('admin.rubrics.loading')}</p>`;
+                if (container) container.innerHTML = `<div class="admin-empty-state is-error">${t('admin.rubrics.loading')}</div>`;
             }
         }
 

@@ -1487,6 +1487,459 @@
             color: var(--charcoal);
         }
 
+        .empty-state-note {
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .bridge-detail-shell {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .bridge-detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1.25rem;
+            flex-wrap: wrap;
+        }
+
+        .bridge-detail-heading {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            min-width: 0;
+            flex: 1;
+        }
+
+        .bridge-detail-title-stack {
+            min-width: 0;
+        }
+
+        .bridge-detail-title {
+            font-size: clamp(1.45rem, 2vw, 1.8rem);
+            font-weight: 600;
+            color: var(--charcoal);
+            line-height: 1.2;
+            overflow-wrap: anywhere;
+        }
+
+        .bridge-detail-subtitle {
+            margin-top: 0.35rem;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            overflow-wrap: anywhere;
+        }
+
+        .bridge-detail-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .bridge-detail-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            background: linear-gradient(180deg, var(--surface-light) 0%, var(--white) 100%);
+            border: 1px solid var(--sand);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .bridge-detail-chip-body {
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+        }
+
+        .bridge-detail-chip-label {
+            font-size: 0.72rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+
+        .bridge-detail-chip-value {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--olive-deep);
+            letter-spacing: 0.14em;
+            font-variant-numeric: tabular-nums;
+            text-transform: uppercase;
+        }
+
+        .bridge-detail-icon-btn {
+            width: 42px;
+            height: 42px;
+            border: none;
+            border-radius: 12px;
+            background: var(--gray-100);
+            color: var(--gray-700);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .bridge-detail-icon-btn:hover {
+            background: var(--gray-200);
+            color: var(--olive-deep);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .bridge-detail-icon-btn.is-subtle {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+        }
+
+        .bridge-detail-icon-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .bridge-detail-stats {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 1rem;
+        }
+
+        .bridge-detail-stat {
+            background: linear-gradient(180deg, var(--white) 0%, var(--surface-light) 100%);
+            border: 1px solid var(--sand);
+            border-radius: var(--radius-lg);
+            padding: 1.25rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .bridge-detail-stat-value {
+            font-size: 1.9rem;
+            font-weight: 700;
+            line-height: 1;
+            color: var(--olive);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .bridge-detail-stat-value.tone-olive { color: var(--olive); }
+        .bridge-detail-stat-value.tone-terracotta { color: var(--terracotta); }
+        .bridge-detail-stat-value.tone-blue { color: var(--blue); }
+        .bridge-detail-stat-value.tone-success { color: var(--success); }
+
+        .bridge-detail-stat-label {
+            margin-top: 0.45rem;
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+        }
+
+        .bridge-detail-tabs {
+            display: flex;
+            align-items: flex-end;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .detail-tab {
+            border: none;
+            border-radius: 12px 12px 0 0;
+            background: var(--gray-100);
+            color: var(--gray-600);
+            padding: 0.85rem 1.4rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .detail-tab:hover {
+            background: var(--gray-200);
+            color: var(--olive-deep);
+        }
+
+        .detail-tab.active,
+        .detail-tab[aria-selected="true"] {
+            background: linear-gradient(135deg, var(--olive) 0%, var(--olive-deep) 100%);
+            color: var(--cream);
+            box-shadow: 0 10px 20px rgba(26, 58, 92, 0.16);
+        }
+
+        .bridge-detail-panel[hidden] {
+            display: none !important;
+        }
+
+        .bridge-assignment-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .bridge-assignment-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            padding: 1.25rem;
+            background: linear-gradient(180deg, var(--white) 0%, var(--surface-light) 100%);
+            border: 1px solid var(--sand);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+        }
+
+        .bridge-assignment-card:hover {
+            border-color: var(--olive-light);
+            box-shadow: var(--shadow-md);
+            transform: translateY(-1px);
+        }
+
+        .bridge-assignment-main {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .bridge-assignment-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .bridge-assignment-card.is-material .bridge-assignment-icon {
+            background: rgba(74, 93, 35, 0.14);
+            color: var(--olive);
+        }
+
+        .bridge-assignment-card.is-video .bridge-assignment-icon {
+            background: rgba(26, 58, 92, 0.14);
+            color: var(--olive-deep);
+        }
+
+        .bridge-assignment-card.is-quiz .bridge-assignment-icon {
+            background: rgba(43, 108, 176, 0.14);
+            color: var(--blue);
+        }
+
+        .bridge-assignment-card.is-practice .bridge-assignment-icon {
+            background: rgba(72, 187, 120, 0.14);
+            color: var(--success);
+        }
+
+        .bridge-assignment-card.is-exam .bridge-assignment-icon {
+            background: rgba(26, 107, 74, 0.12);
+            color: var(--terracotta);
+        }
+
+        .bridge-assignment-icon svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .bridge-assignment-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .bridge-assignment-topline {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 0.4rem;
+        }
+
+        .bridge-assignment-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.2rem 0.6rem;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: var(--white);
+            white-space: nowrap;
+        }
+
+        .bridge-assignment-card.is-material .bridge-assignment-badge { background: var(--olive); }
+        .bridge-assignment-card.is-video .bridge-assignment-badge { background: var(--olive-deep); }
+        .bridge-assignment-card.is-quiz .bridge-assignment-badge { background: var(--blue); }
+        .bridge-assignment-card.is-practice .bridge-assignment-badge { background: var(--success); }
+        .bridge-assignment-card.is-exam .bridge-assignment-badge { background: var(--terracotta); }
+
+        .bridge-assignment-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--charcoal);
+            overflow-wrap: anywhere;
+        }
+
+        .bridge-assignment-meta {
+            font-size: 0.86rem;
+            line-height: 1.55;
+            color: var(--text-secondary);
+            overflow-wrap: anywhere;
+        }
+
+        .bridge-assignment-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 0.5rem;
+            flex-shrink: 0;
+        }
+
+        .bridge-assignment-action,
+        .bridge-member-remove {
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.35rem;
+            padding: 0.65rem 1rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .bridge-assignment-action svg,
+        .bridge-member-remove svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .bridge-assignment-action.primary {
+            background: linear-gradient(135deg, var(--olive) 0%, var(--olive-deep) 100%);
+            color: var(--cream);
+            box-shadow: 0 2px 8px rgba(26, 58, 92, 0.18);
+        }
+
+        .bridge-assignment-action.primary:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .bridge-assignment-action.secondary {
+            background: var(--gray-100);
+            color: var(--gray-700);
+        }
+
+        .bridge-assignment-action.secondary:hover,
+        .bridge-member-remove:hover {
+            background: var(--gray-200);
+            transform: translateY(-1px);
+        }
+
+        .bridge-assignment-action.danger,
+        .bridge-member-remove {
+            background: rgba(26, 107, 74, 0.1);
+            color: var(--terracotta);
+        }
+
+        .bridge-assignment-action.danger:hover,
+        .bridge-member-remove:hover {
+            background: rgba(26, 107, 74, 0.16);
+        }
+
+        .bridge-assignment-action.icon-only {
+            width: 42px;
+            height: 42px;
+            padding: 0;
+        }
+
+        .bridge-members-wrap {
+            background: var(--white);
+            border: 1px solid var(--sand);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+        }
+
+        .bridge-members-table-wrap {
+            overflow-x: auto;
+        }
+
+        .bridge-members-table {
+            width: 100%;
+            min-width: 640px;
+            border-collapse: collapse;
+        }
+
+        .bridge-members-table thead {
+            background: var(--surface-light);
+        }
+
+        .bridge-members-table th,
+        .bridge-members-table td {
+            padding: 1rem;
+            text-align: left;
+            vertical-align: middle;
+        }
+
+        .bridge-members-table th {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--gray-600);
+        }
+
+        .bridge-members-table tbody tr + tr td {
+            border-top: 1px solid var(--gray-100);
+        }
+
+        .bridge-member-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            min-width: 0;
+        }
+
+        .bridge-member-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--olive) 0%, var(--olive-deep) 100%);
+            color: var(--cream);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .bridge-member-name {
+            font-weight: 600;
+            color: var(--charcoal);
+            overflow-wrap: anywhere;
+        }
+
+        .bridge-member-meta {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            overflow-wrap: anywhere;
+        }
+
         /* Calendar Widget */
         .calendar-header {
             display: flex;
@@ -1844,6 +2297,10 @@
             .bridge-class-grid {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }
+
+            .bridge-detail-stats {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
         }
 
         @media (max-width: 768px) {
@@ -1888,6 +2345,41 @@
             .bridge-class-grid,
             .bridge-form-grid {
                 grid-template-columns: 1fr;
+            }
+
+            .bridge-detail-header,
+            .bridge-detail-heading,
+            .bridge-assignment-card {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .bridge-detail-actions {
+                width: 100%;
+                justify-content: stretch;
+            }
+
+            .bridge-detail-actions > * {
+                width: 100%;
+            }
+
+            .bridge-detail-chip {
+                justify-content: space-between;
+            }
+
+            .bridge-detail-stats {
+                grid-template-columns: 1fr;
+            }
+
+            .bridge-assignment-actions {
+                width: 100%;
+                justify-content: stretch;
+                flex-wrap: wrap;
+            }
+
+            .bridge-assignment-action,
+            .bridge-member-remove {
+                flex: 1;
             }
 
             .bridge-modal-header,
@@ -2946,91 +3438,83 @@
 
             <!-- Live Support View - 即時客服 -->
             <div class="dashboard" id="consultationsView" style="display: none;">
-                <!-- Chat Header -->
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                    <div style="display: flex; align-items: center; gap: 1rem;">
-                        <p style="color: var(--gray-500); font-size: 0.9rem;" data-i18n="support.description">即時線上客服，專人為您解答問題</p>
-                        <div id="chatAdminStatus" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.25rem 0.75rem; background: var(--gray-100); border-radius: 20px; font-size: 0.85rem;">
-                            <span id="chatStatusDot" style="width: 8px; height: 8px; border-radius: 50%; background: var(--gray-400);"></span>
-                            <span id="chatStatusText" data-i18n="support.checking">檢查中...</span>
-                        </div>
-                    </div>
-                    <button onclick="startNewChat()" id="newChatBtn" style="padding: 0.75rem 1.5rem; background: var(--olive); color: var(--cream); border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 0.5rem;">
-                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                        <span data-i18n="support.startChat">開始對話</span>
-                    </button>
-                </div>
-
-                <!-- Chat Container -->
-                <div style="display: grid; grid-template-columns: 280px 1fr; gap: 1rem; height: calc(100vh - 220px); min-height: 500px;">
-                    <!-- Chat List -->
-                    <div class="card" style="overflow: hidden; display: flex; flex-direction: column;">
-                        <div class="card-header" style="padding: 1rem; border-bottom: 1px solid var(--gray-200);">
-                            <h3 style="font-size: 0.95rem; font-weight: 600;" data-i18n="support.chatHistory">對話記錄</h3>
-                        </div>
-                        <div id="chatRoomList" style="flex: 1; overflow-y: auto; padding: 0.5rem;">
-                            <div style="text-align: center; padding: 2rem 1rem; color: var(--gray-400);">
-                                <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1" style="margin-bottom: 0.5rem; opacity: 0.5;">
-                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                                </svg>
-                                <p style="font-size: 0.85rem;" data-i18n="support.noHistory">尚無對話記錄</p>
+                <div class="support-shell">
+                    <div class="support-toolbar">
+                        <div class="support-toolbar-main">
+                            <p class="support-description" data-i18n="support.description">即時線上客服，專人為您解答問題</p>
+                            <div id="chatAdminStatus" class="support-status-badge is-offline">
+                                <span id="chatStatusDot" class="support-status-dot"></span>
+                                <span id="chatStatusText" data-i18n="support.checking">檢查中...</span>
                             </div>
                         </div>
+                        <button onclick="startNewChat()" id="newChatBtn" class="bridge-primary-btn support-btn-compact">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                            <span data-i18n="support.startChat">開始對話</span>
+                        </button>
                     </div>
 
-                    <!-- Chat Window -->
-                    <div class="card" style="overflow: hidden; display: flex; flex-direction: column;">
-                        <!-- Chat Window Header -->
-                        <div id="chatWindowHeader" style="padding: 1rem; border-bottom: 1px solid var(--gray-200); display: none;">
-                            <div style="display: flex; align-items: center; justify-content: space-between;">
-                                <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                    <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--olive); display: flex; align-items: center; justify-content: center;">
-                                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--cream)" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    <div class="support-layout">
+                        <div class="card support-panel">
+                            <div class="card-header">
+                                <h3 class="card-title" data-i18n="support.chatHistory">對話記錄</h3>
+                            </div>
+                            <div id="chatRoomList" class="support-room-list">
+                                <div class="empty-state compact">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                                    </svg>
+                                    <p data-i18n="support.noHistory">尚無對話記錄</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card support-panel">
+                            <div id="chatWindowHeader" class="support-window-header" hidden>
+                                <div class="support-window-headline">
+                                    <div class="support-agent">
+                                        <div class="support-agent-avatar" aria-hidden="true">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                        </div>
+                                        <div>
+                                            <h4 id="chatWindowTitle" class="support-agent-title" data-i18n="support.chatTitle">客服對話</h4>
+                                            <p id="chatWindowStatus" class="support-agent-status" data-i18n="support.waitingAgent">等待客服連線...</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h4 id="chatWindowTitle" style="font-size: 0.95rem; font-weight: 600;" data-i18n="support.chatTitle">客服對話</h4>
-                                        <p id="chatWindowStatus" style="font-size: 0.8rem; color: var(--gray-500);" data-i18n="support.waitingAgent">等待客服連線...</p>
+                                    <button onclick="closeChatRoom()" class="bridge-secondary-btn support-btn-compact" data-i18n="support.endChat">結束對話</button>
+                                </div>
+                            </div>
+
+                            <div id="chatMessages" class="support-messages">
+                                <div id="chatWelcome" class="support-welcome">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                                        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                                    </svg>
+                                    <h3 data-i18n="support.welcomeTitle">歡迎使用即時客服</h3>
+                                    <p data-i18n="support.welcomeDescription">點擊「開始對話」與我們的客服人員即時交流，或選擇左側的歷史對話繼續</p>
+                                </div>
+                            </div>
+
+                            <div id="typingIndicator" class="support-typing" hidden>
+                                <div class="support-typing-row">
+                                    <div class="support-typing-dots" aria-hidden="true">
+                                        <span class="support-typing-dot"></span>
+                                        <span class="support-typing-dot"></span>
+                                        <span class="support-typing-dot"></span>
                                     </div>
-                                </div>
-                                <div style="display: flex; gap: 0.5rem;">
-                                    <button onclick="closeChatRoom()" style="padding: 0.5rem 1rem; background: var(--gray-100); border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem;" data-i18n="support.endChat">結束對話</button>
+                                    <span id="typingUser" data-i18n="support.typing">客服正在輸入...</span>
                                 </div>
                             </div>
-                        </div>
 
-                        <!-- Chat Messages -->
-                        <div id="chatMessages" style="flex: 1; overflow-y: auto; padding: 1rem; background: var(--gray-50);">
-                            <div id="chatWelcome" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; color: var(--gray-400);">
-                                <svg viewBox="0 0 24 24" width="80" height="80" fill="none" stroke="currentColor" stroke-width="1" style="margin-bottom: 1rem; opacity: 0.3;">
-                                    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
-                                </svg>
-                                <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem; color: var(--gray-600);" data-i18n="support.welcomeTitle">歡迎使用即時客服</h3>
-                                <p style="font-size: 0.9rem; max-width: 300px;" data-i18n="support.welcomeDescription">點擊「開始對話」與我們的客服人員即時交流，或選擇左側的歷史對話繼續</p>
-                            </div>
-                        </div>
-
-                        <!-- Typing Indicator -->
-                        <div id="typingIndicator" style="display: none; padding: 0.5rem 1rem; background: var(--gray-50); border-top: 1px solid var(--gray-100);">
-                            <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--gray-500); font-size: 0.85rem;">
-                                <div style="display: flex; gap: 3px;">
-                                    <span style="width: 6px; height: 6px; background: var(--gray-400); border-radius: 50%; animation: typing 1s infinite;"></span>
-                                    <span style="width: 6px; height: 6px; background: var(--gray-400); border-radius: 50%; animation: typing 1s infinite 0.2s;"></span>
-                                    <span style="width: 6px; height: 6px; background: var(--gray-400); border-radius: 50%; animation: typing 1s infinite 0.4s;"></span>
+                            <div id="chatInputArea" class="support-input" hidden>
+                                <div class="support-input-row">
+                                    <div class="support-input-field">
+                                        <textarea id="chatMessageInput" class="support-chat-textarea" data-i18n-placeholder="support.inputPlaceholder" placeholder="輸入訊息..." rows="1" onkeydown="handleChatKeyDown(event)" oninput="handleChatInput(this)"></textarea>
+                                    </div>
+                                    <button onclick="sendChatMessage()" id="sendMessageBtn" class="bridge-primary-btn support-send-btn">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                                        <span data-i18n="support.send">發送</span>
+                                    </button>
                                 </div>
-                                <span id="typingUser" data-i18n="support.typing">客服正在輸入...</span>
-                            </div>
-                        </div>
-
-                        <!-- Chat Input -->
-                        <div id="chatInputArea" style="display: none; padding: 1rem; border-top: 1px solid var(--gray-200); background: white;">
-                            <div style="display: flex; gap: 0.75rem; align-items: flex-end;">
-                                <div style="flex: 1; position: relative;">
-                                    <textarea id="chatMessageInput" data-i18n-placeholder="support.inputPlaceholder" placeholder="輸入訊息..." rows="1" style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--gray-300); border-radius: 20px; font-size: 0.95rem; resize: none; max-height: 120px; line-height: 1.4;" onkeydown="handleChatKeyDown(event)" oninput="handleChatInput(this)"></textarea>
-                                </div>
-                                <button onclick="sendChatMessage()" id="sendMessageBtn" style="padding: 0.75rem 1.25rem; background: var(--olive); color: var(--cream); border: none; border-radius: 20px; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-weight: 500;">
-                                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                                    <span data-i18n="support.send">發送</span>
-                                </button>
                             </div>
                         </div>
                     </div>
@@ -3038,26 +3522,28 @@
             </div>
 
             <!-- Chat Rating Modal -->
-            <div id="chatRatingModal" class="modal-overlay" style="display: none;" onclick="if(event.target === this) closeChatRatingModal()">
-                <div class="modal" style="max-width: 400px;">
-                    <div class="modal-header">
-                        <h2 class="modal-title" data-i18n="support.rateTitle">為本次服務評分</h2>
-                        <button class="modal-close" onclick="closeChatRatingModal()">&times;</button>
+            <div id="chatRatingModal" class="bridge-modal-overlay" onclick="if(event.target === this) closeChatRatingModal()">
+                <div class="bridge-modal-panel">
+                    <div class="bridge-modal-header">
+                        <h2 class="bridge-modal-title" data-i18n="support.rateTitle">為本次服務評分</h2>
+                        <button class="bridge-modal-close" onclick="closeChatRatingModal()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
                     </div>
-                    <div class="modal-body" style="text-align: center;">
-                        <p style="margin-bottom: 1.5rem; color: var(--gray-600);" data-i18n="support.rateDescription">感謝您使用客服服務！請為本次服務評分：</p>
-                        <div id="ratingStars" style="display: flex; justify-content: center; gap: 0.5rem; margin-bottom: 1.5rem;">
-                            <button onclick="setRating(1)" class="rating-star" data-rating="1" style="background: none; border: none; cursor: pointer; font-size: 2rem; color: var(--gray-300); transition: color 0.2s;">★</button>
-                            <button onclick="setRating(2)" class="rating-star" data-rating="2" style="background: none; border: none; cursor: pointer; font-size: 2rem; color: var(--gray-300); transition: color 0.2s;">★</button>
-                            <button onclick="setRating(3)" class="rating-star" data-rating="3" style="background: none; border: none; cursor: pointer; font-size: 2rem; color: var(--gray-300); transition: color 0.2s;">★</button>
-                            <button onclick="setRating(4)" class="rating-star" data-rating="4" style="background: none; border: none; cursor: pointer; font-size: 2rem; color: var(--gray-300); transition: color 0.2s;">★</button>
-                            <button onclick="setRating(5)" class="rating-star" data-rating="5" style="background: none; border: none; cursor: pointer; font-size: 2rem; color: var(--gray-300); transition: color 0.2s;">★</button>
+                    <div class="bridge-modal-body support-rating-body">
+                        <p class="support-rating-note" data-i18n="support.rateDescription">感謝您使用客服服務！請為本次服務評分：</p>
+                        <div id="ratingStars" class="support-rating-stars">
+                            <button type="button" onclick="setRating(1)" class="rating-star" data-rating="1" aria-label="1 星">★</button>
+                            <button type="button" onclick="setRating(2)" class="rating-star" data-rating="2" aria-label="2 星">★</button>
+                            <button type="button" onclick="setRating(3)" class="rating-star" data-rating="3" aria-label="3 星">★</button>
+                            <button type="button" onclick="setRating(4)" class="rating-star" data-rating="4" aria-label="4 星">★</button>
+                            <button type="button" onclick="setRating(5)" class="rating-star" data-rating="5" aria-label="5 星">★</button>
                         </div>
-                        <textarea id="ratingComment" data-i18n-placeholder="support.rateCommentPlaceholder" placeholder="留下您的建議（選填）" rows="3" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-300); border-radius: 8px; font-size: 0.95rem; resize: none; margin-bottom: 1rem;"></textarea>
+                        <textarea id="ratingComment" class="support-rating-comment" data-i18n-placeholder="support.rateCommentPlaceholder" placeholder="留下您的建議（選填）" rows="3"></textarea>
                     </div>
-                    <div style="padding: 1rem 2rem; border-top: 1px solid var(--gray-200); display: flex; justify-content: flex-end; gap: 0.75rem;">
-                        <button onclick="closeChatRatingModal()" style="padding: 0.75rem 1.5rem; background: var(--gray-200); border: none; border-radius: 8px; cursor: pointer;" data-i18n="support.rateSkip">略過</button>
-                        <button onclick="submitRating()" style="padding: 0.75rem 1.5rem; background: var(--olive); color: var(--cream); border: none; border-radius: 8px; cursor: pointer; font-weight: 500;" data-i18n="support.rateSubmit">提交評分</button>
+                    <div class="bridge-modal-footer">
+                        <button onclick="closeChatRatingModal()" class="bridge-secondary-btn" data-i18n="support.rateSkip">略過</button>
+                        <button onclick="submitRating()" class="bridge-primary-btn" data-i18n="support.rateSubmit">提交評分</button>
                     </div>
                 </div>
             </div>
@@ -4088,6 +4574,286 @@
         @keyframes typing { 0%, 100% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1); } }
         @keyframes cardReveal { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
 
+        .support-shell {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .support-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .support-toolbar-main {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .support-description {
+            color: var(--text-secondary);
+            font-size: 0.92rem;
+        }
+
+        .support-status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.35rem 0.85rem;
+            border-radius: 999px;
+            background: linear-gradient(180deg, var(--surface-light) 0%, var(--white) 100%);
+            border: 1px solid var(--sand);
+            font-size: 0.85rem;
+            color: var(--gray-600);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .support-status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--gray-400);
+            flex-shrink: 0;
+            transition: background 0.2s ease;
+        }
+
+        .support-status-badge.is-online .support-status-dot {
+            background: var(--success);
+        }
+
+        .support-status-badge.is-offline .support-status-dot {
+            background: var(--gray-400);
+        }
+
+        .support-btn-compact {
+            padding: 0.7rem 1.2rem;
+        }
+
+        .support-layout {
+            display: grid;
+            grid-template-columns: minmax(260px, 300px) minmax(0, 1fr);
+            gap: 1rem;
+            min-height: calc(100vh - 220px);
+            height: clamp(520px, calc(100vh - 220px), 820px);
+        }
+
+        .support-panel {
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .support-room-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0.5rem;
+        }
+
+        .support-window-header {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--gray-200);
+            background: linear-gradient(180deg, var(--white) 0%, var(--surface-light) 100%);
+        }
+
+        .support-window-header[hidden],
+        .support-typing[hidden],
+        .support-input[hidden] {
+            display: none !important;
+        }
+
+        .support-window-headline {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+
+        .support-agent {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            min-width: 0;
+        }
+
+        .support-agent-avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--olive) 0%, var(--olive-deep) 100%);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--cream);
+            flex-shrink: 0;
+        }
+
+        .support-agent-avatar svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .support-agent-title {
+            font-size: 0.98rem;
+            font-weight: 600;
+            color: var(--charcoal);
+        }
+
+        .support-agent-status {
+            margin-top: 0.2rem;
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+        }
+
+        .support-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            background: linear-gradient(180deg, var(--gray-50) 0%, #EEF3F8 100%);
+        }
+
+        .support-welcome {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100%;
+            text-align: center;
+            color: var(--text-secondary);
+            padding: 2rem;
+        }
+
+        .support-welcome svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 1rem;
+            opacity: 0.3;
+        }
+
+        .support-welcome h3 {
+            font-size: 1.1rem;
+            color: var(--gray-600);
+            margin-bottom: 0.5rem;
+        }
+
+        .support-welcome p {
+            font-size: 0.9rem;
+            max-width: 320px;
+        }
+
+        .support-typing {
+            padding: 0.65rem 1rem;
+            background: var(--gray-50);
+            border-top: 1px solid var(--gray-100);
+        }
+
+        .support-typing-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--gray-500);
+            font-size: 0.85rem;
+        }
+
+        .support-typing-dots {
+            display: flex;
+            gap: 3px;
+        }
+
+        .support-typing-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--gray-400);
+            border-radius: 50%;
+            animation: typing 1s infinite;
+        }
+
+        .support-typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .support-typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        .support-input {
+            padding: 1rem;
+            border-top: 1px solid var(--gray-200);
+            background: var(--white);
+        }
+
+        .support-input-row {
+            display: flex;
+            align-items: flex-end;
+            gap: 0.75rem;
+        }
+
+        .support-input-field {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .support-chat-textarea,
+        .support-rating-comment {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--gray-300);
+            border-radius: 20px;
+            font-size: 0.95rem;
+            background: var(--white);
+            resize: none;
+            line-height: 1.45;
+        }
+
+        .support-chat-textarea {
+            max-height: 120px;
+            min-height: 52px;
+        }
+
+        .support-chat-textarea:focus-visible,
+        .support-rating-comment:focus-visible {
+            outline: 2px solid var(--olive);
+            outline-offset: 1px;
+            border-color: var(--olive);
+        }
+
+        .support-send-btn {
+            border-radius: 999px;
+        }
+
+        .support-rating-body {
+            text-align: center;
+        }
+
+        .support-rating-note {
+            margin-bottom: 1.5rem;
+            color: var(--gray-600);
+        }
+
+        .support-rating-stars {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .rating-star {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 2rem;
+            color: var(--gray-300);
+            transition: color 0.2s ease, transform 0.2s ease;
+            line-height: 1;
+        }
+
+        .rating-star:hover {
+            transform: scale(1.08);
+        }
+
+        .rating-star.active {
+            color: var(--warning);
+        }
+
         /* Chat Message Styles */
         .chat-message { display: flex; margin-bottom: 1rem; animation: slideIn 0.2s ease; }
         .chat-message.user { justify-content: flex-end; }
@@ -4112,6 +4878,31 @@
         .chat-room-item .status-dot.waiting { background: var(--warning); }
         .chat-room-item .status-dot.active { background: var(--success); }
         .chat-room-item .status-dot.closed { background: var(--gray-400); }
+
+        @media (max-width: 768px) {
+            .support-toolbar,
+            .support-toolbar-main,
+            .support-window-headline,
+            .support-input-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .support-layout {
+                grid-template-columns: 1fr;
+                height: auto;
+                min-height: 0;
+            }
+
+            .support-panel {
+                min-height: 320px;
+            }
+
+            .support-btn-compact,
+            .support-send-btn {
+                justify-content: center;
+            }
+        }
 
         /* ═══════════════════════════════════════════════════════════
            LOGIN VIEW - OLIVE GROVE GATEWAY
@@ -6321,6 +7112,189 @@
             return colors[subject] || 'linear-gradient(135deg, var(--olive) 0%, var(--olive-deep) 100%)';
         }
 
+        function escapeHtml(value) {
+            if (value === null || value === undefined) return '';
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function formatBridgeDate(value) {
+            if (!value) return '';
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return '';
+
+            const locale = (Array.isArray(navigator.languages) && navigator.languages[0]) || navigator.language || 'zh-TW';
+            return new Intl.DateTimeFormat(locale, {
+                year: 'numeric',
+                month: 'numeric',
+                day: 'numeric'
+            }).format(date);
+        }
+
+        function getBridgeAssignmentMeta(type) {
+            const meta = {
+                material: {
+                    label: '建材',
+                    tone: 'material',
+                    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>'
+                },
+                video: {
+                    label: '影片',
+                    tone: 'video',
+                    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23,7 16,12 23,17"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>'
+                },
+                quiz: {
+                    label: '測驗',
+                    tone: 'quiz',
+                    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'
+                },
+                practice: {
+                    label: '練習',
+                    tone: 'practice',
+                    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>'
+                },
+                exam: {
+                    label: '考試',
+                    tone: 'exam',
+                    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>'
+                }
+            };
+
+            return meta[type] || {
+                label: '作業',
+                tone: 'material',
+                icon: meta.material.icon
+            };
+        }
+
+        function getAssignmentSummary(assignment) {
+            const points = Number(assignment?.points || 0);
+            const parts = [
+                assignment?.description ? escapeHtml(assignment.description) : '無說明',
+                assignment?.dueDate ? `截止：${escapeHtml(formatBridgeDate(assignment.dueDate))}` : '',
+                Number.isFinite(points) && points > 0 ? `${points} 分` : ''
+            ].filter(Boolean);
+
+            return parts.join(' · ');
+        }
+
+        function getClassDetailCounts(cls) {
+            const assignments = Array.isArray(cls?.assignments) ? cls.assignments : [];
+
+            return {
+                members: Number(cls?.memberCount) || (Array.isArray(cls?.members) ? cls.members.length : 0),
+                materials: assignments.filter((assignment) => assignment.type === 'material' || assignment.type === 'video').length,
+                assessments: assignments.filter((assignment) => assignment.type === 'quiz' || assignment.type === 'practice').length,
+                exams: assignments.filter((assignment) => assignment.type === 'exam').length
+            };
+        }
+
+        function renderClassDetailContent(cls, classId, options = {}) {
+            const isTeacher = Boolean(options.isTeacher);
+            const backView = options.backView || (isTeacher ? 'classes' : 'studentClasses');
+            const counts = getClassDetailCounts(cls);
+            const assignments = Array.isArray(cls?.assignments) ? cls.assignments : [];
+            const subtitle = `${escapeHtml(cls?.subject || '一般課程')} · ${escapeHtml(cls?.teacherName || '建橋者')}`;
+
+            return `
+                <div class="bridge-detail-shell">
+                    <div class="bridge-detail-header">
+                        <div class="bridge-detail-heading">
+                            <button type="button" class="bridge-detail-icon-btn" onclick="showView('${backView}')" aria-label="返回橋隊列表">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
+                            </button>
+                            <div class="bridge-detail-title-stack">
+                                <h2 class="bridge-detail-title">${escapeHtml(cls?.name || '未命名橋隊')}</h2>
+                                <p class="bridge-detail-subtitle">${subtitle}</p>
+                            </div>
+                        </div>
+                        ${isTeacher ? `
+                            <div class="bridge-detail-actions">
+                                <div class="bridge-detail-chip">
+                                    <div class="bridge-detail-chip-body">
+                                        <span class="bridge-detail-chip-label">通行碼</span>
+                                        <strong class="bridge-detail-chip-value">${escapeHtml(cls?.inviteCode || '------')}</strong>
+                                    </div>
+                                    ${cls?.inviteCode ? `
+                                        <button type="button" class="bridge-detail-icon-btn is-subtle" onclick="copyInviteCode('${cls.inviteCode}')" aria-label="複製橋隊通行碼">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                                        </button>
+                                    ` : ''}
+                                </div>
+                                <button type="button" class="bridge-primary-btn" onclick="openAddAssignmentModal('${classId}')">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                    <span>新增作業</span>
+                                </button>
+                            </div>
+                        ` : ''}
+                    </div>
+
+                    <div class="bridge-detail-stats">
+                        <article class="bridge-detail-stat">
+                            <div class="bridge-detail-stat-value tone-olive">${counts.members}</div>
+                            <div class="bridge-detail-stat-label">橋隊成員</div>
+                        </article>
+                        <article class="bridge-detail-stat">
+                            <div class="bridge-detail-stat-value tone-terracotta">${counts.materials}</div>
+                            <div class="bridge-detail-stat-label">建材 / 影片</div>
+                        </article>
+                        <article class="bridge-detail-stat">
+                            <div class="bridge-detail-stat-value tone-blue">${counts.assessments}</div>
+                            <div class="bridge-detail-stat-label">測驗 / 練習</div>
+                        </article>
+                        <article class="bridge-detail-stat">
+                            <div class="bridge-detail-stat-value tone-success">${counts.exams}</div>
+                            <div class="bridge-detail-stat-label">考試</div>
+                        </article>
+                    </div>
+
+                    ${isTeacher ? `
+                        <div class="bridge-detail-tabs" role="tablist" aria-label="橋隊詳情分頁">
+                            <button type="button" id="detail-tab-assignments" class="detail-tab active" role="tab" aria-selected="true" aria-controls="assignmentsPanel" onclick="switchDetailTab(this, 'assignments')">作業與建材</button>
+                            <button type="button" id="detail-tab-members" class="detail-tab" role="tab" aria-selected="false" aria-controls="membersPanel" onclick="switchDetailTab(this, 'members')">橋隊成員</button>
+                        </div>
+
+                        <section id="assignmentsPanel" class="bridge-detail-panel" role="tabpanel" aria-labelledby="detail-tab-assignments">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">作業與建材</h3>
+                                </div>
+                                <div class="card-body">
+                                    ${renderAssignmentsList(assignments, true, classId)}
+                                </div>
+                            </div>
+                        </section>
+
+                        <section id="membersPanel" class="bridge-detail-panel" role="tabpanel" aria-labelledby="detail-tab-members" hidden>
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">橋隊成員</h3>
+                                </div>
+                                <div class="card-body card-body-flush">
+                                    ${renderMembersList(Array.isArray(cls?.members) ? cls.members : [], classId)}
+                                </div>
+                            </div>
+                        </section>
+                    ` : `
+                        <section class="bridge-detail-panel">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">橋隊作業</h3>
+                                </div>
+                                <div class="card-body">
+                                    ${renderStudentAssignmentsList(assignments, classId)}
+                                </div>
+                            </div>
+                        </section>
+                    `}
+                </div>
+            `;
+        }
+
         // 開啟搭建新橋 Modal
         function openCreateClassModal() {
             const modal = document.createElement('div');
@@ -6402,71 +7376,10 @@
                 const isTeacher = cls.teacherId === user?.userId;
 
                 const detailContent = document.getElementById('classDetailContent');
-                detailContent.innerHTML = `
-                    <!-- 橋隊標題 -->
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                        <div style="display: flex; align-items: center; gap: 1rem;">
-                            <button onclick="showView('classes')" style="background: var(--gray-100); border: none; padding: 0.5rem; border-radius: 8px; cursor: pointer; display: flex; align-items: center;">
-                                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
-                            </button>
-                            <div>
-                                <h2 style="font-size: 1.5rem; font-weight: 600;">${cls.name}</h2>
-                                <p style="color: var(--gray-500);">${cls.subject || '一般課程'} · ${cls.teacherName || '建橋者'}</p>
-                            </div>
-                        </div>
-                        ${isTeacher ? `
-                            <div style="display: flex; gap: 0.75rem;">
-                                <div style="background: var(--gray-100); padding: 0.75rem 1.25rem; border-radius: 8px;">
-                                    <span style="color: var(--gray-500); font-size: 0.85rem;">通行碼：</span>
-                                    <strong style="font-size: 1.1rem; letter-spacing: 0.1rem;">${cls.inviteCode}</strong>
-                                    <button onclick="copyInviteCode('${cls.inviteCode}')" style="background: none; border: none; cursor: pointer; margin-left: 0.5rem;">
-                                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-                                    </button>
-                                </div>
-                                <button onclick="openAddAssignmentModal('${classId}')" style="padding: 0.75rem 1.5rem; background: var(--olive); color: var(--cream); border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 0.5rem;">
-                                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                                    新增作業
-                                </button>
-                            </div>
-                        ` : ''}
-                    </div>
-
-                    <!-- 橋隊統計 -->
-                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem;">
-                        <div style="background: var(--white); padding: 1.25rem; border-radius: 12px; text-align: center;">
-                            <div style="font-size: 1.75rem; font-weight: 700; color: var(--olive);">${cls.memberCount || 0}</div>
-                            <div style="font-size: 0.85rem; color: var(--gray-500);">橋隊成員</div>
-                        </div>
-                        <div style="background: var(--white); padding: 1.25rem; border-radius: 12px; text-align: center;">
-                            <div style="font-size: 1.75rem; font-weight: 700; color: var(--terracotta);">${(cls.assignments || []).filter(a => a.type === 'material').length}</div>
-                            <div style="font-size: 0.85rem; color: var(--gray-500);">建材</div>
-                        </div>
-                        <div style="background: var(--white); padding: 1.25rem; border-radius: 12px; text-align: center;">
-                            <div style="font-size: 1.75rem; font-weight: 700; color: #6366f1;">${(cls.assignments || []).filter(a => a.type === 'quiz' || a.type === 'practice').length}</div>
-                            <div style="font-size: 0.85rem; color: var(--gray-500);">測驗/練習</div>
-                        </div>
-                        <div style="background: var(--white); padding: 1.25rem; border-radius: 12px; text-align: center;">
-                            <div style="font-size: 1.75rem; font-weight: 700; color: #10b981;">${(cls.assignments || []).filter(a => a.type === 'exam').length}</div>
-                            <div style="font-size: 0.85rem; color: var(--gray-500);">考試</div>
-                        </div>
-                    </div>
-
-                    <!-- 分頁標籤 -->
-                    <div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--gray-200); padding-bottom: 0.5rem;">
-                        <button class="detail-tab active" onclick="switchDetailTab(this, 'assignments')" style="padding: 0.75rem 1.5rem; border: none; background: var(--olive); color: var(--cream); border-radius: 8px 8px 0 0; cursor: pointer; font-weight: 500;">作業與建材</button>
-                        ${isTeacher ? `<button class="detail-tab" onclick="switchDetailTab(this, 'members')" style="padding: 0.75rem 1.5rem; border: none; background: var(--gray-100); color: var(--gray-600); border-radius: 8px 8px 0 0; cursor: pointer;">橋隊成員</button>` : ''}
-                    </div>
-
-                    <!-- 作業列表 -->
-                    <div id="assignmentsPanel">
-                        ${renderAssignmentsList(cls.assignments || [], isTeacher, classId)}
-                    </div>
-
-                    <!-- 成員列表（建橋者可見）-->
-                    <div id="membersPanel" style="display: none;">
-                        ${isTeacher ? renderMembersList(cls.members || [], classId) : ''}
-                    </div>
-                `;
+                detailContent.innerHTML = renderClassDetailContent(cls, classId, {
+                    isTeacher,
+                    backView: isTeacher ? 'classes' : 'studentClasses'
+                });
 
                 showView('classDetail');
 
@@ -6480,49 +7393,43 @@
         function renderAssignmentsList(assignments, isTeacher, classId) {
             if (assignments.length === 0) {
                 return `
-                    <div style="text-align: center; padding: 3rem; color: var(--gray-400);">
-                        <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1" style="margin-bottom: 1rem; opacity: 0.5;">
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
                             <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/>
                         </svg>
                         <p>尚無作業或建材</p>
-                        ${isTeacher ? '<p style="font-size: 0.85rem; margin-top: 0.5rem;">點擊「新增作業」開始指派</p>' : ''}
+                        ${isTeacher ? '<p class="empty-state-note">點擊上方「新增作業」開始指派內容</p>' : ''}
                     </div>
                 `;
             }
 
-            const typeLabels = { 'material': '建材', 'quiz': '測驗', 'practice': '練習', 'exam': '考試' };
-            const typeColors = { 'material': 'var(--olive)', 'quiz': '#6366f1', 'practice': '#10b981', 'exam': 'var(--terracotta)' };
-
             return `
-                <div style="display: flex; flex-direction: column; gap: 1rem;">
-                    ${assignments.map(a => `
-                        <div style="background: var(--white); border-radius: 12px; padding: 1.25rem; display: flex; justify-content: space-between; align-items: center;">
-                            <div style="display: flex; align-items: center; gap: 1rem;">
-                                <div style="width: 48px; height: 48px; background: ${typeColors[a.type]}20; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="${typeColors[a.type]}" stroke-width="2">
-                                        ${a.type === 'material' ? '<path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>' : ''}
-                                        ${a.type === 'quiz' || a.type === 'practice' ? '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>' : ''}
-                                        ${a.type === 'exam' ? '<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>' : ''}
-                                    </svg>
-                                </div>
-                                <div>
-                                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
-                                        <span style="background: ${typeColors[a.type]}; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem;">${typeLabels[a.type]}</span>
-                                        <h4 style="font-weight: 600;">${a.title}</h4>
+                <div class="bridge-assignment-list">
+                    ${assignments.map((assignment) => {
+                        const meta = getBridgeAssignmentMeta(assignment.type);
+                        return `
+                            <article class="bridge-assignment-card is-${meta.tone}">
+                                <div class="bridge-assignment-main">
+                                    <div class="bridge-assignment-icon" aria-hidden="true">${meta.icon}</div>
+                                    <div class="bridge-assignment-content">
+                                        <div class="bridge-assignment-topline">
+                                            <span class="bridge-assignment-badge">${meta.label}</span>
+                                            <h4 class="bridge-assignment-title">${escapeHtml(assignment.title || '未命名作業')}</h4>
+                                        </div>
+                                        <p class="bridge-assignment-meta">${getAssignmentSummary(assignment)}</p>
                                     </div>
-                                    <p style="font-size: 0.85rem; color: var(--gray-500);">
-                                        ${a.description || '無說明'}
-                                        ${a.dueDate ? ` · 截止：${new Date(a.dueDate).toLocaleDateString('zh-TW')}` : ''}
-                                        ${a.points ? ` · ${a.points} 分` : ''}
-                                    </p>
                                 </div>
-                            </div>
-                            <div style="display: flex; gap: 0.5rem;">
-                                <button onclick="viewAssignment('${classId}', '${a.assignmentId}')" style="padding: 0.5rem 1rem; background: var(--gray-100); border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">查看</button>
-                                ${isTeacher ? `<button onclick="deleteAssignment('${classId}', '${a.assignmentId}')" style="padding: 0.5rem; background: none; border: none; cursor: pointer; color: var(--gray-400);"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button>` : ''}
-                            </div>
-                        </div>
-                    `).join('')}
+                                <div class="bridge-assignment-actions">
+                                    <button type="button" class="bridge-assignment-action secondary" onclick="viewAssignment('${classId}', '${assignment.assignmentId}')">查看</button>
+                                    ${isTeacher ? `
+                                        <button type="button" class="bridge-assignment-action danger icon-only" onclick="deleteAssignment('${classId}', '${assignment.assignmentId}')" aria-label="刪除作業">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                                        </button>
+                                    ` : ''}
+                                </div>
+                            </article>
+                        `;
+                    }).join('')}
                 </div>
             `;
         }
@@ -6531,62 +7438,66 @@
         function renderMembersList(members, classId) {
             if (members.length === 0) {
                 return `
-                    <div style="text-align: center; padding: 3rem; color: var(--gray-400);">
-                        <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1" style="margin-bottom: 1rem; opacity: 0.5;">
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
                             <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>
                         </svg>
                         <p>尚無探橋者加入</p>
-                        <p style="font-size: 0.85rem; margin-top: 0.5rem;">分享通行碼讓探橋者加入橋隊</p>
+                        <p class="empty-state-note">分享通行碼讓探橋者加入橋隊</p>
                     </div>
                 `;
             }
 
             return `
-                <div style="background: var(--white); border-radius: 12px; overflow: hidden;">
-                    <table style="width: 100%; border-collapse: collapse;">
-                        <thead style="background: var(--gray-50);">
+                <div class="bridge-members-wrap">
+                    <div class="bridge-members-table-wrap">
+                        <table class="bridge-members-table">
+                            <thead>
                             <tr>
-                                <th style="padding: 1rem; text-align: left; font-weight: 600;">探橋者</th>
-                                <th style="padding: 1rem; text-align: left; font-weight: 600;">電子郵件</th>
-                                <th style="padding: 1rem; text-align: left; font-weight: 600;">加入日期</th>
-                                <th style="padding: 1rem; text-align: center; font-weight: 600;">操作</th>
+                                <th>探橋者</th>
+                                <th>電子郵件</th>
+                                <th>加入日期</th>
+                                <th>操作</th>
                             </tr>
-                        </thead>
-                        <tbody>
-                            ${members.map(m => `
-                                <tr style="border-top: 1px solid var(--gray-100);">
-                                    <td style="padding: 1rem;">
-                                        <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                            <div style="width: 36px; height: 36px; background: var(--olive); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--cream); font-weight: 600;">${(m.userName || '學')[0]}</div>
-                                            <span>${m.userName || '探橋者'}</span>
-                                        </div>
-                                    </td>
-                                    <td style="padding: 1rem; color: var(--gray-500);">${m.userEmail || '-'}</td>
-                                    <td style="padding: 1rem; color: var(--gray-500);">${m.joinedAt ? new Date(m.joinedAt).toLocaleDateString('zh-TW') : '-'}</td>
-                                    <td style="padding: 1rem; text-align: center;">
-                                        <button onclick="removeMember('${classId}', '${m.userId}')" style="padding: 0.25rem 0.75rem; background: var(--gray-100); border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem; color: var(--terracotta);">移除</button>
-                                    </td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                ${members.map((member) => `
+                                    <tr>
+                                        <td>
+                                            <div class="bridge-member-info">
+                                                <span class="bridge-member-avatar">${escapeHtml((member.userName || '探橋者').trim().charAt(0) || '探')}</span>
+                                                <span class="bridge-member-name">${escapeHtml(member.userName || '探橋者')}</span>
+                                            </div>
+                                        </td>
+                                        <td class="bridge-member-meta">${escapeHtml(member.userEmail || '-')}</td>
+                                        <td class="bridge-member-meta">${escapeHtml(formatBridgeDate(member.joinedAt) || '-')}</td>
+                                        <td>
+                                            <button type="button" class="bridge-member-remove" onclick="removeMember('${classId}', '${member.userId}')">移除</button>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             `;
         }
 
         // 切換詳情頁標籤
         function switchDetailTab(btn, panel) {
-            document.querySelectorAll('.detail-tab').forEach(t => {
-                t.style.background = 'var(--gray-100)';
-                t.style.color = 'var(--gray-600)';
-                t.classList.remove('active');
-            });
-            btn.style.background = 'var(--olive)';
-            btn.style.color = 'var(--cream)';
-            btn.classList.add('active');
+            const detailRoot = btn.closest('.bridge-detail-shell') || document;
 
-            document.getElementById('assignmentsPanel').style.display = panel === 'assignments' ? 'block' : 'none';
-            document.getElementById('membersPanel').style.display = panel === 'members' ? 'block' : 'none';
+            detailRoot.querySelectorAll('.detail-tab').forEach((tab) => {
+                const isActive = tab === btn;
+                tab.classList.toggle('active', isActive);
+                tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+            });
+
+            const assignmentsPanel = document.getElementById('assignmentsPanel');
+            const membersPanel = document.getElementById('membersPanel');
+
+            if (assignmentsPanel) assignmentsPanel.hidden = panel !== 'assignments';
+            if (membersPanel) membersPanel.hidden = panel !== 'members';
         }
 
         // 複製邀請碼
@@ -6871,30 +7782,10 @@
                 const cls = result.data;
 
                 const detailContent = document.getElementById('classDetailContent');
-                detailContent.innerHTML = `
-                    <!-- 橋隊標題 -->
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                        <div style="display: flex; align-items: center; gap: 1rem;">
-                            <button onclick="showView('studentClasses')" style="background: var(--gray-100); border: none; padding: 0.5rem; border-radius: 8px; cursor: pointer; display: flex; align-items: center;">
-                                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
-                            </button>
-                            <div>
-                                <h2 style="font-size: 1.5rem; font-weight: 600;">${cls.name}</h2>
-                                <p style="color: var(--gray-500);">${cls.subject || '一般課程'} · ${cls.teacherName || '建橋者'}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 作業列表 -->
-                    <div class="card">
-                        <div class="card-header">
-                            <h2 class="card-title">橋隊作業</h2>
-                        </div>
-                        <div class="card-body">
-                            ${renderStudentAssignmentsList(cls.assignments || [], classId)}
-                        </div>
-                    </div>
-                `;
+                detailContent.innerHTML = renderClassDetailContent(cls, classId, {
+                    isTeacher: false,
+                    backView: 'studentClasses'
+                });
 
                 showView('classDetail');
 
@@ -6908,8 +7799,8 @@
         function renderStudentAssignmentsList(assignments, classId) {
             if (assignments.length === 0) {
                 return `
-                    <div style="text-align: center; padding: 3rem; color: var(--gray-400);">
-                        <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1" style="margin-bottom: 1rem; opacity: 0.5;">
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
                             <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
                             <polyline points="14,2 14,8 20,8"/>
                             <line x1="16" y1="13" x2="8" y2="13"/>
@@ -6920,39 +7811,35 @@
                 `;
             }
 
-            const typeIcons = {
-                'material': '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>',
-                'video': '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23,7 16,12 23,17"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>',
-                'quiz': '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
-                'practice': '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>',
-                'exam': '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M9 15l2 2 4-4"/></svg>'
-            };
-
-            const typeLabels = { 'material': '建材', 'video': '影片', 'quiz': '測驗', 'practice': '練習', 'exam': '考試' };
-            const typeColors = { 'material': 'var(--olive)', 'video': '#2D2B6B', 'quiz': '#1A6B4A', 'practice': '#4A4899', 'exam': '#1A3A5C' };
-
             return `
-                <div style="display: flex; flex-direction: column; gap: 1rem;">
-                    ${assignments.map(a => `
-                        <div onclick="startAssignment('${a.assignmentId}', '${a.type}', '${a.resourceId || ''}', '${a.quizId || ''}', '${classId}')" style="display: flex; align-items: center; gap: 1rem; padding: 1rem 1.25rem; background: var(--gray-50); border-radius: 8px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='var(--gray-100)'" onmouseout="this.style.background='var(--gray-50)'">
-                            <div style="width: 40px; height: 40px; background: ${typeColors[a.type] || 'var(--olive)'}20; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: ${typeColors[a.type] || 'var(--olive)'};">
-                                ${typeIcons[a.type] || typeIcons['video']}
-                            </div>
-                            <div style="flex: 1;">
-                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
-                                    <span style="font-size: 0.75rem; padding: 0.15rem 0.5rem; background: ${typeColors[a.type] || 'var(--olive)'}; color: white; border-radius: 4px;">${typeLabels[a.type] || '作業'}</span>
-                                    <span style="font-weight: 600;">${a.title}</span>
+                <div class="bridge-assignment-list">
+                    ${assignments.map((assignment) => {
+                        const meta = getBridgeAssignmentMeta(assignment.type);
+                        return `
+                            <article class="bridge-assignment-card is-${meta.tone}">
+                                <div class="bridge-assignment-main">
+                                    <div class="bridge-assignment-icon" aria-hidden="true">${meta.icon}</div>
+                                    <div class="bridge-assignment-content">
+                                        <div class="bridge-assignment-topline">
+                                            <span class="bridge-assignment-badge">${meta.label}</span>
+                                            <h4 class="bridge-assignment-title">${escapeHtml(assignment.title || '未命名作業')}</h4>
+                                        </div>
+                                        <p class="bridge-assignment-meta">${getAssignmentSummary(assignment)}</p>
+                                    </div>
                                 </div>
-                                <div style="display: flex; gap: 1rem; font-size: 0.8rem; color: var(--gray-500);">
-                                    ${a.dueDate ? `<span>截止：${new Date(a.dueDate).toLocaleDateString('zh-TW')}</span>` : ''}
-                                    ${a.points ? `<span>分數：${a.points} 分</span>` : ''}
+                                <div class="bridge-assignment-actions">
+                                    <button
+                                        type="button"
+                                        class="bridge-assignment-action primary"
+                                        onclick="startAssignment('${assignment.assignmentId}', '${assignment.type}', '${assignment.resourceId || ''}', '${assignment.quizId || ''}', '${classId}')"
+                                    >
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9,18 15,12 9,6"/></svg>
+                                        <span>開始</span>
+                                    </button>
                                 </div>
-                            </div>
-                            <div style="color: var(--olive);">
-                                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9,18 15,12 9,6"/></svg>
-                            </div>
-                        </div>
-                    `).join('')}
+                            </article>
+                        `;
+                    }).join('')}
                 </div>
             `;
         }
