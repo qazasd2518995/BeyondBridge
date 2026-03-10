@@ -5857,7 +5857,7 @@
                                 </tr>
                             `).join('');
                         } else {
-                            tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 2rem; color: var(--text-secondary);">${t('admin.users.noUsers')}</td></tr>';
+                            tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; padding: 2rem; color: var(--text-secondary);">${t('admin.users.noUsers')}</td></tr>`;
                         }
                     }
 
@@ -6085,7 +6085,7 @@
                     `;
                 }).join('');
             } else {
-                tbody.innerHTML = '<tr><td colspan="7">${t('admin.users.noMatch')}</td></tr>';
+                tbody.innerHTML = `<tr><td colspan="7">${t('admin.users.noMatch')}</td></tr>`;
             }
         }
 
@@ -6235,7 +6235,7 @@
                         </tr>
                     `).join('');
                 } else {
-                    tbody.innerHTML = '<tr><td colspan="6">${t('admin.resources.noResources')}</td></tr>';
+                    tbody.innerHTML = `<tr><td colspan="6">${t('admin.resources.noResources')}</td></tr>`;
                 }
             } catch (error) {
                 console.error('Load resources error:', error);
@@ -6292,7 +6292,7 @@
                         </tr>
                     `).join('');
                 } else {
-                    tbody.innerHTML = '<tr><td colspan="6">${t('admin.licenses.noRecords')}</td></tr>';
+                    tbody.innerHTML = `<tr><td colspan="6">${t('admin.licenses.noRecords')}</td></tr>`;
                 }
             } catch (error) {
                 console.error('Load licenses error:', error);
@@ -6318,7 +6318,7 @@
                         </tr>
                     `).join('');
                 } else {
-                    tbody.innerHTML = '<tr><td colspan="6">${t('admin.announcements.noAnnouncements')}</td></tr>';
+                    tbody.innerHTML = `<tr><td colspan="6">${t('admin.announcements.noAnnouncements')}</td></tr>`;
                 }
             } catch (error) {
                 console.error('Load announcements error:', error);
@@ -7230,7 +7230,7 @@
 
             if (welcomeEl) welcomeEl.style.display = 'none';
             if (headerEl) headerEl.style.display = 'block';
-            if (messagesEl) messagesEl.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--gray-400);">${t('admin.support.loadingMessages')}</div>';
+            if (messagesEl) messagesEl.innerHTML = `<div style="text-align: center; padding: 2rem; color: var(--gray-400);">${t('admin.support.loadingMessages')}</div>`;
 
             const room = adminChatRooms.find(r => r.chatId === chatId);
             if (room) {
@@ -7275,7 +7275,7 @@
             if (!container) return;
 
             if (!messages || messages.length === 0) {
-                container.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--gray-400);">${t('admin.support.noMessages')}</div>';
+                container.innerHTML = `<div style="text-align: center; padding: 2rem; color: var(--gray-400);">${t('admin.support.noMessages')}</div>`;
                 return;
             }
 
@@ -7442,7 +7442,7 @@
                 if (!tbody) return;
 
                 if (courses.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--gray-400);">${t('admin.courses.noCourses')}</td></tr>';
+                    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--gray-400);">${t('admin.courses.noCourses')}</td></tr>`;
                     return;
                 }
 
@@ -7488,7 +7488,7 @@
             } catch (error) {
                 console.error('Load categories error:', error);
                 const container = document.getElementById('categoriesTreeContainer');
-                if (container) container.innerHTML = '<p style="text-align: center; color: var(--gray-400); padding: 1rem;">${t('admin.categories.loading')}</p>';
+                if (container) container.innerHTML = `<p style="text-align: center; color: var(--gray-400); padding: 1rem;">${t('admin.categories.loading')}</p>`;
             }
         }
 
@@ -7542,7 +7542,7 @@
                 if (!tbody) return;
 
                 if (questions.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--gray-400);">${t('admin.questionBank.noQuestions')}</td></tr>';
+                    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--gray-400);">${t('admin.questionBank.noQuestions')}</td></tr>`;
                     return;
                 }
 
@@ -7576,7 +7576,7 @@
             } catch (error) {
                 console.error('Load question bank error:', error);
                 const tbody = document.getElementById('questionsTableBody');
-                if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--gray-400);">${t('admin.questionBank.loading')}</td></tr>';
+                if (tbody) tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--gray-400);">${t('admin.questionBank.loading')}</td></tr>`;
             }
         }
 
@@ -7598,7 +7598,7 @@
                 if (!grid) return;
 
                 if (badges.length === 0) {
-                    grid.innerHTML = '<p style="text-align: center; color: var(--gray-400); grid-column: 1/-1; padding: 2rem;">${t('admin.badges.noBadges')}</p>';
+                    grid.innerHTML = `<p style="text-align: center; color: var(--gray-400); grid-column: 1/-1; padding: 2rem;">${t('admin.badges.noBadges')}</p>`;
                     return;
                 }
 
@@ -7636,7 +7636,7 @@
                 if (!container) return;
 
                 if (paths.length === 0) {
-                    container.innerHTML = '<p style="text-align: center; color: var(--gray-400); padding: 2rem;">${t('admin.paths.noPaths')}</p>';
+                    container.innerHTML = `<p style="text-align: center; color: var(--gray-400); padding: 2rem;">${t('admin.paths.noPaths')}</p>`;
                     return;
                 }
 
@@ -7658,7 +7658,7 @@
             } catch (error) {
                 console.error('Load learning paths error:', error);
                 const container = document.getElementById('learningPathsContainer');
-                if (container) container.innerHTML = '<p style="text-align: center; color: var(--gray-400); padding: 2rem;">${t('admin.paths.loading')}</p>';
+                if (container) container.innerHTML = `<p style="text-align: center; color: var(--gray-400); padding: 2rem;">${t('admin.paths.loading')}</p>`;
             }
         }
 
@@ -7680,7 +7680,7 @@
                 if (!tbody) return;
 
                 if (packages.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--gray-400);">${t('admin.scorm.noPackages')}</td></tr>';
+                    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--gray-400);">${t('admin.scorm.noPackages')}</td></tr>`;
                     return;
                 }
 
@@ -7700,7 +7700,7 @@
             } catch (error) {
                 console.error('Load SCORM error:', error);
                 const tbody = document.getElementById('scormTableBody');
-                if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--gray-400);">${t('admin.scorm.loading')}</td></tr>';
+                if (tbody) tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--gray-400);">${t('admin.scorm.loading')}</td></tr>`;
             }
         }
 
@@ -7720,7 +7720,7 @@
                 if (!tbody) return;
 
                 if (tools.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 2rem; color: var(--gray-400);">${t('admin.lti.noTools')}</td></tr>';
+                    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 2rem; color: var(--gray-400);">${t('admin.lti.noTools')}</td></tr>`;
                     return;
                 }
 
@@ -7760,7 +7760,7 @@
                 if (!tbody) return;
 
                 if (contents.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 2rem; color: var(--gray-400);">${t('admin.h5p.noContent')}</td></tr>';
+                    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 2rem; color: var(--gray-400);">${t('admin.h5p.noContent')}</td></tr>`;
                     return;
                 }
 
@@ -7780,7 +7780,7 @@
             } catch (error) {
                 console.error('Load H5P error:', error);
                 const tbody = document.getElementById('h5pTableBody');
-                if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 2rem; color: var(--gray-400);">${t('admin.h5p.loading')}</td></tr>';
+                if (tbody) tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 2rem; color: var(--gray-400);">${t('admin.h5p.loading')}</td></tr>`;
             }
         }
 
@@ -7847,7 +7847,7 @@
             } catch (error) {
                 console.error('Load roles error:', error);
                 const container = document.getElementById('rolesListContainer');
-                if (container) container.innerHTML = '<p style="text-align: center; color: var(--gray-500); padding: 1rem;">${t('admin.roles.loading')}</p>';
+                if (container) container.innerHTML = `<p style="text-align: center; color: var(--gray-500); padding: 1rem;">${t('admin.roles.loading')}</p>`;
             }
         }
 
@@ -7924,7 +7924,7 @@
                 if (!container) return;
 
                 if (rubrics.length === 0) {
-                    container.innerHTML = '<p style="text-align: center; color: var(--gray-400); padding: 2rem;">${t('admin.rubrics.noRubrics')}</p>';
+                    container.innerHTML = `<p style="text-align: center; color: var(--gray-400); padding: 2rem;">${t('admin.rubrics.noRubrics')}</p>`;
                     return;
                 }
 
@@ -7948,7 +7948,7 @@
             } catch (error) {
                 console.error('Load rubrics error:', error);
                 const container = document.getElementById('rubricsContainer');
-                if (container) container.innerHTML = '<p style="text-align: center; color: var(--gray-400); padding: 2rem;">${t('admin.rubrics.loading')}</p>';
+                if (container) container.innerHTML = `<p style="text-align: center; color: var(--gray-400); padding: 2rem;">${t('admin.rubrics.loading')}</p>`;
             }
         }
 
@@ -7961,7 +7961,7 @@
                 if (!tbody) return;
 
                 if (logs.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 2rem; color: var(--gray-400);">${t('admin.auditLogs.noLogs')}</td></tr>';
+                    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 2rem; color: var(--gray-400);">${t('admin.auditLogs.noLogs')}</td></tr>`;
                     return;
                 }
 
@@ -8152,50 +8152,118 @@
                 'licenses': t('admin.dataExport.licenseData'),
                 'analytics': t('admin.dataExport.analyticsData')
             };
+            const typeLabel = typeNames[type] || type;
+            const input = window.prompt(`${typeLabel} ${t('admin.dataExport.chooseFormat')} (csv/json/pdf)`, 'csv');
+            if (input === null) return;
+            const format = String(input).trim().toLowerCase();
+            if (!['csv', 'json', 'pdf'].includes(format)) {
+                alert(t('admin.error.operationFailed'));
+                return;
+            }
+            executeExport(type, format);
+        }
 
-            // 使用確認對話框詢問匯出格式
-            showConfirmDialog({
-                title: t('admin.dataExport.exportTitle', { type: typeNames[type] }),
-                message: `${t('admin.dataExport.chooseFormat')}：<br><br>
-                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                        <button class="btn btn-sm btn-secondary" onclick="executeExport('${type}', 'csv'); ConfirmDialog.close(false);">CSV</button>
-                        <button class="btn btn-sm btn-secondary" onclick="executeExport('${type}', 'json'); ConfirmDialog.close(false);">JSON</button>
-                        ${type !== 'analytics' ? '<button class="btn btn-sm btn-secondary" onclick="executeExport(\'' + type + '\', \'pdf\'); ConfirmDialog.close(false);">PDF</button>' : ''}
-                    </div>`,
-                type: 'info',
-                confirmText: t('common.cancel'),
-                onConfirm: () => {}
+        function buildAnalyticsExportRecords(data = {}) {
+            const summary = data.summary || {};
+            const daily = Array.isArray(data.dailyActiveUsers) ? data.dailyActiveUsers : [];
+            const topUsers = Array.isArray(data.topActiveUsers) ? data.topActiveUsers : [];
+
+            const records = [
+                { section: 'summary', metric: 'dau', value: summary.dau || 0 },
+                { section: 'summary', metric: 'wau', value: summary.wau || 0 },
+                { section: 'summary', metric: 'mau', value: summary.mau || 0 },
+                { section: 'summary', metric: 'retention', value: summary.retention || 0 }
+            ];
+
+            daily.forEach(item => {
+                records.push({
+                    section: 'daily_active_users',
+                    date: item.date || '',
+                    activeUsers: item.count ?? item.activeUsers ?? 0
+                });
             });
+
+            topUsers.forEach(user => {
+                records.push({
+                    section: 'top_active_users',
+                    userId: user.userId || '',
+                    name: user.name || '',
+                    role: user.role || '',
+                    activityCount: user.count || 0,
+                    lastActive: user.lastActive || ''
+                });
+            });
+
+            return records;
         }
 
         async function executeExport(type, format) {
             try {
-                let result;
+                let records = [];
+                let message = '';
 
                 switch (type) {
-                    case 'users':
-                        result = await API.admin.export.users({ format });
+                    case 'users': {
+                        const result = await API.admin.export.users({ format });
+                        if (!result.success) {
+                            alert(result.message || t('admin.error.operationFailed'));
+                            return;
+                        }
+                        records = Array.isArray(result?.data?.records) ? result.data.records : [];
+                        message = result.message || '';
                         break;
-                    case 'courses':
-                        result = await API.admin.export.courses({ format });
+                    }
+                    case 'courses': {
+                        const result = await API.admin.export.courses({ format });
+                        if (!result.success) {
+                            alert(result.message || t('admin.error.operationFailed'));
+                            return;
+                        }
+                        records = Array.isArray(result?.data?.records) ? result.data.records : [];
+                        message = result.message || '';
                         break;
-                    case 'licenses':
-                        result = await API.admin.export.licenses({ format });
+                    }
+                    case 'licenses': {
+                        const result = await API.admin.export.licenses({ format });
+                        if (!result.success) {
+                            alert(result.message || t('admin.error.operationFailed'));
+                            return;
+                        }
+                        records = Array.isArray(result?.data?.records) ? result.data.records : [];
+                        message = result.message || '';
                         break;
-                    default:
-                        alert(t('admin.wip'));
+                    }
+                    case 'analytics': {
+                        const range = document.getElementById('activityDateRange')?.value || '30d';
+                        const result = await API.admin.analytics.getUserActivity(range, 'day');
+                        if (!result.success) {
+                            alert(result.message || t('admin.error.operationFailed'));
+                            return;
+                        }
+                        records = buildAnalyticsExportRecords(result.data || {});
+                        message = result.message || '';
+                        break;
+                    }
+                    default: {
+                        alert(t('admin.error.operationFailed'));
                         return;
-                }
-
-                if (result.success && result.data.records) {
-                    if (format === 'csv') {
-                        downloadCSV(result.data.records, `${type}_export`);
-                    } else if (format === 'json') {
-                        downloadJSON(result.data.records, `${type}_export`);
-                    } else {
-                        alert(t('admin.dataExport.pdfWip'));
                     }
                 }
+
+                if (!records.length) {
+                    alert(t('admin.dataExport.noData'));
+                    return;
+                }
+
+                if (format === 'csv') {
+                    downloadCSV(records, `${type}_export`);
+                } else if (format === 'json') {
+                    downloadJSON(records, `${type}_export`);
+                } else {
+                    downloadPDF(records, `${type}_export`, t('admin.dataExport.exportTitle'));
+                }
+
+                showToast(message || '匯出完成');
             } catch (error) {
                 console.error('Export error:', error);
                 alert(t('admin.dataExport.exportFailed') + error.message);
@@ -8233,6 +8301,52 @@
             link.href = URL.createObjectURL(blob);
             link.download = `${filename}_${new Date().toISOString().slice(0, 10)}.json`;
             link.click();
+        }
+
+        function downloadPDF(data, filename, title = '') {
+            if (!Array.isArray(data) || data.length === 0) {
+                alert(t('admin.dataExport.noData'));
+                return;
+            }
+
+            const headers = Object.keys(data[0]);
+            const rowsHtml = data.map(row => `
+                <tr>${headers.map(header => `<td style="border:1px solid #ddd;padding:6px 8px;">${String(row[header] ?? '')}</td>`).join('')}</tr>
+            `).join('');
+
+            const html = `
+                <!doctype html>
+                <html>
+                <head>
+                    <meta charset="utf-8">
+                    <title>${title || filename}</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; margin: 20px; }
+                        h1 { font-size: 18px; margin-bottom: 12px; }
+                        table { border-collapse: collapse; width: 100%; font-size: 12px; }
+                        th { border: 1px solid #ddd; padding: 6px 8px; background: #f5f5f5; text-align: left; }
+                    </style>
+                </head>
+                <body>
+                    <h1>${title || filename}</h1>
+                    <table>
+                        <thead><tr>${headers.map(header => `<th>${header}</th>`).join('')}</tr></thead>
+                        <tbody>${rowsHtml}</tbody>
+                    </table>
+                </body>
+                </html>
+            `;
+
+            const printWindow = window.open('', '_blank');
+            if (!printWindow) {
+                alert(t('admin.error.operationFailed'));
+                return;
+            }
+
+            printWindow.document.write(html);
+            printWindow.document.close();
+            printWindow.focus();
+            printWindow.print();
         }
 
         // ========================================
@@ -8373,12 +8487,77 @@
             }
         }
 
-        function openAutomationModal() {
-            alert(t('admin.automation.editorWip'));
+        function parseJsonInput(raw, fallback = {}) {
+            if (!raw || !String(raw).trim()) return fallback;
+            return JSON.parse(raw);
         }
 
-        function editAutomationRule(ruleId) {
-            alert(t('admin.automation.editorWip'));
+        async function openAutomationModal() {
+            const name = promptRequiredField('規則名稱');
+            if (name === null) return;
+            const typeInput = promptOptionalField('規則類型（AUTO_APPROVE_LICENSE / AUTO_SEND_NOTIFICATION / AUTO_SUSPEND_USER / AUTO_ARCHIVE_COURSE / SCHEDULED_REPORT）', 'AUTO_SEND_NOTIFICATION');
+            if (typeInput === null) return;
+            const conditionsInput = promptOptionalField('觸發條件 JSON（可留空）', '{}');
+            if (conditionsInput === null) return;
+            const actionsInput = promptOptionalField('執行動作 JSON（可留空）', '{}');
+            if (actionsInput === null) return;
+
+            try {
+                const result = await API.admin.automation.createRule({
+                    name,
+                    type: typeInput || 'AUTO_SEND_NOTIFICATION',
+                    conditions: parseJsonInput(conditionsInput, {}),
+                    actions: parseJsonInput(actionsInput, {})
+                });
+
+                if (!result.success) {
+                    alert(result.message || t('admin.error.operationFailed'));
+                    return;
+                }
+
+                showToast(result.message || '規則建立成功');
+                await loadAutomationRules();
+            } catch (error) {
+                console.error('Create automation rule error:', error);
+                alert(t('admin.error.operationFailed') + ': ' + error.message);
+            }
+        }
+
+        async function editAutomationRule(ruleId) {
+            const rule = automationRulesData.find(item => (item.id || item.ruleId) === ruleId);
+            if (!rule) {
+                alert(t('admin.error.operationFailed'));
+                return;
+            }
+
+            const name = promptRequiredField('規則名稱', rule.name || '');
+            if (name === null) return;
+            const typeInput = promptOptionalField('規則類型（AUTO_APPROVE_LICENSE / AUTO_SEND_NOTIFICATION / AUTO_SUSPEND_USER / AUTO_ARCHIVE_COURSE / SCHEDULED_REPORT）', rule.type || 'AUTO_SEND_NOTIFICATION');
+            if (typeInput === null) return;
+            const conditionsInput = promptOptionalField('觸發條件 JSON（可留空）', JSON.stringify(rule.conditions || {}, null, 2));
+            if (conditionsInput === null) return;
+            const actionsInput = promptOptionalField('執行動作 JSON（可留空）', JSON.stringify(rule.actions || {}, null, 2));
+            if (actionsInput === null) return;
+
+            try {
+                const result = await API.admin.automation.updateRule(ruleId, {
+                    name,
+                    type: typeInput || rule.type,
+                    conditions: parseJsonInput(conditionsInput, {}),
+                    actions: parseJsonInput(actionsInput, {})
+                });
+
+                if (!result.success) {
+                    alert(result.message || t('admin.error.operationFailed'));
+                    return;
+                }
+
+                showToast(result.message || '規則更新成功');
+                await loadAutomationRules();
+            } catch (error) {
+                console.error('Update automation rule error:', error);
+                alert(t('admin.error.operationFailed') + ': ' + error.message);
+            }
         }
 
         // ========================================
@@ -8658,21 +8837,315 @@
         }
 
         function exportActivityReport() {
-            alert(t('admin.userActivity.exportWip'));
+            showExportModal('analytics');
         }
 
-        // Placeholder functions for modal dialogs
-        function openCreateCourseModal() { alert(t('admin.courses.createWip')); }
-        function openCreateCategoryModal() { alert(t('admin.categories.createWip')); }
-        function openCreateQuestionModal() { alert(t('admin.questionBank.createWip')); }
-        function openCreateBadgeModal() { alert(t('admin.badges.createWip')); }
-        function openCreatePathModal() { alert(t('admin.paths.createWip')); }
-        function openUploadScormModal() { alert(t('admin.scorm.uploadWip')); }
-        function openCreateLtiModal() { alert(t('admin.lti.createWip')); }
-        function openCreateH5pModal() { alert(t('admin.h5p.createWip')); }
-        function openCreateRoleModal() { alert(t('admin.roles.createWip')); }
-        function openCreateRubricModal() { alert(t('admin.rubrics.createWip')); }
-        function importQuestions() { alert(t('admin.questionBank.importWip')); }
+        function promptRequiredField(label, defaultValue = '') {
+            let hint = defaultValue;
+            while (true) {
+                const value = window.prompt(label, hint);
+                if (value === null) return null;
+                const trimmed = String(value).trim();
+                if (trimmed) return trimmed;
+                alert('此欄位為必填，請重新輸入。');
+                hint = '';
+            }
+        }
+
+        function promptOptionalField(label, defaultValue = '') {
+            const value = window.prompt(label, defaultValue);
+            if (value === null) return null;
+            return String(value).trim();
+        }
+
+        async function runCreateAction(action, reloadFn, successFallback) {
+            try {
+                const result = await action();
+                if (!result?.success) {
+                    alert(result?.message || t('admin.error.operationFailed'));
+                    return false;
+                }
+
+                showToast(result.message || successFallback || '操作成功');
+                if (typeof reloadFn === 'function') {
+                    await reloadFn();
+                }
+                return true;
+            } catch (error) {
+                console.error('Create action error:', error);
+                alert(t('admin.error.operationFailed') + ': ' + error.message);
+                return false;
+            }
+        }
+
+        async function openCreateCourseModal() {
+            const title = promptRequiredField('請輸入課程名稱');
+            if (title === null) return;
+            const description = promptOptionalField('課程描述（可留空）', '');
+            if (description === null) return;
+            const category = promptOptionalField('課程類別代碼（預設 general）', 'general');
+            if (category === null) return;
+            const visibilityInput = promptOptionalField('課程可見性（show=發布, hide=草稿）', 'show');
+            if (visibilityInput === null) return;
+            const visibility = visibilityInput.toLowerCase() === 'hide' ? 'hide' : 'show';
+
+            await runCreateAction(
+                () => API.courses.create({
+                    title,
+                    description,
+                    summary: description,
+                    category: category || 'general',
+                    visibility
+                }),
+                loadCourses,
+                '課程建立成功'
+            );
+        }
+
+        async function openCreateCategoryModal() {
+            const name = promptRequiredField('請輸入類別名稱');
+            if (name === null) return;
+            const description = promptOptionalField('類別描述（可留空）', '');
+            if (description === null) return;
+
+            await runCreateAction(
+                () => API.courseCategories.create({ name, description }),
+                loadCourseCategories,
+                '類別建立成功'
+            );
+        }
+
+        async function openCreateQuestionModal() {
+            const questionText = promptRequiredField('請輸入題目內容');
+            if (questionText === null) return;
+            const optionsInput = promptOptionalField('選項（使用 | 分隔，留空則建立簡答題）', '');
+            if (optionsInput === null) return;
+            const options = optionsInput
+                ? optionsInput.split('|').map(opt => opt.trim()).filter(Boolean)
+                : [];
+            const categoryId = promptOptionalField('題目類別 ID（可留空）', 'cat_default');
+            if (categoryId === null) return;
+            const difficultyInput = promptOptionalField('難度（easy/medium/hard）', 'medium');
+            if (difficultyInput === null) return;
+            const difficulty = ['easy', 'medium', 'hard'].includes(difficultyInput.toLowerCase())
+                ? difficultyInput.toLowerCase()
+                : 'medium';
+
+            let correctAnswer = null;
+            if (options.length > 0) {
+                const correctIndexInput = promptOptionalField(`正確答案序號（1-${options.length}）`, '1');
+                if (correctIndexInput === null) return;
+                const parsed = parseInt(correctIndexInput, 10);
+                correctAnswer = Number.isInteger(parsed) && parsed >= 1 && parsed <= options.length
+                    ? parsed - 1
+                    : 0;
+            }
+
+            await runCreateAction(
+                () => API.questionBank.create({
+                    questionText,
+                    type: options.length > 0 ? 'multiple_choice' : 'short_answer',
+                    options,
+                    correctAnswer,
+                    categoryId: categoryId || 'cat_default',
+                    difficulty
+                }),
+                loadQuestionBank,
+                '題目建立成功'
+            );
+        }
+
+        async function openCreateBadgeModal() {
+            const name = promptRequiredField('請輸入徽章名稱');
+            if (name === null) return;
+            const description = promptOptionalField('徽章描述（可留空）', '');
+            if (description === null) return;
+            const icon = promptOptionalField('徽章圖示（emoji，可留空）', '🏆');
+            if (icon === null) return;
+            const color = promptOptionalField('徽章顏色（Hex）', '#f59e0b');
+            if (color === null) return;
+
+            await runCreateAction(
+                () => API.badges.create({
+                    name,
+                    description,
+                    icon: icon || '🏆',
+                    color: color || '#f59e0b',
+                    status: 'active'
+                }),
+                loadBadges,
+                '徽章建立成功'
+            );
+        }
+
+        async function openCreatePathModal() {
+            const name = promptRequiredField('請輸入學習路徑名稱');
+            if (name === null) return;
+            const description = promptOptionalField('學習路徑描述（可留空）', '');
+            if (description === null) return;
+            const difficultyInput = promptOptionalField('難度（beginner/intermediate/advanced）', 'beginner');
+            if (difficultyInput === null) return;
+            const durationInput = promptOptionalField('預估時數（數字，可留空）', '0');
+            if (durationInput === null) return;
+            const estimatedDuration = Math.max(parseInt(durationInput, 10) || 0, 0);
+
+            await runCreateAction(
+                () => API.learningPaths.create({
+                    name,
+                    description,
+                    difficulty: difficultyInput || 'beginner',
+                    estimatedDuration,
+                    status: 'active'
+                }),
+                loadLearningPaths,
+                '學習路徑建立成功'
+            );
+        }
+
+        async function openUploadScormModal() {
+            const name = promptRequiredField('請輸入 SCORM 包名稱');
+            if (name === null) return;
+            const courseId = promptRequiredField('請輸入課程 ID（必要）');
+            if (courseId === null) return;
+            const description = promptOptionalField('SCORM 描述（可留空）', '');
+            if (description === null) return;
+            const versionInput = promptOptionalField('SCORM 版本（1.2/2004）', '2004');
+            if (versionInput === null) return;
+            const entryUrl = promptOptionalField('入口 URL（可留空）', '');
+            if (entryUrl === null) return;
+
+            await runCreateAction(
+                () => API.scorm.create({
+                    name,
+                    description,
+                    courseId,
+                    version: versionInput === '1.2' ? '1.2' : '2004',
+                    entryUrl: entryUrl || undefined
+                }),
+                loadScorm,
+                'SCORM 包建立成功'
+            );
+        }
+
+        async function openCreateLtiModal() {
+            const name = promptRequiredField('請輸入 LTI 工具名稱');
+            if (name === null) return;
+            const toolUrl = promptRequiredField('請輸入工具 URL');
+            if (toolUrl === null) return;
+            const description = promptOptionalField('工具描述（可留空）', '');
+            if (description === null) return;
+            const versionInput = promptOptionalField('LTI 版本（1.1/1.3）', '1.3');
+            if (versionInput === null) return;
+
+            await runCreateAction(
+                () => API.ltiTools.create({
+                    name,
+                    toolUrl,
+                    description,
+                    version: versionInput === '1.1' ? '1.1' : '1.3'
+                }),
+                loadLti,
+                'LTI 工具建立成功'
+            );
+        }
+
+        async function openCreateH5pModal() {
+            const title = promptRequiredField('請輸入 H5P 標題');
+            if (title === null) return;
+            const contentType = promptRequiredField('請輸入 H5P 類型（例如 H5P.InteractiveVideo）', 'H5P.InteractiveVideo');
+            if (contentType === null) return;
+            const description = promptOptionalField('內容描述（可留空）', '');
+            if (description === null) return;
+            const courseId = promptOptionalField('課程 ID（可留空）', '');
+            if (courseId === null) return;
+
+            await runCreateAction(
+                () => API.h5p.create({
+                    title,
+                    contentType,
+                    description,
+                    courseId: courseId || null
+                }),
+                loadH5p,
+                'H5P 內容建立成功'
+            );
+        }
+
+        async function openCreateRoleModal() {
+            const name = promptRequiredField('請輸入角色名稱');
+            if (name === null) return;
+            const description = promptOptionalField('角色描述（可留空）', '');
+            if (description === null) return;
+
+            await runCreateAction(
+                () => API.roles.create({
+                    name,
+                    nameEn: name,
+                    description,
+                    capabilities: []
+                }),
+                loadRoles,
+                '角色建立成功'
+            );
+        }
+
+        async function openCreateRubricModal() {
+            const name = promptRequiredField('請輸入評分標準名稱');
+            if (name === null) return;
+            const description = promptOptionalField('評分標準描述（可留空）', '');
+            if (description === null) return;
+
+            await runCreateAction(
+                () => API.rubrics.create({
+                    name,
+                    description,
+                    criteria: []
+                }),
+                loadRubrics,
+                '評分標準建立成功'
+            );
+        }
+
+        async function importQuestions() {
+            const sample = JSON.stringify([
+                {
+                    questionText: '範例題目：以下哪個是 JavaScript 的執行環境？',
+                    type: 'multiple_choice',
+                    options: ['Node.js', 'Figma', 'Photoshop'],
+                    correctAnswer: 0,
+                    difficulty: 'easy'
+                }
+            ], null, 2);
+
+            const raw = window.prompt('請貼上題目 JSON 陣列（Array）', sample);
+            if (raw === null) return;
+
+            let questions;
+            try {
+                questions = JSON.parse(raw);
+            } catch (error) {
+                alert('JSON 格式錯誤，請提供有效的 JSON 陣列。');
+                return;
+            }
+
+            if (!Array.isArray(questions) || questions.length === 0) {
+                alert('請提供至少一筆題目資料。');
+                return;
+            }
+
+            const categoryId = promptOptionalField('指定匯入 categoryId（可留空）', '');
+            if (categoryId === null) return;
+
+            await runCreateAction(
+                () => API.questionBank.import({
+                    questions,
+                    categoryId: categoryId || undefined
+                }),
+                loadQuestionBank,
+                `成功匯入 ${questions.length} 題`
+            );
+        }
+
         function filterQuestionsByCategory(categoryId) { console.log('Filter by category:', categoryId); }
 
         // 請求通知權限（由用戶互動觸發）

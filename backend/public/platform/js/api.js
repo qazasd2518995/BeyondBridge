@@ -551,6 +551,40 @@ const API = {
           method: 'PUT'
         });
       }
+    },
+
+    systemHealth: {
+      async get() {
+        return API.request('/admin/system/health');
+      },
+
+      async getErrors(filters = {}) {
+        const params = new URLSearchParams(filters).toString();
+        return API.request(`/admin/system/errors${params ? '?' + params : ''}`);
+      }
+    },
+
+    export: {
+      async users(data = {}) {
+        return API.request('/admin/export/users', {
+          method: 'POST',
+          body: data
+        });
+      },
+
+      async courses(data = {}) {
+        return API.request('/admin/export/courses', {
+          method: 'POST',
+          body: data
+        });
+      },
+
+      async licenses(data = {}) {
+        return API.request('/admin/export/licenses', {
+          method: 'POST',
+          body: data
+        });
+      }
     }
   },
 

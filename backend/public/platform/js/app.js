@@ -1860,14 +1860,13 @@ const App = {
    */
   async openDiscussion(postId) {
     try {
-      const result = await API.discussions.get(postId);
-      if (result.success) {
-        const post = result.data;
-        // 這裡可以顯示討論詳情 Modal 或導航到詳情頁
-        alert(`討論：${post.title}\n\n${post.content}\n\n回覆數：${post.replyCount || 0}`);
+      showView('moodleForums');
+      if (typeof MoodleUI !== 'undefined' && typeof MoodleUI.loadForums === 'function') {
+        await MoodleUI.loadForums();
       }
+      showToast('已導向新版討論區，請從課程論壇查看完整討論。');
     } catch (error) {
-      console.error('Open discussion error:', error);
+      console.error('Open discussion redirect error:', error);
       showToast(t('toast.discussionLoadFailed'));
     }
   },
@@ -2013,14 +2012,13 @@ const App = {
    */
   async openConsultation(consultationId) {
     try {
-      const result = await API.consultations.get(consultationId);
-      if (result.success) {
-        const c = result.data;
-        // 這裡可以顯示詳情 Modal
-        alert(`諮詢：${c.title}\n\n說明：${c.description}\n\n狀態：${c.status}`);
+      showView('consultations');
+      if (window.ChatModule && typeof window.ChatModule.loadRooms === 'function') {
+        await window.ChatModule.loadRooms();
       }
+      showToast('已導向客服中心，可從左側對話紀錄繼續處理。');
     } catch (error) {
-      console.error('Open consultation error:', error);
+      console.error('Open consultation redirect error:', error);
       showToast(t('toast.consultationFailed'));
     }
   },
@@ -2998,7 +2996,7 @@ const App = {
             const avatarColors = ['var(--olive)', 'var(--terracotta)', '#6366f1', '#059669', '#1976D2'];
             const colorIndex = (p.authorName || '').charCodeAt(0) % avatarColors.length || 0;
             return `
-            <div class="discussion-card" style="background:var(--white);border-radius:12px;padding:1.5rem;margin-bottom:1rem;box-shadow:0 2px 8px rgba(0,0,0,0.06);cursor:pointer;display:flex;gap:1rem;" onclick="typeof MoodleUI !== 'undefined' && MoodleUI.openDiscussion && MoodleUI.openDiscussion('${p.id || p.postId}')">
+            <div class="discussion-card" style="background:var(--white);border-radius:12px;padding:1.5rem;margin-bottom:1rem;box-shadow:0 2px 8px rgba(0,0,0,0.06);cursor:pointer;display:flex;gap:1rem;" onclick="App.openDiscussion('${p.id || p.postId}')">
               <div class="discussion-avatar" style="width:48px;height:48px;background:${avatarColors[colorIndex]};border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--cream);font-weight:600;flex-shrink:0;">${(p.authorName || t('app.anonymous'))[0]}</div>
               <div class="discussion-content" style="flex:1;">
                 <h4 style="font-size:1.1rem;font-weight:600;margin-bottom:0.25rem;">${p.title}</h4>
