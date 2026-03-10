@@ -13,7 +13,14 @@ const path = require('path');
 const fs = require('fs').promises;
 const crypto = require('crypto');
 const { S3Client, PutObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
-const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
+let getSignedUrl = null;
+try {
+  ({ getSignedUrl } = require('@aws-sdk/s3-request-presigner'));
+} catch (error) {
+  // Optional dependency in some deploy environments.
+  // Keep server booting; signed upload URL API will return 503 when unavailable.
+  console.warn('[files] Optional dependency @aws-sdk/s3-request-presigner not found.');
+}
 
 // S3 設定
 const S3_BUCKET = process.env.S3_BUCKET || 'beyondbridge-files';
@@ -170,6 +177,14 @@ router.post('/upload', authMiddleware, async (req, res) => {
  */
 router.post('/request-upload-url', authMiddleware, async (req, res) => {
   try {
+    if (typeof getSignedUrl !== 'function') {
+      return res.status(503).json({
+        success: false,
+        error: 'SERVICE_UNAVAILABLE',
+        message: '簽名上傳服務暫時不可用，請改用一般上傳 API'
+      });
+    }
+
     const userId = req.user.userId;
     const { filename, contentType, size } = req.body;
 
