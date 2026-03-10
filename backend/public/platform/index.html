@@ -1677,6 +1677,40 @@
             box-shadow: 0 10px 20px rgba(26, 58, 92, 0.16);
         }
 
+        .quiz-tab,
+        .disc-tab,
+        .consult-tab {
+            border: none;
+            border-radius: 999px;
+            background: var(--gray-100);
+            color: var(--gray-600);
+            padding: 0.625rem 1rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .quiz-tab:hover,
+        .disc-tab:hover,
+        .consult-tab:hover {
+            background: var(--gray-200);
+            color: var(--olive-deep);
+            transform: translateY(-1px);
+        }
+
+        .quiz-tab.active,
+        .disc-tab.active,
+        .consult-tab.active,
+        .quiz-tab[aria-selected="true"],
+        .disc-tab[aria-selected="true"],
+        .consult-tab[aria-selected="true"] {
+            background: linear-gradient(135deg, var(--olive) 0%, var(--olive-deep) 100%);
+            color: var(--cream);
+            box-shadow: 0 8px 16px rgba(26, 58, 92, 0.14);
+        }
+
         .bridge-detail-panel[hidden] {
             display: none !important;
         }
@@ -6610,13 +6644,18 @@
         }
 
         // ========== 測驗題庫功能 ==========
-        function switchQuizTab(btn, tabName) {
-            document.querySelectorAll('.quiz-tab').forEach(t => {
-                t.style.background = 'var(--gray-100)';
-                t.style.color = 'var(--gray-600)';
+        function setLegacyTabState(selector, activeButton) {
+            document.querySelectorAll(selector).forEach((tab) => {
+                const isActive = tab === activeButton;
+                tab.classList.toggle('active', isActive);
+                if (tab.hasAttribute('aria-selected')) {
+                    tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+                }
             });
-            btn.style.background = 'var(--olive)';
-            btn.style.color = 'var(--cream)';
+        }
+
+        function switchQuizTab(btn, tabName) {
+            setLegacyTabState('.quiz-tab', btn);
 
             // 根據分頁篩選測驗
             const filters = {};
@@ -6646,12 +6685,7 @@
 
         // ========== 互動討論功能 ==========
         function switchDiscTab(btn, tabName) {
-            document.querySelectorAll('.disc-tab').forEach(t => {
-                t.style.background = 'var(--gray-100)';
-                t.style.color = 'var(--gray-600)';
-            });
-            btn.style.background = 'var(--olive)';
-            btn.style.color = 'var(--cream)';
+            setLegacyTabState('.disc-tab', btn);
 
             const filterMap = {
                 all: 'all',
@@ -6818,12 +6852,15 @@
 
         // ========== 諮詢服務功能 ==========
         function openNewConsultationModal() {
-            document.getElementById('newConsultationModal').style.display = 'flex';
+            const modal = document.getElementById('newConsultationModal');
+            if (modal) modal.classList.add('open');
         }
 
         function closeNewConsultationModal() {
-            document.getElementById('newConsultationModal').style.display = 'none';
-            document.getElementById('consultationForm').reset();
+            const modal = document.getElementById('newConsultationModal');
+            const form = document.getElementById('consultationForm');
+            if (modal) modal.classList.remove('open');
+            if (form) form.reset();
         }
 
         async function submitConsultation(event) {
@@ -6849,12 +6886,7 @@
         }
 
         function switchConsultTab(btn, filter) {
-            document.querySelectorAll('.consult-tab').forEach(t => {
-                t.style.background = 'var(--gray-100)';
-                t.style.color = 'var(--gray-600)';
-            });
-            btn.style.background = 'var(--olive)';
-            btn.style.color = 'var(--cream)';
+            setLegacyTabState('.consult-tab', btn);
 
             // 根據篩選條件載入諮詢
             if (filter === 'all') {

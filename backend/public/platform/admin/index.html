@@ -991,6 +991,285 @@
         .queue-item .status-dot.active { background: var(--success); }
         .queue-item .status-dot.closed { background: var(--gray-400); }
 
+        .support-tab-list {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .support-tab {
+            padding: 0.5rem 1.25rem;
+            border: none;
+            background: var(--gray-100);
+            color: var(--gray-600);
+            border-radius: 999px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .support-tab:hover {
+            background: var(--gray-200);
+            color: var(--terracotta);
+            transform: translateY(-1px);
+        }
+
+        .support-tab.active,
+        .support-tab[aria-selected="true"] {
+            background: var(--terracotta);
+            color: white;
+            box-shadow: 0 8px 18px rgba(195, 103, 68, 0.2);
+        }
+
+        .admin-support-workspace {
+            display: grid;
+            grid-template-columns: minmax(280px, 350px) minmax(0, 1fr);
+            gap: 1rem;
+            height: calc(100vh - 340px);
+            min-height: 400px;
+            align-items: stretch;
+        }
+
+        .admin-support-panel {
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        .admin-support-queue {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0.5rem;
+        }
+
+        .admin-support-header {
+            padding: 1rem;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .admin-support-window-header {
+            padding: 1rem;
+            border-bottom: 1px solid var(--gray-200);
+            background: white;
+        }
+
+        .admin-support-window-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .admin-support-user {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            min-width: 0;
+        }
+
+        .admin-support-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--terracotta);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .admin-support-user-copy {
+            min-width: 0;
+        }
+
+        .admin-support-user-name {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--olive-deep);
+        }
+
+        .admin-support-user-email {
+            font-size: 0.8rem;
+            color: var(--gray-500);
+            overflow-wrap: anywhere;
+        }
+
+        .admin-support-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .admin-support-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            background: var(--gray-50);
+            min-height: 0;
+        }
+
+        .admin-support-welcome {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100%;
+            padding: 2rem 1rem;
+            text-align: center;
+            color: var(--gray-400);
+        }
+
+        .admin-support-welcome svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 1rem;
+            opacity: 0.3;
+        }
+
+        .admin-support-welcome h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+            color: var(--gray-600);
+        }
+
+        .admin-support-welcome p {
+            max-width: 320px;
+            font-size: 0.9rem;
+        }
+
+        .admin-support-typing {
+            padding: 0.5rem 1rem;
+            background: var(--gray-50);
+            border-top: 1px solid var(--gray-100);
+        }
+
+        .admin-support-typing-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--gray-500);
+            font-size: 0.85rem;
+        }
+
+        .admin-support-typing-dots {
+            display: flex;
+            gap: 3px;
+        }
+
+        .admin-support-typing-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--gray-400);
+            border-radius: 50%;
+            animation: typing 1s infinite;
+        }
+
+        .admin-support-typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .admin-support-typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        .admin-support-input {
+            padding: 1rem;
+            border-top: 1px solid var(--gray-200);
+            background: white;
+        }
+
+        .admin-support-input-row {
+            display: flex;
+            gap: 0.75rem;
+            align-items: flex-end;
+        }
+
+        .admin-support-input-field {
+            flex: 1;
+        }
+
+        .admin-support-textarea {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--gray-300);
+            border-radius: 20px;
+            font-size: 0.95rem;
+            resize: none;
+            max-height: 120px;
+            line-height: 1.4;
+            background: white;
+        }
+
+        .admin-support-textarea:focus {
+            outline: none;
+            border-color: var(--olive);
+            box-shadow: 0 0 0 4px rgba(168, 184, 154, 0.18);
+        }
+
+        .admin-support-send {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .admin-chat-state {
+            text-align: center;
+            padding: 2rem 1rem;
+            color: var(--gray-400);
+            font-size: 0.9rem;
+        }
+
+        .admin-chat-state.is-error {
+            color: var(--danger);
+        }
+
+        .admin-audit-toolbar {
+            margin-bottom: 1rem;
+        }
+
+        .admin-audit-filters {
+            padding: 1rem;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .admin-audit-field {
+            width: 150px;
+            max-width: 100%;
+        }
+
+        .admin-audit-field.is-wide {
+            width: 200px;
+        }
+
+        .admin-audit-separator {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .admin-pagination-wrap {
+            padding: 1rem;
+            display: flex;
+            justify-content: center;
+        }
+
+        .audit-log-details {
+            max-width: 300px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
         /* Analytics Dashboard Styles */
         .analytics-metrics {
             display: grid;
@@ -2969,7 +3248,8 @@
             .system-metrics-grid,
             .activity-charts-grid,
             .activity-bottom-grid,
-            .role-layout {
+            .role-layout,
+            .admin-support-workspace {
                 grid-template-columns: 1fr;
             }
         }
@@ -2985,12 +3265,27 @@
 
             .admin-pending-body,
             .admin-pending-meta,
-            .admin-toolbar-group {
+            .admin-toolbar-group,
+            .admin-support-window-head,
+            .admin-support-actions,
+            .admin-support-input-row,
+            .admin-audit-filters {
                 flex-direction: column;
                 align-items: stretch;
             }
 
-            .admin-search-input {
+            .admin-search-input,
+            .admin-audit-field,
+            .admin-audit-field.is-wide {
+                width: 100%;
+            }
+
+            .support-tab-list {
+                display: grid;
+                grid-template-columns: 1fr;
+            }
+
+            .admin-support-send {
                 width: 100%;
             }
         }
@@ -3766,84 +4061,84 @@
                 </div>
 
                 <!-- Support Tabs -->
-                <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
-                    <button class="support-tab active" onclick="switchSupportTab(this, 'waiting')" style="padding: 0.5rem 1.25rem; border: none; background: var(--terracotta); color: white; border-radius: 20px; cursor: pointer; font-weight: 500;">
+                <div class="support-tab-list" role="tablist" aria-label="客服對話狀態">
+                    <button type="button" class="support-tab active" onclick="switchSupportTab(this, 'waiting')" role="tab" aria-selected="true">
                         <span data-i18n="admin.support.tabWaiting">需處理</span> <span id="waitingTabCount">(0)</span>
                     </button>
-                    <button class="support-tab" onclick="switchSupportTab(this, 'active')" style="padding: 0.5rem 1.25rem; border: none; background: var(--gray-100); color: var(--gray-600); border-radius: 20px; cursor: pointer;">
+                    <button type="button" class="support-tab" onclick="switchSupportTab(this, 'active')" role="tab" aria-selected="false">
                         <span data-i18n="admin.support.tabActive">進行中</span> <span id="activeTabCount">(0)</span>
                     </button>
-                    <button class="support-tab" onclick="switchSupportTab(this, 'closed')" style="padding: 0.5rem 1.25rem; border: none; background: var(--gray-100); color: var(--gray-600); border-radius: 20px; cursor: pointer;">
+                    <button type="button" class="support-tab" onclick="switchSupportTab(this, 'closed')" role="tab" aria-selected="false">
                         <span data-i18n="admin.support.tabClosed">已結束</span>
                     </button>
                 </div>
 
                 <!-- Support Container -->
-                <div style="display: grid; grid-template-columns: 350px 1fr; gap: 1rem; height: calc(100vh - 340px); min-height: 400px;">
+                <div class="admin-support-workspace">
                     <!-- Chat Queue -->
-                    <div class="card" style="overflow: hidden; display: flex; flex-direction: column;">
-                        <div class="card-header" style="padding: 1rem; border-bottom: 1px solid var(--gray-200);">
-                            <h3 style="font-size: 0.95rem; font-weight: 600;" data-i18n="admin.support.chatQueue">客服隊列</h3>
+                    <div class="card admin-support-panel">
+                        <div class="card-header admin-support-header">
+                            <h3 data-i18n="admin.support.chatQueue">客服隊列</h3>
                         </div>
-                        <div id="adminChatQueue" style="flex: 1; overflow-y: auto; padding: 0.5rem;">
-                            <div style="text-align: center; padding: 2rem 1rem; color: var(--gray-400);">
-                                <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1" style="margin-bottom: 0.5rem; opacity: 0.5;">
+                        <div id="adminChatQueue" class="admin-support-queue">
+                            <div class="admin-empty-state">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
                                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                                 </svg>
-                                <p style="font-size: 0.85rem;" data-i18n="admin.support.noWaiting">目前沒有等待中的對話</p>
+                                <p data-i18n="admin.support.noWaiting">目前沒有等待中的對話</p>
                             </div>
                         </div>
                     </div>
 
                     <!-- Admin Chat Window -->
-                    <div class="card" style="overflow: hidden; display: flex; flex-direction: column;">
+                    <div class="card admin-support-panel">
                         <!-- Chat Header -->
-                        <div id="adminChatHeader" style="padding: 1rem; border-bottom: 1px solid var(--gray-200); display: none;">
-                            <div style="display: flex; align-items: center; justify-content: space-between;">
-                                <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                    <div id="adminChatUserAvatar" style="width: 40px; height: 40px; border-radius: 50%; background: var(--terracotta); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">U</div>
-                                    <div>
-                                        <h4 id="adminChatUserName" style="font-size: 0.95rem; font-weight: 600;" data-i18n="admin.support.user">用戶</h4>
-                                        <p id="adminChatUserEmail" style="font-size: 0.8rem; color: var(--gray-500);">user@example.com</p>
+                        <div id="adminChatHeader" class="admin-support-window-header" hidden>
+                            <div class="admin-support-window-head">
+                                <div class="admin-support-user">
+                                    <div id="adminChatUserAvatar" class="admin-support-avatar">U</div>
+                                    <div class="admin-support-user-copy">
+                                        <h4 id="adminChatUserName" class="admin-support-user-name" data-i18n="admin.support.user">用戶</h4>
+                                        <p id="adminChatUserEmail" class="admin-support-user-email">user@example.com</p>
                                     </div>
                                 </div>
-                                <div style="display: flex; gap: 0.5rem;">
-                                    <button onclick="adminClaimChat()" id="claimChatBtn" style="padding: 0.5rem 1rem; background: var(--olive); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem;" data-i18n="admin.support.claimChat">接手對話</button>
-                                    <button onclick="adminCloseChat()" style="padding: 0.5rem 1rem; background: var(--gray-100); border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem;" data-i18n="admin.support.closeChat">結束對話</button>
+                                <div class="admin-support-actions">
+                                    <button onclick="adminClaimChat()" id="claimChatBtn" class="btn btn-primary btn-sm" data-i18n="admin.support.claimChat" hidden>接手對話</button>
+                                    <button onclick="adminCloseChat()" class="btn btn-secondary btn-sm" data-i18n="admin.support.closeChat">結束對話</button>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Chat Messages -->
-                        <div id="adminChatMessages" style="flex: 1; overflow-y: auto; padding: 1rem; background: var(--gray-50);">
-                            <div id="adminChatWelcome" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; color: var(--gray-400);">
-                                <svg viewBox="0 0 24 24" width="80" height="80" fill="none" stroke="currentColor" stroke-width="1" style="margin-bottom: 1rem; opacity: 0.3;">
+                        <div id="adminChatMessages" class="admin-support-messages">
+                            <div id="adminChatWelcome" class="admin-support-welcome">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
                                     <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
                                 </svg>
-                                <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem; color: var(--gray-600);" data-i18n="admin.support.workspace">客服工作台</h3>
-                                <p style="font-size: 0.9rem; max-width: 300px;" data-i18n="admin.support.selectChat">選擇左側隊列中的對話開始服務用戶</p>
+                                <h3 data-i18n="admin.support.workspace">客服工作台</h3>
+                                <p data-i18n="admin.support.selectChat">選擇左側隊列中的對話開始服務用戶</p>
                             </div>
                         </div>
 
                         <!-- Admin Typing Indicator -->
-                        <div id="adminTypingIndicator" style="display: none; padding: 0.5rem 1rem; background: var(--gray-50); border-top: 1px solid var(--gray-100);">
-                            <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--gray-500); font-size: 0.85rem;">
-                                <div style="display: flex; gap: 3px;">
-                                    <span style="width: 6px; height: 6px; background: var(--gray-400); border-radius: 50%; animation: typing 1s infinite;"></span>
-                                    <span style="width: 6px; height: 6px; background: var(--gray-400); border-radius: 50%; animation: typing 1s infinite 0.2s;"></span>
-                                    <span style="width: 6px; height: 6px; background: var(--gray-400); border-radius: 50%; animation: typing 1s infinite 0.4s;"></span>
+                        <div id="adminTypingIndicator" class="admin-support-typing" hidden>
+                            <div class="admin-support-typing-row">
+                                <div class="admin-support-typing-dots" aria-hidden="true">
+                                    <span class="admin-support-typing-dot"></span>
+                                    <span class="admin-support-typing-dot"></span>
+                                    <span class="admin-support-typing-dot"></span>
                                 </div>
                                 <span id="adminTypingUser" data-i18n="admin.support.userTyping">用戶正在輸入...</span>
                             </div>
                         </div>
 
                         <!-- Admin Chat Input -->
-                        <div id="adminChatInput" style="display: none; padding: 1rem; border-top: 1px solid var(--gray-200); background: white;">
-                            <div style="display: flex; gap: 0.75rem; align-items: flex-end;">
-                                <div style="flex: 1;">
-                                    <textarea id="adminMessageInput" placeholder="輸入回覆訊息..." data-i18n-placeholder="admin.support.replyPlaceholder" rows="1" style="width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--gray-300); border-radius: 20px; font-size: 0.95rem; resize: none; max-height: 120px; line-height: 1.4;" onkeydown="handleAdminChatKeyDown(event)" oninput="handleAdminChatInput(this)"></textarea>
+                        <div id="adminChatInput" class="admin-support-input" hidden>
+                            <div class="admin-support-input-row">
+                                <div class="admin-support-input-field">
+                                    <textarea id="adminMessageInput" class="admin-support-textarea" placeholder="輸入回覆訊息..." data-i18n-placeholder="admin.support.replyPlaceholder" rows="1" onkeydown="handleAdminChatKeyDown(event)" oninput="handleAdminChatInput(this)"></textarea>
                                 </div>
-                                <button onclick="sendAdminMessage()" style="padding: 0.75rem 1.25rem; background: var(--olive); color: white; border: none; border-radius: 20px; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-weight: 500;">
+                                <button onclick="sendAdminMessage()" class="btn btn-primary admin-support-send">
                                     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                                     <span data-i18n="admin.support.send">發送</span>
                                 </button>
@@ -4148,18 +4443,18 @@
                 <div class="admin-header">
                     <h2 data-i18n="admin.auditLogs.title">審計日誌</h2>
                     <div class="admin-header-actions">
-                        <button class="btn-secondary" onclick="exportAuditLogs()">
+                        <button class="btn btn-secondary" onclick="exportAuditLogs()">
                             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                             <span data-i18n="admin.auditLogs.exportLogs">匯出日誌</span>
                         </button>
                     </div>
                 </div>
-                <div class="card" style="margin-bottom: 1rem;">
-                    <div style="padding: 1rem; display: flex; gap: 1rem; flex-wrap: wrap;">
-                        <input type="date" class="form-input" id="auditDateFrom" style="width: 150px;">
-                        <span style="line-height: 38px;" data-i18n="admin.auditLogs.to">至</span>
-                        <input type="date" class="form-input" id="auditDateTo" style="width: 150px;">
-                        <select class="form-select" id="auditActionType" style="width: 150px;">
+                <div class="card admin-audit-toolbar">
+                    <div class="admin-audit-filters">
+                        <input type="date" class="form-input admin-audit-field" id="auditDateFrom">
+                        <span class="admin-audit-separator" data-i18n="admin.auditLogs.to">至</span>
+                        <input type="date" class="form-input admin-audit-field" id="auditDateTo">
+                        <select class="form-select admin-audit-field" id="auditActionType">
                             <option value="" data-i18n="admin.auditLogs.allActions">所有操作</option>
                             <option value="login" data-i18n="admin.auditLogs.login">登入</option>
                             <option value="logout" data-i18n="admin.auditLogs.logout">登出</option>
@@ -4167,8 +4462,8 @@
                             <option value="update" data-i18n="admin.auditLogs.update">更新</option>
                             <option value="delete" data-i18n="admin.auditLogs.delete">刪除</option>
                         </select>
-                        <input type="text" class="form-input" placeholder="搜尋用戶..." id="auditUserSearch" style="width: 200px;" data-i18n-placeholder="admin.auditLogs.searchUser">
-                        <button class="btn-primary" onclick="filterAuditLogs()" data-i18n="admin.auditLogs.filter">篩選</button>
+                        <input type="text" class="form-input admin-audit-field is-wide" placeholder="搜尋用戶..." id="auditUserSearch" data-i18n-placeholder="admin.auditLogs.searchUser">
+                        <button class="btn btn-primary" onclick="filterAuditLogs()" data-i18n="admin.auditLogs.filter">篩選</button>
                     </div>
                 </div>
                 <div class="card">
@@ -4176,7 +4471,7 @@
                         <thead><tr><th data-i18n="admin.auditLogs.time">時間</th><th data-i18n="admin.auditLogs.user">用戶</th><th data-i18n="admin.auditLogs.actionType">操作類型</th><th data-i18n="admin.auditLogs.target">目標</th><th data-i18n="admin.auditLogs.ipAddress">IP 位址</th><th data-i18n="admin.auditLogs.details">詳細</th></tr></thead>
                         <tbody id="auditLogsTableBody"><tr><td colspan="6" style="text-align: center; padding: 2rem;" data-i18n="common.loading">載入中...</td></tr></tbody>
                     </table>
-                    <div style="padding: 1rem; display: flex; justify-content: center;">
+                    <div class="admin-pagination-wrap">
                         <div id="auditLogsPagination"></div>
                     </div>
                 </div>
@@ -6165,6 +6460,8 @@
         let currentAdminChatId = null;
         let adminTypingTimeout = null;
         let currentSupportFilter = 'waiting';
+        let adminAuditLogs = [];
+        let filteredAdminAuditLogs = [];
 
         // 用戶管理全域變數
         let allUsers = [];
@@ -7521,6 +7818,110 @@
             return div.innerHTML;
         }
 
+        function renderAdminChatState(message, tone = 'default') {
+            const toneClass = tone === 'error' ? ' is-error' : '';
+            return `<div class="admin-chat-state${toneClass}">${escapeHtml(message)}</div>`;
+        }
+
+        function getAuditLogsFromPayload(payload) {
+            const candidates = [
+                payload,
+                payload?.logs,
+                payload?.items,
+                payload?.records,
+                payload?.results,
+                payload?.entries,
+                payload?.data
+            ];
+            return candidates.find(Array.isArray) || [];
+        }
+
+        function normalizeAuditLog(log = {}) {
+            const detailsValue = typeof log.details === 'string'
+                ? log.details
+                : typeof log.description === 'string'
+                    ? log.description
+                    : (log.details || log.meta || log.payload || '');
+
+            let detailsText = '-';
+            if (typeof detailsValue === 'string' && detailsValue.trim()) {
+                detailsText = detailsValue.trim();
+            } else if (detailsValue && typeof detailsValue === 'object') {
+                try {
+                    detailsText = JSON.stringify(detailsValue);
+                } catch (_) {
+                    detailsText = '-';
+                }
+            }
+
+            return {
+                timestamp: log.timestamp || log.createdAt || log.time || log.date || null,
+                user: log.userName || log.userDisplayName || log.actorName || log.userId || log.actorId || '-',
+                action: log.action || log.actionType || log.eventType || log.type || '-',
+                target: log.resourceType || log.targetType || log.target || log.resourceId || log.entity || '-',
+                ipAddress: log.ipAddress || log.ip || log.clientIp || log.sourceIp || '-',
+                details: detailsText
+            };
+        }
+
+        function getAuditLogFilters() {
+            return {
+                from: document.getElementById('auditDateFrom')?.value || '',
+                to: document.getElementById('auditDateTo')?.value || '',
+                action: document.getElementById('auditActionType')?.value || '',
+                user: (document.getElementById('auditUserSearch')?.value || '').trim().toLowerCase()
+            };
+        }
+
+        function applyAuditLogFilters(logs, filters = getAuditLogFilters()) {
+            return logs.filter((log) => {
+                const logTime = log.timestamp ? new Date(log.timestamp) : null;
+                const fromMatch = !filters.from || (logTime && logTime >= new Date(`${filters.from}T00:00:00`));
+                const toMatch = !filters.to || (logTime && logTime <= new Date(`${filters.to}T23:59:59.999`));
+                const actionValue = String(log.action || '').toLowerCase();
+                const userValue = String(log.user || '').toLowerCase();
+                const actionMatch = !filters.action || actionValue === filters.action.toLowerCase();
+                const userMatch = !filters.user || userValue.includes(filters.user);
+                return fromMatch && toMatch && actionMatch && userMatch;
+            });
+        }
+
+        function renderAuditLogsTable(logs) {
+            const tbody = document.getElementById('auditLogsTableBody');
+            if (!tbody) return;
+
+            if (!Array.isArray(logs) || logs.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--gray-400);">${t('admin.auditLogs.noLogs')}</td></tr>`;
+                return;
+            }
+
+            const actionLabels = {
+                create: t('admin.auditLogs.actionCreate'),
+                update: t('admin.auditLogs.actionUpdate'),
+                delete: t('admin.auditLogs.actionDelete'),
+                login: t('admin.auditLogs.actionLogin'),
+                logout: t('admin.auditLogs.actionLogout')
+            };
+
+            tbody.innerHTML = logs.slice(0, 100).map((log) => {
+                const timeLabel = log.timestamp
+                    ? new Date(log.timestamp).toLocaleString('zh-TW')
+                    : '-';
+                const actionLabel = actionLabels[String(log.action || '').toLowerCase()] || log.action || '-';
+
+                return `
+                    <tr>
+                        <td>${escapeHtml(timeLabel)}</td>
+                        <td>${escapeHtml(String(log.user || '-'))}</td>
+                        <td><span class="badge badge-info">${escapeHtml(String(actionLabel))}</span></td>
+                        <td>${escapeHtml(String(log.target || '-'))}</td>
+                        <td>${escapeHtml(String(log.ipAddress || '-'))}</td>
+                        <td class="audit-log-details" title="${escapeHtml(String(log.details || '-'))}">${escapeHtml(String(log.details || '-'))}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
         // 格式化時間
         function formatTime(isoString) {
             if (!isoString) return '';
@@ -7604,7 +8005,8 @@
                 adminSocket.on('chat:closed', (data) => {
                     if (data.chatId === currentAdminChatId) {
                         appendAdminSystemMessage(t('admin.support.chatEnded'));
-                        document.getElementById('adminChatInput').style.display = 'none';
+                        const inputEl = document.getElementById('adminChatInput');
+                        if (inputEl) inputEl.hidden = true;
                     }
                     loadAdminChatRooms();
                 });
@@ -7623,7 +8025,7 @@
             try {
                 const response = await API.request('/chat/admin/rooms');
                 if (response.success) {
-                    adminChatRooms = response.data;
+                    adminChatRooms = Array.isArray(response.data) ? response.data : [];
                     renderAdminChatQueue();
                     updateSupportStats(response.counts);
                 }
@@ -7661,13 +8063,10 @@
         function switchSupportTab(btn, filter) {
             currentSupportFilter = filter;
             document.querySelectorAll('.support-tab').forEach(t => {
-                t.classList.remove('active');
-                t.style.background = 'var(--gray-100)';
-                t.style.color = 'var(--gray-600)';
+                const isActive = t === btn;
+                t.classList.toggle('active', isActive);
+                t.setAttribute('aria-selected', isActive ? 'true' : 'false');
             });
-            btn.classList.add('active');
-            btn.style.background = 'var(--terracotta)';
-            btn.style.color = 'white';
             renderAdminChatQueue();
         }
 
@@ -7690,12 +8089,17 @@
             });
 
             if (filteredRooms.length === 0) {
+                const emptyMessage = currentSupportFilter === 'waiting'
+                    ? t('admin.support.noWaiting')
+                    : currentSupportFilter === 'active'
+                        ? t('admin.support.noActive')
+                        : t('admin.support.noClosed');
                 container.innerHTML = `
-                    <div style="text-align: center; padding: 2rem 1rem; color: var(--gray-400);">
-                        <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1" style="margin-bottom: 0.5rem; opacity: 0.5;">
+                    <div class="admin-empty-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
                             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                         </svg>
-                        <p style="font-size: 0.85rem;">${currentSupportFilter === 'waiting' ? t('admin.support.noWaiting') : currentSupportFilter === 'active' ? t('admin.support.noActive') : t('admin.support.noClosed')}</p>
+                        <p>${escapeHtml(emptyMessage)}</p>
                     </div>
                 `;
                 return;
@@ -7742,9 +8146,9 @@
             const headerEl = document.getElementById('adminChatHeader');
             const messagesEl = document.getElementById('adminChatMessages');
 
-            if (welcomeEl) welcomeEl.style.display = 'none';
-            if (headerEl) headerEl.style.display = 'block';
-            if (messagesEl) messagesEl.innerHTML = `<div style="text-align: center; padding: 2rem; color: var(--gray-400);">${t('admin.support.loadingMessages')}</div>`;
+            if (welcomeEl) welcomeEl.hidden = true;
+            if (headerEl) headerEl.hidden = false;
+            if (messagesEl) messagesEl.innerHTML = renderAdminChatState(t('admin.support.loadingMessages'));
 
             const room = adminChatRooms.find(r => r.chatId === chatId);
             if (room) {
@@ -7772,14 +8176,14 @@
             if (emailEl) emailEl.textContent = room.userEmail || '';
 
             if (room.status === 'waiting') {
-                if (claimBtn) claimBtn.style.display = 'block';
-                if (inputEl) inputEl.style.display = 'none';
+                if (claimBtn) claimBtn.hidden = false;
+                if (inputEl) inputEl.hidden = true;
             } else if (room.status === 'active') {
-                if (claimBtn) claimBtn.style.display = 'none';
-                if (inputEl) inputEl.style.display = 'block';
+                if (claimBtn) claimBtn.hidden = true;
+                if (inputEl) inputEl.hidden = false;
             } else {
-                if (claimBtn) claimBtn.style.display = 'none';
-                if (inputEl) inputEl.style.display = 'none';
+                if (claimBtn) claimBtn.hidden = true;
+                if (inputEl) inputEl.hidden = true;
             }
         }
 
@@ -7789,7 +8193,7 @@
             if (!container) return;
 
             if (!messages || messages.length === 0) {
-                container.innerHTML = `<div style="text-align: center; padding: 2rem; color: var(--gray-400);">${t('admin.support.noMessages')}</div>`;
+                container.innerHTML = renderAdminChatState(t('admin.support.noMessages'));
                 return;
             }
 
@@ -7822,7 +8226,7 @@
         function appendAdminMessage(msg) {
             const container = document.getElementById('adminChatMessages');
             if (!container) return;
-            const emptyHint = container.querySelector('div[style*="text-align: center"]');
+            const emptyHint = container.querySelector('.admin-chat-state');
             if (emptyHint) emptyHint.remove();
             container.insertAdjacentHTML('beforeend', createAdminMessageHTML(msg));
         }
@@ -7849,8 +8253,10 @@
 
                 if (response.success) {
                     showToast(t('admin.support.claimed'));
-                    document.getElementById('claimChatBtn').style.display = 'none';
-                    document.getElementById('adminChatInput').style.display = 'block';
+                    const claimBtn = document.getElementById('claimChatBtn');
+                    const inputEl = document.getElementById('adminChatInput');
+                    if (claimBtn) claimBtn.hidden = true;
+                    if (inputEl) inputEl.hidden = false;
                     loadAdminChatRooms();
                 }
             } catch (error) {
@@ -7927,7 +8333,7 @@
             const indicator = document.getElementById('adminTypingIndicator');
             const userSpan = document.getElementById('adminTypingUser');
             if (indicator && userSpan) {
-                indicator.style.display = isTyping ? 'block' : 'none';
+                indicator.hidden = !isTyping;
                 userSpan.textContent = t('admin.support.userTypingName', { name: userName });
             }
         }
@@ -8461,40 +8867,71 @@
 
         // Load Audit Logs
         async function loadAuditLogs() {
+            const tbody = document.getElementById('auditLogsTableBody');
             try {
-                const result = await API.auditLogs.list({ limit: 100 });
-                const payload = result?.success ? result.data : null;
-                const logs = Array.isArray(payload)
-                    ? payload
-                    : (Array.isArray(payload?.logs) ? payload.logs : []);
-                const tbody = document.getElementById('auditLogsTableBody');
-                if (!tbody) return;
-
-                if (logs.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 2rem; color: var(--gray-400);">${t('admin.auditLogs.noLogs')}</td></tr>`;
-                    return;
+                if (tbody) {
+                    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--gray-400);">${t('common.loading')}</td></tr>`;
                 }
 
-                const actionLabels = {
-                    'create': t('admin.auditLogs.actionCreate'),
-                    'update': t('admin.auditLogs.actionUpdate'),
-                    'delete': t('admin.auditLogs.actionDelete'),
-                    'login': t('admin.auditLogs.actionLogin'),
-                    'logout': t('admin.auditLogs.actionLogout')
-                };
-
-                tbody.innerHTML = logs.slice(0, 100).map(log => `
-                    <tr>
-                        <td>${new Date(log.timestamp || log.createdAt || Date.now()).toLocaleString('zh-TW')}</td>
-                        <td>${log.userName || log.userId}</td>
-                        <td><span class="badge badge-info">${actionLabels[log.action] || log.action || log.eventType || '-'}</span></td>
-                        <td>${log.resourceType || log.targetType || '-'}</td>
-                        <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis;">${log.details || log.description || '-'}</td>
-                    </tr>
-                `).join('');
+                const filters = getAuditLogFilters();
+                const result = await API.auditLogs.list({
+                    limit: 500,
+                    from: filters.from || undefined,
+                    to: filters.to || undefined,
+                    action: filters.action || undefined,
+                    user: filters.user || undefined
+                });
+                const payload = result?.success ? result.data : null;
+                adminAuditLogs = getAuditLogsFromPayload(payload).map(normalizeAuditLog);
+                filteredAdminAuditLogs = applyAuditLogFilters(adminAuditLogs, filters);
+                renderAuditLogsTable(filteredAdminAuditLogs);
             } catch (error) {
                 console.error('Load audit logs error:', error);
+                if (tbody) {
+                    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--danger);">${t('admin.auditLogs.loadFailed') || '載入失敗'}</td></tr>`;
+                }
             }
+        }
+
+        function filterAuditLogs() {
+            filteredAdminAuditLogs = applyAuditLogFilters(adminAuditLogs);
+            renderAuditLogsTable(filteredAdminAuditLogs);
+        }
+
+        function exportAuditLogs() {
+            const exportRows = (filteredAdminAuditLogs.length ? filteredAdminAuditLogs : adminAuditLogs);
+            if (!Array.isArray(exportRows) || exportRows.length === 0) {
+                showToast(t('admin.auditLogs.noLogs'));
+                return;
+            }
+
+            const lines = [
+                ['時間', '用戶', '操作類型', '目標', 'IP 位址', '詳細']
+                    .map((value) => `"${String(value).replace(/"/g, '""')}"`)
+                    .join(',')
+            ];
+
+            exportRows.forEach((log) => {
+                lines.push([
+                    log.timestamp ? new Date(log.timestamp).toLocaleString('zh-TW') : '-',
+                    log.user || '-',
+                    log.action || '-',
+                    log.target || '-',
+                    log.ipAddress || '-',
+                    log.details || '-'
+                ].map((value) => `"${String(value).replace(/"/g, '""')}"`).join(','));
+            });
+
+            const blob = new Blob([`\uFEFF${lines.join('\n')}`], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const anchor = document.createElement('a');
+            const stamp = new Date().toISOString().slice(0, 10);
+            anchor.href = url;
+            anchor.download = `audit-logs-${stamp}.csv`;
+            document.body.appendChild(anchor);
+            anchor.click();
+            document.body.removeChild(anchor);
+            URL.revokeObjectURL(url);
         }
 
         // ========================================
