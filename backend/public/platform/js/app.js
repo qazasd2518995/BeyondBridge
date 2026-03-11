@@ -2921,24 +2921,199 @@ const App = {
     try {
       const result = await API.resources.list({ type: 'video' });
       const videos = result.success ? (result.data || []) : [];
+      const escapeText = value => {
+        if (typeof window.escapeHtml === 'function') return window.escapeHtml(value);
+        if (value === null || value === undefined) return '';
+        return String(value)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      };
+      const inlineValue = value => `'${String(value || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
+      const compactNumber = value => {
+        const numericValue = Number(value);
+        if (!Number.isFinite(numericValue)) return '--';
+        return new Intl.NumberFormat(I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW', {
+          notation: numericValue >= 1000 ? 'compact' : 'standard',
+          maximumFractionDigits: numericValue >= 1000 ? 1 : 0
+        }).format(numericValue);
+      };
+
+      const normalizedVideos = videos.map(video => {
+        const videoId = video.resourceId || video.id || video.videoId || '';
+        const existingMeta = typeof videoData !== 'undefined' && videoData[videoId] ? videoData[videoId] : {};
+        const contentUrl = video.contentUrl || video.videoUrl || video.url || '';
+        const youtubeId = (typeof getYouTubeId === 'function' && contentUrl) ? getYouTubeId(contentUrl) : null;
+        const progress = Math.max(0, Math.min(100, Number(video.progress ?? video.userProgress ?? existingMeta.progress ?? 0) || 0));
+        const category = video.category || video.subject || (Array.isArray(video.tags) && video.tags[0]) || '影音橋段';
+        const author = video.creatorName || video.authorName || video.author || existingMeta.author || t('app.unknownAuthor');
+        const viewsValue = video.viewCount ?? video.views ?? existingMeta.views ?? null;
+        const duration = video.duration || video.length || existingMeta.duration || '--:--';
+        const description = video.description || video.summary || existingMeta.description || '';
+
+        if (typeof videoData !== 'undefined' && videoId) {
+          videoData[videoId] = {
+            ...existingMeta,
+            title: video.title || existingMeta.title || '未命名影片',
+            author,
+            duration,
+            views: viewsValue !== null && viewsValue !== undefined ? compactNumber(viewsValue) : (existingMeta.views || '--'),
+            youtubeId: youtubeId || existingMeta.youtubeId || null,
+            description,
+            progress
+          };
+        }
+
+        return {
+          ...video,
+          videoId,
+          contentUrl,
+          youtubeId,
+          progress,
+          category,
+          author,
+          duration,
+          description,
+          viewsLabel: viewsValue !== null && viewsValue !== undefined ? compactNumber(viewsValue) : '--'
+        };
+      });
+
+      const startedCount = normalizedVideos.filter(video => video.progress > 0).length;
+      const completedCount = normalizedVideos.filter(video => video.progress >= 100).length;
+
       container.innerHTML = `
-        <div class="video-stats" style="margin-bottom:1rem;">
-          <span style="color:var(--gray-500);">${videos.length} ${t('app.videoCount')}</span>
-        </div>
-        <div class="videos-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1.5rem;">
-          ${videos.map(v => `
-            <div class="video-card" style="background:var(--white);border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);cursor:pointer;" onclick="openVideoPlayer && openVideoPlayer('${v.resourceId || ''}')">
-              <div class="video-thumbnail" style="position:relative;aspect-ratio:16/9;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);display:flex;align-items:center;justify-content:center;">
-                <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="#f5f0e8" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polygon points="10,8 16,12 10,16" fill="#f5f0e8"/></svg>
+        <section class="video-library-shell">
+          <div class="video-library-header">
+            <div class="video-library-copy">
+              <span class="video-library-count">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23,7 16,12 23,17"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                <span>${normalizedVideos.length} ${t('app.videoCount')}</span>
+              </span>
+              <h2 class="video-library-title">${t('sidebar.videos') || '影音橋段'}</h2>
+              <p class="video-library-subtitle">把影片列表收斂成同一套平台語言，保留進度、作者與分類資訊，點進去會直接接到新版 viewer shell。</p>
+            </div>
+          </div>
+
+          <div class="video-library-stats">
+            <div class="video-library-stat">
+              <div class="video-library-stat-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23,7 16,12 23,17"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
               </div>
-              <div class="video-info" style="padding:1rem;">
-                <h4 style="font-size:1rem;font-weight:600;margin-bottom:0.5rem;">${v.title}</h4>
-                <p style="font-size:0.85rem;color:var(--gray-500);">${v.description || ''}</p>
+              <div>
+                <div class="video-library-stat-value">${normalizedVideos.length}</div>
+                <div class="video-library-stat-label">可用影片</div>
               </div>
             </div>
-          `).join('')}
-          ${videos.length === 0 ? `<div class="empty-state" style="text-align:center;padding:3rem;color:var(--gray-500);grid-column:1/-1;"><p>${t('app.noVideos')}</p></div>` : ''}
-        </div>
+            <div class="video-library-stat">
+              <div class="video-library-stat-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </div>
+              <div>
+                <div class="video-library-stat-value">${startedCount}</div>
+                <div class="video-library-stat-label">已開始學習</div>
+              </div>
+            </div>
+            <div class="video-library-stat">
+              <div class="video-library-stat-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <div>
+                <div class="video-library-stat-value">${completedCount}</div>
+                <div class="video-library-stat-label">已完成</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="video-library-toolbar">
+            <div class="bridge-form-group" style="margin-bottom:0;">
+              <label class="bridge-form-label" for="videoSearch">搜尋影片</label>
+              <input id="videoSearch" type="text" class="bridge-form-control" placeholder="搜尋標題或作者" oninput="filterVideos()">
+            </div>
+            <div class="bridge-form-group" style="margin-bottom:0;">
+              <label class="bridge-form-label" for="videoCategory">分類</label>
+              <select id="videoCategory" class="bridge-form-control" onchange="filterVideos()">
+                <option value="">全部分類</option>
+                ${Array.from(new Set(normalizedVideos.map(video => video.category).filter(Boolean))).map(category => `<option value="${escapeText(category)}">${escapeText(category)}</option>`).join('')}
+              </select>
+            </div>
+            <div class="bridge-form-group" style="margin-bottom:0;">
+              <label class="bridge-form-label" for="videoDuration">學習狀態</label>
+              <select id="videoDuration" class="bridge-form-control" onchange="filterVideos()">
+                <option value="">全部狀態</option>
+                <option value="not_started">尚未開始</option>
+                <option value="in_progress">學習中</option>
+                <option value="completed">已完成</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="videoGrid" class="video-library-grid">
+            ${normalizedVideos.map(video => `
+              <article
+                class="video-card video-library-card"
+                data-video-id="${escapeText(video.videoId)}"
+                data-title="${escapeText((video.title || '').toLowerCase())}"
+                data-author="${escapeText((video.author || '').toLowerCase())}"
+                data-category="${escapeText(video.category || '')}"
+                data-progress="${video.progress}"
+                onclick="openVideoPlayer && openVideoPlayer(${inlineValue(video.videoId)}, ${video.contentUrl ? inlineValue(video.contentUrl) : 'undefined'})">
+                <div class="video-library-thumb">
+                  <div class="video-library-play">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10,8 16,12 10,16" fill="currentColor"/></svg>
+                  </div>
+                  <div class="video-library-thumb-meta">
+                    <span class="video-library-chip">${escapeText(video.category || '影音橋段')}</span>
+                    <span class="video-library-duration">${escapeText(video.duration || '--:--')}</span>
+                  </div>
+                </div>
+                <div class="video-library-body">
+                  <div>
+                    <h3 class="video-library-card-title">${escapeText(video.title || '未命名影片')}</h3>
+                    <p class="video-library-card-desc">${escapeText((video.description || '').trim() ? (String(video.description).replace(/\s+/g, ' ').trim().slice(0, 120) + (String(video.description).replace(/\s+/g, ' ').trim().length > 120 ? '...' : '')) : '這支影片目前尚未提供補充說明。')}</p>
+                  </div>
+                  <div class="video-library-card-meta">
+                    <span style="display:inline-flex; align-items:center; gap:0.35rem;">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                      <span>${escapeText(video.author)}</span>
+                    </span>
+                    <span style="display:inline-flex; align-items:center; gap:0.35rem;">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+                      <span>${escapeText(video.viewsLabel)} 次觀看</span>
+                    </span>
+                  </div>
+                  <div class="video-library-progress-block">
+                    <div class="video-library-progress-head">
+                      <span>學習進度</span>
+                      <span>${video.progress}%</span>
+                    </div>
+                    <div class="video-progress">
+                      <div class="video-progress-fill" style="width:${video.progress}%;"></div>
+                    </div>
+                  </div>
+                  <div class="video-library-card-actions">
+                    <button type="button" class="video-library-card-action secondary" onclick="event.stopPropagation(); addToPlaylist(${inlineValue(video.videoId)})">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                      <span>稍後觀看</span>
+                    </button>
+                    <button type="button" class="video-library-card-action primary" onclick="event.stopPropagation(); openVideoPlayer && openVideoPlayer(${inlineValue(video.videoId)}, ${video.contentUrl ? inlineValue(video.contentUrl) : 'undefined'})">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5,3 19,12 5,21"/></svg>
+                      <span>立即播放</span>
+                    </button>
+                  </div>
+                </div>
+              </article>
+            `).join('')}
+            ${normalizedVideos.length === 0 ? `
+              <div class="discussion-state" style="grid-column:1 / -1;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="23,7 16,12 23,17"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                <div class="discussion-state-title">${t('app.noVideos')}</div>
+                <div class="discussion-state-copy">目前還沒有可用的影音橋段，稍後再回來看看。</div>
+              </div>
+            ` : ''}
+          </div>
+        </section>
       `;
     } catch (error) {
       console.error('loadVideosView error:', error);
