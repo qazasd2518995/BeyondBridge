@@ -96,9 +96,12 @@ const App = {
    */
   showApp() {
     document.getElementById('loginView').hidden = true;
-    document.getElementById('appContainer').hidden = false;
     this.updateUserUI();
     this.updateSidebarByRole();
+    if (typeof window.showView === 'function') {
+      window.showView('dashboard');
+    }
+    document.getElementById('appContainer').hidden = false;
   },
 
   /**
