@@ -1974,6 +1974,1135 @@
             overflow-wrap: anywhere;
         }
 
+        .discussions-shell {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .discussions-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .discussions-header-copy {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+
+        .discussions-title {
+            font-size: clamp(1.35rem, 2vw, 1.7rem);
+            font-weight: 600;
+            color: var(--charcoal);
+            line-height: 1.15;
+        }
+
+        .discussions-subtitle {
+            font-size: 0.92rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            max-width: 52rem;
+        }
+
+        .discussion-count-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            align-self: flex-start;
+            padding: 0.45rem 0.8rem;
+            border-radius: 999px;
+            background: rgba(74, 93, 35, 0.1);
+            color: var(--olive-deep);
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+        }
+
+        .discussions-header-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .discussion-header-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            white-space: nowrap;
+        }
+
+        .discussion-header-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .discussion-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .discussion-card {
+            --discussion-accent: var(--olive);
+            display: flex;
+            gap: 1rem;
+            align-items: flex-start;
+            padding: 1.35rem;
+            border-radius: var(--radius-lg);
+            border: 1px solid rgba(74, 93, 35, 0.16);
+            background:
+                radial-gradient(circle at top right, rgba(191, 161, 74, 0.08), transparent 40%),
+                linear-gradient(180deg, var(--white) 0%, var(--surface-light) 100%);
+            box-shadow: var(--shadow-sm);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+        }
+
+        .discussion-card:hover {
+            border-color: rgba(74, 93, 35, 0.28);
+            box-shadow: var(--shadow-md);
+            transform: translateY(-1px);
+        }
+
+        .discussion-card.tone-0 { --discussion-accent: var(--olive); }
+        .discussion-card.tone-1 { --discussion-accent: var(--terracotta); }
+        .discussion-card.tone-2 { --discussion-accent: #5b6bd6; }
+        .discussion-card.tone-3 { --discussion-accent: #16806f; }
+        .discussion-card.tone-4 { --discussion-accent: #2f6ccf; }
+
+        .discussion-avatar {
+            width: 54px;
+            height: 54px;
+            border-radius: 16px;
+            flex-shrink: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--cream);
+            background: linear-gradient(135deg, var(--discussion-accent) 0%, color-mix(in srgb, var(--discussion-accent) 72%, white) 100%);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        }
+
+        .discussion-content {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.9rem;
+        }
+
+        .discussion-topline {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .discussion-title-group {
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+
+        .discussion-title {
+            font-size: 1.08rem;
+            font-weight: 600;
+            color: var(--charcoal);
+            line-height: 1.4;
+            overflow-wrap: anywhere;
+        }
+
+        .discussion-meta {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            flex-wrap: wrap;
+            font-size: 0.82rem;
+            color: var(--gray-500);
+        }
+
+        .discussion-meta-separator {
+            color: var(--gray-300);
+        }
+
+        .discussion-category {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.28rem 0.7rem;
+            border-radius: 999px;
+            background: rgba(74, 93, 35, 0.1);
+            color: var(--olive-deep);
+            font-size: 0.74rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+        }
+
+        .discussion-preview {
+            color: var(--gray-700);
+            line-height: 1.75;
+            font-size: 0.94rem;
+            overflow-wrap: anywhere;
+        }
+
+        .discussion-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .discussion-stats {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            flex-wrap: wrap;
+        }
+
+        .discussion-stat {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.48rem 0.8rem;
+            border-radius: 999px;
+            background: var(--gray-100);
+            color: var(--gray-600);
+            font-size: 0.82rem;
+            font-weight: 600;
+            border: 1px solid transparent;
+        }
+
+        .discussion-stat svg,
+        .discussion-action-btn svg,
+        .discussion-state svg,
+        .discussion-count-pill svg,
+        .discussion-modal-intro-icon svg {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+        }
+
+        .discussion-stat-button {
+            border: none;
+            cursor: pointer;
+            transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .discussion-stat-button:hover {
+            color: var(--olive-deep);
+            background: rgba(74, 93, 35, 0.12);
+            border-color: rgba(74, 93, 35, 0.18);
+            transform: translateY(-1px);
+        }
+
+        .discussion-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 0.65rem;
+            flex-wrap: wrap;
+        }
+
+        .discussion-action-btn {
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.45rem;
+            padding: 0.72rem 1rem;
+            border-radius: 12px;
+            font-size: 0.84rem;
+            font-weight: 700;
+            transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .discussion-action-btn.primary {
+            color: var(--cream);
+            background: linear-gradient(135deg, var(--olive) 0%, var(--olive-deep) 100%);
+            box-shadow: 0 10px 20px rgba(26, 58, 92, 0.14);
+        }
+
+        .discussion-action-btn.primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 12px 24px rgba(26, 58, 92, 0.18);
+        }
+
+        .discussion-action-btn.secondary {
+            color: var(--gray-700);
+            background: var(--gray-100);
+        }
+
+        .discussion-action-btn.secondary:hover {
+            color: var(--olive-deep);
+            background: var(--gray-200);
+            transform: translateY(-1px);
+        }
+
+        .discussion-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.85rem;
+            padding: 3rem 1.5rem;
+            border-radius: var(--radius-lg);
+            border: 1px dashed rgba(74, 93, 35, 0.22);
+            background: linear-gradient(180deg, rgba(252, 250, 244, 0.9) 0%, rgba(255, 255, 255, 0.96) 100%);
+            text-align: center;
+            color: var(--gray-500);
+        }
+
+        .discussion-state svg {
+            width: 32px;
+            height: 32px;
+            color: var(--olive);
+        }
+
+        .discussion-state-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--charcoal);
+        }
+
+        .discussion-state-copy {
+            max-width: 32rem;
+            line-height: 1.7;
+        }
+
+        .discussion-state.is-error {
+            border-color: rgba(193, 122, 94, 0.28);
+            background: linear-gradient(180deg, rgba(255, 247, 244, 0.95) 0%, rgba(255, 255, 255, 0.98) 100%);
+        }
+
+        .discussion-state.is-error svg,
+        .discussion-state.is-error .discussion-state-title {
+            color: var(--terracotta);
+        }
+
+        .discussion-modal {
+            max-width: 640px;
+        }
+
+        .discussion-modal .modal-body {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .discussion-modal-intro {
+            display: flex;
+            gap: 1rem;
+            align-items: flex-start;
+            padding: 1rem 1.1rem;
+            border-radius: var(--radius-lg);
+            background: linear-gradient(135deg, rgba(74, 93, 35, 0.08) 0%, rgba(191, 161, 74, 0.08) 100%);
+            border: 1px solid rgba(74, 93, 35, 0.12);
+        }
+
+        .discussion-modal-intro-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--olive) 0%, var(--olive-deep) 100%);
+            color: var(--cream);
+            flex-shrink: 0;
+        }
+
+        .discussion-modal-intro-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--charcoal);
+            margin-bottom: 0.25rem;
+        }
+
+        .discussion-modal-intro-copy {
+            color: var(--gray-600);
+            font-size: 0.88rem;
+            line-height: 1.6;
+        }
+
+        .discussion-modal-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 1rem;
+        }
+
+        .discussion-form-textarea {
+            min-height: 160px;
+            resize: vertical;
+        }
+
+        .discussion-modal-note {
+            margin-right: auto;
+            font-size: 0.82rem;
+            color: var(--gray-500);
+            line-height: 1.5;
+        }
+
+        .video-player-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            background:
+                radial-gradient(circle at top left, rgba(191, 161, 74, 0.16), transparent 30%),
+                radial-gradient(circle at bottom right, rgba(74, 93, 35, 0.2), transparent 35%),
+                linear-gradient(180deg, rgba(15, 23, 42, 0.96) 0%, rgba(10, 15, 28, 0.98) 100%);
+            padding: 1.25rem;
+        }
+
+        .video-player-shell {
+            height: 100%;
+            display: grid;
+            grid-template-rows: auto minmax(0, 1fr);
+            gap: 1rem;
+        }
+
+        .video-player-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 1rem 1.1rem;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(16px);
+            box-shadow: 0 24px 48px rgba(0, 0, 0, 0.18);
+        }
+
+        .video-player-header-main,
+        .video-player-header-actions,
+        .video-player-meta,
+        .video-player-stat-line,
+        .video-player-action-group {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .video-player-header-main {
+            min-width: 0;
+            flex: 1;
+        }
+
+        .video-player-back-btn,
+        .video-player-icon-btn,
+        .video-player-primary-action,
+        .video-player-secondary-action {
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .video-player-back-btn,
+        .video-player-icon-btn {
+            color: var(--cream);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .video-player-back-btn {
+            padding: 0.75rem 1rem;
+            border-radius: 14px;
+            font-weight: 700;
+        }
+
+        .video-player-icon-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
+        }
+
+        .video-player-back-btn:hover,
+        .video-player-icon-btn:hover {
+            background: rgba(255, 255, 255, 0.14);
+            transform: translateY(-1px);
+        }
+
+        .video-player-back-btn svg,
+        .video-player-icon-btn svg,
+        .video-player-stat-line svg,
+        .video-player-primary-action svg,
+        .video-player-secondary-action svg {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+        }
+
+        .video-player-title-stack {
+            min-width: 0;
+        }
+
+        .video-player-eyebrow {
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.62);
+            margin-bottom: 0.2rem;
+        }
+
+        .video-player-title {
+            color: var(--white);
+            font-size: clamp(1.1rem, 1.9vw, 1.4rem);
+            font-weight: 700;
+            line-height: 1.25;
+            overflow-wrap: anywhere;
+        }
+
+        .video-player-meta {
+            color: rgba(255, 255, 255, 0.74);
+            font-size: 0.9rem;
+        }
+
+        .video-player-meta-separator {
+            color: rgba(255, 255, 255, 0.28);
+        }
+
+        .video-player-body {
+            display: grid;
+            grid-template-columns: minmax(0, 1.7fr) minmax(320px, 0.9fr);
+            gap: 1rem;
+            min-height: 0;
+        }
+
+        .video-player-stage {
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            border-radius: 28px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(4, 10, 22, 0.8);
+            overflow: hidden;
+            box-shadow: 0 32px 60px rgba(0, 0, 0, 0.28);
+        }
+
+        .video-player-canvas {
+            position: relative;
+            flex: 1;
+            min-height: 0;
+            background:
+                radial-gradient(circle at center, rgba(43, 108, 176, 0.14), transparent 38%),
+                linear-gradient(180deg, rgba(1, 6, 16, 0.96) 0%, rgba(6, 12, 24, 0.99) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .video-player-embed,
+        .video-player-html5 {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .video-player-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.9rem;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.86);
+            padding: 2rem;
+        }
+
+        .video-player-empty svg {
+            width: 72px;
+            height: 72px;
+            color: rgba(255, 255, 255, 0.62);
+        }
+
+        .video-player-empty-copy {
+            color: rgba(255, 255, 255, 0.62);
+            line-height: 1.7;
+            max-width: 24rem;
+        }
+
+        .video-player-progress-block {
+            padding: 1rem 1.25rem 1.25rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            background: linear-gradient(180deg, rgba(9, 14, 25, 0.88) 0%, rgba(7, 12, 23, 0.95) 100%);
+        }
+
+        .video-player-progress-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            color: rgba(255, 255, 255, 0.72);
+            font-size: 0.84rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .video-player-progress-track {
+            height: 10px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.12);
+            overflow: hidden;
+        }
+
+        .video-player-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--olive) 0%, #d9c05d 100%);
+            border-radius: inherit;
+            transition: width 0.3s ease;
+        }
+
+        .video-player-sidebar {
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .video-player-panel {
+            border-radius: 24px;
+            padding: 1.25rem;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: linear-gradient(180deg, rgba(250, 247, 240, 0.98) 0%, rgba(255, 255, 255, 0.96) 100%);
+            box-shadow: 0 24px 48px rgba(3, 8, 18, 0.2);
+        }
+
+        .video-player-panel-title {
+            font-size: 1.02rem;
+            font-weight: 700;
+            color: var(--charcoal);
+            margin-bottom: 0.45rem;
+        }
+
+        .video-player-description {
+            color: var(--gray-600);
+            font-size: 0.92rem;
+            line-height: 1.75;
+            margin-bottom: 1rem;
+        }
+
+        .video-player-stat-line {
+            color: var(--gray-600);
+            font-size: 0.86rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .video-player-stat-line:last-child {
+            margin-bottom: 0;
+        }
+
+        .video-player-stat-line strong {
+            color: var(--charcoal);
+        }
+
+        .video-player-action-group {
+            margin-top: auto;
+        }
+
+        .video-player-primary-action,
+        .video-player-secondary-action {
+            width: 100%;
+            padding: 0.92rem 1rem;
+            border-radius: 16px;
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+
+        .video-player-primary-action {
+            color: var(--cream);
+            background: linear-gradient(135deg, var(--olive) 0%, var(--olive-deep) 100%);
+            box-shadow: 0 14px 28px rgba(26, 58, 92, 0.14);
+        }
+
+        .video-player-primary-action:hover,
+        .video-player-secondary-action:hover {
+            transform: translateY(-1px);
+        }
+
+        .video-player-secondary-action {
+            color: var(--gray-700);
+            background: var(--gray-100);
+        }
+
+        .forum-shell {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .forum-header-panel,
+        .forum-thread-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            padding: 1.35rem;
+            border-radius: 24px;
+            border: 1px solid rgba(74, 93, 35, 0.14);
+            background:
+                radial-gradient(circle at top right, rgba(191, 161, 74, 0.08), transparent 36%),
+                linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(252, 250, 244, 0.96) 100%);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .forum-header-top,
+        .forum-thread-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .forum-back-btn,
+        .forum-header-btn {
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.72rem 1rem;
+            border-radius: 14px;
+            font-size: 0.88rem;
+            font-weight: 700;
+            transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            white-space: nowrap;
+        }
+
+        .forum-back-btn {
+            background: var(--gray-100);
+            color: var(--gray-700);
+        }
+
+        .forum-back-btn:hover,
+        .forum-header-btn.secondary:hover {
+            background: var(--gray-200);
+            color: var(--olive-deep);
+            transform: translateY(-1px);
+        }
+
+        .forum-header-btn.primary {
+            color: var(--cream);
+            background: linear-gradient(135deg, var(--olive) 0%, var(--olive-deep) 100%);
+            box-shadow: 0 10px 20px rgba(26, 58, 92, 0.14);
+        }
+
+        .forum-header-btn.primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 12px 24px rgba(26, 58, 92, 0.18);
+        }
+
+        .forum-header-btn.secondary {
+            background: var(--gray-100);
+            color: var(--gray-700);
+        }
+
+        .forum-back-btn svg,
+        .forum-header-btn svg,
+        .forum-chip svg,
+        .forum-card-icon svg,
+        .forum-card-stat svg,
+        .forum-topic-stat svg,
+        .forum-thread-avatar svg,
+        .forum-thread-like-btn svg,
+        .forum-thread-state svg,
+        .forum-thread-count-pill svg {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+        }
+
+        .forum-header-copy,
+        .forum-thread-copy {
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        .forum-header-title,
+        .forum-thread-title {
+            font-size: clamp(1.35rem, 2vw, 1.8rem);
+            font-weight: 700;
+            line-height: 1.18;
+            color: var(--charcoal);
+            overflow-wrap: anywhere;
+        }
+
+        .forum-header-subtitle,
+        .forum-thread-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.92rem;
+            line-height: 1.7;
+            max-width: 52rem;
+            overflow-wrap: anywhere;
+        }
+
+        .forum-count-row,
+        .forum-thread-meta {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .forum-thread-count-pill,
+        .forum-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.45rem 0.8rem;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+        }
+
+        .forum-thread-count-pill {
+            color: var(--olive-deep);
+            background: rgba(74, 93, 35, 0.1);
+        }
+
+        .forum-chip {
+            color: var(--gray-600);
+            background: var(--gray-100);
+        }
+
+        .forum-list,
+        .forum-topic-list,
+        .forum-thread-replies {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .forum-card,
+        .forum-topic-card,
+        .forum-thread-post {
+            display: flex;
+            gap: 1rem;
+            align-items: flex-start;
+            padding: 1.25rem;
+            border-radius: 22px;
+            border: 1px solid rgba(74, 93, 35, 0.14);
+            background: linear-gradient(180deg, var(--white) 0%, var(--surface-light) 100%);
+            box-shadow: var(--shadow-sm);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+        }
+
+        .forum-card:hover,
+        .forum-topic-card:hover {
+            border-color: rgba(74, 93, 35, 0.24);
+            box-shadow: var(--shadow-md);
+            transform: translateY(-1px);
+        }
+
+        .forum-card {
+            cursor: pointer;
+        }
+
+        .forum-card-icon,
+        .forum-thread-avatar {
+            width: 52px;
+            height: 52px;
+            border-radius: 16px;
+            flex-shrink: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--cream);
+            background: linear-gradient(135deg, var(--olive) 0%, var(--olive-deep) 100%);
+        }
+
+        .forum-card.type-news .forum-card-icon {
+            background: linear-gradient(135deg, #c17a5e 0%, #a95d44 100%);
+        }
+
+        .forum-card.type-qanda .forum-card-icon {
+            background: linear-gradient(135deg, #5b6bd6 0%, #3f51b5 100%);
+        }
+
+        .forum-card.type-social .forum-card-icon {
+            background: linear-gradient(135deg, #d38f23 0%, #b77511 100%);
+        }
+
+        .forum-card-content,
+        .forum-topic-content,
+        .forum-thread-post-body {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .forum-card-topline,
+        .forum-topic-topline,
+        .forum-thread-post-topline {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 0.9rem;
+            flex-wrap: wrap;
+        }
+
+        .forum-card-title,
+        .forum-topic-title,
+        .forum-thread-post-title {
+            font-size: 1.04rem;
+            font-weight: 700;
+            line-height: 1.35;
+            color: var(--charcoal);
+            overflow-wrap: anywhere;
+        }
+
+        .forum-card-description,
+        .forum-topic-excerpt,
+        .forum-thread-post-content {
+            color: var(--gray-600);
+            line-height: 1.72;
+            font-size: 0.92rem;
+            overflow-wrap: anywhere;
+        }
+
+        .forum-card-meta,
+        .forum-topic-meta,
+        .forum-thread-post-meta {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            flex-wrap: wrap;
+            font-size: 0.82rem;
+            color: var(--gray-500);
+        }
+
+        .forum-type-badge,
+        .forum-topic-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.28rem 0.72rem;
+            border-radius: 999px;
+            font-size: 0.74rem;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+        }
+
+        .forum-type-badge.type-general,
+        .forum-topic-badge {
+            background: rgba(74, 93, 35, 0.1);
+            color: var(--olive-deep);
+        }
+
+        .forum-type-badge.type-news {
+            background: rgba(193, 122, 94, 0.12);
+            color: var(--terracotta);
+        }
+
+        .forum-type-badge.type-qanda {
+            background: rgba(63, 81, 181, 0.1);
+            color: #4856c0;
+        }
+
+        .forum-type-badge.type-social {
+            background: rgba(215, 140, 23, 0.12);
+            color: #b77511;
+        }
+
+        .forum-card-stats,
+        .forum-topic-stats {
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+            flex-wrap: wrap;
+        }
+
+        .forum-card-stat,
+        .forum-topic-stat {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.46rem 0.8rem;
+            border-radius: 999px;
+            background: var(--gray-100);
+            color: var(--gray-600);
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        .forum-topic-card.is-pinned {
+            border-color: rgba(74, 93, 35, 0.24);
+            background:
+                radial-gradient(circle at top right, rgba(191, 161, 74, 0.08), transparent 36%),
+                linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(252, 250, 244, 0.96) 100%);
+        }
+
+        .forum-thread-shell {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .forum-thread-post.is-main {
+            padding: 1.4rem;
+        }
+
+        .forum-thread-post.is-reply {
+            padding: 1.1rem 1.2rem;
+        }
+
+        .forum-thread-avatar {
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+
+        .forum-thread-post.is-reply .forum-thread-avatar {
+            width: 46px;
+            height: 46px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, var(--gray-500) 0%, var(--gray-700) 100%);
+        }
+
+        .forum-thread-post-author {
+            font-size: 0.92rem;
+            font-weight: 700;
+            color: var(--charcoal);
+        }
+
+        .forum-thread-post-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .forum-thread-replies-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .forum-thread-replies-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--charcoal);
+        }
+
+        .forum-thread-like-btn {
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            padding: 0.52rem 0.85rem;
+            border-radius: 999px;
+            background: var(--gray-100);
+            color: var(--gray-600);
+            font-size: 0.8rem;
+            font-weight: 700;
+            transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+        }
+
+        .forum-thread-like-btn:hover,
+        .forum-thread-like-btn.liked {
+            background: rgba(74, 93, 35, 0.12);
+            color: var(--olive-deep);
+            transform: translateY(-1px);
+        }
+
+        .forum-thread-reply-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            padding: 1.25rem;
+            border-radius: 22px;
+            border: 1px solid rgba(74, 93, 35, 0.14);
+            background: linear-gradient(180deg, var(--white) 0%, rgba(252, 250, 244, 0.94) 100%);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .forum-thread-reply-form-title {
+            font-size: 0.98rem;
+            font-weight: 700;
+            color: var(--charcoal);
+        }
+
+        .forum-thread-reply-form textarea {
+            min-height: 140px;
+        }
+
+        .forum-thread-reply-actions {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .forum-thread-reply-note {
+            color: var(--gray-500);
+            font-size: 0.82rem;
+            line-height: 1.6;
+        }
+
+        .forum-thread-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.85rem;
+            padding: 2.8rem 1.5rem;
+            border-radius: 22px;
+            border: 1px dashed rgba(74, 93, 35, 0.22);
+            background: linear-gradient(180deg, rgba(252, 250, 244, 0.9) 0%, rgba(255, 255, 255, 0.96) 100%);
+            text-align: center;
+            color: var(--gray-500);
+        }
+
+        .forum-thread-state svg {
+            width: 30px;
+            height: 30px;
+            color: var(--olive);
+        }
+
+        .forum-thread-state-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--charcoal);
+        }
+
+        .forum-thread-state-copy {
+            max-width: 34rem;
+            line-height: 1.7;
+        }
+
+        .forum-thread-locked {
+            border-color: rgba(193, 122, 94, 0.18);
+            background: linear-gradient(180deg, rgba(255, 247, 244, 0.95) 0%, rgba(255, 255, 255, 0.98) 100%);
+        }
+
         /* Calendar Widget */
         .calendar-header {
             display: flex;
@@ -2414,6 +3543,79 @@
             .bridge-assignment-action,
             .bridge-member-remove {
                 flex: 1;
+            }
+
+            .discussions-header,
+            .discussion-card,
+            .discussion-footer,
+            .discussion-modal-intro {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .discussions-header-actions,
+            .discussion-actions {
+                width: 100%;
+                justify-content: stretch;
+            }
+
+            .discussion-header-btn,
+            .discussion-action-btn {
+                width: 100%;
+            }
+
+            .discussion-modal-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .discussion-modal-note {
+                margin-right: 0;
+            }
+
+            .video-player-overlay {
+                padding: 0.85rem;
+            }
+
+            .video-player-body {
+                grid-template-columns: 1fr;
+            }
+
+            .video-player-header,
+            .video-player-header-main {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .video-player-header-actions,
+            .video-player-action-group {
+                width: 100%;
+            }
+
+            .video-player-back-btn,
+            .video-player-primary-action,
+            .video-player-secondary-action {
+                width: 100%;
+            }
+
+            .forum-header-top,
+            .forum-thread-top,
+            .forum-card,
+            .forum-topic-card,
+            .forum-thread-post,
+            .forum-thread-post-topline,
+            .forum-thread-replies-head,
+            .forum-thread-reply-actions {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .forum-back-btn,
+            .forum-header-btn {
+                width: 100%;
+            }
+
+            .video-player-stage {
+                min-height: 340px;
             }
 
             .bridge-modal-header,
@@ -6709,11 +7911,17 @@
             };
 
             currentVideo = { id: videoId, ...video };
+            const safeTitle = escapeHtml(video.title || '未知影片');
+            const safeAuthor = escapeHtml(video.author || '未知作者');
+            const safeDuration = escapeHtml(video.duration || '--:--');
+            const safeViews = escapeHtml(video.views || '--');
+            const safeDescription = escapeHtml(video.description || '目前尚無影片說明。');
+            const safeVideoUrl = videoUrl ? encodeURI(videoUrl) : '';
 
             // 創建影片播放 Modal
             const modal = document.createElement('div');
             modal.id = 'videoPlayerModal';
-            modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:10000;display:flex;flex-direction:column;';
+            modal.className = 'video-player-overlay';
 
             // 判斷影片來源
             let playerContent = '';
@@ -6722,8 +7930,8 @@
                 playerContent = `
                     <iframe
                         id="videoFrame"
+                        class="video-player-embed"
                         src="https://www.youtube.com/embed/${video.youtubeId}?autoplay=1&enablejsapi=1&start=${Math.floor(video.progress * 27.3)}"
-                        style="width:100%;height:100%;border:none;"
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                         allowfullscreen>
                     </iframe>
@@ -6731,99 +7939,105 @@
             } else if (videoUrl) {
                 // HTML5 Video
                 playerContent = `
-                    <video id="videoElement" controls autoplay style="width:100%;height:100%;">
-                        <source src="${videoUrl}" type="video/mp4">
+                    <video id="videoElement" class="video-player-html5" controls autoplay>
+                        <source src="${safeVideoUrl}" type="video/mp4">
                         您的瀏覽器不支援 HTML5 影片播放。
                     </video>
                 `;
             } else {
                 // 佔位符
                 playerContent = `
-                    <div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;color:var(--cream);text-align:center;">
-                        <div>
-                            <svg viewBox="0 0 24 24" width="80" height="80" fill="none" stroke="currentColor" stroke-width="1">
-                                <circle cx="12" cy="12" r="10"/>
-                                <polygon points="10,8 16,12 10,16" fill="currentColor"/>
-                            </svg>
-                            <p style="margin-top:1rem;font-size:1.2rem;">影片載入中...</p>
-                            <p style="font-size:0.9rem;opacity:0.7;">請稍候或重新整理頁面</p>
-                        </div>
+                    <div class="video-player-empty">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polygon points="10,8 16,12 10,16" fill="currentColor"/>
+                        </svg>
+                        <div class="video-player-panel-title" style="color: var(--white); margin-bottom: 0;">影片載入中...</div>
+                        <p class="video-player-empty-copy">請稍候片刻，或重新整理頁面後再試一次。</p>
                     </div>
                 `;
             }
 
             modal.innerHTML = `
-                <!-- 頂部工具列 -->
-                <div style="padding:1rem 1.5rem;display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,0.8);">
-                    <div style="display:flex;align-items:center;gap:1rem;">
-                        <button onclick="closeVideoPlayer()" style="background:none;border:none;color:var(--cream);cursor:pointer;display:flex;align-items:center;gap:0.5rem;padding:0.5rem;">
-                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-                            返回
-                        </button>
-                        <span style="color:var(--cream);opacity:0.6;">|</span>
-                        <span style="color:var(--cream);font-weight:500;">${video.title}</span>
-                    </div>
-                    <div style="display:flex;align-items:center;gap:1rem;">
-                        <span style="color:var(--cream);opacity:0.7;font-size:0.9rem;">${video.author} · ${video.duration}</span>
-                        <button onclick="toggleVideoFullscreen()" style="background:none;border:none;color:var(--cream);cursor:pointer;padding:0.5rem;" title="全螢幕">
-                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/>
-                                <line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- 影片播放區域 -->
-                <div id="videoContainer" style="flex:1;background:#000;display:flex;align-items:center;justify-content:center;">
-                    ${playerContent}
-                </div>
-
-                <!-- 底部資訊列 -->
-                <div style="padding:1.5rem;background:var(--charcoal);color:var(--cream);">
-                    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:2rem;">
-                        <div style="flex:1;">
-                            <h3 style="font-size:1.25rem;margin-bottom:0.5rem;">${video.title}</h3>
-                            <p style="font-size:0.9rem;opacity:0.7;margin-bottom:1rem;">${video.description}</p>
-                            <div style="display:flex;gap:1.5rem;font-size:0.85rem;">
-                                <span>
-                                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px;">
-                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
-                                    </svg>
-                                    ${video.views} 觀看
-                                </span>
-                                <span>
-                                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px;">
-                                        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                                    </svg>
-                                    ${video.duration}
-                                </span>
-                                <span id="videoProgressText" style="color:var(--olive-light);">
-                                    進度: ${video.progress}%
-                                </span>
+                <div class="video-player-shell">
+                    <div class="video-player-header">
+                        <div class="video-player-header-main">
+                            <button type="button" class="video-player-back-btn" onclick="closeVideoPlayer()">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+                                <span>返回</span>
+                            </button>
+                            <div class="video-player-title-stack">
+                                <div class="video-player-eyebrow">影音橋段</div>
+                                <div class="video-player-title">${safeTitle}</div>
+                                <div class="video-player-meta">
+                                    <span>${safeAuthor}</span>
+                                    <span class="video-player-meta-separator">•</span>
+                                    <span>${safeDuration}</span>
+                                </div>
                             </div>
                         </div>
-                        <div style="display:flex;flex-direction:column;gap:0.5rem;">
-                            <button onclick="markVideoComplete('${videoId}')" style="padding:0.75rem 1.5rem;background:var(--olive);color:var(--cream);border:none;border-radius:8px;cursor:pointer;font-weight:500;white-space:nowrap;">
-                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px;">
-                                    <polyline points="20 6 9 17 4 12"/>
+                        <div class="video-player-header-actions">
+                            <button type="button" class="video-player-icon-btn" onclick="toggleVideoFullscreen()" title="全螢幕">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/>
+                                    <line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>
                                 </svg>
-                                標記完成
                             </button>
-                            <button onclick="addToPlaylist('${videoId}')" style="padding:0.75rem 1.5rem;background:var(--gray-600);color:var(--cream);border:none;border-radius:8px;cursor:pointer;white-space:nowrap;">
-                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px;">
-                                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                                </svg>
-                                加入播放清單
+                            <button type="button" class="video-player-icon-btn" onclick="closeVideoPlayer()" title="關閉播放器">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                             </button>
                         </div>
                     </div>
 
-                    <!-- 進度條 -->
-                    <div style="margin-top:1rem;">
-                        <div style="height:4px;background:var(--gray-600);border-radius:2px;overflow:hidden;">
-                            <div id="videoProgressBar" style="height:100%;width:${video.progress}%;background:var(--olive);transition:width 0.3s;"></div>
+                    <div class="video-player-body">
+                        <div class="video-player-stage">
+                            <div id="videoContainer" class="video-player-canvas">
+                                ${playerContent}
+                            </div>
+                            <div class="video-player-progress-block">
+                                <div class="video-player-progress-header">
+                                    <span>學習進度</span>
+                                    <span id="videoProgressText">進度: ${video.progress}%</span>
+                                </div>
+                                <div class="video-player-progress-track">
+                                    <div id="videoProgressBar" class="video-player-progress-fill" style="width:${video.progress}%;"></div>
+                                </div>
+                            </div>
                         </div>
+
+                        <aside class="video-player-sidebar">
+                            <section class="video-player-panel">
+                                <div class="video-player-panel-title">內容摘要</div>
+                                <p class="video-player-description">${safeDescription}</p>
+                                <div class="video-player-stat-line">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+                                    <span><strong>${safeViews}</strong> 次觀看</span>
+                                </div>
+                                <div class="video-player-stat-line">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                    <span>片長 <strong>${safeDuration}</strong></span>
+                                </div>
+                                <div class="video-player-stat-line">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 12 2 2 4-4"/><path d="M12 3a9 9 0 1 0 9 9"/></svg>
+                                    <span>目前進度 <strong>${video.progress}%</strong></span>
+                                </div>
+                            </section>
+
+                            <section class="video-player-panel">
+                                <div class="video-player-panel-title">快速操作</div>
+                                <p class="video-player-description">你可以先標記完成，或把這支影片加入個人播放清單，方便之後回來複習。</p>
+                                <div class="video-player-action-group">
+                                    <button type="button" class="video-player-primary-action" onclick="markVideoComplete('${videoId}')">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                        <span>標記完成</span>
+                                    </button>
+                                    <button type="button" class="video-player-secondary-action" onclick="addToPlaylist('${videoId}')">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                        <span>加入播放清單</span>
+                                    </button>
+                                </div>
+                            </section>
+                        </aside>
                     </div>
                 </div>
             `;
@@ -7013,58 +8227,267 @@
             }
         }
 
-        function openNewPostModal() {
-            const modal = document.createElement('div');
-            modal.id = 'newPostModal';
-            modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;';
-            modal.innerHTML = `
-                <div style="width:90%;max-width:600px;background:var(--cream);border-radius:16px;overflow:hidden;">
-                    <div style="padding:1.5rem 2rem;border-bottom:1px solid var(--gray-200);display:flex;justify-content:space-between;align-items:center;">
-                        <h2 style="font-size:1.25rem;">發起新討論</h2>
-                        <button onclick="closeNewPostModal()" style="background:none;border:none;cursor:pointer;font-size:1.5rem;color:var(--gray-400);">×</button>
-                    </div>
-                    <div style="padding:2rem;">
-                        <div style="margin-bottom:1.5rem;">
-                            <label style="display:block;margin-bottom:0.5rem;font-weight:500;color:var(--charcoal);">標題</label>
-                            <input type="text" placeholder="請輸入討論標題..." style="width:100%;padding:0.75rem 1rem;border:1px solid var(--gray-200);border-radius:8px;font-size:1rem;">
-                        </div>
-                        <div style="margin-bottom:1.5rem;">
-                            <label style="display:block;margin-bottom:0.5rem;font-weight:500;color:var(--charcoal);">分類</label>
-                            <select style="width:100%;padding:0.75rem 1rem;border:1px solid var(--gray-200);border-radius:8px;font-size:1rem;">
-                                <option>教學心得</option>
-                                <option>教學工具</option>
-                                <option>課程設計</option>
-                                <option>企業培訓</option>
-                                <option>其他</option>
-                            </select>
-                        </div>
-                        <div style="margin-bottom:1.5rem;">
-                            <label style="display:block;margin-bottom:0.5rem;font-weight:500;color:var(--charcoal);">內容</label>
-                            <textarea rows="6" placeholder="請輸入討論內容..." style="width:100%;padding:0.75rem 1rem;border:1px solid var(--gray-200);border-radius:8px;font-size:1rem;resize:vertical;"></textarea>
-                        </div>
-                    </div>
-                    <div style="padding:1rem 2rem;border-top:1px solid var(--gray-200);display:flex;justify-content:flex-end;gap:0.75rem;">
-                        <button onclick="closeNewPostModal()" style="padding:0.75rem 1.5rem;background:var(--gray-200);border:none;border-radius:8px;cursor:pointer;">取消</button>
-                        <button onclick="submitNewPost()" style="padding:0.75rem 1.5rem;background:var(--olive);color:var(--cream);border:none;border-radius:8px;cursor:pointer;font-weight:500;">發布討論</button>
-                    </div>
+        const discussionCategoryOptions = [
+            '教學心得',
+            '教學工具',
+            '課程設計',
+            '企業培訓',
+            '其他'
+        ];
+
+        function getDiscussionToneClass(seedValue) {
+            const seed = String(seedValue || '匿名');
+            const total = [...seed].reduce((sum, char) => sum + char.charCodeAt(0), 0);
+            return `tone-${total % 5}`;
+        }
+
+        function formatDiscussionTimestamp(value) {
+            if (!value) return '剛剛';
+
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return '剛剛';
+
+            const locale = (Array.isArray(navigator.languages) && navigator.languages[0]) || navigator.language || 'zh-TW';
+            return new Intl.DateTimeFormat(locale, {
+                year: 'numeric',
+                month: 'numeric',
+                day: 'numeric'
+            }).format(date);
+        }
+
+        function getDiscussionExcerpt(content, maxLength = 180) {
+            const normalized = String(content || '').replace(/\s+/g, ' ').trim();
+            if (!normalized) return '尚未提供內容摘要。';
+            if (normalized.length <= maxLength) return normalized;
+            return `${normalized.slice(0, maxLength).trim()}...`;
+        }
+
+        function toInlineActionValue(value) {
+            return `'${String(value || '')
+                .replace(/\\/g, '\\\\')
+                .replace(/'/g, "\\'")}'`;
+        }
+
+        function renderDiscussionState(message, variant = 'empty') {
+            const isError = variant === 'error';
+            const title = isError ? '載入討論失敗' : '尚無討論';
+            const icon = isError
+                ? '<path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>'
+                : '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>';
+
+            return `
+                <div class="discussion-state${isError ? ' is-error' : ''}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${icon}</svg>
+                    <div class="discussion-state-title">${title}</div>
+                    <div class="discussion-state-copy">${escapeHtml(message || '')}</div>
                 </div>
             `;
-            document.body.appendChild(modal);
-            modal.onclick = (e) => { if (e.target === modal) closeNewPostModal(); };
+        }
+
+        function renderDiscussionCard(discussion, options = {}) {
+            const discussionId = discussion?.discussionId || discussion?.postId || discussion?.id || '';
+            const authorName = discussion?.authorName || discussion?.userDisplayName || '匿名';
+            const safeAuthorName = escapeHtml(authorName);
+            const safeTitle = escapeHtml(discussion?.title || '未命名討論');
+            const safeExcerpt = escapeHtml(getDiscussionExcerpt(discussion?.content, options.excerptLength || 180));
+            const safeCategory = discussion?.category ? escapeHtml(discussion.category) : '';
+            const safeInitial = escapeHtml(authorName.trim().charAt(0) || '匿');
+            const toneClass = getDiscussionToneClass(authorName);
+            const likeCount = Number(discussion?.likeCount || 0);
+            const replyCount = Number(discussion?.replyCount || 0);
+            const viewCount = Number(discussion?.viewCount || 0);
+            const safeDate = escapeHtml(formatDiscussionTimestamp(discussion?.createdAt));
+            const discussionIdArg = discussionId ? toInlineActionValue(discussionId) : '';
+            const replyAction = options.replyAction === undefined && discussionId
+                ? `toggleReplies(${discussionIdArg})`
+                : options.replyAction;
+            const openAction = options.openAction || (discussionId ? `App.openDiscussion(${discussionIdArg})` : '');
+            const likeAction = options.likeAction === undefined && discussionId
+                ? `likePost(${discussionIdArg})`
+                : options.likeAction;
+
+            return `
+                <article class="discussion-card ${toneClass}">
+                    <div class="discussion-avatar">${safeInitial}</div>
+                    <div class="discussion-content">
+                        <div class="discussion-topline">
+                            <div class="discussion-title-group">
+                                <h3 class="discussion-title">${safeTitle}</h3>
+                                <div class="discussion-meta">
+                                    <span>${safeAuthorName}</span>
+                                    <span class="discussion-meta-separator">•</span>
+                                    <span>${safeDate}</span>
+                                    ${safeCategory ? `<span class="discussion-category">${safeCategory}</span>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                        <p class="discussion-preview">${safeExcerpt}</p>
+                        <div class="discussion-footer">
+                            <div class="discussion-stats">
+                                ${likeAction ? `
+                                    <button type="button" class="discussion-stat discussion-stat-button" onclick="${likeAction}">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9A2 2 0 0 0 18.69 9H14Z"/><path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
+                                        <span>${likeCount} 讚</span>
+                                    </button>
+                                ` : ''}
+                                <span class="discussion-stat">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                                    <span>${replyCount} 回覆</span>
+                                </span>
+                                ${viewCount ? `
+                                    <span class="discussion-stat">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+                                        <span>${viewCount} 觀看</span>
+                                    </span>
+                                ` : ''}
+                            </div>
+                            <div class="discussion-actions">
+                                ${replyAction ? `
+                                    <button type="button" class="discussion-action-btn secondary" onclick="${replyAction}">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                                        <span>回覆討論</span>
+                                    </button>
+                                ` : ''}
+                                ${openAction ? `
+                                    <button type="button" class="discussion-action-btn primary" onclick="${openAction}">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                                        <span>前往論壇</span>
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            `;
+        }
+
+        function attachDiscussionModalBehavior(overlay, closeHandler, focusSelector) {
+            if (!overlay) return;
+
+            overlay.addEventListener('click', event => {
+                if (event.target === overlay) {
+                    closeHandler();
+                }
+            });
+
+            const handleKeydown = event => {
+                if (event.key === 'Escape') {
+                    event.preventDefault();
+                    closeHandler();
+                }
+            };
+
+            overlay._discussionKeydownHandler = handleKeydown;
+            document.addEventListener('keydown', handleKeydown);
+
+            window.requestAnimationFrame(() => {
+                overlay.querySelector(focusSelector)?.focus();
+            });
+        }
+
+        function removeDiscussionModal(modalId) {
+            const overlay = document.getElementById(modalId);
+            if (!overlay) return;
+
+            if (overlay._discussionKeydownHandler) {
+                document.removeEventListener('keydown', overlay._discussionKeydownHandler);
+            }
+            overlay.remove();
+        }
+
+        function refreshDiscussionViews(filter = 'all') {
+            const discussionList = document.getElementById('discussionList');
+            if (discussionList) {
+                loadDiscussions(filter);
+            }
+
+            if (typeof App !== 'undefined' && typeof App.loadDiscussionsListView === 'function') {
+                App.loadDiscussionsListView();
+            }
+        }
+
+        function buildDiscussionCategoryOptions(selectedCategory = '') {
+            return discussionCategoryOptions
+                .map(category => {
+                    const selected = category === selectedCategory ? ' selected' : '';
+                    return `<option value="${escapeHtml(category)}"${selected}>${escapeHtml(category)}</option>`;
+                })
+                .join('');
+        }
+
+        function openNewPostModal() {
+            closeNewPostModal();
+
+            const overlay = document.createElement('div');
+            overlay.id = 'newPostModal';
+            overlay.className = 'modal-overlay active';
+            overlay.innerHTML = `
+                <div class="modal active discussion-modal" role="dialog" aria-modal="true" aria-labelledby="newPostModalTitle">
+                    <div class="modal-header">
+                        <h2 id="newPostModalTitle">發起新討論</h2>
+                        <button type="button" class="modal-close" aria-label="關閉">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <form id="newPostForm">
+                        <div class="modal-body">
+                            <div class="discussion-modal-intro">
+                                <div class="discussion-modal-intro-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8"/><path d="M8 13h5"/></svg>
+                                </div>
+                                <div>
+                                    <div class="discussion-modal-intro-title">建立清楚、有價值的討論主題</div>
+                                    <p class="discussion-modal-intro-copy">標題直接說明問題，內容補充情境與需求，能提高其他使用者回覆品質。</p>
+                                </div>
+                            </div>
+                            <div class="discussion-modal-grid">
+                                <div class="bridge-form-group">
+                                    <label class="bridge-form-label" for="newPostTitleInput">標題</label>
+                                    <input id="newPostTitleInput" type="text" class="bridge-form-control" placeholder="例如：如何設計跨領域探究課程？" maxlength="120">
+                                </div>
+                                <div class="bridge-form-group">
+                                    <label class="bridge-form-label" for="newPostCategoryInput">分類</label>
+                                    <select id="newPostCategoryInput" class="bridge-form-control">
+                                        ${buildDiscussionCategoryOptions()}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="bridge-form-group">
+                                <label class="bridge-form-label" for="newPostContentInput">內容</label>
+                                <textarea id="newPostContentInput" class="bridge-form-control discussion-form-textarea" placeholder="描述你的教學情境、目前作法、卡住的地方，讓其他人更容易理解。"></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <div class="discussion-modal-note">發布後會同步更新平台討論摘要，方便其他使用者快速看到這則主題。</div>
+                            <button type="button" class="btn-secondary">取消</button>
+                            <button type="submit" class="btn-primary">發布討論</button>
+                        </div>
+                    </form>
+                </div>
+            `;
+
+            document.body.appendChild(overlay);
+            attachDiscussionModalBehavior(overlay, closeNewPostModal, '#newPostTitleInput');
+
+            overlay.querySelector('.modal-close')?.addEventListener('click', closeNewPostModal);
+            overlay.querySelector('.btn-secondary')?.addEventListener('click', closeNewPostModal);
+            overlay.querySelector('#newPostForm')?.addEventListener('submit', event => {
+                event.preventDefault();
+                submitNewPost();
+            });
         }
 
         function closeNewPostModal() {
-            const modal = document.getElementById('newPostModal');
-            if (modal) modal.remove();
+            removeDiscussionModal('newPostModal');
         }
 
         async function submitNewPost() {
             const modal = document.getElementById('newPostModal');
             if (!modal) return;
 
-            const titleInput = modal.querySelector('input[type="text"]');
-            const categorySelect = modal.querySelector('select');
-            const contentTextarea = modal.querySelector('textarea');
+            const titleInput = modal.querySelector('#newPostTitleInput');
+            const categorySelect = modal.querySelector('#newPostCategoryInput');
+            const contentTextarea = modal.querySelector('#newPostContentInput');
 
             const title = titleInput?.value?.trim();
             const category = categorySelect?.value;
@@ -7085,7 +8508,7 @@
                 if (result.success) {
                     showToast('討論已發布！');
                     closeNewPostModal();
-                    loadDiscussions();
+                    refreshDiscussionViews();
                 } else {
                     showToast(result.message || '發布失敗');
                 }
@@ -7100,6 +8523,7 @@
                 const result = await API.discussions.like(postId);
                 if (result.success) {
                     showToast('已按讚！');
+                    refreshDiscussionViews();
                 } else {
                     showToast(result.message || '操作失敗');
                 }
@@ -7120,44 +8544,21 @@
 
             try {
                 const result = await API.discussions.list({ filter });
-                if (result.success && result.data) {
-                    // 渲染討論列表
-                    const discussions = result.data || [];
-                    if (discussions.length === 0) {
-                        container.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--gray-400);">尚無討論</div>';
-                    } else {
-                        container.innerHTML = discussions.map(d => `
-                            <div class="discussion-post" style="background: var(--white); border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
-                                <div style="display: flex; gap: 1rem;">
-                                    <div style="width: 48px; height: 48px; background: var(--olive); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--cream); font-weight: 600; flex-shrink: 0;">${(d.authorName || 'U')[0]}</div>
-                                    <div style="flex: 1;">
-                                        <div style="margin-bottom: 0.5rem;">
-                                            <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.25rem;">${d.title}</h3>
-                                            <div style="font-size: 0.8rem; color: var(--gray-400);">
-                                                <span>${d.authorName || '匿名'}</span> · <span>${MoodleUI.formatDate(d.createdAt, 'datetime')}</span>
-                                                ${d.category ? `· <span class="tag" style="font-size: 0.7rem;">${d.category}</span>` : ''}
-                                            </div>
-                                        </div>
-                                        <p style="color: var(--gray-600); margin-bottom: 1rem; line-height: 1.6;">${d.content?.substring(0, 200) || ''}...</p>
-                                        <div style="display: flex; gap: 1rem; font-size: 0.85rem; color: var(--gray-400);">
-                                            <button onclick="likePost('${d.discussionId}')" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:0.25rem;color:var(--gray-400);">
-                                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
-                                                ${d.likeCount || 0}
-                                            </button>
-                                            <span style="display:flex;align-items:center;gap:0.25rem;">
-                                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                                                ${d.replyCount || 0} 回覆
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        `).join('');
-                    }
+                if (!result.success) {
+                    container.innerHTML = renderDiscussionState(result.message || '目前無法取得討論資料，請稍後再試。', 'error');
+                    return;
                 }
+
+                const discussions = result.data || [];
+                if (discussions.length === 0) {
+                    container.innerHTML = renderDiscussionState('目前還沒有人發起主題。你可以先拋出一個問題，讓社群開始交流。');
+                    return;
+                }
+
+                container.innerHTML = `<div class="discussion-list">${discussions.map(discussion => renderDiscussionCard(discussion)).join('')}</div>`;
             } catch (error) {
                 console.error('Load discussions error:', error);
-                container.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--terracotta);">載入失敗</div>';
+                container.innerHTML = renderDiscussionState('討論資料載入失敗，請重新整理後再試一次。', 'error');
             }
         }
 
@@ -7324,31 +8725,58 @@
 
         function openReplyModal(postId) {
             if (!postId) return;
-            const modal = document.createElement('div');
-            modal.id = 'replyModal';
-            modal.dataset.postId = String(postId);
-            modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;';
-            modal.innerHTML = `
-                <div style="width:90%;max-width:500px;background:var(--cream);border-radius:16px;overflow:hidden;">
-                    <div style="padding:1.5rem 2rem;border-bottom:1px solid var(--gray-200);">
-                        <h3>回覆討論</h3>
+            closeReplyModal();
+
+            const overlay = document.createElement('div');
+            overlay.id = 'replyModal';
+            overlay.dataset.postId = String(postId);
+            overlay.className = 'modal-overlay active';
+            overlay.innerHTML = `
+                <div class="modal active discussion-modal" role="dialog" aria-modal="true" aria-labelledby="replyModalTitle">
+                    <div class="modal-header">
+                        <h2 id="replyModalTitle">回覆討論</h2>
+                        <button type="button" class="modal-close" aria-label="關閉">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
                     </div>
-                    <div style="padding:2rem;">
-                        <textarea id="replyContentInput" rows="4" placeholder="輸入您的回覆..." style="width:100%;padding:0.75rem 1rem;border:1px solid var(--gray-200);border-radius:8px;font-size:1rem;resize:vertical;"></textarea>
-                    </div>
-                    <div style="padding:1rem 2rem;border-top:1px solid var(--gray-200);display:flex;justify-content:flex-end;gap:0.75rem;">
-                        <button onclick="closeReplyModal()" style="padding:0.75rem 1.5rem;background:var(--gray-200);border:none;border-radius:8px;cursor:pointer;">取消</button>
-                        <button onclick="submitReply()" style="padding:0.75rem 1.5rem;background:var(--olive);color:var(--cream);border:none;border-radius:8px;cursor:pointer;font-weight:500;">送出回覆</button>
-                    </div>
+                    <form id="replyForm">
+                        <div class="modal-body">
+                            <div class="discussion-modal-intro">
+                                <div class="discussion-modal-intro-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8"/><path d="M8 13h6"/></svg>
+                                </div>
+                                <div>
+                                    <div class="discussion-modal-intro-title">讓回覆更具體、更可執行</div>
+                                    <p class="discussion-modal-intro-copy">補充經驗、範例或建議步驟，比單句回覆更有幫助，也更符合平台的專業交流氛圍。</p>
+                                </div>
+                            </div>
+                            <div class="bridge-form-group">
+                                <label class="bridge-form-label" for="replyContentInput">回覆內容</label>
+                                <textarea id="replyContentInput" class="bridge-form-control discussion-form-textarea" rows="5" placeholder="輸入你的回覆、建議或可參考的做法。"></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <div class="discussion-modal-note">送出後會同步刷新討論摘要與回覆數，方便其他使用者追蹤這個主題。</div>
+                            <button type="button" class="btn-secondary">取消</button>
+                            <button type="submit" class="btn-primary">送出回覆</button>
+                        </div>
+                    </form>
                 </div>
             `;
-            document.body.appendChild(modal);
-            modal.onclick = (e) => { if (e.target === modal) closeReplyModal(); };
+
+            document.body.appendChild(overlay);
+            attachDiscussionModalBehavior(overlay, closeReplyModal, '#replyContentInput');
+
+            overlay.querySelector('.modal-close')?.addEventListener('click', closeReplyModal);
+            overlay.querySelector('.btn-secondary')?.addEventListener('click', closeReplyModal);
+            overlay.querySelector('#replyForm')?.addEventListener('submit', event => {
+                event.preventDefault();
+                submitReply();
+            });
         }
 
         function closeReplyModal() {
-            const modal = document.getElementById('replyModal');
-            if (modal) modal.remove();
+            removeDiscussionModal('replyModal');
         }
 
         async function submitReply() {
@@ -7371,9 +8799,7 @@
 
                 showToast('回覆已送出！');
                 closeReplyModal();
-                if (typeof App !== 'undefined' && typeof App.loadDiscussionsListView === 'function') {
-                    App.loadDiscussionsListView();
-                }
+                refreshDiscussionViews();
             } catch (error) {
                 console.error('Submit reply error:', error);
                 showToast('回覆送出失敗');

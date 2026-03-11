@@ -1654,6 +1654,59 @@ const MoodleUI = {
     if (modal) modal.remove();
   },
 
+  escapeText(value) {
+    if (typeof window.escapeHtml === 'function') {
+      return window.escapeHtml(value);
+    }
+    if (value === null || value === undefined) return '';
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  },
+
+  formatMultilineText(value) {
+    return this.escapeText(value).replace(/\n/g, '<br>');
+  },
+
+  truncateText(value, maxLength = 160) {
+    const normalized = String(value || '').replace(/\s+/g, ' ').trim();
+    if (!normalized) return '';
+    if (normalized.length <= maxLength) return normalized;
+    return `${normalized.slice(0, maxLength).trim()}...`;
+  },
+
+  formatPlatformDate(value, options = {}) {
+    if (!value) return '';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    const locale = I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW';
+    return new Intl.DateTimeFormat(locale, options).format(date);
+  },
+
+  toInlineActionValue(value) {
+    return `'${String(value || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
+  },
+
+  getForumTypeMeta(type = 'general') {
+    const map = {
+      news: { label: '公告', className: 'type-news' },
+      general: { label: '一般討論', className: 'type-general' },
+      qanda: { label: '問與答', className: 'type-qanda' },
+      social: { label: '社交交流', className: 'type-social' }
+    };
+    return map[type] || { label: type || '一般討論', className: 'type-general' };
+  },
+
+  renderForumState(message, variant = 'empty') {
+    if (typeof window.renderDiscussionState === 'function') {
+      return window.renderDiscussionState(message, variant);
+    }
+    return `<div class="forum-thread-state"><div class="forum-thread-state-title">${this.escapeText(message)}</div></div>`;
+  },
+
   // ==================== 作業系統 ====================
 
   /**
@@ -2579,58 +2632,101 @@ const MoodleUI = {
 
     const user = API.getCurrentUser();
     const isTeacher = this.isTeachingRole(user);
+    const safeCourseName = this.escapeText(courseName || t('moodleCourse.course'));
 
     const header = `
-      <div style="padding: 1.5rem 1.5rem 0;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
-          <div style="display: flex; align-items: center; gap: 0.75rem;">
-            <button onclick="MoodleUI.loadForums()" style="background: var(--gray-100); border: none; padding: 0.5rem; border-radius: 8px; cursor: pointer; display: flex; align-items: center;">
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
-            </button>
-            <div>
-              <h2 style="font-size: 1.3rem; font-weight: 700; margin: 0;">${courseName} — ${t('moodleForum.title')}</h2>
-              <p style="color: var(--gray-500); margin: 0.25rem 0 0; font-size: 0.85rem;">${forums.length} 個討論區</p>
+      <section class="forum-shell">
+        <div class="forum-header-panel">
+          <div class="forum-header-top">
+            <div style="display:flex; align-items:flex-start; gap:0.75rem; flex-wrap:wrap;">
+              <button type="button" class="forum-back-btn" onclick="MoodleUI.loadForums()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                <span>${t('common.back') || '返回'}</span>
+              </button>
+              <div class="forum-header-copy">
+                <span class="forum-thread-count-pill">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                  <span>${forums.length} ${t('moodleForum.topics')}</span>
+                </span>
+                <h2 class="forum-header-title">${safeCourseName} · ${this.escapeText(t('moodleForum.title'))}</h2>
+                <p class="forum-header-subtitle">集中整理此課程的公告、提問與交流主題。列表只保留重要摘要，點進去可以看到完整討論脈絡與回覆。</p>
+              </div>
+            </div>
+            <div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
+              <button type="button" class="forum-header-btn secondary" onclick="showView('moodleCourses'); MoodleUI.loadCourses();">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                <span>${t('sidebar.courseCenter') || '課程中心'}</span>
+              </button>
+              ${isTeacher ? `
+                <button type="button" class="forum-header-btn primary" onclick="MoodleUI.openCreateForumModal(${this.toInlineActionValue(courseId)})">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  <span>新增討論區</span>
+                </button>
+              ` : ''}
             </div>
           </div>
-          ${isTeacher ? `
-            <button onclick="MoodleUI.openCreateForumModal('${courseId}')" style="padding: 0.6rem 1.25rem; background: var(--olive); color: var(--cream); border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem;">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              新增討論區
-            </button>
-          ` : ''}
+          <div class="forum-count-row">
+            <span class="forum-chip">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              <span>${forums.length} 個討論區</span>
+            </span>
+            <span class="forum-chip">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 10h.01"/><path d="M12 10h.01"/><path d="M16 10h.01"/><path d="M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 0 1-4-.84L3 20l1.34-3.22A7.318 7.318 0 0 1 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8Z"/></svg>
+              <span>${forums.reduce((sum, forum) => sum + Number(forum.discussionCount ?? forum.stats?.discussionCount ?? 0), 0)} 篇主題</span>
+            </span>
+          </div>
         </div>
-      </div>
-    `;
+      `;
 
     if (forums.length === 0) {
-      container.innerHTML = header + `<div class="empty-list" style="padding: 3rem; text-align: center; color: var(--gray-400);">${t('moodleForum.noForums')}</div>`;
+      container.innerHTML = `${header}${this.renderForumState(t('moodleForum.noForums'))}</section>`;
       return;
     }
 
-    const typeLabels = { 'news': '公告', 'general': '一般討論', 'qanda': '問與答', 'social': '社交' };
-    const typeColors = { 'news': '#ef4444', 'general': 'var(--olive)', 'qanda': '#6366f1', 'social': '#f59e0b' };
-
-    container.innerHTML = header + `
-      <div style="padding: 0 1.5rem 1.5rem;">
-        ${forums.map(f => `
-          <div onclick="MoodleUI.openForum('${f.forumId}')" style="display: flex; align-items: center; gap: 1rem; padding: 1.25rem; background: var(--white); border-radius: 12px; margin-bottom: 0.75rem; cursor: pointer; transition: box-shadow 0.2s;" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)'" onmouseout="this.style.boxShadow='none'">
-            <div style="width: 48px; height: 48px; background: ${(typeColors[f.type] || 'var(--olive)')}15; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="${typeColors[f.type] || 'var(--olive)'}" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-            </div>
-            <div style="flex: 1; min-width: 0;">
-              <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
-                <span style="padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 500; background: ${(typeColors[f.type] || 'var(--olive)')}; color: white;">${typeLabels[f.type] || f.type}</span>
-                <h3 style="font-size: 1rem; font-weight: 600; margin: 0;">${f.title || f.name}</h3>
-              </div>
-              <p style="color: var(--gray-500); font-size: 0.85rem; margin: 0;">${f.description || ''}</p>
-            </div>
-            <div style="flex-shrink: 0; display: flex; gap: 1.5rem; font-size: 0.85rem; color: var(--gray-400);">
-              <span>${f.discussionCount ?? f.stats?.discussionCount ?? 0} 篇討論</span>
-              <span>${f.postCount ?? f.stats?.postCount ?? 0} 則回覆</span>
-            </div>
-          </div>
-        `).join('')}
-      </div>
+    container.innerHTML = `
+      ${header}
+        <div class="forum-list">
+          ${forums.map(forum => {
+            const typeMeta = this.getForumTypeMeta(forum.type);
+            const forumName = this.escapeText(forum.title || forum.name || t('moodleForum.title'));
+            const forumDescription = this.escapeText(this.truncateText(forum.description || '目前尚未提供討論區說明。', 180));
+            const discussionCount = Number(forum.discussionCount ?? forum.stats?.discussionCount ?? 0);
+            const postCount = Number(forum.postCount ?? forum.stats?.postCount ?? 0);
+            return `
+              <article class="forum-card ${typeMeta.className}" onclick="MoodleUI.openForum(${this.toInlineActionValue(forum.forumId)})">
+                <div class="forum-card-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                </div>
+                <div class="forum-card-content">
+                  <div class="forum-card-topline">
+                    <div>
+                      <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.35rem;">
+                        <span class="forum-type-badge ${typeMeta.className}">${this.escapeText(typeMeta.label)}</span>
+                        <h3 class="forum-card-title">${forumName}</h3>
+                      </div>
+                      <div class="forum-card-meta">
+                        <span>${safeCourseName}</span>
+                        ${forum.updatedAt ? `<span>•</span><span>更新於 ${this.escapeText(this.formatPlatformDate(forum.updatedAt, { year: 'numeric', month: 'numeric', day: 'numeric' }))}</span>` : ''}
+                      </div>
+                    </div>
+                  </div>
+                  <p class="forum-card-description">${forumDescription}</p>
+                  <div class="forum-card-stats">
+                    <span class="forum-card-stat">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                      <span>${discussionCount} 篇討論</span>
+                    </span>
+                    <span class="forum-card-stat">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 10h.01"/><path d="M12 10h.01"/><path d="M16 10h.01"/><path d="M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 0 1-4-.84L3 20l1.34-3.22A7.318 7.318 0 0 1 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8Z"/></svg>
+                      <span>${postCount} 則回覆</span>
+                    </span>
+                  </div>
+                </div>
+              </article>
+            `;
+          }).join('')}
+        </div>
+      </section>
     `;
   },
 
@@ -2642,30 +2738,40 @@ const MoodleUI = {
     if (!container) return;
 
     if (forums.length === 0) {
-      container.innerHTML = `<div class="empty-list">${t('moodleForum.noForums')}</div>`;
+      container.innerHTML = this.renderForumState(t('moodleForum.noForums'));
       return;
     }
 
     container.innerHTML = `
       <div class="forum-list">
-        ${forums.map(f => `
-          <div class="forum-item" onclick="MoodleUI.openForum('${f.forumId}')">
-            <div class="forum-icon">
-              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
-              </svg>
-            </div>
-            <div class="forum-info">
-              <h3>${f.title || f.name || t('moodleForum.title')}</h3>
-              <p class="forum-course">${f.courseName || t('moodleCourse.course')}</p>
-              <p class="forum-desc">${f.description || t('moodleLti.noDescription')}</p>
-            </div>
-            <div class="forum-stats">
-              <span>${f.discussionCount ?? f.stats?.discussionCount ?? 0} ${t('moodleForum.topics')}</span>
-              <span>${f.postCount ?? f.stats?.postCount ?? 0} ${t('moodleForum.replies')}</span>
-            </div>
-          </div>
-        `).join('')}
+        ${forums.map(forum => {
+          const typeMeta = this.getForumTypeMeta(forum.type);
+          return `
+            <article class="forum-card ${typeMeta.className}" onclick="MoodleUI.openForum(${this.toInlineActionValue(forum.forumId)})">
+              <div class="forum-card-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              </div>
+              <div class="forum-card-content">
+                <div class="forum-card-topline">
+                  <div>
+                    <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.35rem;">
+                      <span class="forum-type-badge ${typeMeta.className}">${this.escapeText(typeMeta.label)}</span>
+                      <h3 class="forum-card-title">${this.escapeText(forum.title || forum.name || t('moodleForum.title'))}</h3>
+                    </div>
+                    <div class="forum-card-meta">
+                      <span>${this.escapeText(forum.courseName || t('moodleCourse.course'))}</span>
+                    </div>
+                  </div>
+                </div>
+                <p class="forum-card-description">${this.escapeText(this.truncateText(forum.description || t('moodleLti.noDescription'), 180))}</p>
+                <div class="forum-card-stats">
+                  <span class="forum-card-stat">${Number(forum.discussionCount ?? forum.stats?.discussionCount ?? 0)} ${t('moodleForum.topics')}</span>
+                  <span class="forum-card-stat">${Number(forum.postCount ?? forum.stats?.postCount ?? 0)} ${t('moodleForum.replies')}</span>
+                </div>
+              </div>
+            </article>
+          `;
+        }).join('')}
       </div>
     `;
   },
@@ -2692,46 +2798,91 @@ const MoodleUI = {
 
       const forum = result.data;
       const container = document.getElementById('forumDetailContent');
+      const typeMeta = this.getForumTypeMeta(forum.type);
+      const discussions = Array.isArray(forum.discussions) ? forum.discussions : [];
+      const safeTitle = this.escapeText(forum.title || forum.name || t('moodleForum.title'));
+      const safeDescription = this.escapeText(forum.description || '這個討論區暫時沒有補充說明。');
+      const backAction = this.currentForumCourseId
+        ? `showView('moodleForums'); MoodleUI.loadForums(${this.toInlineActionValue(this.currentForumCourseId)})`
+        : `showView('moodleForums')`;
 
       container.innerHTML = `
-        <div class="forum-header">
-          <button onclick="MoodleUI.currentForumCourseId ? (showView('moodleForums'), MoodleUI.loadForums(MoodleUI.currentForumCourseId)) : showView('moodleForums')" class="back-btn">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
-            ${t('moodleForum.backToForums')}
-          </button>
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div>
-              <h2>${forum.title || forum.name || t('moodleForum.title')}</h2>
-              <p>${forum.description || ''}</p>
+        <section class="forum-shell">
+          <div class="forum-header-panel">
+            <div class="forum-header-top">
+              <div style="display:flex; align-items:flex-start; gap:0.75rem; flex-wrap:wrap;">
+                <button type="button" class="forum-back-btn" onclick="${backAction}">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                  <span>${t('moodleForum.backToForums')}</span>
+                </button>
+                <div class="forum-header-copy">
+                  <span class="forum-type-badge ${typeMeta.className}">${this.escapeText(typeMeta.label)}</span>
+                  <h2 class="forum-header-title">${safeTitle}</h2>
+                  <p class="forum-header-subtitle">${safeDescription}</p>
+                </div>
+              </div>
+              <div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
+                <button type="button" class="forum-header-btn secondary" onclick="showView('moodleCourses'); MoodleUI.loadCourses();">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                  <span>${t('sidebar.courseCenter') || '課程中心'}</span>
+                </button>
+                <button type="button" class="forum-header-btn primary" onclick="MoodleUI.openNewDiscussionModal(${this.toInlineActionValue(forumId)})">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  <span>${t('moodleForum.newDiscussion')}</span>
+                </button>
+              </div>
             </div>
-            <button onclick="MoodleUI.openNewDiscussionModal('${forumId}')" class="btn-primary">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              ${t('moodleForum.newDiscussion')}
-            </button>
+            <div class="forum-count-row">
+              <span class="forum-chip">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                <span>${discussions.length} ${t('moodleForum.topics')}</span>
+              </span>
+              <span class="forum-chip">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 10h.01"/><path d="M12 10h.01"/><path d="M16 10h.01"/><path d="M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 0 1-4-.84L3 20l1.34-3.22A7.318 7.318 0 0 1 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8Z"/></svg>
+                <span>${discussions.reduce((sum, item) => sum + Number(item.replyCount || 0), 0)} ${t('moodleForum.replies')}</span>
+              </span>
+            </div>
           </div>
-        </div>
-        <div class="discussion-list">
-          ${(forum.discussions || []).length === 0 ? `<div class="empty-list">${t('moodleForum.noDiscussions')}</div>` : forum.discussions.map(d => `
-            <div class="discussion-item ${d.pinned ? 'pinned' : ''}" onclick="MoodleUI.openDiscussion('${forumId}', '${d.discussionId}')">
-              <div class="discussion-avatar">${(d.authorName || 'U')[0]}</div>
-              <div class="discussion-content">
-                <div class="discussion-title">
-                  ${d.pinned ? `<span class="pin-badge">${t('moodleForum.pinned')}</span>` : ''}
-                  ${d.subject}
-                </div>
-                <div class="discussion-excerpt">${d.message?.substring(0, 100) || ''}...</div>
-                <div class="discussion-meta">
-                  <span>${d.authorName}</span>
-                  <span>${new Date(d.createdAt).toLocaleDateString('zh-TW')}</span>
-                </div>
-              </div>
-              <div class="discussion-stats">
-                <span class="reply-count">${d.replyCount || 0} ${t('moodleForum.replies')}</span>
-                ${d.lastReply ? `<span class="last-reply">${t('moodleForum.lastReply')}：${new Date(d.lastReply).toLocaleDateString('zh-TW')}</span>` : ''}
-              </div>
-            </div>
-          `).join('')}
-        </div>
+          <div class="forum-topic-list">
+            ${discussions.length === 0
+              ? this.renderForumState(t('moodleForum.noDiscussions'))
+              : discussions.map(discussion => {
+                  const discussionId = discussion.discussionId || discussion.id;
+                  const safeSubject = this.escapeText(discussion.subject || '未命名主題');
+                  const safeExcerpt = this.escapeText(this.truncateText(discussion.message || '', 200) || '這則主題尚未提供內容摘要。');
+                  const safeAuthor = this.escapeText(discussion.authorName || '匿名');
+                  const safeDate = this.escapeText(this.formatPlatformDate(discussion.createdAt, { year: 'numeric', month: 'numeric', day: 'numeric' }) || '');
+                  const safeLastReply = this.escapeText(this.formatPlatformDate(discussion.lastReply, { year: 'numeric', month: 'numeric', day: 'numeric' }) || '');
+                  return `
+                    <article class="forum-topic-card${discussion.pinned ? ' is-pinned' : ''}" onclick="MoodleUI.openDiscussion(${this.toInlineActionValue(forumId)}, ${this.toInlineActionValue(discussionId)})">
+                      <div class="forum-thread-avatar">${this.escapeText((discussion.authorName || 'U').trim().charAt(0) || 'U')}</div>
+                      <div class="forum-topic-content">
+                        <div class="forum-topic-topline">
+                          <div>
+                            <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.35rem;">
+                              ${discussion.pinned ? `<span class="forum-topic-badge">${t('moodleForum.pinned')}</span>` : ''}
+                              <h3 class="forum-topic-title">${safeSubject}</h3>
+                            </div>
+                            <div class="forum-topic-meta">
+                              <span>${safeAuthor}</span>
+                              ${safeDate ? `<span>•</span><span>${safeDate}</span>` : ''}
+                              ${discussion.lastReply ? `<span>•</span><span>${t('moodleForum.lastReply')} ${safeLastReply}</span>` : ''}
+                            </div>
+                          </div>
+                        </div>
+                        <p class="forum-topic-excerpt">${safeExcerpt}</p>
+                        <div class="forum-topic-stats">
+                          <span class="forum-topic-stat">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                            <span>${Number(discussion.replyCount || 0)} ${t('moodleForum.replies')}</span>
+                          </span>
+                        </div>
+                      </div>
+                    </article>
+                  `;
+                }).join('')}
+          </div>
+        </section>
       `;
 
       showView('forumDetail');
@@ -3084,41 +3235,61 @@ const MoodleUI = {
    * 開啟新增討論 Modal
    */
   openCreateForumModal(courseId) {
+    this.closeModal('createForumModal');
     const modal = document.createElement('div');
     modal.id = 'createForumModal';
-    modal.className = 'modal-overlay';
+    modal.className = 'modal-overlay active';
     modal.innerHTML = `
-      <div class="modal-content" style="max-width: 500px;">
+      <div class="modal active discussion-modal" style="max-width: 640px;" role="dialog" aria-modal="true" aria-labelledby="createForumModalTitle">
         <div class="modal-header">
-          <h3>新增討論區</h3>
+          <h2 id="createForumModalTitle">新增討論區</h2>
           <button onclick="MoodleUI.closeModal('createForumModal')" class="modal-close">&times;</button>
         </div>
-        <div class="modal-body">
-          <div class="form-group" style="margin-bottom: 1rem;">
-            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">討論區名稱 *</label>
-            <input type="text" id="newForumTitle" placeholder="例如：課程公告、學習交流" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-200); border-radius: 8px; font-size: 1rem;">
+        <form id="createForumForm">
+          <div class="modal-body">
+            <div class="discussion-modal-intro">
+              <div class="discussion-modal-intro-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8"/><path d="M8 13h5"/></svg>
+              </div>
+              <div>
+                <div class="discussion-modal-intro-title">先定義清楚這個論壇的用途</div>
+                <p class="discussion-modal-intro-copy">例如公告、問答或課堂交流。名稱和說明越清楚，學生越知道什麼內容應該發在哪裡。</p>
+              </div>
+            </div>
+            <div class="bridge-form-group">
+              <label class="bridge-form-label" for="newForumTitle">討論區名稱 *</label>
+              <input type="text" id="newForumTitle" class="bridge-form-control" placeholder="例如：課程公告、學習交流">
+            </div>
+            <div class="discussion-modal-grid">
+              <div class="bridge-form-group">
+                <label class="bridge-form-label" for="newForumType">類型</label>
+                <select id="newForumType" class="bridge-form-control">
+                  <option value="general">一般討論</option>
+                  <option value="news">公告</option>
+                  <option value="qanda">問與答</option>
+                </select>
+              </div>
+              <div class="bridge-form-group">
+                <label class="bridge-form-label" for="newForumDesc">說明</label>
+                <textarea id="newForumDesc" rows="4" class="bridge-form-control" placeholder="簡短說明這個討論區適合發什麼內容。"></textarea>
+              </div>
+            </div>
           </div>
-          <div class="form-group" style="margin-bottom: 1rem;">
-            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">說明</label>
-            <textarea id="newForumDesc" rows="3" placeholder="討論區說明（選填）" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-200); border-radius: 8px; font-size: 1rem; resize: vertical;"></textarea>
+          <div class="modal-footer">
+            <div class="discussion-modal-note">建立後即可在課程論壇中開放新主題，教師與學生都能更有方向地使用。</div>
+            <button type="button" onclick="MoodleUI.closeModal('createForumModal')" class="btn-secondary">取消</button>
+            <button type="submit" class="btn-primary">建立討論區</button>
           </div>
-          <div class="form-group" style="margin-bottom: 1rem;">
-            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">類型</label>
-            <select id="newForumType" style="width: 100%; padding: 0.75rem; border: 1px solid var(--gray-200); border-radius: 8px; font-size: 1rem;">
-              <option value="general">一般討論</option>
-              <option value="news">公告</option>
-              <option value="qanda">問與答</option>
-            </select>
-          </div>
-        </div>
-        <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 0.75rem; padding: 1rem 1.5rem; border-top: 1px solid var(--gray-200);">
-          <button onclick="MoodleUI.closeModal('createForumModal')" class="btn-secondary" style="padding: 0.75rem 1.5rem; background: var(--gray-200); border: none; border-radius: 8px; cursor: pointer;">取消</button>
-          <button onclick="MoodleUI.submitCreateForum('${courseId}')" class="btn-primary" style="padding: 0.75rem 1.5rem; background: var(--olive); color: var(--cream); border: none; border-radius: 8px; cursor: pointer; font-weight: 500;">建立</button>
-        </div>
+        </form>
       </div>
     `;
     document.body.appendChild(modal);
     modal.onclick = (e) => { if (e.target === modal) this.closeModal('createForumModal'); };
+    modal.querySelector('#createForumForm')?.addEventListener('submit', (event) => {
+      event.preventDefault();
+      this.submitCreateForum(courseId);
+    });
+    window.requestAnimationFrame(() => modal.querySelector('#newForumTitle')?.focus());
   },
 
   async submitCreateForum(courseId) {
@@ -3144,33 +3315,51 @@ const MoodleUI = {
   },
 
   openNewDiscussionModal(forumId) {
+    this.closeModal('newDiscussionModal');
     const modal = document.createElement('div');
     modal.id = 'newDiscussionModal';
-    modal.className = 'modal-overlay';
+    modal.className = 'modal-overlay active';
     modal.innerHTML = `
-      <div class="modal-content">
+      <div class="modal active discussion-modal" style="max-width: 680px;" role="dialog" aria-modal="true" aria-labelledby="newDiscussionModalTitle">
         <div class="modal-header">
-          <h3>${t('moodleDiscussion.newTitle')}</h3>
+          <h2 id="newDiscussionModalTitle">${t('moodleDiscussion.newTitle')}</h2>
           <button onclick="MoodleUI.closeModal('newDiscussionModal')" class="modal-close">&times;</button>
         </div>
-        <div class="modal-body">
-          <div class="form-group">
-            <label>${t('moodleDiscussion.subjectLabel')}</label>
-            <input type="text" id="discussionSubject" placeholder="${t('moodleDiscussion.subjectPlaceholder')}">
+        <form id="newDiscussionForm">
+          <div class="modal-body">
+            <div class="discussion-modal-intro">
+              <div class="discussion-modal-intro-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8"/><path d="M8 13h5"/></svg>
+              </div>
+              <div>
+                <div class="discussion-modal-intro-title">讓主題更容易被回覆</div>
+                <p class="discussion-modal-intro-copy">主旨先說清楚問題，內容補充背景與目前做法，能讓同學與老師更快切入重點。</p>
+              </div>
+            </div>
+            <div class="bridge-form-group">
+              <label class="bridge-form-label" for="discussionSubject">${t('moodleDiscussion.subjectLabel')}</label>
+              <input type="text" id="discussionSubject" class="bridge-form-control" placeholder="${t('moodleDiscussion.subjectPlaceholder')}">
+            </div>
+            <div class="bridge-form-group">
+              <label class="bridge-form-label" for="discussionMessage">${t('moodleDiscussion.contentLabel')}</label>
+              <textarea id="discussionMessage" rows="7" class="bridge-form-control discussion-form-textarea" placeholder="${t('moodleDiscussion.contentPlaceholder')}"></textarea>
+            </div>
           </div>
-          <div class="form-group">
-            <label>${t('moodleDiscussion.contentLabel')}</label>
-            <textarea id="discussionMessage" rows="6" placeholder="${t('moodleDiscussion.contentPlaceholder')}"></textarea>
+          <div class="modal-footer">
+            <div class="discussion-modal-note">發布後會顯示在這個課程論壇中，並納入主題與回覆統計。</div>
+            <button type="button" onclick="MoodleUI.closeModal('newDiscussionModal')" class="btn-secondary">${t('moodleDiscussion.cancel')}</button>
+            <button type="submit" class="btn-primary">${t('moodleDiscussion.publish')}</button>
           </div>
-        </div>
-        <div class="modal-footer">
-          <button onclick="MoodleUI.closeModal('newDiscussionModal')" class="btn-secondary">${t('moodleDiscussion.cancel')}</button>
-          <button onclick="MoodleUI.submitNewDiscussion('${forumId}')" class="btn-primary">${t('moodleDiscussion.publish')}</button>
-        </div>
+        </form>
       </div>
     `;
     document.body.appendChild(modal);
     modal.onclick = (e) => { if (e.target === modal) this.closeModal('newDiscussionModal'); };
+    modal.querySelector('#newDiscussionForm')?.addEventListener('submit', (event) => {
+      event.preventDefault();
+      this.submitNewDiscussion(forumId);
+    });
+    window.requestAnimationFrame(() => modal.querySelector('#discussionSubject')?.focus());
   },
 
   /**
@@ -3213,60 +3402,124 @@ const MoodleUI = {
 
       const discussion = result.data;
       const container = document.getElementById('forumDetailContent');
+      const posts = Array.isArray(discussion.posts) ? discussion.posts : [];
+      const safeAuthor = this.escapeText(discussion.authorName || '匿名');
+      const safeSubject = this.escapeText(discussion.subject || '未命名主題');
+      const safeMessage = this.formatMultilineText(discussion.message || '');
+      const safeCreatedAt = this.escapeText(this.formatPlatformDate(discussion.createdAt, {
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }) || '');
 
       container.innerHTML = `
-        <div class="discussion-detail">
-          <button onclick="MoodleUI.openForum('${forumId}')" class="back-btn">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
-            ${t('moodleDiscussion.backToForum')}
-          </button>
-          <div class="discussion-main">
-            <div class="discussion-post main-post">
-              <div class="post-header">
-                <div class="post-avatar">${(discussion.authorName || 'U')[0]}</div>
-                <div class="post-meta">
-                  <span class="author-name">${discussion.authorName}</span>
-                  <span class="post-time">${new Date(discussion.createdAt).toLocaleString(I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW')}</span>
+        <section class="forum-thread-shell">
+          <div class="forum-thread-panel">
+            <div class="forum-thread-top">
+              <div style="display:flex; align-items:flex-start; gap:0.75rem; flex-wrap:wrap;">
+                <button type="button" class="forum-back-btn" onclick="MoodleUI.openForum(${this.toInlineActionValue(forumId)})">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                  <span>${t('moodleDiscussion.backToForum')}</span>
+                </button>
+                <div class="forum-thread-copy">
+                  <span class="forum-thread-count-pill">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    <span>${posts.length} ${t('moodleDiscussion.repliesCount')}</span>
+                  </span>
+                  <h2 class="forum-thread-title">${safeSubject}</h2>
+                  <p class="forum-thread-subtitle">以下顯示原始主題與所有回覆。內容會依時間排序，方便你追蹤討論脈絡。</p>
                 </div>
               </div>
-              <h2 class="post-title">${discussion.subject}</h2>
-              <div class="post-content">${discussion.message}</div>
             </div>
-
-            <div class="replies-section">
-              <h3>${discussion.posts?.length || 0} ${t('moodleDiscussion.repliesCount')}</h3>
-              ${(discussion.posts || []).map(p => `
-                <div class="discussion-post reply-post">
-                  <div class="post-header">
-                    <div class="post-avatar">${(p.authorName || 'U')[0]}</div>
-                    <div class="post-meta">
-                      <span class="author-name">${p.authorName}</span>
-                      <span class="post-time">${new Date(p.createdAt).toLocaleString(I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW')}</span>
-                    </div>
-                  </div>
-                  <div class="post-content">${p.message}</div>
-                  <div class="post-actions">
-                    <button onclick="MoodleUI.likePost('${forumId}', '${discussionId}', '${p.postId}')" class="btn-like ${p.liked ? 'liked' : ''}">
-                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z"/>
-                        <path d="M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/>
-                      </svg>
-                      ${p.likes || 0}
-                    </button>
-                  </div>
-                </div>
-              `).join('')}
+            <div class="forum-thread-meta">
+              <span class="forum-chip">${safeAuthor}</span>
+              ${safeCreatedAt ? `<span class="forum-chip">${safeCreatedAt}</span>` : ''}
             </div>
-
-            ${!discussion.locked ? `
-              <div class="reply-form">
-                <h4>${t('moodleDiscussion.replyTitle')}</h4>
-                <textarea id="replyMessage" rows="4" placeholder="${t('moodleDiscussion.replyPlaceholder')}"></textarea>
-                <button onclick="MoodleUI.submitReply('${forumId}', '${discussionId}')" class="btn-primary">${t('moodleDiscussion.replyBtn')}</button>
-              </div>
-            ` : `<div class="locked-notice">${t('moodleDiscussion.locked')}</div>`}
           </div>
-        </div>
+
+          <article class="forum-thread-post is-main">
+            <div class="forum-thread-avatar">${this.escapeText((discussion.authorName || 'U').trim().charAt(0) || 'U')}</div>
+            <div class="forum-thread-post-body">
+              <div class="forum-thread-post-topline">
+                <div>
+                  <div class="forum-thread-post-author">${safeAuthor}</div>
+                  <div class="forum-thread-post-meta">
+                    ${safeCreatedAt ? `<span>${safeCreatedAt}</span>` : ''}
+                    ${discussion.locked ? `<span>•</span><span>${t('moodleDiscussion.locked')}</span>` : ''}
+                  </div>
+                </div>
+              </div>
+              <h3 class="forum-thread-post-title">${safeSubject}</h3>
+              <div class="forum-thread-post-content">${safeMessage || this.escapeText('尚未提供內容。')}</div>
+            </div>
+          </article>
+
+          <section class="forum-thread-panel">
+            <div class="forum-thread-replies-head">
+              <div class="forum-thread-replies-title">${posts.length} ${t('moodleDiscussion.repliesCount')}</div>
+              <div class="forum-count-row">
+                <span class="forum-chip">${posts.filter(post => post.liked).length} 已按讚回覆</span>
+              </div>
+            </div>
+            <div class="forum-thread-replies">
+              ${posts.length === 0
+                ? this.renderForumState('目前還沒有任何回覆。你可以成為第一個回應這個主題的人。')
+                : posts.map(post => {
+                    const safePostAuthor = this.escapeText(post.authorName || '匿名');
+                    const safePostTime = this.escapeText(this.formatPlatformDate(post.createdAt, {
+                      year: 'numeric',
+                      month: 'numeric',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    }) || '');
+                    const safePostMessage = this.formatMultilineText(post.message || '');
+                    return `
+                      <article class="forum-thread-post is-reply">
+                        <div class="forum-thread-avatar">${this.escapeText((post.authorName || 'U').trim().charAt(0) || 'U')}</div>
+                        <div class="forum-thread-post-body">
+                          <div class="forum-thread-post-header">
+                            <div>
+                              <div class="forum-thread-post-author">${safePostAuthor}</div>
+                              <div class="forum-thread-post-meta">
+                                ${safePostTime ? `<span>${safePostTime}</span>` : ''}
+                              </div>
+                            </div>
+                            <button type="button" onclick="event.stopPropagation(); MoodleUI.likePost(${this.toInlineActionValue(forumId)}, ${this.toInlineActionValue(discussionId)}, ${this.toInlineActionValue(post.postId)})" class="forum-thread-like-btn ${post.liked ? 'liked' : ''}">
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z"/>
+                                <path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/>
+                              </svg>
+                              <span>${Number(post.likes || 0)}</span>
+                            </button>
+                          </div>
+                          <div class="forum-thread-post-content">${safePostMessage || this.escapeText('尚未提供內容。')}</div>
+                        </div>
+                      </article>
+                    `;
+                  }).join('')}
+            </div>
+          </section>
+
+          ${!discussion.locked ? `
+            <section class="forum-thread-reply-form">
+              <div class="forum-thread-reply-form-title">${t('moodleDiscussion.replyTitle')}</div>
+              <textarea id="replyMessage" class="bridge-form-control" rows="5" placeholder="${t('moodleDiscussion.replyPlaceholder')}"></textarea>
+              <div class="forum-thread-reply-actions">
+                <div class="forum-thread-reply-note">回覆會立即顯示在這個主題下方，請盡量提供具體、可執行的建議。</div>
+                <button type="button" onclick="MoodleUI.submitReply(${this.toInlineActionValue(forumId)}, ${this.toInlineActionValue(discussionId)})" class="forum-header-btn primary">${t('moodleDiscussion.replyBtn')}</button>
+              </div>
+            </section>
+          ` : `
+            <div class="forum-thread-state forum-thread-locked">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              <div class="forum-thread-state-title">${t('moodleDiscussion.locked')}</div>
+              <div class="forum-thread-state-copy">這則討論已鎖定，目前不能再新增回覆。</div>
+            </div>
+          `}
+        </section>
       `;
     } catch (error) {
       console.error('Open discussion error:', error);

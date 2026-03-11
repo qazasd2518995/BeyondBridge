@@ -2997,39 +2997,51 @@ const App = {
     try {
       const result = await API.discussions.list();
       const posts = result.success ? (result.data || []) : [];
+      const toInlineActionValue = value => `'${String(value || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
+      const renderState = typeof window.renderDiscussionState === 'function'
+        ? window.renderDiscussionState
+        : (message, variant = 'empty') => `<div class="discussion-state${variant === 'error' ? ' is-error' : ''}"><div class="discussion-state-title">${variant === 'error' ? t('common.error') : t('app.noDiscussions')}</div><div class="discussion-state-copy">${message}</div></div>`;
+      const renderCard = typeof window.renderDiscussionCard === 'function'
+        ? window.renderDiscussionCard
+        : post => `<article class="discussion-card"><div class="discussion-content"><h3 class="discussion-title">${post.title || ''}</h3></div></article>`;
+
       container.innerHTML = `
-        <div class="discussions-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-          <span style="color:var(--gray-500);">${posts.length} ${t('app.discussionCount')}</span>
-          <button onclick="showView('moodleForums'); if (typeof MoodleUI !== 'undefined' && typeof MoodleUI.loadForums === 'function') { MoodleUI.loadForums(); }" class="btn-primary" style="padding:0.75rem 1.5rem;background:var(--olive);color:var(--cream);border:none;border-radius:8px;cursor:pointer;font-weight:500;display:flex;align-items:center;gap:0.5rem;">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            ${t('app.startDiscussion')}
-          </button>
-        </div>
-        <div class="discussions-list">
-          ${posts.map(p => {
-            const avatarColors = ['var(--olive)', 'var(--terracotta)', '#6366f1', '#059669', '#1976D2'];
-            const colorIndex = (p.authorName || '').charCodeAt(0) % avatarColors.length || 0;
-            return `
-            <div class="discussion-card" style="background:var(--white);border-radius:12px;padding:1.5rem;margin-bottom:1rem;box-shadow:0 2px 8px rgba(0,0,0,0.06);cursor:pointer;display:flex;gap:1rem;" onclick="App.openDiscussion('${p.id || p.postId}')">
-              <div class="discussion-avatar" style="width:48px;height:48px;background:${avatarColors[colorIndex]};border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--cream);font-weight:600;flex-shrink:0;">${(p.authorName || t('app.anonymous'))[0]}</div>
-              <div class="discussion-content" style="flex:1;">
-                <h4 style="font-size:1.1rem;font-weight:600;margin-bottom:0.25rem;">${p.title}</h4>
-                <p style="color:var(--gray-600);margin-bottom:0.75rem;line-height:1.6;font-size:0.9rem;">${(p.content || '').substring(0, 100)}${(p.content || '').length > 100 ? '...' : ''}</p>
-                <div class="discussion-meta" style="display:flex;gap:1rem;font-size:0.8rem;color:var(--gray-400);">
-                  <span>${p.authorName || t('app.anonymous')}</span>
-                  <span>${p.createdAt ? new Date(p.createdAt).toLocaleDateString(I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW') : ''}</span>
-                  <span>${p.replyCount || 0} ${t('app.replies')}</span>
-                  <span>${p.likeCount || 0} ${t('app.likes')}</span>
-                </div>
-              </div>
+        <section class="discussions-shell">
+          <div class="discussions-header">
+            <div class="discussions-header-copy">
+              <span class="discussion-count-pill">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                <span>${posts.length} ${t('app.discussionCount')}</span>
+              </span>
+              <h2 class="discussions-title">${t('sidebar.discussions')}</h2>
+              <p class="discussions-subtitle">這裡整理平台上的最新主題摘要。你可以直接發布新討論，或前往課程論壇查看完整脈絡與回覆。</p>
             </div>
-          `}).join('')}
-          ${posts.length === 0 ? `<div class="empty-state" style="text-align:center;padding:3rem;color:var(--gray-500);"><p>${t('app.noDiscussionsYet')}</p></div>` : ''}
-        </div>
+            <div class="discussions-header-actions">
+              <button type="button" class="btn-secondary discussion-header-btn" onclick="showView('moodleForums'); if (typeof MoodleUI !== 'undefined' && typeof MoodleUI.loadForums === 'function') { MoodleUI.loadForums(); }">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                <span>${t('sidebar.forums')}</span>
+              </button>
+              <button type="button" class="btn-primary discussion-header-btn" onclick="openNewPostModal()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span>${t('app.startDiscussion')}</span>
+              </button>
+            </div>
+          </div>
+          <div class="discussion-list">
+            ${posts.length === 0
+              ? renderState('目前還沒有可顯示的主題。你可以先發起一則討論，或前往課程論壇查看更完整的社群交流。')
+              : posts.map(post => renderCard(post, {
+                  openAction: `App.openDiscussion(${toInlineActionValue(post.id || post.postId || '')})`,
+                  replyAction: (post.id || post.postId) ? `toggleReplies(${toInlineActionValue(post.id || post.postId)})` : ''
+                })).join('')}
+          </div>
+        </section>
       `;
     } catch (error) {
       console.error('loadDiscussionsListView error:', error);
-      container.innerHTML = `<div class="error-state">${t('toast.discussionLoadFailed')}</div>`;
+      container.innerHTML = typeof window.renderDiscussionState === 'function'
+        ? window.renderDiscussionState(t('toast.discussionLoadFailed'), 'error')
+        : `<div class="error-state">${t('toast.discussionLoadFailed')}</div>`;
     }
   },
 
