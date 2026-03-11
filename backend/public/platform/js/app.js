@@ -283,9 +283,9 @@ const App = {
           ${t('nav.logout')}
         </a>
       </div>
-      <div class="nav-section" style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 0.75rem; margin-top: 0.5rem;">
-        <a href="#" class="nav-item" onclick="event.preventDefault(); I18n.setLocale(I18n.getLocale() === 'zh-TW' ? 'en' : 'zh-TW');" style="font-size: 0.85rem; opacity: 0.7;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;">
+      <div class="nav-section sidebar-locale-section">
+        <a href="#" class="nav-item sidebar-locale-link" onclick="event.preventDefault(); I18n.setLocale(I18n.getLocale() === 'zh-TW' ? 'en' : 'zh-TW');">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="sidebar-locale-icon">
             <circle cx="12" cy="12" r="10"/>
             <line x1="2" y1="12" x2="22" y2="12"/>
             <path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
@@ -416,9 +416,9 @@ const App = {
           ${t('nav.logout')}
         </a>
       </div>
-      <div class="nav-section" style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 0.75rem; margin-top: 0.5rem;">
-        <a href="#" class="nav-item" onclick="event.preventDefault(); I18n.setLocale(I18n.getLocale() === 'zh-TW' ? 'en' : 'zh-TW');" style="font-size: 0.85rem; opacity: 0.7;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;">
+      <div class="nav-section sidebar-locale-section">
+        <a href="#" class="nav-item sidebar-locale-link" onclick="event.preventDefault(); I18n.setLocale(I18n.getLocale() === 'zh-TW' ? 'en' : 'zh-TW');">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="sidebar-locale-icon">
             <circle cx="12" cy="12" r="10"/>
             <line x1="2" y1="12" x2="22" y2="12"/>
             <path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
@@ -1283,16 +1283,11 @@ const App = {
    * 渲染課程項目
    */
   renderCourseItem(course) {
-    const colors = [
-      'linear-gradient(135deg, var(--olive) 0%, var(--olive-light) 100%)',
-      'linear-gradient(135deg, var(--terracotta) 0%, var(--terracotta-light) 100%)',
-      'linear-gradient(135deg, var(--success) 0%, var(--sage) 100%)'
-    ];
-    const colorIndex = Math.abs(course.courseId?.charCodeAt(0) || 0) % colors.length;
+    const toneClass = this.getToneClass(course.courseId || course.category || course.title);
 
     return `
       <div class="course-item" onclick="App.openCourse('${course.courseId}')">
-        <div class="course-thumbnail" style="background: ${colors[colorIndex]}">
+        <div class="course-thumbnail ${toneClass}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polygon points="12,2 2,7 12,12 22,7"/>
             <polyline points="2,17 12,22 22,17"/>
@@ -2734,16 +2729,16 @@ const App = {
     if (!content) return;
 
     const passed = result.passed;
-    const passColor = passed ? 'var(--success)' : 'var(--terracotta)';
+    const resultToneClass = passed ? 'is-passed' : 'is-failed';
     const timeLabel = `${Math.floor(result.timeSpent / 60)}:${String(result.timeSpent % 60).padStart(2, '0')}`;
 
     content.innerHTML = `
       <div class="quiz-result-shell">
         <div class="quiz-result-hero">
-          <div class="quiz-result-score-ring" style="background:${passColor};">
+          <div class="quiz-result-score-ring ${resultToneClass}">
             <div class="quiz-result-score-value">${result.score}%</div>
           </div>
-          <div class="quiz-result-title" style="color:${passColor};">${this.escapeText(passed ? t('app.congratsPassed') : t('app.keepTrying'))}</div>
+          <div class="quiz-result-title ${resultToneClass}">${this.escapeText(passed ? t('app.congratsPassed') : t('app.keepTrying'))}</div>
           <div class="quiz-result-copy">${this.escapeText(`${t('app.correctAnswers', {correct: result.correctCount, total: result.totalQuestions})} | ${t('app.timeSpent')} ${timeLabel}`)}</div>
         </div>
 
@@ -2849,6 +2844,13 @@ const App = {
     const normalized = bytes / (1024 ** unitIndex);
     const precision = normalized >= 100 ? 0 : normalized >= 10 ? 1 : 2;
     return `${normalized.toFixed(precision)} ${units[unitIndex]}`;
+  },
+
+  getToneClass(seedValue) {
+    const tones = ['tone-olive', 'tone-terracotta', 'tone-success', 'tone-blue'];
+    const seed = String(seedValue || 'default');
+    const hash = Array.from(seed).reduce((total, char) => total + char.charCodeAt(0), 0);
+    return tones[Math.abs(hash) % tones.length];
   },
 
   getLicenseStatusMeta(status) {
@@ -2988,7 +2990,7 @@ const App = {
         <div class="courses-grid">
           ${courses.map(c => `
             <div class="course-card" onclick="MoodleUI.openCourse('${c.courseId}')">
-              <div class="course-card-header" style="background: ${MoodleUI.getCourseGradient ? MoodleUI.getCourseGradient(c.category) : 'linear-gradient(135deg, var(--olive) 0%, var(--olive-light) 100%)'}">
+              <div class="course-card-cover ${this.getToneClass(c.category || c.courseId || c.title)}">
                 <span class="course-category">${c.category || t('app.noCategory')}</span>
                 <h3>${c.title}</h3>
               </div>
@@ -3258,18 +3260,18 @@ const App = {
           </div>
 
           <div class="video-library-toolbar">
-            <div class="bridge-form-group" style="margin-bottom:0;">
+            <div class="bridge-form-group flush">
               <label class="bridge-form-label" for="videoSearch">搜尋影片</label>
               <input id="videoSearch" type="text" class="bridge-form-control" placeholder="搜尋標題或作者" oninput="filterVideos()">
             </div>
-            <div class="bridge-form-group" style="margin-bottom:0;">
+            <div class="bridge-form-group flush">
               <label class="bridge-form-label" for="videoCategory">分類</label>
               <select id="videoCategory" class="bridge-form-control" onchange="filterVideos()">
                 <option value="">全部分類</option>
                 ${Array.from(new Set(normalizedVideos.map(video => video.category).filter(Boolean))).map(category => `<option value="${escapeText(category)}">${escapeText(category)}</option>`).join('')}
               </select>
             </div>
-            <div class="bridge-form-group" style="margin-bottom:0;">
+            <div class="bridge-form-group flush">
               <label class="bridge-form-label" for="videoDuration">學習狀態</label>
               <select id="videoDuration" class="bridge-form-control" onchange="filterVideos()">
                 <option value="">全部狀態</option>
@@ -3305,11 +3307,11 @@ const App = {
                     <p class="video-library-card-desc">${escapeText((video.description || '').trim() ? (String(video.description).replace(/\s+/g, ' ').trim().slice(0, 120) + (String(video.description).replace(/\s+/g, ' ').trim().length > 120 ? '...' : '')) : '這支影片目前尚未提供補充說明。')}</p>
                   </div>
                   <div class="video-library-card-meta">
-                    <span style="display:inline-flex; align-items:center; gap:0.35rem;">
+                    <span class="video-library-meta-item">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                       <span>${escapeText(video.author)}</span>
                     </span>
-                    <span style="display:inline-flex; align-items:center; gap:0.35rem;">
+                    <span class="video-library-meta-item">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12Z"/><circle cx="12" cy="12" r="3"/></svg>
                       <span>${escapeText(video.viewsLabel)} 次觀看</span>
                     </span>
@@ -3337,7 +3339,7 @@ const App = {
               </article>
             `).join('')}
             ${normalizedVideos.length === 0 ? `
-              <div class="discussion-state" style="grid-column:1 / -1;">
+              <div class="discussion-state full-span">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="23,7 16,12 23,17"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
                 <div class="discussion-state-title">${t('app.noVideos')}</div>
                 <div class="discussion-state-copy">目前還沒有可用的影音橋段，稍後再回來看看。</div>

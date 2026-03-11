@@ -180,42 +180,43 @@ const MoodleUI = {
     container.innerHTML = `<div class="loading">${t('common.loading')}</div>`;
 
     API.courses.list({ enrolled: true }).then(result => {
+      const isEnglish = I18n.getLocale() === 'en';
       const courses = result.success ? (Array.isArray(result.data) ? result.data : (result.data?.courses || [])) : [];
-      const courseColors = [
-        'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-        'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-        'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-        'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
-        'linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)',
-      ];
       container.innerHTML = `
-        <div style="padding: 1.5rem;">
-          <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 2rem;">
-            ${icon}
-            <div>
-              <h2 style="font-size: 1.5rem; font-weight: 700; margin: 0;">${title}</h2>
-              <p style="color: var(--gray-500); margin: 0.25rem 0 0; font-size: 0.9rem;">請選擇課程</p>
+        <div class="activity-picker-page">
+          <div class="activity-picker-header">
+            <div class="activity-picker-title">
+              <div class="activity-picker-icon">${icon}</div>
+              <div class="activity-picker-copy">
+                <h2>${this.escapeText(title)}</h2>
+                <p>${isEnglish ? 'Choose a course to continue.' : '請選擇課程以瀏覽此功能。'}</p>
+                <div class="activity-shell-meta">
+                  <span class="activity-chip">${courses.length} ${isEnglish ? 'courses' : '門課程'}</span>
+                </div>
+              </div>
             </div>
           </div>
-          ${courses.length === 0 ? `
-            <div style="text-align: center; padding: 4rem 2rem; color: var(--gray-400);">
-              <p style="font-size: 1.1rem;">尚無課程</p>
-            </div>
-          ` : `
-            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem;">
-              ${courses.map((c, idx) => `
-                <div onclick="${callbackFn}('${c.courseId || c.id}')"
-                     style="background: var(--white); border-radius: 16px; overflow: hidden; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.06);"
-                     onmouseover="this.style.boxShadow='0 8px 24px rgba(0,0,0,0.12)';this.style.transform='translateY(-2px)'"
-                     onmouseout="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.06)';this.style.transform='none'">
-                  <div style="height: 8px; background: ${courseColors[idx % courseColors.length]};"></div>
-                  <div style="padding: 1.5rem;">
-                    <h3 style="font-size: 1.15rem; font-weight: 600; margin: 0 0 0.5rem;">${c.title || c.name || '未命名課程'}</h3>
-                    <p style="color: var(--gray-500); font-size: 0.85rem; margin: 0 0 1rem; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${c.summary || c.description || ''}</p>
-                    <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: var(--gray-400);">
-                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                      ${c.instructorName || c.teacherName || ''}
+          ${courses.length === 0 ? this.renderActivityEmptyState({
+            icon: '<svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>',
+            title: isEnglish ? 'No courses available' : '尚無課程',
+            hint: isEnglish ? 'Join or create a course before using this area.' : '請先加入或建立課程後再查看這個功能。'
+          }) : `
+            <div class="activity-picker-grid">
+              ${courses.map(c => `
+                <div class="activity-picker-card ${this.getSurfaceToneClass(c.courseId || c.id || c.title || c.name)}"
+                     onclick="${callbackFn}(${this.toInlineActionValue(c.courseId || c.id)})">
+                  <div class="activity-picker-card-accent"></div>
+                  <div class="activity-picker-card-body">
+                    <div class="activity-picker-card-copy">
+                      <h3 class="activity-picker-card-title">${this.escapeText(c.title || c.name || (isEnglish ? 'Untitled course' : '未命名課程'))}</h3>
+                      <p class="activity-picker-card-summary">${this.escapeText(this.truncateText(c.summary || c.description || '', 120) || (isEnglish ? 'No course summary yet.' : '尚未提供課程摘要。'))}</p>
+                    </div>
+                    <div class="activity-picker-card-footer">
+                      <span class="activity-picker-card-teacher">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        ${this.escapeText(c.instructorName || c.teacherName || (isEnglish ? 'Course team' : '課程團隊'))}
+                      </span>
+                      <span class="activity-picker-card-link">${isEnglish ? 'Open' : '進入內容'}</span>
                     </div>
                   </div>
                 </div>
@@ -254,15 +255,11 @@ const MoodleUI = {
     if (!container) return;
 
     if (courses.length === 0) {
-      container.innerHTML = `
-        <div style="text-align: center; padding: 4rem 2rem; color: var(--gray-400); grid-column: 1/-1;">
-          <svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="currentColor" stroke-width="1" style="margin-bottom: 1rem; opacity: 0.5;">
-            <path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>
-          </svg>
-          <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">${t('moodleCourse.noCourses')}</p>
-          <p style="font-size: 0.9rem;">${t('moodleCourse.waitForCourses')}</p>
-        </div>
-      `;
+      container.innerHTML = this.renderActivityEmptyState({
+        icon: '<svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="currentColor" stroke-width="1"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>',
+        title: t('moodleCourse.noCourses'),
+        hint: t('moodleCourse.waitForCourses')
+      });
       return;
     }
 
@@ -1707,6 +1704,235 @@ const MoodleUI = {
     return `<div class="forum-thread-state"><div class="forum-thread-state-title">${this.escapeText(message)}</div></div>`;
   },
 
+  getSurfaceToneClass(seedValue = '') {
+    const tones = ['tone-olive', 'tone-violet', 'tone-sky', 'tone-mint', 'tone-gold', 'tone-rose'];
+    const seed = String(seedValue || 'surface');
+    let hash = 0;
+    for (let i = 0; i < seed.length; i += 1) {
+      hash = ((hash << 5) - hash) + seed.charCodeAt(i);
+      hash |= 0;
+    }
+    return tones[Math.abs(hash) % tones.length];
+  },
+
+  renderActivityCollectionHeader({ backAction, title, subtitle, ctaAction, ctaLabel, metaChips = [] }) {
+    const chips = metaChips
+      .filter(chip => chip && chip.label)
+      .map(chip => `<span class="activity-chip${chip.tone ? ` ${chip.tone}` : ''}">${this.escapeText(chip.label)}</span>`)
+      .join('');
+
+    return `
+      <div class="activity-shell-header">
+        <div class="activity-shell-heading">
+          <button type="button" class="btn-secondary activity-back-btn" onclick="${backAction}">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="15,18 9,12 15,6"/>
+            </svg>
+          </button>
+          <div class="activity-shell-copy">
+            <h2>${this.escapeText(title)}</h2>
+            <p>${this.escapeText(subtitle)}</p>
+            ${chips ? `<div class="activity-shell-meta">${chips}</div>` : ''}
+          </div>
+        </div>
+        ${ctaAction && ctaLabel ? `
+          <button type="button" class="btn-primary" onclick="${ctaAction}">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            ${this.escapeText(ctaLabel)}
+          </button>
+        ` : ''}
+      </div>
+    `;
+  },
+
+  renderActivityEmptyState({ icon, title, hint = '' }) {
+    return `
+      <div class="activity-empty-state">
+        ${icon}
+        <h3>${this.escapeText(title)}</h3>
+        ${hint ? `<p>${this.escapeText(hint)}</p>` : ''}
+      </div>
+    `;
+  },
+
+  renderAssignmentCard(assignment, { teacherView = false, showCourse = false } = {}) {
+    const isEnglish = I18n.getLocale() === 'en';
+    const a = this.normalizeAssignmentState(assignment || {});
+    const title = a.title || (isEnglish ? 'Untitled assignment' : '未命名作業');
+    const description = this.truncateText(a.description || '', teacherView ? 120 : 140);
+    const dueDate = a.dueDate ? new Date(a.dueDate) : null;
+    const isPastDue = dueDate instanceof Date && !Number.isNaN(dueDate.getTime()) && dueDate < new Date();
+    const isStudentOverdue = isPastDue && !a.submitted;
+    const dueLabel = a.dueDate
+      ? `${t('moodleAssignment.duePrefix')}：${this.formatPlatformDate(a.dueDate, { dateStyle: 'medium', timeStyle: 'short' })}`
+      : '';
+    const pointsLabel = a.maxPoints ? `${a.maxPoints} ${t('moodleAssignment.points')}` : '';
+    const metaItems = [
+      showCourse && a.courseName ? a.courseName : '',
+      dueLabel,
+      pointsLabel
+    ].filter(Boolean);
+
+    const statusMeta = teacherView
+      ? {
+          label: isPastDue ? (isEnglish ? 'Closed' : '已截止') : (isEnglish ? 'Open' : '進行中'),
+          tone: isPastDue ? 'is-danger' : 'is-success'
+        }
+      : a.graded
+        ? { label: t('moodleAssignment.statusGraded'), tone: 'is-accent' }
+        : a.submitted
+          ? { label: t('moodleAssignment.statusSubmitted'), tone: 'is-success' }
+          : isStudentOverdue
+            ? { label: t('moodleAssignment.statusOverdue'), tone: 'is-danger' }
+            : { label: t('moodleAssignment.statusPending'), tone: 'is-neutral' };
+
+    const submissions = Number(a.stats?.totalSubmissions || 0);
+    const graded = Number(a.stats?.gradedCount || 0);
+    const gradeText = a.graded && a.grade !== null && a.grade !== undefined
+      ? `${a.grade}/${a.maxPoints || 100}`
+      : '';
+
+    return `
+      <div class="assignment-card${teacherView ? ' is-teacher-card' : ''}" onclick="MoodleUI.openAssignment(${this.toInlineActionValue(a.assignmentId)})">
+        <div class="assignment-icon">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+            <polyline points="14,2 14,8 20,8"/>
+          </svg>
+        </div>
+        <div class="assignment-info">
+          <h3>${this.escapeText(title)}</h3>
+          ${description ? `<p class="activity-card-description">${this.escapeText(description)}</p>` : ''}
+          ${metaItems.length ? `<div class="activity-card-meta">${metaItems.map(item => `<span>${this.escapeText(item)}</span>`).join('')}</div>` : ''}
+        </div>
+        ${teacherView ? `
+          <div class="activity-card-aside">
+            <div class="activity-card-metrics">
+              <div class="activity-card-metric">
+                <strong>${submissions}</strong>
+                <span>${isEnglish ? 'Submitted' : '已提交'}</span>
+              </div>
+              <div class="activity-card-metric">
+                <strong>${graded}</strong>
+                <span>${isEnglish ? 'Graded' : '已評分'}</span>
+              </div>
+            </div>
+            <span class="activity-status-chip ${statusMeta.tone}">${this.escapeText(statusMeta.label)}</span>
+          </div>
+        ` : `
+          <div class="assignment-status">
+            <span class="activity-status-chip ${statusMeta.tone}">${this.escapeText(statusMeta.label)}</span>
+            ${gradeText ? `<span class="grade">${this.escapeText(gradeText)}</span>` : ''}
+          </div>
+        `}
+      </div>
+    `;
+  },
+
+  renderQuizCard(quiz, { teacherView = false, showCourse = false } = {}) {
+    const isEnglish = I18n.getLocale() === 'en';
+    const q = this.normalizeQuizState(quiz || {});
+    const title = q.title || (isEnglish ? 'Untitled quiz' : '未命名測驗');
+    const description = this.truncateText(q.description || '', teacherView ? 120 : 140);
+    const now = new Date();
+    const openDate = q.openDate ? new Date(q.openDate) : null;
+    const closeDate = q.closeDate ? new Date(q.closeDate) : null;
+    const hasOpened = !openDate || (!Number.isNaN(openDate.getTime()) && openDate <= now);
+    const hasClosed = Boolean(closeDate && !Number.isNaN(closeDate.getTime()) && closeDate < now);
+    const isOpen = hasOpened && !hasClosed;
+    const questionCount = q.questionCount || q.questions?.length || 0;
+    const attemptsAllowed = (q.maxAttempts === 0 || q.maxAttempts === null || q.maxAttempts === undefined)
+      ? (isEnglish ? 'Unlimited attempts' : '不限次數')
+      : `${q.maxAttempts} ${t('moodleQuiz.attemptsAllowed')}`;
+    const metaItems = [
+      showCourse && q.courseName ? q.courseName : '',
+      `${questionCount} ${t('moodleQuiz.questionsUnit')}`,
+      q.timeLimit ? `${q.timeLimit} ${t('moodleQuiz.minutes')}` : t('moodleQuiz.noTimeLimit'),
+      teacherView ? (q.totalPoints ? `${q.totalPoints} ${t('moodleAssignment.points')}` : '') : attemptsAllowed
+    ].filter(Boolean);
+
+    const attempts = Number(q.stats?.totalAttempts || 0);
+    const averageScore = q.stats?.averageScore;
+    const averageScoreNumber = Number(averageScore);
+    const bestScoreNumber = Number(q.bestScore);
+    const averageScoreLabel = averageScore !== undefined && averageScore !== null && averageScore !== '' && Number.isFinite(averageScoreNumber)
+      ? averageScoreNumber.toFixed(0)
+      : '-';
+    const bestScoreLabel = q.bestScore !== undefined && q.bestScore !== null && q.bestScore !== ''
+      ? `${Number.isFinite(bestScoreNumber) ? bestScoreNumber.toFixed(0) : q.bestScore} ${t('moodleQuiz.score')}`
+      : `- ${t('moodleQuiz.score')}`;
+
+    let studentStatusHtml = '';
+    if (q.completed) {
+      studentStatusHtml = `
+        <div class="quiz-status">
+          <span class="activity-status-chip is-accent">${t('moodleQuiz.completed')}</span>
+          <span class="score">${this.escapeText(bestScoreLabel)}</span>
+        </div>
+      `;
+    } else if (isOpen && q.canAttempt !== false) {
+      studentStatusHtml = `
+        <div class="quiz-status">
+          <button type="button" class="btn-primary activity-inline-action" onclick="event.stopPropagation(); MoodleUI.startQuiz(${this.toInlineActionValue(q.quizId)})">
+            ${t('moodleQuiz.startQuiz')}
+          </button>
+        </div>
+      `;
+    } else {
+      const statusLabel = isOpen
+        ? (isEnglish ? 'Attempt limit reached' : '已達作答上限')
+        : hasClosed
+          ? (isEnglish ? 'Closed' : '已關閉')
+          : t('moodleQuiz.notAvailable');
+      studentStatusHtml = `
+        <div class="quiz-status">
+          <span class="activity-status-chip ${isOpen ? 'is-warning' : 'is-neutral'}">${this.escapeText(statusLabel)}</span>
+        </div>
+      `;
+    }
+
+    const teacherStatusMeta = isOpen
+      ? { label: isEnglish ? 'Open' : '開放中', tone: 'is-success' }
+      : hasClosed
+        ? { label: isEnglish ? 'Closed' : '已關閉', tone: 'is-neutral' }
+        : { label: isEnglish ? 'Scheduled' : '未開放', tone: 'is-warning' };
+
+    return `
+      <div class="quiz-card${teacherView ? ' is-teacher-card' : ''}" onclick="MoodleUI.openQuiz(${this.toInlineActionValue(q.quizId)})">
+        <div class="quiz-icon">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+        </div>
+        <div class="quiz-info">
+          <h3>${this.escapeText(title)}</h3>
+          ${description ? `<p class="activity-card-description">${this.escapeText(description)}</p>` : ''}
+          ${metaItems.length ? `<div class="activity-card-meta">${metaItems.map(item => `<span>${this.escapeText(item)}</span>`).join('')}</div>` : ''}
+        </div>
+        ${teacherView ? `
+          <div class="activity-card-aside">
+            <div class="activity-card-metrics">
+              <div class="activity-card-metric">
+                <strong>${attempts}</strong>
+                <span>${isEnglish ? 'Attempts' : '作答次數'}</span>
+              </div>
+              <div class="activity-card-metric">
+                <strong>${this.escapeText(averageScoreLabel)}</strong>
+                <span>${isEnglish ? 'Avg score' : '平均分'}</span>
+              </div>
+            </div>
+            <span class="activity-status-chip ${teacherStatusMeta.tone}">${this.escapeText(teacherStatusMeta.label)}</span>
+          </div>
+        ` : studentStatusHtml}
+      </div>
+    `;
+  },
+
   // ==================== 作業系統 ====================
 
   /**
@@ -1770,91 +1996,41 @@ const MoodleUI = {
       .map(a => this.normalizeAssignmentState(a));
     const user = API.getCurrentUser();
     const isTeacher = this.isTeachingRole(user);
+    const isEnglish = I18n.getLocale() === 'en';
+    const header = this.renderActivityCollectionHeader({
+      backAction: 'MoodleUI.loadAssignments()',
+      title: `${courseName} — ${t('moodleAssignment.title')}`,
+      subtitle: isTeacher
+        ? (isEnglish ? 'Review submissions and grading progress.' : '查看提交與評分進度。')
+        : (isEnglish ? 'Track due dates and submission status.' : '掌握截止時間與提交狀態。'),
+      ctaAction: isTeacher ? `MoodleUI.showCreateAssignmentModal(${this.toInlineActionValue(courseId)})` : '',
+      ctaLabel: isTeacher ? (isEnglish ? 'Create assignment' : '新增作業') : '',
+      metaChips: [
+        { label: `${normalizedAssignments.length} ${isEnglish ? 'assignments' : '份作業'}` },
+        currentFilter && currentFilter !== 'all'
+          ? { label: isEnglish ? `Filter: ${currentFilter}` : `篩選：${currentFilter}` }
+          : null
+      ]
+    });
 
-    const header = `
-      <div style="padding: 1.5rem 1.5rem 0;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
-          <div style="display: flex; align-items: center; gap: 0.75rem;">
-            <button onclick="MoodleUI.loadAssignments()" style="background: var(--gray-100); border: none; padding: 0.5rem; border-radius: 8px; cursor: pointer; display: flex; align-items: center;">
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
-            </button>
-            <div>
-              <h2 style="font-size: 1.3rem; font-weight: 700; margin: 0;">${courseName} — ${t('moodleAssignment.title')}</h2>
-              <p style="color: var(--gray-500); margin: 0.25rem 0 0; font-size: 0.85rem;">${normalizedAssignments.length} 份作業</p>
-            </div>
-          </div>
-          ${isTeacher ? `
-            <button onclick="MoodleUI.showCreateAssignmentModal('${courseId}')" style="padding: 0.6rem 1.25rem; background: var(--olive); color: var(--cream); border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem;">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              新增作業
-            </button>
-          ` : ''}
+    const body = normalizedAssignments.length === 0
+      ? this.renderActivityEmptyState({
+          icon: '<svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>',
+          title: isTeacher ? (isEnglish ? 'No assignments yet' : '尚未建立作業') : t('moodleAssignment.noAssignments'),
+          hint: isTeacher
+            ? (isEnglish ? 'Create the first assignment for this course.' : '點擊「新增作業」開始派發作業給學生。')
+            : (isEnglish ? 'Assignments will appear here once your teacher publishes them.' : '老師發布作業後，會顯示在這裡。')
+        })
+      : normalizedAssignments.map(a => this.renderAssignmentCard(a, { teacherView: isTeacher })).join('');
+
+    container.innerHTML = `
+      <div class="activity-shell">
+        ${header}
+        <div class="activity-shell-list">
+          ${body}
         </div>
       </div>
     `;
-
-    if (normalizedAssignments.length === 0) {
-      container.innerHTML = header + `<div style="text-align: center; padding: 4rem 2rem; color: var(--gray-400);">
-        <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1" style="margin-bottom: 1rem; opacity: 0.5;"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
-        <p style="font-size: 1.05rem;">${isTeacher ? '尚未建立作業' : t('moodleAssignment.noAssignments')}</p>
-        ${isTeacher ? '<p style="font-size: 0.85rem; margin-top: 0.5rem;">點擊「新增作業」開始派發作業給學生</p>' : ''}
-      </div>`;
-      return;
-    }
-
-    container.innerHTML = header + `<div style="padding: 0 1.5rem 1.5rem;">` + normalizedAssignments.map(a => {
-      const isOverdue = a.dueDate && new Date(a.dueDate) < new Date();
-      const submissions = a.stats?.totalSubmissions || 0;
-      const graded = a.stats?.gradedCount || 0;
-
-      if (isTeacher) {
-        return `
-          <div onclick="MoodleUI.openAssignment('${a.assignmentId}')" style="display: flex; align-items: center; gap: 1rem; padding: 1.25rem; background: var(--white); border-radius: 12px; margin-bottom: 0.75rem; cursor: pointer; transition: box-shadow 0.2s;" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)'" onmouseout="this.style.boxShadow='none'">
-            <div style="width: 48px; height: 48px; background: var(--olive-light, #e8f0e0); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--olive)" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
-            </div>
-            <div style="flex: 1; min-width: 0;">
-              <h3 style="font-size: 1rem; font-weight: 600; margin: 0 0 0.25rem;">${a.title}</h3>
-              <p style="color: var(--gray-500); font-size: 0.85rem; margin: 0; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;">${a.description || ''}</p>
-              ${a.dueDate ? `<p style="color: ${isOverdue ? 'var(--terracotta)' : 'var(--gray-400)'}; font-size: 0.8rem; margin: 0.25rem 0 0;">截止：${new Date(a.dueDate).toLocaleString('zh-TW')}</p>` : ''}
-            </div>
-            <div style="flex-shrink: 0; display: flex; gap: 1rem; align-items: center;">
-              <div style="text-align: center;">
-                <div style="font-size: 1.1rem; font-weight: 700; color: var(--olive);">${submissions}</div>
-                <div style="font-size: 0.7rem; color: var(--gray-400);">已提交</div>
-              </div>
-              <div style="text-align: center;">
-                <div style="font-size: 1.1rem; font-weight: 700; color: #6366f1;">${graded}</div>
-                <div style="font-size: 0.7rem; color: var(--gray-400);">已評分</div>
-              </div>
-              <div style="padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 500; background: ${isOverdue ? '#fee2e2' : '#f0fdf4'}; color: ${isOverdue ? '#dc2626' : '#16a34a'};">
-                ${isOverdue ? '已截止' : '進行中'}
-              </div>
-            </div>
-          </div>
-        `;
-      } else {
-        const statusClass = a.graded ? 'graded' : a.submitted ? 'submitted' : isOverdue ? 'overdue' : 'pending';
-        const statusText = a.graded ? '已評分' : a.submitted ? '已提交' : isOverdue ? '已逾期' : '待提交';
-        return `
-          <div onclick="MoodleUI.openAssignment('${a.assignmentId}')" style="display: flex; align-items: center; gap: 1rem; padding: 1.25rem; background: var(--white); border-radius: 12px; margin-bottom: 0.75rem; cursor: pointer; transition: box-shadow 0.2s;" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)'" onmouseout="this.style.boxShadow='none'">
-            <div style="width: 48px; height: 48px; background: var(--olive-light, #e8f0e0); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--olive)" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
-            </div>
-            <div style="flex: 1; min-width: 0;">
-              <h3 style="font-size: 1rem; font-weight: 600; margin: 0 0 0.25rem;">${a.title}</h3>
-              <p style="color: var(--gray-500); font-size: 0.85rem; margin: 0;">${a.description || ''}</p>
-              ${a.dueDate ? `<p style="color: ${isOverdue && !a.submitted ? 'var(--terracotta)' : 'var(--gray-400)'}; font-size: 0.8rem; margin: 0.25rem 0 0;">截止：${new Date(a.dueDate).toLocaleString('zh-TW')}</p>` : ''}
-            </div>
-            <div style="flex-shrink: 0; padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 500;
-              background: ${statusClass === 'graded' ? '#dcfce7' : statusClass === 'submitted' ? '#dbeafe' : statusClass === 'overdue' ? '#fee2e2' : '#f3f4f6'};
-              color: ${statusClass === 'graded' ? '#16a34a' : statusClass === 'submitted' ? '#2563eb' : statusClass === 'overdue' ? '#dc2626' : '#6b7280'};">
-              ${statusText}
-            </div>
-          </div>
-        `;
-      }
-    }).join('') + `</div>`;
   },
 
   /**
@@ -1868,35 +2044,16 @@ const MoodleUI = {
       .map(a => this.normalizeAssignmentState(a));
 
     if (normalizedAssignments.length === 0) {
-      container.innerHTML = `<div class="empty-list">${t('moodleAssignment.noAssignments')}</div>`;
+      container.innerHTML = this.renderActivityEmptyState({
+        icon: '<svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>',
+        title: t('moodleAssignment.noAssignments')
+      });
       return;
     }
 
-    container.innerHTML = normalizedAssignments.map(a => {
-      const isOverdue = a.dueDate && new Date(a.dueDate) < new Date() && !a.submitted;
-      const statusClass = a.graded ? 'graded' : a.submitted ? 'submitted' : isOverdue ? 'overdue' : 'pending';
-      const statusText = a.graded ? t('moodleAssignment.statusGraded') : a.submitted ? t('moodleAssignment.statusSubmitted') : isOverdue ? t('moodleAssignment.statusOverdue') : t('moodleAssignment.statusPending');
-
-      return `
-        <div class="assignment-card" onclick="MoodleUI.openAssignment('${a.assignmentId}')">
-          <div class="assignment-icon">
-            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-              <polyline points="14,2 14,8 20,8"/>
-            </svg>
-          </div>
-          <div class="assignment-info">
-            <h3>${a.title}</h3>
-            <p class="assignment-course">${a.courseName || t('moodleAssignment.course')}</p>
-            ${a.dueDate ? `<p class="assignment-due ${isOverdue ? 'overdue' : ''}">${t('moodleAssignment.duePrefix')}：${new Date(a.dueDate).toLocaleString(I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW')}</p>` : ''}
-          </div>
-          <div class="assignment-status ${statusClass}">
-            <span>${statusText}</span>
-            ${a.graded ? `<span class="grade">${a.grade}/${a.maxPoints}</span>` : ''}
-          </div>
-        </div>
-      `;
-    }).join('');
+    container.innerHTML = normalizedAssignments
+      .map(a => this.renderAssignmentCard(a, { showCourse: true }))
+      .join('');
   },
 
   /**
@@ -2221,101 +2378,41 @@ const MoodleUI = {
       .map(q => this.normalizeQuizState(q));
     const user = API.getCurrentUser();
     const isTeacher = this.isTeachingRole(user);
+    const isEnglish = I18n.getLocale() === 'en';
+    const header = this.renderActivityCollectionHeader({
+      backAction: 'MoodleUI.loadQuizzes()',
+      title: `${courseName} — ${t('moodleQuiz.title')}`,
+      subtitle: isTeacher
+        ? (isEnglish ? 'Manage availability and attempt analytics.' : '管理開放時間與作答表現。')
+        : (isEnglish ? 'Start available quizzes and review your attempts.' : '查看可作答的測驗與作答結果。'),
+      ctaAction: isTeacher ? `MoodleUI.showCreateQuizModal(${this.toInlineActionValue(courseId)})` : '',
+      ctaLabel: isTeacher ? (isEnglish ? 'Create quiz' : '新增測驗') : '',
+      metaChips: [
+        { label: `${normalizedQuizzes.length} ${isEnglish ? 'quizzes' : '份測驗'}` },
+        currentFilter && currentFilter !== 'all'
+          ? { label: isEnglish ? `Filter: ${currentFilter}` : `篩選：${currentFilter}` }
+          : null
+      ]
+    });
 
-    const header = `
-      <div style="padding: 1.5rem 1.5rem 0;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
-          <div style="display: flex; align-items: center; gap: 0.75rem;">
-            <button onclick="MoodleUI.loadQuizzes()" style="background: var(--gray-100); border: none; padding: 0.5rem; border-radius: 8px; cursor: pointer; display: flex; align-items: center;">
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
-            </button>
-            <div>
-              <h2 style="font-size: 1.3rem; font-weight: 700; margin: 0;">${courseName} — ${t('moodleQuiz.title')}</h2>
-              <p style="color: var(--gray-500); margin: 0.25rem 0 0; font-size: 0.85rem;">${normalizedQuizzes.length} 份測驗</p>
-            </div>
-          </div>
-          ${isTeacher ? `
-            <button onclick="MoodleUI.showCreateQuizModal('${courseId}')" style="padding: 0.6rem 1.25rem; background: var(--olive); color: var(--cream); border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem;">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              新增測驗
-            </button>
-          ` : ''}
+    const body = normalizedQuizzes.length === 0
+      ? this.renderActivityEmptyState({
+          icon: '<svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+          title: isTeacher ? (isEnglish ? 'No quizzes yet' : '尚未建立測驗') : t('moodleQuiz.noQuizzes'),
+          hint: isTeacher
+            ? (isEnglish ? 'Create the first quiz for this course.' : '點擊「新增測驗」開始建立測驗。')
+            : (isEnglish ? 'Quizzes will appear here once your teacher publishes them.' : '老師發布測驗後，會顯示在這裡。')
+        })
+      : normalizedQuizzes.map(q => this.renderQuizCard(q, { teacherView: isTeacher })).join('');
+
+    container.innerHTML = `
+      <div class="activity-shell">
+        ${header}
+        <div class="activity-shell-list">
+          ${body}
         </div>
       </div>
     `;
-
-    if (normalizedQuizzes.length === 0) {
-      container.innerHTML = header + `<div style="text-align: center; padding: 4rem 2rem; color: var(--gray-400);">
-        <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1" style="margin-bottom: 1rem; opacity: 0.5;"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-        <p style="font-size: 1.05rem;">${isTeacher ? '尚未建立測驗' : t('moodleQuiz.noQuizzes')}</p>
-        ${isTeacher ? '<p style="font-size: 0.85rem; margin-top: 0.5rem;">點擊「新增測驗」開始建立測驗</p>' : ''}
-      </div>`;
-      return;
-    }
-
-    container.innerHTML = header + `<div style="padding: 0 1.5rem 1.5rem;">` + normalizedQuizzes.map(q => {
-      const now = new Date();
-      const isOpen = (!q.openDate || new Date(q.openDate) <= now) && (!q.closeDate || new Date(q.closeDate) >= now);
-      const qCount = q.questionCount || q.questions?.length || 0;
-      const attempts = q.stats?.totalAttempts || 0;
-      const avgScore = q.stats?.averageScore || 0;
-
-      if (isTeacher) {
-        return `
-          <div onclick="MoodleUI.openQuiz('${q.quizId}')" style="display: flex; align-items: center; gap: 1rem; padding: 1.25rem; background: var(--white); border-radius: 12px; margin-bottom: 0.75rem; cursor: pointer; transition: box-shadow 0.2s;" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)'" onmouseout="this.style.boxShadow='none'">
-            <div style="width: 48px; height: 48px; background: #ede9fe; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#7c3aed" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            </div>
-            <div style="flex: 1; min-width: 0;">
-              <h3 style="font-size: 1rem; font-weight: 600; margin: 0 0 0.25rem;">${q.title}</h3>
-              <p style="color: var(--gray-500); font-size: 0.85rem; margin: 0; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;">${q.description || ''}</p>
-              <p style="color: var(--gray-400); font-size: 0.8rem; margin: 0.25rem 0 0;">
-                ${qCount} 題 · ${q.timeLimit ? q.timeLimit + ' 分鐘' : '不限時'} · ${q.totalPoints || 0} 分
-              </p>
-            </div>
-            <div style="flex-shrink: 0; display: flex; gap: 1rem; align-items: center;">
-              <div style="text-align: center;">
-                <div style="font-size: 1.1rem; font-weight: 700; color: #7c3aed;">${attempts}</div>
-                <div style="font-size: 0.7rem; color: var(--gray-400);">作答次數</div>
-              </div>
-              <div style="text-align: center;">
-                <div style="font-size: 1.1rem; font-weight: 700; color: var(--olive);">${avgScore ? avgScore.toFixed(0) : '-'}</div>
-                <div style="font-size: 0.7rem; color: var(--gray-400);">平均分</div>
-              </div>
-              <div style="padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 500; background: ${isOpen ? '#f0fdf4' : '#f3f4f6'}; color: ${isOpen ? '#16a34a' : '#6b7280'};">
-                ${isOpen ? '開放中' : '未開放'}
-              </div>
-            </div>
-          </div>
-        `;
-      } else {
-        return `
-          <div onclick="MoodleUI.openQuiz('${q.quizId}')" style="display: flex; align-items: center; gap: 1rem; padding: 1.25rem; background: var(--white); border-radius: 12px; margin-bottom: 0.75rem; cursor: pointer; transition: box-shadow 0.2s;" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)'" onmouseout="this.style.boxShadow='none'">
-            <div style="width: 48px; height: 48px; background: #ede9fe; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#7c3aed" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            </div>
-            <div style="flex: 1; min-width: 0;">
-              <h3 style="font-size: 1rem; font-weight: 600; margin: 0 0 0.25rem;">${q.title}</h3>
-              <p style="color: var(--gray-500); font-size: 0.85rem; margin: 0;">${q.description || ''}</p>
-              <p style="color: var(--gray-400); font-size: 0.8rem; margin: 0.25rem 0 0;">
-                ${qCount} 題 · ${q.timeLimit ? q.timeLimit + ' 分鐘' : '不限時'} · ${(q.maxAttempts === 0 || q.maxAttempts === null || q.maxAttempts === undefined) ? '不限次數' : `最多 ${q.maxAttempts} 次`}
-              </p>
-            </div>
-            <div style="flex-shrink: 0;">
-              ${q.completed ? `
-                <span style="padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 500; background: #dcfce7; color: #16a34a;">已完成</span>
-              ` : isOpen && q.canAttempt !== false ? `
-                <button onclick="event.stopPropagation(); MoodleUI.startQuiz('${q.quizId}')" style="padding: 0.5rem 1rem; background: var(--olive); color: var(--cream); border: none; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 500;">開始作答</button>
-              ` : isOpen ? `
-                <span style="padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 500; background: #fef3c7; color: #92400e;">已達作答上限</span>
-              ` : `
-                <span style="padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 500; background: #f3f4f6; color: #6b7280;">未開放</span>
-              `}
-            </div>
-          </div>
-        `;
-      }
-    }).join('') + `</div>`;
   },
 
   /**
@@ -2329,47 +2426,16 @@ const MoodleUI = {
       .map(q => this.normalizeQuizState(q));
 
     if (normalizedQuizzes.length === 0) {
-      container.innerHTML = `<div class="empty-list">${t('moodleQuiz.noQuizzes')}</div>`;
+      container.innerHTML = this.renderActivityEmptyState({
+        icon: '<svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+        title: t('moodleQuiz.noQuizzes')
+      });
       return;
     }
 
-    container.innerHTML = normalizedQuizzes.map(q => {
-      const now = new Date();
-      const isOpen = (!q.openDate || new Date(q.openDate) <= now) && (!q.closeDate || new Date(q.closeDate) >= now);
-
-      return `
-        <div class="quiz-card" onclick="MoodleUI.openQuiz('${q.quizId}')">
-          <div class="quiz-icon">
-            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/>
-              <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/>
-              <line x1="12" y1="17" x2="12.01" y2="17"/>
-            </svg>
-          </div>
-          <div class="quiz-info">
-            <h3>${q.title}</h3>
-            <p class="quiz-course">${q.courseName || t('moodleQuiz.course')}</p>
-            <p class="quiz-meta">
-              ${q.timeLimit ? `${t('moodleQuiz.timeLimitMin')} ${q.timeLimit} ${t('moodleQuiz.minutes')}` : t('moodleQuiz.noTimeLimit')} ·
-              ${q.questionCount || q.questions?.length || 0} ${t('moodleQuiz.questionsUnit')} ·
-              ${(q.maxAttempts === 0 || q.maxAttempts === null || q.maxAttempts === undefined) ? t('moodleQuiz.unlimited') : q.maxAttempts} ${t('moodleQuiz.attemptsAllowed')}
-            </p>
-          </div>
-          <div class="quiz-status">
-            ${q.completed ? `
-              <span class="completed">${t('moodleQuiz.completed')}</span>
-              <span class="score">${q.bestScore || '-'} ${t('moodleQuiz.score')}</span>
-            ` : isOpen && q.canAttempt !== false ? `
-              <button class="btn-primary" onclick="event.stopPropagation(); MoodleUI.startQuiz('${q.quizId}')">${t('moodleQuiz.startQuiz')}</button>
-            ` : isOpen ? `
-              <span class="not-available">已達作答上限</span>
-            ` : `
-              <span class="not-available">${t('moodleQuiz.notAvailable')}</span>
-            `}
-          </div>
-        </div>
-      `;
-    }).join('');
+    container.innerHTML = normalizedQuizzes
+      .map(q => this.renderQuizCard(q, { showCourse: true }))
+      .join('');
   },
 
   /**
@@ -3798,20 +3864,52 @@ const MoodleUI = {
         showView('gradebookManagement');
         container.innerHTML = `<div class="loading">${t('moodleGradebook.loadingCourses')}</div>`;
         try {
+          const isEnglish = I18n.getLocale() === 'en';
           const result = await API.courses.list();
           const courses = result.success ? (Array.isArray(result.data) ? result.data : (result.data?.courses || [])) : [];
           container.innerHTML = `
-            <div class="page-header"><h2>${t('moodleGradebook.title')}</h2><p>${t('moodleGradebook.selectCourse')}</p></div>
-            <div class="card-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;padding:1rem 0;">
-              ${courses.length === 0 ? `<p style="color:var(--gray-400);grid-column:1/-1;text-align:center;padding:2rem;">${t('moodleGradebook.noCourses')}</p>` :
-                courses.map(c => `
-                  <div class="card" style="padding:1.5rem;border:1px solid var(--gray-200);border-radius:8px;cursor:pointer;transition:box-shadow 0.2s;"
-                       onclick="MoodleUI.openGradebookManagement('${c.courseId || c.id}')"
-                       onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow='none'">
-                    <h3 style="margin:0 0 0.5rem;font-size:1.1rem;">${c.title || c.name || t('moodleGradebook.untitledCourse')}</h3>
-                    <p style="margin:0;color:var(--gray-400);font-size:0.9rem;">${c.shortName || c.category || ''}</p>
+            <div class="activity-picker-page">
+              <div class="activity-picker-header">
+                <div class="activity-picker-title">
+                  <div class="activity-picker-icon">
+                    <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v4H3z"/><path d="M7 7v13"/><path d="M17 7v13"/><path d="M7 12h10"/><path d="M7 17h10"/></svg>
                   </div>
-                `).join('')}
+                  <div class="activity-picker-copy">
+                    <h2>${t('moodleGradebook.title')}</h2>
+                    <p>${t('moodleGradebook.selectCourse')}</p>
+                    <div class="activity-shell-meta">
+                      <span class="activity-chip">${courses.length} ${isEnglish ? 'courses' : '門課程'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              ${courses.length === 0 ? this.renderActivityEmptyState({
+                icon: '<svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>',
+                title: t('moodleGradebook.noCourses'),
+                hint: isEnglish ? 'Assign or create a course to open gradebook management.' : '請先加入或建立課程，再開啟成績簿管理。'
+              }) : `
+                <div class="activity-picker-grid">
+                  ${courses.map(c => `
+                    <div class="activity-picker-card ${this.getSurfaceToneClass(c.courseId || c.id || c.title || c.name)}"
+                         onclick="MoodleUI.openGradebookManagement(${this.toInlineActionValue(c.courseId || c.id)})">
+                      <div class="activity-picker-card-accent"></div>
+                      <div class="activity-picker-card-body">
+                        <div class="activity-picker-card-copy">
+                          <h3 class="activity-picker-card-title">${this.escapeText(c.title || c.name || t('moodleGradebook.untitledCourse'))}</h3>
+                          <p class="activity-picker-card-summary">${this.escapeText(this.truncateText(c.summary || c.description || '', 120) || (isEnglish ? 'No course summary yet.' : '尚未提供課程摘要。'))}</p>
+                        </div>
+                        <div class="activity-picker-card-footer">
+                          <span class="activity-picker-card-teacher">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+                            ${this.escapeText(c.shortName || c.category || (isEnglish ? 'Course details' : '課程資訊'))}
+                          </span>
+                          <span class="activity-picker-card-link">${isEnglish ? 'Open gradebook' : '查看成績簿'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
+              `}
             </div>`;
         } catch (error) {
           container.innerHTML = `<div class="error">${t('moodleGradebook.loadCourseFailed')}</div>`;
@@ -4388,41 +4486,49 @@ const MoodleUI = {
       try {
         const categoriesResult = await API.questionBank.getCategories();
         const categories = categoriesResult.success ? categoriesResult.data : [];
+        const isEnglish = I18n.getLocale() === 'en';
 
         if (categories.length === 0) {
-          container.innerHTML = `<div class="empty-list" style="padding: 3rem; text-align: center; color: var(--gray-400);">${t('moodleQuestionBank.noQuestions')}</div>`;
+          container.innerHTML = this.renderActivityEmptyState({
+            icon: '<svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>',
+            title: t('moodleQuestionBank.noQuestions'),
+            hint: isEnglish ? 'Create a category to start building your question bank.' : '先建立題庫類別，再開始整理題目。'
+          });
           return;
         }
 
-        const catColors = [
-          'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-          'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-          'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-        ];
-
         container.innerHTML = `
-          <div style="padding: 1.5rem;">
-            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 2rem;">
-              <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="var(--olive)" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
-              <div>
-                <h2 style="font-size: 1.5rem; font-weight: 700; margin: 0;">${t('moodleQuestionBank.title')}</h2>
-                <p style="color: var(--gray-500); margin: 0.25rem 0 0; font-size: 0.9rem;">請選擇題庫類別</p>
+          <div class="activity-picker-page">
+            <div class="activity-picker-header">
+              <div class="activity-picker-title">
+                <div class="activity-picker-icon">
+                  <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+                </div>
+                <div class="activity-picker-copy">
+                  <h2>${t('moodleQuestionBank.title')}</h2>
+                  <p>${isEnglish ? 'Choose a category to manage your question bank.' : '請選擇題庫類別以瀏覽與管理題目。'}</p>
+                  <div class="activity-shell-meta">
+                    <span class="activity-chip">${categories.length} ${isEnglish ? 'categories' : '個類別'}</span>
+                  </div>
+                </div>
               </div>
             </div>
-            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem;">
-              ${categories.map((cat, idx) => `
-                <div onclick="MoodleUI.openQuestionBank('${cat.id}')"
-                     style="background: var(--white); border-radius: 16px; overflow: hidden; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.06);"
-                     onmouseover="this.style.boxShadow='0 8px 24px rgba(0,0,0,0.12)';this.style.transform='translateY(-2px)'"
-                     onmouseout="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.06)';this.style.transform='none'">
-                  <div style="height: 8px; background: ${catColors[idx % catColors.length]};"></div>
-                  <div style="padding: 1.5rem;">
-                    <h3 style="font-size: 1.15rem; font-weight: 600; margin: 0 0 0.5rem;">${cat.name}</h3>
-                    <p style="color: var(--gray-500); font-size: 0.85rem; margin: 0 0 1rem;">${cat.description || ''}</p>
-                    <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: var(--gray-400);">
-                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                      ${cat.questionCount || 0} 道題目
+            <div class="activity-picker-grid">
+              ${categories.map(cat => `
+                <div class="activity-picker-card ${this.getSurfaceToneClass(cat.id || cat.categoryId || cat.name)}"
+                     onclick="MoodleUI.openQuestionBank(${this.toInlineActionValue(cat.id || cat.categoryId)})">
+                  <div class="activity-picker-card-accent"></div>
+                  <div class="activity-picker-card-body">
+                    <div class="activity-picker-card-copy">
+                      <h3 class="activity-picker-card-title">${this.escapeText(cat.name || (isEnglish ? 'Untitled category' : '未命名類別'))}</h3>
+                      <p class="activity-picker-card-summary">${this.escapeText(this.truncateText(cat.description || '', 120) || (isEnglish ? 'No category description yet.' : '尚未提供類別說明。'))}</p>
+                    </div>
+                    <div class="activity-picker-card-footer">
+                      <span class="activity-picker-card-teacher">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        ${cat.questionCount || 0} ${isEnglish ? 'questions' : '道題目'}
+                      </span>
+                      <span class="activity-picker-card-link">${isEnglish ? 'Open category' : '查看題目'}</span>
                     </div>
                   </div>
                 </div>
@@ -4463,19 +4569,16 @@ const MoodleUI = {
    */
   renderQuestionBankPageWithBack(questions, categories, currentCat, categoryId) {
     const catName = currentCat ? currentCat.name : '題庫';
-    const backHeader = `
-      <div style="padding: 1.5rem 1.5rem 0;">
-        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
-          <button onclick="MoodleUI.openQuestionBank()" style="background: var(--gray-100); border: none; padding: 0.5rem; border-radius: 8px; cursor: pointer; display: flex; align-items: center;">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
-          </button>
-          <div>
-            <h2 style="font-size: 1.3rem; font-weight: 700; margin: 0;">${catName} — ${t('moodleQuestionBank.title')}</h2>
-            <p style="color: var(--gray-500); margin: 0.25rem 0 0; font-size: 0.85rem;">${questions.length} 道題目</p>
-          </div>
-        </div>
-      </div>
-    `;
+    const isEnglish = I18n.getLocale() === 'en';
+    const backHeader = this.renderActivityCollectionHeader({
+      backAction: 'MoodleUI.openQuestionBank()',
+      title: `${catName} — ${t('moodleQuestionBank.title')}`,
+      subtitle: isEnglish ? 'Manage questions, categories, and search filters.' : '管理題目內容、分類與搜尋篩選。',
+      metaChips: [
+        { label: `${questions.length} ${isEnglish ? 'questions' : '道題目'}` },
+        currentCat ? { label: this.escapeText(currentCat.name) } : null
+      ]
+    });
     return backHeader + this.renderQuestionBankPage(questions, categories);
   },
 

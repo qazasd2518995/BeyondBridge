@@ -272,6 +272,22 @@
             box-shadow: 0 2px 8px rgba(26, 107, 74, 0.4);
         }
 
+        .sidebar-locale-section {
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding-top: 0.75rem;
+            margin-top: 0.5rem;
+        }
+
+        .sidebar-locale-link {
+            font-size: 0.85rem;
+            opacity: 0.72;
+        }
+
+        .sidebar-locale-icon {
+            width: 18px;
+            height: 18px;
+        }
+
         .sidebar-footer {
             padding: 1.5rem;
             border-top: 1px solid rgba(255,255,255,0.1);
@@ -643,6 +659,26 @@
             justify-content: center;
             flex-shrink: 0;
             transition: var(--transition-base);
+        }
+
+        .course-thumbnail.tone-olive,
+        .course-card-cover.tone-olive {
+            background: linear-gradient(135deg, var(--olive) 0%, var(--olive-light) 100%);
+        }
+
+        .course-thumbnail.tone-terracotta,
+        .course-card-cover.tone-terracotta {
+            background: linear-gradient(135deg, var(--terracotta) 0%, var(--terracotta-light) 100%);
+        }
+
+        .course-thumbnail.tone-success,
+        .course-card-cover.tone-success {
+            background: linear-gradient(135deg, var(--success) 0%, var(--sage) 100%);
+        }
+
+        .course-thumbnail.tone-blue,
+        .course-card-cover.tone-blue {
+            background: linear-gradient(135deg, #1f3a5f 0%, #4b7bb5 100%);
         }
 
         .course-item:hover .course-thumbnail {
@@ -1680,6 +1716,26 @@
 
         .bridge-class-card-accent {
             height: 8px;
+        }
+
+        .bridge-class-card-accent.tone-math {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .bridge-class-card-accent.tone-language {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .bridge-class-card-accent.tone-science {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .bridge-class-card-accent.tone-blue {
+            background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%);
+        }
+
+        .bridge-class-card-accent.tone-default {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
         }
 
         .bridge-class-card-body {
@@ -2789,6 +2845,10 @@
             color: var(--terracotta);
         }
 
+        .discussion-state.full-span {
+            grid-column: 1 / -1;
+        }
+
         .discussion-modal {
             max-width: 640px;
         }
@@ -3088,6 +3148,11 @@
             margin-bottom: 0.45rem;
         }
 
+        .video-player-panel-title.is-light {
+            color: var(--white);
+            margin-bottom: 0;
+        }
+
         .video-player-description {
             color: var(--gray-600);
             font-size: 0.92rem;
@@ -3246,6 +3311,10 @@
             box-shadow: var(--shadow-sm);
         }
 
+        .bridge-form-group.flush {
+            margin-bottom: 0;
+        }
+
         .video-library-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -3370,6 +3439,12 @@
             flex-wrap: wrap;
             color: var(--gray-500);
             font-size: 0.8rem;
+        }
+
+        .video-library-meta-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
         }
 
         .video-library-progress-block {
@@ -4117,6 +4192,41 @@
             color: var(--olive-deep);
         }
 
+        .moodle-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .moodle-toolbar-main {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .moodle-toolbar-field {
+            min-width: 180px;
+        }
+
+        .moodle-toolbar-search {
+            width: min(300px, 100%);
+        }
+
+        .notification-empty {
+            padding: 2rem 1.5rem;
+            text-align: center;
+            color: var(--gray-500);
+        }
+
+        .notification-empty-copy {
+            margin: 0;
+            font-size: 0.9rem;
+        }
+
         /* Resource Library Page Styles */
         .library-filters {
             display: flex;
@@ -4213,6 +4323,26 @@
             justify-content: center;
             position: relative;
             overflow: hidden;
+        }
+
+        .resource-cover.tone-video {
+            background: linear-gradient(135deg, var(--olive) 0%, var(--olive-deep) 100%);
+        }
+
+        .resource-cover.tone-interactive {
+            background: linear-gradient(135deg, var(--terracotta) 0%, var(--terracotta-light) 100%);
+        }
+
+        .resource-cover.tone-document {
+            background: linear-gradient(135deg, var(--success) 0%, var(--sage) 100%);
+        }
+
+        .resource-cover.tone-quiz {
+            background: linear-gradient(135deg, #5C6BC0 0%, #7986CB 100%);
+        }
+
+        .resource-cover.tone-lti {
+            background: linear-gradient(135deg, #0891b2 0%, #06b6d4 100%);
         }
 
         .resource-cover::before {
@@ -4543,8 +4673,13 @@
             }
 
             .library-toolbar,
-            .calendar-toolbar-shell {
+            .calendar-toolbar-shell,
+            .moodle-toolbar {
                 align-items: stretch;
+            }
+
+            .moodle-toolbar-main {
+                width: 100%;
             }
 
             .video-player-overlay {
@@ -4992,7 +5127,7 @@
                         </svg>
                         <input type="text" data-i18n-placeholder="common.searchPlaceholder" placeholder="搜尋建材、橋樑...">
                     </div>
-                    <button class="icon-btn" onclick="toggleNotifications()">
+                    <button id="notificationToggleBtn" class="icon-btn" onclick="toggleNotifications()">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                             <path d="M13.73 21a2 2 0 01-3.46 0"/>
@@ -5950,10 +6085,10 @@
 
             <!-- 課程中心視圖 -->
             <div class="dashboard" id="moodleCoursesView" style="display: none;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                    <div style="display: flex; align-items: center; gap: 1rem;">
-                        <input type="text" data-i18n-placeholder="moodle.searchCourses" placeholder="搜尋課程..." id="courseSearch" class="form-input" style="width: 300px;" onkeyup="MoodleUI.loadCourses({search: this.value})">
-                        <select class="form-input" onchange="MoodleUI.loadCourses({category: this.value})" style="width: 180px;">
+                <div class="moodle-toolbar">
+                    <div class="moodle-toolbar-main">
+                        <input type="text" data-i18n-placeholder="moodle.searchCourses" placeholder="搜尋課程..." id="courseSearch" class="form-input moodle-toolbar-field moodle-toolbar-search" onkeyup="MoodleUI.loadCourses({search: this.value})">
+                        <select class="form-input moodle-toolbar-field" onchange="MoodleUI.loadCourses({category: this.value})">
                             <option value="" data-i18n="moodle.allCategories">全部分類</option>
                             <option value="programming" data-i18n="moodle.catProgramming">程式設計</option>
                             <option value="math" data-i18n="moodle.catMath">數學</option>
@@ -6001,10 +6136,12 @@
 
             <!-- 成績簿視圖 -->
             <div class="dashboard" id="moodleGradebookView" style="display: none;">
-                <div style="margin-bottom: 1.5rem;">
-                    <select id="gradebookCourseSelect" class="form-input" style="width: 300px;" onchange="MoodleUI.loadGradebookForCourse(this.value)">
+                <div class="moodle-toolbar">
+                    <div class="moodle-toolbar-main">
+                    <select id="gradebookCourseSelect" class="form-input moodle-toolbar-field moodle-toolbar-search" onchange="MoodleUI.loadGradebookForCourse(this.value)">
                         <option value="" data-i18n="moodle.selectCourseGrades">選擇課程查看成績...</option>
                     </select>
+                    </div>
                 </div>
                 <div id="gradebookContent"></div>
             </div>
@@ -6943,6 +7080,14 @@
             box-shadow: 0 18px 40px rgba(26, 58, 92, 0.16);
         }
 
+        .quiz-result-score-ring.is-passed {
+            background: var(--success);
+        }
+
+        .quiz-result-score-ring.is-failed {
+            background: var(--terracotta);
+        }
+
         .quiz-result-score-value {
             font-size: 2.5rem;
             font-weight: 700;
@@ -6953,6 +7098,14 @@
             font-size: 1.3rem;
             font-weight: 700;
             margin-bottom: 0.45rem;
+        }
+
+        .quiz-result-title.is-passed {
+            color: var(--success);
+        }
+
+        .quiz-result-title.is-failed {
+            color: var(--terracotta);
         }
 
         .quiz-result-copy {
@@ -7155,6 +7308,8 @@
             cursor: pointer;
         }
         .video-placeholder svg { width: 64px; height: 64px; margin-bottom: 1rem; }
+        .video-placeholder-demo { text-align: center; }
+        .video-placeholder-demo-note { font-size: 0.85rem; opacity: 0.7; }
         .course-sidebar { flex: 1; padding: 1.5rem; border-left: 1px solid var(--gray-200); overflow-y: auto; }
         .course-sidebar h4 { margin-bottom: 1rem; color: var(--olive-deep); }
         .unit-list { display: flex; flex-direction: column; gap: 0.5rem; }
@@ -7201,6 +7356,14 @@
         .search-result-item:hover { background: var(--gray-50); }
         .search-result-item .result-icon { width: 32px; height: 32px; border-radius: 6px; background: var(--olive); display: flex; align-items: center; justify-content: center; }
         .search-result-item .result-icon svg { width: 16px; height: 16px; color: var(--cream); }
+        .search-result-copy { min-width: 0; }
+        .search-result-title { font-size: 0.9rem; font-weight: 700; color: var(--text-primary); }
+        .search-result-meta { font-size: 0.75rem; color: var(--gray-500); margin-top: 0.15rem; }
+        .search-results-empty {
+            padding: 1rem;
+            color: var(--gray-500);
+            font-size: 0.85rem;
+        }
         .search-box { position: relative; }
 
         /* Toast */
@@ -7355,9 +7518,21 @@
         .course-card-cover {
             height: 160px;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             position: relative;
+            gap: 0.6rem;
+            padding: 1.25rem;
+            text-align: center;
+            color: var(--cream);
+        }
+        .course-card-cover h3 {
+            font-size: 1.05rem;
+            font-weight: 700;
+            line-height: 1.35;
+            margin: 0;
+            color: inherit;
         }
         .course-badge {
             position: absolute;
@@ -7369,6 +7544,17 @@
             border-radius: 20px;
             font-size: 0.75rem;
             font-weight: 600;
+            color: var(--cream);
+        }
+        .course-category {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.3rem 0.75rem;
+            border-radius: 999px;
+            background: rgba(0, 0, 0, 0.22);
+            backdrop-filter: blur(4px);
+            font-size: 0.74rem;
+            font-weight: 700;
             color: var(--cream);
         }
         .course-play-btn {
@@ -9148,15 +9334,6 @@
             corporate: '企業培訓'
         };
 
-        // 類型對應背景色
-        const typeColors = {
-            video: 'linear-gradient(135deg, var(--olive) 0%, var(--olive-deep) 100%)',
-            interactive: 'linear-gradient(135deg, var(--terracotta) 0%, var(--terracotta-light) 100%)',
-            document: 'linear-gradient(135deg, var(--success) 0%, var(--sage) 100%)',
-            quiz: 'linear-gradient(135deg, #5C6BC0 0%, #7986CB 100%)',
-            lti: 'linear-gradient(135deg, #0891b2 0%, #06b6d4 100%)'
-        };
-
         // 類型對應圖示
         const typeIcons = {
             video: '<polygon points="23,7 16,12 23,17"/><rect x="1" y="5" width="15" height="14" rx="2"/>',
@@ -9239,7 +9416,9 @@
                 const isLti = r.ltiToolId || r.requiresEnrollment;
                 const displayType = isLti ? 'lti' : r.type;
                 const typeLabel = typeLabels[displayType] || typeLabels[r.type] || r.type;
-                const bgColor = typeColors[displayType] || typeColors[r.type] || typeColors.video;
+                const toneClass = ['video', 'interactive', 'document', 'quiz', 'lti'].includes(displayType)
+                    ? `tone-${displayType}`
+                    : 'tone-video';
                 const icon = typeIcons[displayType] || typeIcons[r.type] || typeIcons.video;
                 const authorName = r.authorName || r.creatorName || r.authorId || r.creatorId || '未知作者';
                 const authorInitial = authorName.charAt(0).toUpperCase();
@@ -9266,7 +9445,7 @@
 
                 return `
                     <div class="resource-card" onclick="openResourceModal('${r.resourceId}')">
-                        <div class="resource-cover" style="background: ${bgColor};">
+                        <div class="resource-cover ${toneClass}">
                             <span class="resource-type-badge">${typeLabel}</span>
                             ${contentBadge ? `<span class="resource-content-badge">${contentBadge}</span>` : ''}
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -9877,6 +10056,28 @@
             document.getElementById('courseModal').classList.remove('active');
         }
 
+        function renderSearchResultItems(items) {
+            if (!Array.isArray(items) || items.length === 0) {
+                return `<div class="search-results-empty">${escapeHtml(I18n.getLocale() === 'en' ? 'No matching results' : '找不到相關結果')}</div>`;
+            }
+
+            return items.map((resource) => {
+                const resourceId = resource.resourceId || resource.id || '';
+                const title = escapeHtml(resource.title || '未命名教材');
+                const type = escapeHtml(resource.type || 'resource');
+                const author = escapeHtml(resource.authorName || resource.author || resource.creatorName || '未知作者');
+                return `
+                    <div class="search-result-item" onclick="openResourceModal(${JSON.stringify(String(resourceId))})">
+                        <div class="result-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"></path></svg></div>
+                        <div class="search-result-copy">
+                            <div class="search-result-title">${title}</div>
+                            <div class="search-result-meta">${type} · ${author}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
         // Notification panel
         async function toggleNotifications() {
             const panel = document.getElementById('notificationPanel');
@@ -9888,7 +10089,7 @@
                     if (list && result.success) {
                         const notifications = result.data || [];
                         if (notifications.length === 0) {
-                            list.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--gray-500)">沒有通知</div>';
+                            list.innerHTML = `<div class="notification-empty"><p class="notification-empty-copy">${escapeHtml(I18n.getLocale() === 'en' ? 'No notifications' : '沒有通知')}</p></div>`;
                         } else {
                             list.innerHTML = notifications.slice(0, 10).map(n => `
                                 <div class="notification-item ${n.read ? '' : 'unread'}" onclick="API.notifications.markAsRead('${n.notificationId || n.id}'); this.classList.remove('unread');">
@@ -10169,7 +10370,7 @@
                             <circle cx="12" cy="12" r="10"/>
                             <polygon points="10,8 16,12 10,16" fill="currentColor"/>
                         </svg>
-                        <div class="video-player-panel-title" style="color: var(--white); margin-bottom: 0;">影片載入中...</div>
+                        <div class="video-player-panel-title is-light">影片載入中...</div>
                         <p class="video-player-empty-copy">請稍候片刻，或重新整理頁面後再試一次。</p>
                     </div>
                 `;
@@ -11083,7 +11284,7 @@
                 <div class="bridge-class-grid">
                     ${filtered.map(cls => `
                         <div class="bridge-class-card" onclick="openClassDetail('${cls.classId}')">
-                            <div class="bridge-class-card-accent" style="background: ${getClassColor(cls.subject)};"></div>
+                            <div class="bridge-class-card-accent ${getClassColor(cls.subject)}"></div>
                             <div class="bridge-class-card-body">
                                 <div class="bridge-class-card-header">
                                     <div>
@@ -11115,15 +11316,15 @@
 
         // 橋隊顏色
         function getClassColor(subject) {
-            const colors = {
-                '數學': 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                '英文': 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-                '國文': 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-                '自然': 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-                '社會': 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
-                '程式': 'linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)'
+            const tones = {
+                '數學': 'tone-math',
+                '英文': 'tone-language',
+                '國文': 'tone-language',
+                '自然': 'tone-science',
+                '社會': 'tone-default',
+                '程式': 'tone-blue'
             };
-            return colors[subject] || 'linear-gradient(135deg, var(--olive) 0%, var(--olive-deep) 100%)';
+            return tones[subject] || 'tone-default';
         }
 
         function escapeHtml(value) {
@@ -11929,12 +12130,7 @@
         searchBox.appendChild(searchResults);
 
         searchInput.addEventListener('focus', () => {
-            searchResults.innerHTML = resources.map(r => `
-                <div class="search-result-item" onclick="openResourceModal(${r.id})">
-                    <div class="result-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg></div>
-                    <div><strong>${r.title}</strong><br><small style="color:var(--gray-500)">${r.type} · ${r.author}</small></div>
-                </div>
-            `).join('');
+            searchResults.innerHTML = renderSearchResultItems(resources);
             searchResults.classList.add('active');
         });
 
@@ -11945,19 +12141,11 @@
         searchInput.addEventListener('input', (e) => {
             const query = e.target.value.toLowerCase();
             const filtered = resources.filter(r =>
-                r.title.toLowerCase().includes(query) ||
-                r.tags.some(t => t.toLowerCase().includes(query))
+                (r.title || '').toLowerCase().includes(query) ||
+                (Array.isArray(r.tags) && r.tags.some(t => String(t).toLowerCase().includes(query)))
             );
-            searchResults.innerHTML = filtered.length ? filtered.map(r => `
-                <div class="search-result-item" onclick="openResourceModal(${r.id})">
-                    <div class="result-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg></div>
-                    <div><strong>${r.title}</strong><br><small style="color:var(--gray-500)">${r.type} · ${r.author}</small></div>
-                </div>
-            `).join('') : '<div style="padding: 1rem; color: var(--gray-500);">找不到相關結果</div>';
+            searchResults.innerHTML = renderSearchResultItems(filtered);
         });
-
-        // Notification button
-        document.querySelector('.icon-btn').addEventListener('click', toggleNotifications);
 
         // Resource cards click
         document.querySelectorAll('.resource-card').forEach((card, index) => {
@@ -12244,10 +12432,10 @@
             this.innerHTML = '<div class="loading"><div class="spinner"></div> 正在載入影片...</div>';
             setTimeout(() => {
                 this.innerHTML = `
-                    <div style="text-align: center;">
+                    <div class="video-placeholder-demo">
                         <svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5,3 19,12 5,21"/></svg>
                         <p>影片播放中 (示範)</p>
-                        <p style="font-size: 0.85rem; opacity: 0.7;">實際影片需要伺服器支援</p>
+                        <p class="video-placeholder-demo-note">實際影片需要伺服器支援</p>
                     </div>
                 `;
             }, 1500);
