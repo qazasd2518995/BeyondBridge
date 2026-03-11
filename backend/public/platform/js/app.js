@@ -786,45 +786,45 @@ const App = {
     if (!deadlineList) return;
 
     if (deadlines.length === 0) {
-      deadlineList.innerHTML = `
-        <div class="empty-state" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width: 48px; height: 48px; margin-bottom: 0.5rem; opacity: 0.5;">
-            <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
-            <polyline points="22,4 12,14.01 9,11.01"/>
-          </svg>
-          <p>${t('dashboard.noUrgentTasks')}</p>
-        </div>
-      `;
+      deadlineList.innerHTML = this.renderDashboardEmptyState(t('dashboard.noUrgentTasks'));
       return;
     }
 
     deadlineList.innerHTML = deadlines.slice(0, 5).map(item => {
       const daysLeft = Math.ceil((item.dueDate - new Date()) / (1000 * 60 * 60 * 24));
       const urgencyClass = daysLeft <= 2 ? 'urgent' : daysLeft <= 4 ? 'warning' : 'normal';
-      const icon = item.type === 'assignment' ?
-        `<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>` :
-        `<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>`;
+      const toneClass = urgencyClass === 'urgent' ? 'tone-terracotta' : urgencyClass === 'warning' ? 'tone-sand' : 'tone-olive';
+      const icon = item.type === 'assignment'
+        ? `<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14,2 14,8 20,8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line>`
+        : `<circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line>`;
+      const viewName = item.type === 'assignment' ? 'moodleAssignments' : 'moodleQuizzes';
+      const loadCall = item.type === 'assignment' ? 'loadAssignments' : 'loadQuizzes';
+      const typeLabel = item.type === 'assignment' ? t('app.assignment') : t('app.quiz');
+      const safeTitle = this.escapeText(item.title || typeLabel);
+      const safeCourseTitle = item.courseTitle ? this.escapeText(item.courseTitle) : '';
+      const dayLabel = daysLeft === 0 ? t('app.today') : daysLeft === 1 ? t('app.tomorrow') : t('app.daysLater', { days: daysLeft });
+      const dueDateLabel = this.formatLocaleMonthDay(item.dueDate);
+      const metaItems = [
+        safeCourseTitle ? `<span class="dashboard-row-meta-item">${safeCourseTitle}</span>` : '',
+        `<span class="dashboard-row-meta-item">${this.escapeText(typeLabel)}</span>`
+      ].filter(Boolean).join('');
 
       return `
-        <div class="deadline-item" style="display: flex; align-items: center; padding: 0.75rem; border-radius: 8px; background: var(--surface-light); margin-bottom: 0.5rem; cursor: pointer;" onclick="showView('moodle${item.type === 'assignment' ? 'Assignments' : 'Quizzes'}');">
-          <div class="deadline-icon ${urgencyClass}" style="width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-right: 0.75rem; background: ${urgencyClass === 'urgent' ? 'var(--terracotta-light)' : urgencyClass === 'warning' ? 'var(--sand-light)' : 'var(--olive-light)'};">
-            <svg viewBox="0 0 24 24" fill="none" stroke="${urgencyClass === 'urgent' ? 'var(--terracotta)' : urgencyClass === 'warning' ? 'var(--sand)' : 'var(--olive)'}" stroke-width="2" style="width: 18px; height: 18px;">
+        <div class="dashboard-row-card interactive" onclick="showView('${viewName}'); if (typeof MoodleUI !== 'undefined' && MoodleUI.${loadCall}) { MoodleUI.${loadCall}(); }">
+          <div class="dashboard-row-icon ${toneClass}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               ${icon}
             </svg>
           </div>
-          <div class="deadline-info" style="flex: 1;">
-            <div class="deadline-title" style="font-weight: 500; margin-bottom: 2px;">${item.title}</div>
-            <div class="deadline-meta" style="font-size: 0.75rem; color: var(--text-secondary);">
-              ${item.courseTitle || ''} ・ ${item.type === 'assignment' ? t('app.assignment') : t('app.quiz')}
+          <div class="dashboard-row-body">
+            <div class="dashboard-row-title">${safeTitle}</div>
+            <div class="dashboard-row-meta">
+              ${metaItems}
             </div>
           </div>
-          <div class="deadline-due" style="text-align: right;">
-            <div class="days-left" style="font-weight: 600; color: ${urgencyClass === 'urgent' ? 'var(--terracotta)' : urgencyClass === 'warning' ? 'var(--sand)' : 'var(--olive)'};">
-              ${daysLeft === 0 ? t('app.today') : daysLeft === 1 ? t('app.tomorrow') : t('app.daysLater', {days: daysLeft})}
-            </div>
-            <div class="due-date" style="font-size: 0.7rem; color: var(--text-secondary);">
-              ${item.dueDate.toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' })}
-            </div>
+          <div class="dashboard-row-side">
+            <div class="dashboard-row-emphasis ${toneClass}">${this.escapeText(dayLabel)}</div>
+            <div class="dashboard-row-note">${this.escapeText(dueDateLabel)}</div>
           </div>
         </div>
       `;
@@ -860,31 +860,28 @@ const App = {
     if (!badgesList) return;
 
     if (badges.length === 0) {
-      badgesList.innerHTML = `
-        <div class="empty-state" style="text-align: center; padding: 2rem; color: var(--text-secondary); grid-column: 1/-1;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width: 48px; height: 48px; margin-bottom: 0.5rem; opacity: 0.5;">
-            <circle cx="12" cy="8" r="6"/>
-            <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/>
-          </svg>
-          <p>${t('dashboard.earnBadges')}</p>
-        </div>
-      `;
+      badgesList.innerHTML = this.renderDashboardEmptyState(t('dashboard.earnBadges'), {
+        iconMarkup: `
+          <circle cx="12" cy="8" r="6"></circle>
+          <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"></path>
+        `
+      });
       return;
     }
 
-    const badgeColors = ['#FFD700', '#C0C0C0', '#CD7F32', '#4CAF50', '#2196F3', '#9C27B0'];
+    const badgeTones = ['tone-gold', 'tone-silver', 'tone-copper', 'tone-success', 'tone-blue', 'tone-olive'];
 
-    badgesList.innerHTML = badges.map((badge, index) => `
-      <div class="badge-item" style="text-align: center; padding: 0.75rem; background: var(--surface-light); border-radius: 8px;">
-        <div class="badge-icon" style="width: 48px; height: 48px; margin: 0 auto 0.5rem; background: ${badgeColors[index % badgeColors.length]}20; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="${badgeColors[index % badgeColors.length]}" stroke-width="2" style="width: 24px; height: 24px;">
-            <circle cx="12" cy="8" r="6"/>
-            <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/>
+    badgesList.innerHTML = `<div class="dashboard-badge-grid">${badges.map((badge, index) => `
+      <div class="dashboard-badge-card">
+        <div class="dashboard-badge-icon ${badgeTones[index % badgeTones.length]}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="8" r="6"></circle>
+            <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"></path>
           </svg>
         </div>
-        <div class="badge-name" style="font-size: 0.75rem; font-weight: 500;">${badge.name || badge.badgeName || t('app.badge')}</div>
+        <div class="dashboard-badge-name">${this.escapeText(badge.name || badge.badgeName || t('app.badge'))}</div>
       </div>
-    `).join('');
+    `).join('')}</div>`;
   },
 
   /**
@@ -1001,56 +998,47 @@ const App = {
     if (!courseList) return;
 
     if (courses.length === 0) {
-      courseList.innerHTML = `
-        <div class="empty-state" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width: 48px; height: 48px; margin-bottom: 0.5rem; opacity: 0.5;">
-            <polygon points="12,2 2,7 12,12 22,7"/>
-            <polyline points="2,17 12,22 22,17"/>
-            <polyline points="2,12 12,17 22,12"/>
-          </svg>
-          <p>${t('teacher.noCourses')}</p>
-          <a href="#" onclick="MoodleUI.showCreateCourseModal();" style="color: var(--olive); text-decoration: underline;">${t('teacher.createFirstCourse')}</a>
-        </div>
-      `;
+      courseList.innerHTML = this.renderDashboardEmptyState(t('teacher.noCourses'), {
+        iconMarkup: `
+          <polygon points="12,2 2,7 12,12 22,7"></polygon>
+          <polyline points="2,17 12,22 22,17"></polyline>
+          <polyline points="2,12 12,17 22,12"></polyline>
+        `,
+        actionHtml: `<a href="#" class="empty-state-link" onclick="MoodleUI.showCreateCourseModal();">${this.escapeText(t('teacher.createFirstCourse'))}</a>`
+      });
       return;
     }
 
-    const colors = [
-      { bg: 'var(--olive-light)', color: 'var(--olive)' },
-      { bg: 'var(--terracotta-light)', color: 'var(--terracotta)' },
-      { bg: 'var(--sand-light)', color: 'var(--sand)' },
-      { bg: '#E3F2FD', color: '#1976D2' }
-    ];
+    const tones = ['tone-olive', 'tone-terracotta', 'tone-sand', 'tone-blue'];
 
-    courseList.innerHTML = courses.slice(0, 4).map((course, index) => {
-      const colorSet = colors[index % colors.length];
+    courseList.innerHTML = `<div class="dashboard-stack">${courses.slice(0, 4).map((course, index) => {
+      const toneClass = tones[index % tones.length];
       const avgProgress = course.avgProgress ?? course.averageProgress ?? 0;
       const pendingGrading = Number(course.pendingGrading || course.pendingAssignments || 0);
+      const safeTitle = this.escapeText(course.title || course.courseTitle || t('app.course'));
+      const metaItems = [
+        `<span class="dashboard-row-meta-item">${this.escapeText(String(course.studentCount || 0))} ${this.escapeText(t('app.students'))}</span>`,
+        `<span class="dashboard-row-meta-item">${this.escapeText(t('app.avgProgress'))} ${this.escapeText(String(avgProgress))}%</span>`
+      ].join('');
       return `
-        <div class="teacher-course-item" style="display: flex; align-items: center; padding: 0.75rem; border-radius: 8px; background: var(--surface-light); margin-bottom: 0.5rem; cursor: pointer;" onclick="if (typeof MoodleUI !== 'undefined' && MoodleUI.openCourse) { MoodleUI.openCourse('${course.courseId}'); }">
-          <div class="course-icon" style="width: 40px; height: 40px; border-radius: 8px; background: ${colorSet.bg}; display: flex; align-items: center; justify-content: center; margin-right: 0.75rem; flex-shrink: 0;">
-            <svg viewBox="0 0 24 24" fill="none" stroke="${colorSet.color}" stroke-width="2" style="width: 20px; height: 20px;">
-              <polygon points="12,2 2,7 12,12 22,7"/>
-              <polyline points="2,17 12,22 22,17"/>
-              <polyline points="2,12 12,17 22,12"/>
+        <div class="dashboard-row-card interactive" onclick="if (typeof MoodleUI !== 'undefined' && MoodleUI.openCourse) { MoodleUI.openCourse(${this.inlineActionValue(course.courseId)}); }">
+          <div class="dashboard-row-icon ${toneClass}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="12,2 2,7 12,12 22,7"></polygon>
+              <polyline points="2,17 12,22 22,17"></polyline>
+              <polyline points="2,12 12,17 22,12"></polyline>
             </svg>
           </div>
-          <div class="course-info" style="flex: 1; min-width: 0;">
-            <div class="course-title" style="font-weight: 500; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${course.title || course.courseTitle || t('app.course')}</div>
-            <div class="course-meta" style="font-size: 0.75rem; color: var(--text-secondary);">
-              ${course.studentCount || 0} ${t('app.students')} ・ ${t('app.avgProgress')} ${avgProgress}%
-            </div>
+          <div class="dashboard-row-body">
+            <div class="dashboard-row-title">${safeTitle}</div>
+            <div class="dashboard-row-meta">${metaItems}</div>
           </div>
-          <div class="course-stats" style="text-align: right;">
-            ${pendingGrading > 0 ? `
-              <span style="background: var(--terracotta-light); color: var(--terracotta); padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: 500;">
-                ${pendingGrading} ${t('app.pendingGrading')}
-              </span>
-            ` : ''}
+          <div class="dashboard-row-side">
+            ${pendingGrading > 0 ? `<span class="dashboard-row-badge tone-terracotta">${this.escapeText(String(pendingGrading))} ${this.escapeText(t('app.pendingGrading'))}</span>` : `<span class="dashboard-row-badge tone-olive">${this.escapeText(t('teacher.pendingGrading'))}: 0</span>`}
           </div>
         </div>
       `;
-    }).join('');
+    }).join('')}</div>`;
   },
 
   /**
@@ -1076,21 +1064,13 @@ const App = {
 
     if (alertCount) {
       alertCount.textContent = `${totalCount} ${t('app.items')}`;
-      alertCount.style.display = totalCount > 0 ? 'inline-block' : 'none';
+      alertCount.hidden = totalCount <= 0;
     }
 
     if (!alertsList) return;
 
     if (alerts.length === 0) {
-      alertsList.innerHTML = `
-        <div class="empty-state" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width: 48px; height: 48px; margin-bottom: 0.5rem; opacity: 0.5;">
-            <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
-            <polyline points="22,4 12,14.01 9,11.01"/>
-          </svg>
-          <p>${t('teacher.noStudentAlerts')}</p>
-        </div>
-      `;
+      alertsList.innerHTML = this.renderDashboardEmptyState(t('teacher.noStudentAlerts'));
       return;
     }
 
@@ -1101,29 +1081,39 @@ const App = {
       declining: { icon: '<polyline points="23,6 13.5,15.5 8.5,10.5 1,18"/><polyline points="17,6 23,6 23,12"/>', color: 'var(--terracotta)', bg: 'var(--terracotta-light)' }
     };
 
-    alertsList.innerHTML = alerts.map(alert => {
+    alertsList.innerHTML = `<div class="dashboard-stack">${alerts.map(alert => {
       const config = alertTypes[alert.type] || alertTypes.behind;
+      const toneClass = alert.type === 'missing'
+        ? 'tone-sand'
+        : alert.type === 'inactive'
+          ? 'tone-blue'
+          : 'tone-terracotta';
+      const safeStudentName = this.escapeText(alert.studentName || t('app.user'));
+      const safeMessage = this.escapeText(alert.message || '');
+      const safeCourseTitle = alert.courseTitle ? this.escapeText(alert.courseTitle) : '';
+      const actionHtml = alert.alertId
+        ? `<button type="button" class="dashboard-row-action" onclick="event.stopPropagation(); App.dismissTeacherAlert(${this.inlineActionValue(alert.alertId)})">${this.escapeText(t('admin.dashboard.handleNow') || 'Handle')}</button>`
+        : '';
       return `
-        <div class="alert-item" style="display: flex; align-items: center; padding: 0.75rem; border-radius: 8px; background: var(--surface-light); margin-bottom: 0.5rem;">
-          <div class="alert-icon" style="width: 36px; height: 36px; border-radius: 8px; background: ${config.bg}; display: flex; align-items: center; justify-content: center; margin-right: 0.75rem;">
-            <svg viewBox="0 0 24 24" fill="none" stroke="${config.color}" stroke-width="2" style="width: 18px; height: 18px;">
+        <div class="dashboard-row-card">
+          <div class="dashboard-row-icon ${toneClass}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               ${config.icon}
             </svg>
           </div>
-          <div class="alert-info" style="flex: 1;">
-            <div class="alert-student" style="font-weight: 500; margin-bottom: 2px;">${alert.studentName}</div>
-            <div class="alert-message" style="font-size: 0.75rem; color: var(--text-secondary);">
-              ${alert.message}${alert.courseTitle ? ` - ${alert.courseTitle}` : ''}
+          <div class="dashboard-row-body">
+            <div class="dashboard-row-title">${safeStudentName}</div>
+            <div class="dashboard-row-meta">
+              <span class="dashboard-row-meta-item">${safeMessage}</span>
+              ${safeCourseTitle ? `<span class="dashboard-row-meta-item">${safeCourseTitle}</span>` : ''}
             </div>
           </div>
-          ${alert.alertId ? `
-            <button onclick="event.stopPropagation(); App.dismissTeacherAlert('${alert.alertId}')" style="border:none;background:var(--white);color:var(--gray-500);font-size:0.75rem;padding:0.35rem 0.6rem;border-radius:6px;cursor:pointer;">
-              處理
-            </button>
-          ` : ''}
+          <div class="dashboard-row-side">
+            ${actionHtml}
+          </div>
         </div>
       `;
-    }).join('');
+    }).join('')}</div>`;
   },
 
   async dismissTeacherAlert(alertId) {
@@ -1146,33 +1136,40 @@ const App = {
     if (!queueList) return;
 
     if (!Array.isArray(queue) || queue.length === 0) {
-      queueList.innerHTML = `
-        <div class="empty-state" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width: 48px; height: 48px; margin-bottom: 0.5rem; opacity: 0.5;">
-            <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
-            <polyline points="22,4 12,14.01 9,11.01"/>
-          </svg>
-          <p>${t('teacher.noGradingTasks')}</p>
-        </div>
-      `;
+      queueList.innerHTML = this.renderDashboardEmptyState(t('teacher.noGradingTasks'));
       return;
     }
 
-    queueList.innerHTML = queue.slice(0, 5).map(item => `
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:0.75rem 1rem;border-bottom:1px solid var(--gray-100);">
-        <div style="min-width:0;">
-          <div style="font-size:0.85rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.assignmentTitle || t('app.assignment')}</div>
-          <div style="font-size:0.75rem;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-            ${item.studentName || t('app.user')} · ${this.formatTimeAgo(item.submittedAt)}
+    queueList.innerHTML = `<div class="dashboard-stack">${queue.slice(0, 5).map(item => {
+      const safeTitle = this.escapeText(item.assignmentTitle || t('app.assignment'));
+      const safeStudentName = this.escapeText(item.studentName || t('app.user'));
+      const safeSubmittedAt = this.escapeText(this.formatTimeAgo(item.submittedAt));
+      const actionHtml = item.assignmentId ? `
+        <button type="button" class="dashboard-row-action" onclick="showView('moodleAssignments'); if (typeof MoodleUI !== 'undefined' && MoodleUI.openAssignment) { MoodleUI.openAssignment(${this.inlineActionValue(item.assignmentId)}); }">
+          ${this.escapeText(t('moodleAssignment.gradeBtn') || 'Grade')}
+        </button>
+      ` : '';
+      return `
+        <div class="dashboard-row-card">
+          <div class="dashboard-row-icon tone-olive">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 11l3 3L22 4"></path>
+              <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>
+            </svg>
+          </div>
+          <div class="dashboard-row-body">
+            <div class="dashboard-row-title">${safeTitle}</div>
+            <div class="dashboard-row-meta">
+              <span class="dashboard-row-meta-item">${safeStudentName}</span>
+              <span class="dashboard-row-meta-item">${safeSubmittedAt}</span>
+            </div>
+          </div>
+          <div class="dashboard-row-side">
+            ${actionHtml}
           </div>
         </div>
-        ${item.assignmentId ? `
-          <button onclick="showView('moodleAssignments'); if (typeof MoodleUI !== 'undefined' && MoodleUI.openAssignment) { MoodleUI.openAssignment('${item.assignmentId}'); }" style="border:none;background:var(--olive-light);color:var(--olive);font-size:0.75rem;padding:0.35rem 0.6rem;border-radius:6px;cursor:pointer;flex-shrink:0;">
-            評分
-          </button>
-        ` : ''}
-      </div>
-    `).join('');
+      `;
+    }).join('')}</div>`;
   },
 
   /**
@@ -1210,35 +1207,41 @@ const App = {
     if (!submissionsList) return;
 
     if (submissions.length === 0) {
-      submissionsList.innerHTML = `
-        <div class="empty-state" style="text-align: center; padding: 1.5rem; color: var(--text-secondary);">
-          <p>${t('teacher.noSubmissions')}</p>
-        </div>
-      `;
+      submissionsList.innerHTML = this.renderDashboardEmptyState(t('teacher.noSubmissions'), { compact: true });
       return;
     }
 
-    submissionsList.innerHTML = submissions.map(sub => {
+    submissionsList.innerHTML = `<div class="dashboard-stack">${submissions.map(sub => {
       const timeAgo = this.formatTimeAgo(sub.submittedAt);
-      const statusColor = sub.status === 'graded' ? 'var(--success)' :
-        (sub.status === 'pending' || sub.status === 'submitted') ? 'var(--sand)' : 'var(--text-secondary)';
+      const toneClass = sub.status === 'graded' ? 'tone-olive' :
+        (sub.status === 'pending' || sub.status === 'submitted') ? 'tone-sand' : 'tone-blue';
+      const statusDotTone = sub.status === 'graded' ? 'tone-olive' :
+        (sub.status === 'pending' || sub.status === 'submitted') ? 'tone-sand' : 'tone-blue';
       const assignmentTitle = sub.assignmentTitle || sub.title || t('app.assignment');
+      const safeStudentName = this.escapeText(sub.studentName || t('app.user'));
+      const safeAssignmentTitle = this.escapeText(assignmentTitle);
+      const safeTimeAgo = this.escapeText(timeAgo);
+      const initial = this.escapeText((sub.studentName || '?').trim().charAt(0) || '?');
+      const statusTitle = sub.status === 'graded' ? t('app.statusCompleted') : t('app.pendingGrading');
 
       return `
-        <div class="submission-item" style="display: flex; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid var(--gray-100);">
-          <div class="submission-avatar" style="width: 32px; height: 32px; border-radius: 50%; background: var(--olive-light); display: flex; align-items: center; justify-content: center; margin-right: 0.75rem; font-size: 0.75rem; font-weight: 600; color: var(--olive);">
-            ${(sub.studentName || '?')[0]}
+        <div class="dashboard-row-card">
+          <div class="dashboard-avatar">
+            ${initial}
           </div>
-          <div class="submission-info" style="flex: 1; min-width: 0;">
-            <div style="font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-              <strong>${sub.studentName || t('app.user')}</strong> ${t('app.submitted')} <span style="color: var(--olive);">${assignmentTitle}</span>
+          <div class="dashboard-row-body">
+            <div class="dashboard-row-title">${safeStudentName} ${this.escapeText(t('app.submitted'))} ${safeAssignmentTitle}</div>
+            <div class="dashboard-row-meta">
+              <span class="dashboard-row-meta-item">${safeTimeAgo}</span>
             </div>
-            <div style="font-size: 0.7rem; color: var(--text-secondary);">${timeAgo}</div>
           </div>
-          <div style="width: 8px; height: 8px; border-radius: 50%; background: ${statusColor};" title="${sub.status === 'graded' ? t('app.statusCompleted') : t('app.pendingGrading')}"></div>
+          <div class="dashboard-row-side">
+            <span class="dashboard-row-badge ${toneClass}">${this.escapeText(statusTitle)}</span>
+            <span class="dashboard-status-dot ${statusDotTone}" title="${this.escapeText(statusTitle)}"></span>
+          </div>
         </div>
       `;
-    }).join('');
+    }).join('')}</div>`;
   },
 
   /**
@@ -1641,40 +1644,19 @@ const App = {
    * 打開資源詳情 Modal
    */
   async openResourceModal(resourceId) {
-    const resource = this.resourcesCache.find(r => r.resourceId === resourceId);
-    if (!resource) return;
+    const resource = this.resourcesCache.find((item) => String(item.resourceId || item.id) === String(resourceId));
+    if (!resource) {
+      showToast(t('app.loadFailed'));
+      return;
+    }
 
-    const typeMap = {
-      'video': t('app.resourceTypeVideo'),
-      'interactive': t('app.resourceTypeInteractive'),
-      'document': t('app.resourceTypeDocument'),
-      'quiz': t('app.resourceTypeQuiz')
-    };
-
-    const tags = resource.tags || [];
+    if (typeof window.showResourceModalForResource === 'function') {
+      window.showResourceModalForResource(resource);
+      return;
+    }
 
     document.getElementById('modalTitle').textContent = resource.title;
-    document.getElementById('modalBody').innerHTML = `
-      <div style="margin-bottom: 1rem;">
-        <span class="tag" style="background: var(--olive); color: var(--cream);">${typeMap[resource.type] || resource.type}</span>
-        ${tags.map(t => `<span class="tag">${t}</span>`).join(' ')}
-      </div>
-      <p style="margin-bottom: 1rem; color: var(--gray-500);">${resource.description || ''}</p>
-      <div style="display: flex; gap: 2rem; margin-bottom: 1rem;">
-        <div><strong>${t('app.author')}</strong>${resource.creatorName || t('app.unknownAuthor')}</div>
-        <div><strong>${t('app.viewCountLabel')}</strong>${this.formatNumber(resource.viewCount)}</div>
-        <div><strong>${t('app.ratingLabel')}</strong>${resource.averageRating || '-'}</div>
-      </div>
-      <div style="background: var(--gray-100); padding: 1rem; border-radius: 8px;">
-        <h4 style="margin-bottom: 0.5rem;">${t('app.resourceContent')}</h4>
-        <ul style="margin-left: 1.5rem; color: var(--gray-500);">
-          <li>${resource.unitCount || t('app.many')} ${t('app.teachingUnits')}</li>
-          <li>${t('app.includesExercises')}</li>
-          <li>${t('app.downloadablePdf')}</li>
-          <li>${t('app.includesQuiz')}</li>
-        </ul>
-      </div>
-    `;
+    document.getElementById('modalBody').innerHTML = `<div class="empty-state"><p>${this.escapeText(resource.description || '')}</p></div>`;
     document.getElementById('modalOverlay').classList.add('active');
     document.getElementById('resourceModal').classList.add('active');
   },
@@ -2456,8 +2438,8 @@ const App = {
 
     if (this.quizzesCache.length === 0) {
       container.innerHTML = `
-        <div style="text-align: center; padding: 3rem; color: var(--gray-500);">
-          <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" style="margin: 0 auto 1rem;">
+        <div class="empty-state quiz-empty-state">
+          <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5">
             <circle cx="12" cy="12" r="10"/>
             <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/>
             <line x1="12" y1="17" x2="12.01" y2="17"/>
@@ -2468,7 +2450,7 @@ const App = {
       return;
     }
 
-    container.innerHTML = this.quizzesCache.map(quiz => this.renderQuizItem(quiz)).join('');
+    container.innerHTML = `<div class="quiz-list-shell">${this.quizzesCache.map((quiz) => this.renderQuizItem(quiz)).join('')}</div>`;
 
     // 更新統計
     this.updateQuizStats();
@@ -2478,53 +2460,9 @@ const App = {
    * 渲染單個測驗項目
    */
   renderQuizItem(quiz) {
-    const statusColors = {
-      'not_started': 'var(--olive)',
-      'in_progress': 'var(--terracotta)',
-      'completed': 'var(--gray-400)'
-    };
-    const statusLabels = {
-      'not_started': t('app.startQuiz'),
-      'in_progress': t('app.continueQuiz'),
-      'completed': t('app.viewResults')
-    };
-    const statusIcons = {
-      'not_started': '<path d="M5 3l14 9-14 9V3z"/>',
-      'in_progress': '<polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>',
-      'completed': '<polyline points="20 6 9 17 4 12"/>'
-    };
-
-    const color = statusColors[quiz.userStatus] || statusColors['not_started'];
-    const label = statusLabels[quiz.userStatus] || statusLabels['not_started'];
-    const icon = statusIcons[quiz.userStatus] || statusIcons['not_started'];
-
-    return `
-      <div class="quiz-item" style="background: var(--white); border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.06); display: flex; justify-content: space-between; align-items: center;">
-        <div style="flex: 1;">
-          <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem; color: var(--charcoal);">${quiz.title}</h3>
-          <p style="color: var(--gray-500); font-size: 0.9rem; margin-bottom: 0.75rem;">${quiz.description || ''}</p>
-          <div style="display: flex; gap: 1.5rem; font-size: 0.85rem; color: var(--gray-500);">
-            <span><strong>${quiz.questionCount || 0}</strong> ${t('app.questions')}</span>
-            ${quiz.timeLimit ? `<span><strong>${quiz.timeLimit}</strong> ${t('app.minutes')}</span>` : ''}
-            <span>${t('app.passingScore')}: <strong>${quiz.passingScore || 60}</strong>%</span>
-            ${quiz.attempts > 0 ? `<span>${t('app.attempted')} <strong>${quiz.attempts}</strong> ${t('app.times')}</span>` : ''}
-            ${quiz.bestScore !== undefined && quiz.bestScore > 0 ? `<span>${t('app.bestScore')}: <strong>${quiz.bestScore}</strong>%</span>` : ''}
-          </div>
-        </div>
-        <div style="display: flex; align-items: center; gap: 1rem;">
-          ${quiz.userStatus === 'completed' ? `
-            <div style="text-align: center;">
-              <div style="font-size: 1.5rem; font-weight: 700; color: ${quiz.bestScore >= (quiz.passingScore || 60) ? 'var(--success)' : 'var(--terracotta)'};">${quiz.bestScore}%</div>
-              <div style="font-size: 0.75rem; color: var(--gray-500);">${t('app.bestScore')}</div>
-            </div>
-          ` : ''}
-          <button onclick="App.startQuiz('${quiz.quizId}')" style="padding: 0.75rem 1.5rem; background: ${color}; color: var(--cream); border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 0.5rem;">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">${icon}</svg>
-            ${label}
-          </button>
-        </div>
-      </div>
-    `;
+    return this.renderQuizRowCard(quiz, {
+      buttonAction: `App.startQuiz(${this.inlineActionValue(quiz.quizId || quiz.id || '')})`
+    });
   },
 
   /**
@@ -2548,11 +2486,25 @@ const App = {
     // 更新統計卡片
     const statsContainer = document.querySelector('.quiz-stats');
     if (statsContainer) {
-      const cards = statsContainer.querySelectorAll('.stat-card');
-      if (cards[0]) cards[0].querySelector('div[style*="font-size: 1.75rem"]').textContent = stats.total;
-      if (cards[1]) cards[1].querySelector('div[style*="font-size: 1.75rem"]').textContent = stats.completed;
-      if (cards[2]) cards[2].querySelector('div[style*="font-size: 1.75rem"]').textContent = stats.inProgress;
-      if (cards[3]) cards[3].querySelector('div[style*="font-size: 1.75rem"]').textContent = stats.avgScore + '%';
+      const structuredStats = statsContainer.querySelectorAll('[data-quiz-stat]');
+      if (structuredStats.length > 0) {
+        structuredStats.forEach((node) => {
+          const statKey = node.getAttribute('data-quiz-stat');
+          if (statKey === 'avgScore') {
+            node.textContent = `${stats.avgScore}%`;
+            return;
+          }
+          if (statKey && Object.prototype.hasOwnProperty.call(stats, statKey)) {
+            node.textContent = stats[statKey];
+          }
+        });
+      } else {
+        const cards = statsContainer.querySelectorAll('.stat-card');
+        if (cards[0]) cards[0].querySelector('div[style*="font-size: 1.75rem"]').textContent = stats.total;
+        if (cards[1]) cards[1].querySelector('div[style*="font-size: 1.75rem"]').textContent = stats.completed;
+        if (cards[2]) cards[2].querySelector('div[style*="font-size: 1.75rem"]').textContent = stats.inProgress;
+        if (cards[3]) cards[3].querySelector('div[style*="font-size: 1.75rem"]').textContent = stats.avgScore + '%';
+      }
     }
   },
 
@@ -2591,23 +2543,34 @@ const App = {
 
     const modal = document.createElement('div');
     modal.id = 'quizModal';
-    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:10000;display:flex;align-items:center;justify-content:center;';
+    modal.className = 'quiz-modal-overlay';
+    modal.addEventListener('click', (event) => {
+      if (event.target === modal) {
+        this.closeQuiz();
+      }
+    });
 
     modal.innerHTML = `
-      <div style="width:95%;max-width:800px;max-height:90vh;background:var(--cream);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;">
-        <div style="padding:1.5rem 2rem;border-bottom:1px solid var(--gray-200);display:flex;justify-content:space-between;align-items:center;">
-          <div>
-            <h2 style="margin:0;font-size:1.25rem;">${quiz.title}</h2>
-            <p style="margin:0.25rem 0 0;font-size:0.85rem;color:var(--gray-500);">${quiz.questionCount} ${t('app.questions')} | ${t('app.passingScore')} ${quiz.passingScore || 60}%</p>
+      <div class="quiz-modal-shell" role="dialog" aria-modal="true" aria-labelledby="quizModalTitle" onclick="event.stopPropagation()">
+        <div class="quiz-modal-header">
+          <div class="quiz-modal-copy">
+            <h2 id="quizModalTitle" class="quiz-modal-title">${this.escapeText(quiz.title)}</h2>
+            <p class="quiz-modal-subtitle">${this.escapeText(`${quiz.questionCount || 0} ${t('app.questions')} | ${t('app.passingScore')} ${quiz.passingScore || 60}%`)}</p>
           </div>
-          <div id="quizTimer" style="font-size:1.5rem;font-weight:700;color:var(--olive);">00:00</div>
+          <div class="quiz-modal-timer">
+            <div class="quiz-modal-timer-label">${this.escapeText(t('app.timeSpent'))}</div>
+            <div id="quizTimer" class="quiz-modal-timer-value">00:00</div>
+          </div>
         </div>
-        <div id="quizContent" style="flex:1;overflow-y:auto;padding:2rem;">
+        <div id="quizContent" class="quiz-modal-content">
           ${this.renderQuizQuestions(quiz.questions)}
         </div>
-        <div style="padding:1rem 2rem;border-top:1px solid var(--gray-200);display:flex;justify-content:space-between;">
-          <button onclick="App.closeQuiz()" style="padding:0.75rem 1.5rem;background:var(--gray-200);border:none;border-radius:8px;cursor:pointer;">${t('app.leaveQuiz')}</button>
-          <button onclick="App.submitQuiz()" style="padding:0.75rem 2rem;background:var(--olive);color:var(--cream);border:none;border-radius:8px;cursor:pointer;font-weight:500;">${t('app.submitAnswers')}</button>
+        <div class="quiz-modal-footer">
+          <div class="quiz-modal-subtitle">${this.escapeText(I18n.getLocale() === 'en' ? 'You can leave now and reopen the quiz later.' : '可先離開測驗，之後再回來繼續作答。')}</div>
+          <div class="quiz-modal-actions">
+            <button type="button" class="quiz-modal-btn secondary" onclick="App.closeQuiz()">${this.escapeText(t('app.leaveQuiz'))}</button>
+            <button type="button" class="quiz-modal-btn primary" onclick="App.submitQuiz()">${this.escapeText(t('app.submitAnswers'))}</button>
+          </div>
         </div>
       </div>
     `;
@@ -2622,19 +2585,19 @@ const App = {
    * 渲染測驗題目
    */
   renderQuizQuestions(questions) {
-    return questions.map((q, index) => `
-      <div class="quiz-question" style="margin-bottom:2rem;padding-bottom:2rem;border-bottom:1px solid var(--gray-200);">
-        <div style="display:flex;align-items:flex-start;gap:1rem;margin-bottom:1rem;">
-          <span style="background:var(--olive);color:var(--cream);width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:0.9rem;flex-shrink:0;">${index + 1}</span>
-          <div style="flex:1;">
-            <p style="margin:0;font-size:1rem;line-height:1.6;">${q.question}</p>
-            ${q.imageUrl ? `<img src="${q.imageUrl}" style="max-width:100%;margin-top:1rem;border-radius:8px;">` : ''}
+    return (questions || []).map((q, index) => `
+      <section class="quiz-question-card">
+        <div class="quiz-question-head">
+          <span class="quiz-question-number">${index + 1}</span>
+          <div class="quiz-question-copy">
+            <p class="quiz-question-text">${this.escapeText(q.question)}</p>
+            ${q.imageUrl ? `<img src="${this.escapeText(q.imageUrl)}" alt="" class="quiz-question-image">` : ''}
           </div>
         </div>
-        <div style="padding-left:2.5rem;">
+        <div>
           ${q.type === 'multiple_choice' ? this.renderMultipleChoice(q, index) : this.renderTextAnswer(q, index)}
         </div>
-      </div>
+      </section>
     `).join('');
   },
 
@@ -2645,12 +2608,10 @@ const App = {
     const options = question.options || [];
     return `
       <div class="quiz-options">
-        ${options.map((opt, optIndex) => `
-          <label style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem 1rem;border:2px solid var(--gray-200);border-radius:8px;margin-bottom:0.5rem;cursor:pointer;transition:all 0.2s;"
-                 onmouseover="this.style.borderColor='var(--olive-light)'"
-                 onmouseout="if(!this.querySelector('input').checked)this.style.borderColor='var(--gray-200)'">
-            <input type="radio" name="q_${questionIndex}" value="${opt}" onchange="App.recordAnswer('${question.questionId}', '${opt}')" style="width:18px;height:18px;accent-color:var(--olive);">
-            <span>${opt}</span>
+        ${options.map((opt) => `
+          <label class="quiz-option">
+            <input class="quiz-option-input" type="radio" name="q_${questionIndex}" value="${this.escapeText(opt)}" onchange="App.recordAnswer(${this.inlineActionValue(question.questionId)}, ${this.inlineActionValue(opt)})">
+            <span class="quiz-option-text">${this.escapeText(opt)}</span>
           </label>
         `).join('')}
       </div>
@@ -2662,9 +2623,11 @@ const App = {
    */
   renderTextAnswer(question, questionIndex) {
     return `
-      <textarea placeholder="${t('app.enterAnswer')}"
-                onchange="App.recordAnswer('${question.questionId}', this.value)"
-                style="width:100%;padding:0.75rem 1rem;border:2px solid var(--gray-200);border-radius:8px;font-size:1rem;resize:vertical;min-height:80px;"></textarea>
+      <div class="quiz-answer-field">
+        <textarea class="quiz-answer-textarea"
+                  placeholder="${this.escapeText(t('app.enterAnswer'))}"
+                  onchange="App.recordAnswer(${this.inlineActionValue(question.questionId)}, this.value)"></textarea>
+      </div>
     `;
   },
 
@@ -2772,39 +2735,42 @@ const App = {
 
     const passed = result.passed;
     const passColor = passed ? 'var(--success)' : 'var(--terracotta)';
+    const timeLabel = `${Math.floor(result.timeSpent / 60)}:${String(result.timeSpent % 60).padStart(2, '0')}`;
 
     content.innerHTML = `
-      <div style="text-align:center;padding:2rem 0;">
-        <div style="width:120px;height:120px;border-radius:50%;background:${passColor};color:white;display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0 auto 1.5rem;">
-          <div style="font-size:2.5rem;font-weight:700;">${result.score}%</div>
-        </div>
-        <h2 style="margin-bottom:0.5rem;color:${passColor};">${passed ? t('app.congratsPassed') : t('app.keepTrying')}</h2>
-        <p style="color:var(--gray-500);margin-bottom:2rem;">${t('app.correctAnswers', {correct: result.correctCount, total: result.totalQuestions})} | ${t('app.timeSpent')} ${Math.floor(result.timeSpent / 60)}:${String(result.timeSpent % 60).padStart(2, '0')}</p>
-
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;max-width:400px;margin:0 auto 2rem;">
-          <div style="background:var(--gray-100);padding:1rem;border-radius:8px;">
-            <div style="font-size:1.5rem;font-weight:700;color:var(--olive);">${result.earnedPoints}</div>
-            <div style="font-size:0.8rem;color:var(--gray-500);">${t('app.score')}</div>
+      <div class="quiz-result-shell">
+        <div class="quiz-result-hero">
+          <div class="quiz-result-score-ring" style="background:${passColor};">
+            <div class="quiz-result-score-value">${result.score}%</div>
           </div>
-          <div style="background:var(--gray-100);padding:1rem;border-radius:8px;">
-            <div style="font-size:1.5rem;font-weight:700;color:var(--charcoal);">${result.totalPoints}</div>
-            <div style="font-size:0.8rem;color:var(--gray-500);">${t('app.fullScore')}</div>
-          </div>
-          <div style="background:var(--gray-100);padding:1rem;border-radius:8px;">
-            <div style="font-size:1.5rem;font-weight:700;color:var(--terracotta);">${result.bestScore}%</div>
-            <div style="font-size:0.8rem;color:var(--gray-500);">${t('app.bestScore')}</div>
-          </div>
+          <div class="quiz-result-title" style="color:${passColor};">${this.escapeText(passed ? t('app.congratsPassed') : t('app.keepTrying'))}</div>
+          <div class="quiz-result-copy">${this.escapeText(`${t('app.correctAnswers', {correct: result.correctCount, total: result.totalQuestions})} | ${t('app.timeSpent')} ${timeLabel}`)}</div>
         </div>
 
-        <h3 style="text-align:left;margin-bottom:1rem;">${t('app.answerDetail')}</h3>
-        <div style="text-align:left;">
+        <div class="quiz-result-metrics">
+          <div class="quiz-result-metric">
+            <div class="quiz-result-metric-value">${result.earnedPoints}</div>
+            <div class="quiz-result-metric-label">${this.escapeText(t('app.score'))}</div>
+          </div>
+          <div class="quiz-result-metric">
+            <div class="quiz-result-metric-value">${result.totalPoints}</div>
+            <div class="quiz-result-metric-label">${this.escapeText(t('app.fullScore'))}</div>
+          </div>
+          <div class="quiz-result-metric">
+            <div class="quiz-result-metric-value">${result.bestScore}%</div>
+            <div class="quiz-result-metric-label">${this.escapeText(t('app.bestScore'))}</div>
+          </div>
+        </div>
+
+        <div class="quiz-result-details">
+          <div class="quiz-result-details-title">${this.escapeText(t('app.answerDetail'))}</div>
           ${result.results.map((r, i) => `
-            <div style="padding:1rem;margin-bottom:0.5rem;background:${r.isCorrect ? 'rgba(74,124,89,0.1)' : 'rgba(193,122,94,0.1)'};border-radius:8px;border-left:4px solid ${r.isCorrect ? 'var(--success)' : 'var(--terracotta)'};">
-              <div style="font-weight:500;margin-bottom:0.5rem;">${i + 1}. ${r.question}</div>
-              <div style="font-size:0.9rem;color:var(--gray-600);">
-                ${t('app.yourAnswer')}: <span style="color:${r.isCorrect ? 'var(--success)' : 'var(--terracotta)'};">${r.userAnswer || t('app.notAnswered')}</span>
-                ${!r.isCorrect ? `<br>${t('app.correctAnswer')}: <span style="color:var(--success);">${r.correctAnswer}</span>` : ''}
-                ${r.explanation ? `<br><em style="color:var(--gray-500);">${r.explanation}</em>` : ''}
+            <div class="quiz-result-item ${r.isCorrect ? 'is-correct' : 'is-incorrect'}">
+              <div class="quiz-result-item-title">${i + 1}. ${this.escapeText(r.question)}</div>
+              <div class="quiz-result-answer">
+                ${this.escapeText(t('app.yourAnswer'))}: <strong class="${r.isCorrect ? 'correct' : 'incorrect'}">${this.escapeText(r.userAnswer || t('app.notAnswered'))}</strong>
+                ${!r.isCorrect ? `<br>${this.escapeText(t('app.correctAnswer'))}: <strong class="correct">${this.escapeText(r.correctAnswer)}</strong>` : ''}
+                ${r.explanation ? `<br><em>${this.escapeText(r.explanation)}</em>` : ''}
               </div>
             </div>
           `).join('')}
@@ -2813,13 +2779,189 @@ const App = {
     `;
 
     // 更新底部按鈕
-    const footer = modal.querySelector('div[style*="border-top"]');
+    const footer = modal.querySelector('.quiz-modal-footer');
     if (footer) {
       footer.innerHTML = `
-        <button onclick="App.closeQuiz()" style="padding:0.75rem 1.5rem;background:var(--gray-200);border:none;border-radius:8px;cursor:pointer;">${t('app.close')}</button>
-        <button onclick="App.startQuiz('${this.currentQuiz.quizId}')" style="padding:0.75rem 2rem;background:var(--olive);color:var(--cream);border:none;border-radius:8px;cursor:pointer;font-weight:500;">${t('app.retake')}</button>
+        <div class="quiz-modal-subtitle">${this.escapeText(I18n.getLocale() === 'en' ? 'You can review the results now or retake the quiz.' : '你可以先查看結果，或立即重新作答一次。')}</div>
+        <div class="quiz-modal-actions">
+          <button type="button" class="quiz-modal-btn secondary" onclick="App.closeQuiz()">${this.escapeText(t('app.close'))}</button>
+          <button type="button" class="quiz-modal-btn primary" onclick="App.startQuiz(${this.inlineActionValue(this.currentQuiz.quizId)})">${this.escapeText(t('app.retake'))}</button>
+        </div>
       `;
     }
+  },
+
+  escapeText(value) {
+    if (typeof window.escapeHtml === 'function') return window.escapeHtml(value);
+    if (value === null || value === undefined) return '';
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  },
+
+  inlineActionValue(value) {
+    return `'${String(value || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
+  },
+
+  formatLocaleDate(dateValue) {
+    if (!dateValue) return '-';
+    const parsed = new Date(dateValue);
+    if (Number.isNaN(parsed.getTime())) return '-';
+    return parsed.toLocaleDateString(I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW');
+  },
+
+  formatLocaleMonthDay(dateValue) {
+    if (!dateValue) return '-';
+    const parsed = dateValue instanceof Date ? dateValue : new Date(dateValue);
+    if (Number.isNaN(parsed.getTime())) return '-';
+    return parsed.toLocaleDateString(I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW', {
+      month: 'short',
+      day: 'numeric'
+    });
+  },
+
+  renderDashboardEmptyState(message, options = {}) {
+    const iconMarkup = options.iconMarkup || `
+      <path d="M22 11.08V12a10 10 0 11-5.93-9.14"></path>
+      <polyline points="22,4 12,14.01 9,11.01"></polyline>
+    `;
+    const compactClass = options.compact ? ' compact' : '';
+    const actionHtml = options.actionHtml || '';
+    return `
+      <div class="empty-state${compactClass}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          ${iconMarkup}
+        </svg>
+        <p>${this.escapeText(message || '')}</p>
+        ${actionHtml}
+      </div>
+    `;
+  },
+
+  formatFileSize(byteValue) {
+    const bytes = Number(byteValue);
+    if (!Number.isFinite(bytes) || bytes <= 0) return '--';
+    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const unitIndex = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+    const normalized = bytes / (1024 ** unitIndex);
+    const precision = normalized >= 100 ? 0 : normalized >= 10 ? 1 : 2;
+    return `${normalized.toFixed(precision)} ${units[unitIndex]}`;
+  },
+
+  getLicenseStatusMeta(status) {
+    const normalizedStatus = String(status || '').toLowerCase();
+    if (normalizedStatus === 'active') {
+      return { label: t('app.licActive'), badgeClass: 'active' };
+    }
+    if (normalizedStatus === 'expired') {
+      return { label: t('app.licExpired'), badgeClass: 'warning' };
+    }
+    return {
+      label: normalizedStatus ? normalizedStatus.replace(/_/g, ' ') : '-',
+      badgeClass: 'pending'
+    };
+  },
+
+  getQuizStateMeta(quiz = {}) {
+    const rawStatus = String(quiz.userStatus || quiz.status || '').toLowerCase();
+    const attempts = Number(quiz.attempts || quiz.attemptCount || 0);
+    const hasAttempts = quiz.attempted === true || attempts > 0;
+    const hasScore = quiz.bestScore !== undefined && quiz.bestScore !== null && quiz.bestScore !== '';
+    const inProgressLabel = I18n.getLocale() === 'en' ? 'In Progress' : '進行中';
+
+    let state = 'not_started';
+    if (['completed', 'passed', 'submitted'].includes(rawStatus) || (quiz.completed === true) || (hasScore && rawStatus !== 'in_progress')) {
+      state = 'completed';
+    } else if (['in_progress', 'attempted', 'active'].includes(rawStatus) || hasAttempts) {
+      state = 'in_progress';
+    }
+
+    if (state === 'completed') {
+      return {
+        state,
+        badgeLabel: t('app.completedQuizzes'),
+        badgeClass: 'is-completed',
+        actionLabel: t('app.viewResults'),
+        actionIcon: '<polyline points="20 6 9 17 4 12"/>'
+      };
+    }
+
+    if (state === 'in_progress') {
+      return {
+        state,
+        badgeLabel: inProgressLabel,
+        badgeClass: 'is-progress',
+        actionLabel: t('app.continueQuiz'),
+        actionIcon: '<polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>'
+      };
+    }
+
+    return {
+      state: 'not_started',
+      badgeLabel: t('app.notAttempted'),
+      badgeClass: 'is-idle',
+      actionLabel: t('app.startQuiz'),
+      actionIcon: '<polygon points="5,3 19,12 5,21"/>'
+    };
+  },
+
+  renderQuizRowCard(quiz, options = {}) {
+    const quizId = quiz.quizId || quiz.id || '';
+    const title = this.escapeText(quiz.title || t('app.quiz'));
+    const description = this.escapeText((quiz.description || '').trim()) || (I18n.getLocale() === 'en'
+      ? 'Open this quiz to review the requirements, complete the questions, and track your best score.'
+      : '開啟這份測驗以查看要求、完成作答並追蹤自己的最佳成績。');
+    const questionCount = Number(quiz.questionCount || quiz.totalQuestions || 0);
+    const passingScore = Number(quiz.passingScore || 60);
+    const attempts = Number(quiz.attempts || quiz.attemptCount || 0);
+    const bestScore = quiz.bestScore !== undefined && quiz.bestScore !== null && quiz.bestScore !== ''
+      ? Number(quiz.bestScore)
+      : null;
+    const timeLimit = quiz.timeLimit || quiz.duration || null;
+    const state = this.getQuizStateMeta(quiz);
+    const rootAction = options.rootAction || '';
+    const buttonAction = options.buttonAction || `App.startQuiz(${this.inlineActionValue(quizId)})`;
+    const rootAttrs = rootAction
+      ? ` role="button" tabindex="0" onclick="${rootAction}" onkeypress="if(event.key === 'Enter' || event.key === ' '){ event.preventDefault(); ${rootAction}; }"`
+      : '';
+    const metaPills = [
+      questionCount > 0 ? `<span class="quiz-row-meta-pill"><strong>${questionCount}</strong> ${this.escapeText(t('app.questions'))}</span>` : '',
+      timeLimit ? `<span class="quiz-row-meta-pill">${this.escapeText(t('app.timeLimit', { n: timeLimit }))}</span>` : '',
+      `<span class="quiz-row-meta-pill">${this.escapeText(t('app.passingScore'))} <strong>${passingScore}%</strong></span>`,
+      attempts > 0 ? `<span class="quiz-row-meta-pill">${this.escapeText(t('app.attempted'))} <strong>${attempts}</strong> ${this.escapeText(t('app.times'))}</span>` : ''
+    ].filter(Boolean).join('');
+
+    const scoreMarkup = bestScore !== null && !Number.isNaN(bestScore)
+      ? `
+        <div class="quiz-row-score">
+          <div class="quiz-row-score-value ${bestScore >= passingScore ? 'tone-success' : 'tone-terracotta'}">${bestScore}%</div>
+          <div class="quiz-row-score-label">${this.escapeText(t('app.bestScore'))}</div>
+        </div>
+      `
+      : '';
+
+    return `
+      <article class="quiz-row-card${rootAction ? ' is-clickable' : ''}"${rootAttrs}>
+        <div class="quiz-row-main">
+          <div class="quiz-row-topline">
+            <h3 class="quiz-row-title">${title}</h3>
+            <span class="quiz-status-pill ${state.badgeClass}">${this.escapeText(state.badgeLabel)}</span>
+          </div>
+          <p class="quiz-row-desc">${description}</p>
+          <div class="quiz-row-meta">${metaPills}</div>
+        </div>
+        <div class="quiz-row-actions">
+          ${scoreMarkup}
+          <button type="button" class="quiz-launch-btn ${state.badgeClass}" onclick="event.stopPropagation(); ${buttonAction}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${state.actionIcon}</svg>
+            <span>${this.escapeText(options.buttonLabel || state.actionLabel)}</span>
+          </button>
+        </div>
+      </article>
+    `;
   },
 
   // ============================================================
@@ -2879,31 +3021,120 @@ const App = {
     try {
       const result = await API.licenses.list();
       const licenses = result.success ? (result.data || []) : [];
+      const activeCount = licenses.filter((license) => license.status === 'active').length;
+      const expiredCount = licenses.filter((license) => license.status === 'expired').length;
+      const totalNote = I18n.getLocale() === 'en'
+        ? 'Licenses already assigned to platform resources.'
+        : '目前已分配到平台資源的授權數量。';
+      const activeNote = I18n.getLocale() === 'en'
+        ? 'Resources learners can still access right now.'
+        : '探橋者目前仍可使用的授權。';
+      const expiredNote = I18n.getLocale() === 'en'
+        ? 'Review these first if you need to reassign access.'
+        : '若要重新指派內容權限，優先檢查這些授權。';
+
       container.innerHTML = `
-        <div class="stats-row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem;margin-bottom:1.5rem;">
-          <div class="stat-card" style="background:var(--white);padding:1.5rem;border-radius:12px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.06);"><div class="stat-number" style="font-size:2rem;font-weight:700;color:var(--olive);">${licenses.length}</div><div class="stat-label" style="font-size:0.85rem;color:var(--gray-500);">${t('app.totalLicenses')}</div></div>
-          <div class="stat-card" style="background:var(--white);padding:1.5rem;border-radius:12px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.06);"><div class="stat-number" style="font-size:2rem;font-weight:700;color:var(--olive);">${licenses.filter(l => l.status === 'active').length}</div><div class="stat-label" style="font-size:0.85rem;color:var(--gray-500);">${t('app.activeLicenses')}</div></div>
-        </div>
-        <div class="card">
-          <div class="card-header">
-            <h2 class="card-title">${t('app.licenseList')}</h2>
+        <section class="license-dashboard">
+          <div class="license-stats">
+            <article class="license-stat-card">
+              <div class="license-stat-copy">
+                <div class="license-stat-label">${this.escapeText(t('app.totalLicenses'))}</div>
+                <div class="license-stat-value">${licenses.length}</div>
+                <div class="license-stat-note">${this.escapeText(totalNote)}</div>
+              </div>
+              <div class="license-stat-icon tone-olive">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13V7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h7"/><path d="M18 8v8"/><path d="M9 12h3"/><path d="M17 21l5-5"/><path d="M17 16h5v5"/></svg>
+              </div>
+            </article>
+            <article class="license-stat-card">
+              <div class="license-stat-copy">
+                <div class="license-stat-label">${this.escapeText(t('app.activeLicenses'))}</div>
+                <div class="license-stat-value">${activeCount}</div>
+                <div class="license-stat-note">${this.escapeText(activeNote)}</div>
+              </div>
+              <div class="license-stat-icon tone-success">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/><path d="M12 3a9 9 0 1 1 0 18"/></svg>
+              </div>
+            </article>
+            <article class="license-stat-card">
+              <div class="license-stat-copy">
+                <div class="license-stat-label">${this.escapeText(t('app.licExpired'))}</div>
+                <div class="license-stat-value">${expiredCount}</div>
+                <div class="license-stat-note">${this.escapeText(expiredNote)}</div>
+              </div>
+              <div class="license-stat-icon tone-terracotta">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+              </div>
+            </article>
           </div>
-          <div class="card-body">
-            <table class="data-table">
-              <thead><tr><th>${t('app.licName')}</th><th>${t('app.licStatus')}</th><th>${t('app.licExpiry')}</th></tr></thead>
-              <tbody>
-                ${licenses.map(l => `
-                  <tr>
-                    <td>${l.name || l.licenseId}</td>
-                    <td><span class="status-badge ${l.status === 'active' ? 'active' : l.status === 'expired' ? 'warning' : ''}">${l.status === 'active' ? t('app.licActive') : l.status === 'expired' ? t('app.licExpired') : l.status}</span></td>
-                    <td>${l.expiresAt ? new Date(l.expiresAt).toLocaleDateString(I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW') : '-'}</td>
-                  </tr>
-                `).join('')}
-                ${licenses.length === 0 ? `<tr><td colspan="3" style="text-align:center;padding:2rem;color:var(--gray-500);">${t('app.noLicenses')}</td></tr>` : ''}
-              </tbody>
-            </table>
+
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">${t('app.licenseList')}</h2>
+            </div>
+            <div class="card-body card-body-flush">
+              ${licenses.length === 0 ? `
+                <div class="empty-state">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 13V7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h7"/><path d="M18 8v8"/><path d="M17 21l5-5"/><path d="M17 16h5v5"/></svg>
+                  <p>${t('app.noLicenses')}</p>
+                </div>
+              ` : `
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>${t('app.licName')}</th>
+                      <th>${t('app.licStatus')}</th>
+                      <th>${t('app.licExpiry')}</th>
+                      <th>${t('common.actions')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${licenses.map((license) => {
+                      const expiryDate = license.expiresAt || license.expiryDate || '';
+                      const licenseId = license.licenseId || license.id || '';
+                      const title = license.name || license.resourceTitle || license.licenseId || t('app.course');
+                      const typeLabel = license.licenseType === 'institutional'
+                        ? t('app.institutionalLicense')
+                        : license.licenseType === 'personal'
+                          ? t('app.personalLicense')
+                          : (license.licenseType || '-');
+                      const statusMeta = this.getLicenseStatusMeta(license.status);
+                      const daysLeft = this.getDaysUntil(expiryDate);
+                      const expiryNote = Number.isFinite(daysLeft)
+                        ? (daysLeft >= 0
+                          ? (I18n.getLocale() === 'en' ? `${daysLeft} days left` : `距離到期 ${daysLeft} 天`)
+                          : (I18n.getLocale() === 'en' ? `${Math.abs(daysLeft)} days overdue` : `已過期 ${Math.abs(daysLeft)} 天`))
+                        : '-';
+
+                      return `
+                        <tr>
+                          <td>
+                            <div class="license-table-stack">
+                              <div class="license-table-title">${this.escapeText(title)}</div>
+                              <div class="license-table-subtitle">${this.escapeText(typeLabel)}</div>
+                            </div>
+                          </td>
+                          <td><span class="status-badge ${statusMeta.badgeClass}">${this.escapeText(statusMeta.label)}</span></td>
+                          <td>
+                            <div class="license-table-stack">
+                              <div class="license-table-title">${this.escapeText(this.formatLocaleDate(expiryDate))}</div>
+                              <div class="license-table-note">${this.escapeText(expiryNote)}</div>
+                            </div>
+                          </td>
+                          <td>
+                            ${license.status === 'active' && licenseId
+                              ? `<button type="button" class="btn-sm license-table-action" onclick="App.renewLicense(${this.inlineActionValue(licenseId)})">${this.escapeText(t('app.renewLicense'))}</button>`
+                              : '<span class="license-table-note">-</span>'}
+                          </td>
+                        </tr>
+                      `;
+                    }).join('')}
+                  </tbody>
+                </table>
+              `}
+            </div>
           </div>
-        </div>
+        </section>
       `;
     } catch (error) {
       console.error('loadLicensesView error:', error);
@@ -3131,30 +3362,68 @@ const App = {
     try {
       const result = await API.quizzes.list();
       const quizzes = result.success ? (result.data || []) : [];
-      const completed = quizzes.filter(q => q.status === 'completed' || q.attempted).length;
+      const completed = quizzes.filter((quiz) => this.getQuizStateMeta(quiz).state === 'completed').length;
+      const inProgress = quizzes.filter((quiz) => this.getQuizStateMeta(quiz).state === 'in_progress').length;
+      const idleCount = quizzes.length - completed - inProgress;
+      const summaryTotalNote = I18n.getLocale() === 'en'
+        ? 'Every quiz currently visible in this learning workspace.'
+        : '目前在這個探橋空間可查看的所有測驗。';
+      const summaryCompletedNote = I18n.getLocale() === 'en'
+        ? 'Quizzes already submitted and ready for result review.'
+        : '已提交並可回看結果的測驗。';
+      const summaryIdleNote = I18n.getLocale() === 'en'
+        ? 'Quizzes learners have not started yet.'
+        : '探橋者尚未開始作答的測驗。';
+
       container.innerHTML = `
-        <div class="stats-row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem;margin-bottom:1.5rem;">
-          <div class="stat-card" style="background:var(--white);padding:1.5rem;border-radius:12px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.06);"><div style="font-size:2rem;font-weight:700;color:var(--olive);">${quizzes.length}</div><div style="font-size:0.85rem;color:var(--gray-500);">${t('app.totalQuizzes')}</div></div>
-          <div class="stat-card" style="background:var(--white);padding:1.5rem;border-radius:12px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.06);"><div style="font-size:2rem;font-weight:700;color:var(--terracotta);">${completed}</div><div style="font-size:0.85rem;color:var(--gray-500);">${t('app.completedQuizzes')}</div></div>
-        </div>
-        <div class="quiz-list">
-          ${quizzes.map(q => `
-            <div class="quiz-item" style="background:var(--white);border-radius:12px;padding:1.5rem;margin-bottom:1rem;box-shadow:0 2px 8px rgba(0,0,0,0.06);display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="typeof MoodleUI !== 'undefined' && MoodleUI.openQuiz && MoodleUI.openQuiz('${q.quizId}')">
-              <div class="quiz-info">
-                <h4 style="font-size:1.1rem;font-weight:600;margin-bottom:0.25rem;">${q.title}</h4>
-                <p style="font-size:0.85rem;color:var(--gray-500);">${q.description || ''}</p>
-                <div class="quiz-meta" style="display:flex;gap:0.75rem;margin-top:0.5rem;font-size:0.8rem;color:var(--gray-400);">
-                  ${q.timeLimit ? `<span>${t('app.timeLimit')}: ${q.timeLimit} ${t('app.minutes')}</span>` : ''}
-                  ${q.questionCount ? `<span>${q.questionCount} ${t('app.questions')}</span>` : ''}
+        <section class="quiz-shell">
+          <div class="quiz-summary-grid">
+            <article class="quiz-summary-card">
+              <div class="quiz-summary-copy">
+                <div class="quiz-summary-label">${this.escapeText(t('app.totalQuizzes'))}</div>
+                <div class="quiz-summary-value">${quizzes.length}</div>
+                <div class="quiz-summary-note">${this.escapeText(summaryTotalNote)}</div>
+              </div>
+              <div class="quiz-summary-icon tone-olive">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.82 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              </div>
+            </article>
+            <article class="quiz-summary-card">
+              <div class="quiz-summary-copy">
+                <div class="quiz-summary-label">${this.escapeText(t('app.completedQuizzes'))}</div>
+                <div class="quiz-summary-value">${completed}</div>
+                <div class="quiz-summary-note">${this.escapeText(summaryCompletedNote)}</div>
+              </div>
+              <div class="quiz-summary-icon tone-success">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/><path d="M12 3a9 9 0 1 1 0 18"/></svg>
+              </div>
+            </article>
+            <article class="quiz-summary-card">
+              <div class="quiz-summary-copy">
+                <div class="quiz-summary-label">${this.escapeText(t('app.notAttempted'))}</div>
+                <div class="quiz-summary-value">${idleCount}</div>
+                <div class="quiz-summary-note">${this.escapeText(summaryIdleNote)}</div>
+              </div>
+              <div class="quiz-summary-icon tone-terracotta">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
+              </div>
+            </article>
+          </div>
+
+          <div class="quiz-list-shell">
+            ${quizzes.length === 0
+              ? `
+                <div class="empty-state quiz-empty-state">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.82 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                  <p>${t('app.noQuizzes')}</p>
                 </div>
-              </div>
-              <div class="quiz-status">
-                ${q.attempted ? `<span class="status-badge active" style="background:var(--olive-light);color:var(--olive);padding:4px 12px;border-radius:20px;font-size:0.8rem;">${t('app.attempted')}</span>` : `<span class="status-badge" style="background:var(--gray-100);color:var(--gray-500);padding:4px 12px;border-radius:20px;font-size:0.8rem;">${t('app.notAttempted')}</span>`}
-              </div>
-            </div>
-          `).join('')}
-          ${quizzes.length === 0 ? `<div class="empty-state" style="text-align:center;padding:3rem;color:var(--gray-500);"><p>${t('app.noQuizzes')}</p></div>` : ''}
-        </div>
+              `
+              : quizzes.map((quiz) => this.renderQuizRowCard(quiz, {
+                  rootAction: `typeof MoodleUI !== 'undefined' && MoodleUI.openQuiz && MoodleUI.openQuiz(${this.inlineActionValue(quiz.quizId || quiz.id || '')})`,
+                  buttonAction: `typeof MoodleUI !== 'undefined' && MoodleUI.openQuiz && MoodleUI.openQuiz(${this.inlineActionValue(quiz.quizId || quiz.id || '')})`
+                })).join('')}
+          </div>
+        </section>
       `;
     } catch (error) {
       console.error('loadQuizzesListView error:', error);
@@ -3223,35 +3492,82 @@ const App = {
   async loadFilesView() {
     const container = document.getElementById('filesContent');
     if (!container) return;
-    container.innerHTML = `<div class="loading-indicator" style="text-align:center;padding:2rem;color:var(--gray-500);">${t('common.loading')}</div>`;
+    container.innerHTML = `
+      <section class="management-shell">
+        <div class="bridge-state">
+          <div class="bridge-state-title">${this.escapeText(t('common.loading'))}</div>
+        </div>
+      </section>
+    `;
     try {
       const result = await API.files.list();
       const files = result.success ? (result.data || []) : [];
+      const locale = I18n.getLocale();
+      const fileSummary = locale === 'en'
+        ? `${files.length} file${files.length === 1 ? '' : 's'} in your library`
+        : `目前共有 ${files.length} 份檔案可管理`;
+
       container.innerHTML = `
-        <div style="padding:1.5rem">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
-            <h2>${t('app.myFiles')}</h2>
-            <button onclick="document.getElementById('fileUploadInput').click()" class="btn-primary">${t('app.uploadFile')}</button>
-            <input type="file" id="fileUploadInput" style="display:none" onchange="App.handleFileUpload(this)">
+        <section class="management-shell">
+          <div class="management-header">
+            <div class="management-heading">
+              <div class="management-title">${this.escapeText(t('app.myFiles'))}</div>
+              <div class="management-copy">${this.escapeText(fileSummary)}</div>
+            </div>
+            <div class="management-inline-actions">
+              <button type="button" onclick="document.getElementById('fileUploadInput').click()" class="bridge-primary-btn">${this.escapeText(t('app.uploadFile'))}</button>
+              <input type="file" id="fileUploadInput" class="file-upload-input" onchange="App.handleFileUpload(this)">
+            </div>
           </div>
-          <div class="files-list">
-            ${files.map(f => `
-              <div class="file-item" style="display:flex;align-items:center;padding:12px;border-bottom:1px solid #eee;gap:12px">
-                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
-                <div style="flex:1">
-                  <div style="font-weight:500">${f.fileName || f.filename || f.name || 'file'}</div>
-                  <div style="font-size:0.85rem;color:var(--gray-500)">${f.size ? (f.size / 1024).toFixed(1) + ' KB' : ''} ${f.createdAt ? '・' + new Date(f.createdAt).toLocaleDateString('zh-TW') : ''}</div>
+          <div class="management-list">
+            ${files.map(file => {
+              const fileId = file.fileId || file.id || '';
+              const fileName = this.escapeText(file.fileName || file.filename || file.name || 'file');
+              const fileSize = this.escapeText(this.formatFileSize(file.size));
+              const createdAt = this.escapeText(this.formatLocaleDate(file.createdAt));
+              const deleteAction = fileId
+                ? `<button type="button" onclick="App.deleteFile(${this.inlineActionValue(fileId)})" class="btn-sm btn-danger">${this.escapeText(t('app.delete'))}</button>`
+                : '';
+              return `
+                <article class="management-card">
+                  <div class="file-row">
+                    <div class="file-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path>
+                        <polyline points="14,2 14,8 20,8"></polyline>
+                      </svg>
+                    </div>
+                    <div class="file-content">
+                      <div class="file-title">${fileName}</div>
+                      <div class="file-meta">
+                        <span class="file-meta-item">${fileSize}</span>
+                        <span class="file-meta-item">${createdAt}</span>
+                      </div>
+                    </div>
+                    <div class="file-actions">
+                      ${deleteAction}
+                    </div>
+                  </div>
+                </article>
+              `;
+            }).join('')}
+            ${files.length === 0 ? `
+              <div class="management-card management-empty">
+                <div class="empty-state">
+                  <p>${this.escapeText(t('app.noFiles'))}</p>
                 </div>
-                <button onclick="App.deleteFile('${f.fileId || f.id}')" class="btn-sm btn-danger">${t('app.delete')}</button>
               </div>
-            `).join('')}
-            ${files.length === 0 ? `<div class="empty-state" style="text-align:center;padding:3rem;color:var(--gray-500)"><p>${t('app.noFiles')}</p></div>` : ''}
+            ` : ''}
           </div>
-        </div>
+        </section>
       `;
     } catch (error) {
       console.error('loadFilesView error:', error);
-      container.innerHTML = `<div class="error-state">${t('app.loadFilesFailed')}</div>`;
+      container.innerHTML = `
+        <section class="management-shell">
+          <div class="bridge-state-error">${this.escapeText(t('app.loadFilesFailed'))}</div>
+        </section>
+      `;
     }
   },
 
@@ -3295,74 +3611,141 @@ const App = {
   async loadGroupsManagerView() {
     const container = document.getElementById('groupsManagerContent');
     if (!container) return;
-    container.innerHTML = `<div class="loading-indicator" style="text-align:center;padding:2rem;color:var(--gray-500);">${t('common.loading')}</div>`;
+    container.innerHTML = `
+      <section class="management-shell">
+        <div class="bridge-state">
+          <div class="bridge-state-title">${this.escapeText(t('common.loading'))}</div>
+        </div>
+      </section>
+    `;
     try {
       const user = API.getCurrentUser();
       const coursesResult = await API.courses.getMyCourses('instructor');
       const courses = coursesResult.success ? (coursesResult.data || []) : [];
       const teacherCourses = courses.filter(c => !user || c.instructorId === user.userId || user.isAdmin);
+      const locale = I18n.getLocale();
+      const untitledCourseLabel = locale === 'en' ? 'Untitled Course' : '未命名課程';
 
       if (teacherCourses.length === 0) {
-        container.innerHTML = `<div class="empty-state" style="text-align:center;padding:3rem;color:var(--gray-500)"><p>${t('app.noManagedCourses')}</p></div>`;
+        container.innerHTML = `
+          <section class="management-shell">
+            <div class="empty-state">
+              <p>${this.escapeText(t('app.noManagedCourses'))}</p>
+            </div>
+          </section>
+        `;
         return;
       }
 
       container.innerHTML = `
-        <div style="padding:1.5rem">
-          <h2>${t('app.groupManagement')}</h2>
-          <p style="color:var(--gray-500);margin-bottom:1rem">${t('app.selectCourseToManageGroups')}</p>
-          <div class="course-select-list">
-            ${teacherCourses.map(c => `
-              <div class="course-select-card" onclick="App.openCourseGroups('${c.courseId}')" style="padding:16px;border:1px solid #eee;border-radius:8px;margin-bottom:8px;cursor:pointer;transition:background 0.2s" onmouseover="this.style.background='#f9f9f9'" onmouseout="this.style.background=''">
-                <strong>${c.title}</strong>
-                <span style="color:var(--gray-500);margin-left:8px">${c.shortName || ''}</span>
-              </div>
+        <section class="management-shell">
+          <div class="management-header">
+            <div class="management-heading">
+              <div class="management-title">${this.escapeText(t('app.groupManagement'))}</div>
+              <div class="management-copy">${this.escapeText(t('app.selectCourseToManageGroups'))}</div>
+            </div>
+            <div class="management-copy">${this.escapeText(locale === 'en' ? `${teacherCourses.length} course${teacherCourses.length === 1 ? '' : 's'}` : `可管理 ${teacherCourses.length} 門課程`)}</div>
+          </div>
+          <div class="course-picker-grid">
+            ${teacherCourses.map(course => `
+              <button type="button" class="management-card interactive course-picker-card" onclick="App.openCourseGroups(${this.inlineActionValue(course.courseId)})">
+                <span class="course-picker-info">
+                  <span class="course-picker-title">${this.escapeText(course.title || untitledCourseLabel)}</span>
+                  <span class="course-picker-subtitle">${this.escapeText(course.shortName || course.courseId || '')}</span>
+                </span>
+                <span class="course-picker-arrow" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M5 12h14"></path>
+                    <path d="m12 5 7 7-7 7"></path>
+                  </svg>
+                </span>
+              </button>
             `).join('')}
           </div>
-        </div>
+        </section>
       `;
     } catch (error) {
       console.error('loadGroupsManagerView error:', error);
-      container.innerHTML = `<div class="error-state">${t('app.loadFailed')}</div>`;
+      container.innerHTML = `
+        <section class="management-shell">
+          <div class="bridge-state-error">${this.escapeText(t('app.loadFailed'))}</div>
+        </section>
+      `;
     }
   },
 
   async openCourseGroups(courseId) {
     const container = document.getElementById('groupsManagerContent');
     if (!container) return;
-    container.innerHTML = `<div class="loading-indicator" style="text-align:center;padding:2rem">${t('common.loading')}</div>`;
+    container.innerHTML = `
+      <section class="management-shell">
+        <div class="bridge-state">
+          <div class="bridge-state-title">${this.escapeText(t('common.loading'))}</div>
+        </div>
+      </section>
+    `;
     try {
       const result = await API.courseGroups.list(courseId);
       const groups = result.success ? (result.data || []) : [];
+      const course = Array.isArray(this.coursesCache)
+        ? this.coursesCache.find(item => item.courseId === courseId || item.id === courseId)
+        : null;
+      const locale = I18n.getLocale();
+      const groupSummary = locale === 'en'
+        ? `${groups.length} group${groups.length === 1 ? '' : 's'} in this course`
+        : `目前共有 ${groups.length} 個群組`;
+      const untitledGroupLabel = locale === 'en' ? 'Untitled Group' : '未命名群組';
+      const emptyGroupDescription = locale === 'en' ? 'No group description yet.' : '尚未提供群組說明。';
+
       container.innerHTML = `
-        <div style="padding:1.5rem">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
-            <div>
-              <button onclick="App.loadGroupsManagerView()" class="btn-secondary" style="margin-right:8px">← ${t('app.back')}</button>
-              <strong>${t('app.groupManagement')}</strong>
+        <section class="management-shell">
+          <div class="management-header">
+            <div class="management-heading">
+              <div class="management-title">${this.escapeText(course?.title || t('app.groupManagement'))}</div>
+              <div class="management-copy">${this.escapeText(groupSummary)}</div>
             </div>
-            <button onclick="App.createGroupPrompt('${courseId}')" class="btn-primary">${t('app.addGroup')}</button>
+            <div class="management-inline-actions">
+              <button type="button" onclick="App.loadGroupsManagerView()" class="bridge-secondary-btn">← ${this.escapeText(t('app.back'))}</button>
+              <button type="button" onclick="App.createGroupPrompt(${this.inlineActionValue(courseId)})" class="bridge-primary-btn">${this.escapeText(t('app.addGroup'))}</button>
+            </div>
           </div>
-          <div class="groups-list">
-            ${groups.map(g => `
-              <div class="group-card" style="padding:16px;border:1px solid #eee;border-radius:8px;margin-bottom:8px">
-                <div style="display:flex;justify-content:space-between;align-items:center">
-                  <strong>${g.name}</strong>
-                  <div>
-                    <span style="color:var(--gray-500);margin-right:8px">${g.memberCount || 0} ${t('app.memberCount')}</span>
-                    <button onclick="App.deleteGroup('${courseId}', '${g.groupId}')" class="btn-sm btn-danger">${t('app.delete')}</button>
+          <div class="group-grid">
+            ${groups.map(group => {
+              const groupId = group.groupId || group.id || '';
+              return `
+              <article class="management-card">
+                <div class="group-card-surface">
+                  <div class="group-card-header">
+                    <div class="management-heading">
+                      <div class="group-card-title">${this.escapeText(group.name || untitledGroupLabel)}</div>
+                      <div class="group-card-description">${this.escapeText(group.description || emptyGroupDescription)}</div>
+                    </div>
+                    <span class="group-member-badge">${this.escapeText(String(group.memberCount || 0))} ${this.escapeText(t('app.memberCount'))}</span>
+                  </div>
+                  <div class="management-inline-actions">
+                    <button type="button" onclick="App.deleteGroup(${this.inlineActionValue(courseId)}, ${this.inlineActionValue(groupId)})" class="btn-sm btn-danger">${this.escapeText(t('app.delete'))}</button>
                   </div>
                 </div>
-                ${g.description ? `<p style="color:var(--gray-500);margin-top:4px">${g.description}</p>` : ''}
+              </article>
+            `;
+            }).join('')}
+            ${groups.length === 0 ? `
+              <div class="management-card management-empty">
+                <div class="empty-state">
+                  <p>${this.escapeText(t('app.noGroups'))}</p>
+                </div>
               </div>
-            `).join('')}
-            ${groups.length === 0 ? `<div class="empty-state" style="text-align:center;padding:2rem;color:var(--gray-500)"><p>${t('app.noGroups')}</p></div>` : ''}
+            ` : ''}
           </div>
-        </div>
+        </section>
       `;
     } catch (error) {
       console.error('openCourseGroups error:', error);
-      container.innerHTML = `<div class="error-state">${t('app.loadGroupsFailed')}</div>`;
+      container.innerHTML = `
+        <section class="management-shell">
+          <div class="bridge-state-error">${this.escapeText(t('app.loadGroupsFailed'))}</div>
+        </section>
+      `;
     }
   },
 

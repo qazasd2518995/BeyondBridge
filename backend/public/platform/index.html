@@ -706,6 +706,265 @@
             flex-direction: column;
         }
 
+        .dashboard-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 0.85rem;
+        }
+
+        .dashboard-row-card {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            border: 1px solid var(--gray-100);
+            border-radius: var(--radius-lg);
+            background: linear-gradient(180deg, var(--surface-light) 0%, var(--white) 100%);
+            transition: var(--transition-base);
+        }
+
+        .dashboard-row-card.interactive {
+            cursor: pointer;
+        }
+
+        .dashboard-row-card.interactive:hover {
+            transform: translateY(-2px);
+            border-color: rgba(212, 165, 116, 0.42);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .dashboard-row-icon {
+            width: 2.75rem;
+            height: 2.75rem;
+            border-radius: 0.95rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .dashboard-row-icon svg {
+            width: 1.2rem;
+            height: 1.2rem;
+        }
+
+        .dashboard-row-icon.tone-olive {
+            background: rgba(45, 43, 107, 0.12);
+            color: var(--olive);
+        }
+
+        .dashboard-row-icon.tone-terracotta {
+            background: rgba(26, 107, 74, 0.14);
+            color: var(--terracotta);
+        }
+
+        .dashboard-row-icon.tone-sand {
+            background: rgba(212, 165, 116, 0.18);
+            color: var(--olive-deep);
+        }
+
+        .dashboard-row-icon.tone-blue {
+            background: rgba(43, 108, 176, 0.14);
+            color: var(--blue);
+        }
+
+        .dashboard-row-body {
+            min-width: 0;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .dashboard-row-title {
+            font-size: 0.92rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .dashboard-row-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.45rem;
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+        }
+
+        .dashboard-row-meta-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .dashboard-row-side {
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.35rem;
+        }
+
+        .dashboard-row-emphasis {
+            font-size: 0.82rem;
+            font-weight: 700;
+        }
+
+        .dashboard-row-emphasis.tone-olive { color: var(--olive); }
+        .dashboard-row-emphasis.tone-terracotta { color: var(--terracotta); }
+        .dashboard-row-emphasis.tone-sand { color: var(--olive-deep); }
+        .dashboard-row-emphasis.tone-blue { color: var(--blue); }
+
+        .dashboard-row-note {
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+        }
+
+        .dashboard-row-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.35rem 0.7rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .dashboard-row-badge.tone-terracotta {
+            background: rgba(26, 107, 74, 0.14);
+            color: var(--terracotta);
+        }
+
+        .dashboard-row-badge.tone-sand {
+            background: rgba(212, 165, 116, 0.2);
+            color: var(--olive-deep);
+        }
+
+        .dashboard-row-badge.tone-blue {
+            background: rgba(43, 108, 176, 0.14);
+            color: var(--blue);
+        }
+
+        .dashboard-row-badge.tone-olive {
+            background: rgba(45, 43, 107, 0.12);
+            color: var(--olive);
+        }
+
+        .dashboard-row-action {
+            border: none;
+            border-radius: 999px;
+            padding: 0.45rem 0.8rem;
+            background: rgba(45, 43, 107, 0.1);
+            color: var(--olive);
+            font-size: 0.75rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition-fast);
+        }
+
+        .dashboard-row-action:hover {
+            background: rgba(45, 43, 107, 0.16);
+        }
+
+        .dashboard-badge-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+            gap: 0.9rem;
+        }
+
+        .dashboard-badge-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+            padding: 1rem 0.75rem;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--gray-100);
+            background: linear-gradient(180deg, var(--surface-light) 0%, var(--white) 100%);
+            text-align: center;
+            min-height: 120px;
+        }
+
+        .dashboard-badge-icon {
+            width: 3.25rem;
+            height: 3.25rem;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .dashboard-badge-icon svg {
+            width: 1.5rem;
+            height: 1.5rem;
+        }
+
+        .dashboard-badge-icon.tone-gold {
+            background: rgba(255, 215, 0, 0.18);
+            color: #C49102;
+        }
+
+        .dashboard-badge-icon.tone-silver {
+            background: rgba(192, 192, 192, 0.22);
+            color: #6B7280;
+        }
+
+        .dashboard-badge-icon.tone-copper {
+            background: rgba(205, 127, 50, 0.18);
+            color: #B45309;
+        }
+
+        .dashboard-badge-icon.tone-success {
+            background: rgba(74, 124, 89, 0.14);
+            color: var(--success);
+        }
+
+        .dashboard-badge-icon.tone-blue {
+            background: rgba(43, 108, 176, 0.14);
+            color: var(--blue);
+        }
+
+        .dashboard-badge-icon.tone-olive {
+            background: rgba(45, 43, 107, 0.12);
+            color: var(--olive);
+        }
+
+        .dashboard-badge-name {
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1.45;
+        }
+
+        .dashboard-avatar {
+            width: 2.25rem;
+            height: 2.25rem;
+            border-radius: 50%;
+            background: rgba(45, 43, 107, 0.12);
+            color: var(--olive);
+            font-size: 0.8rem;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .dashboard-status-dot {
+            width: 0.55rem;
+            height: 0.55rem;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .dashboard-status-dot.tone-olive { background: var(--success); }
+        .dashboard-status-dot.tone-sand { background: var(--sand); }
+        .dashboard-status-dot.tone-blue { background: var(--text-secondary); }
+
         .activity-item {
             display: flex;
             gap: 1rem;
@@ -1157,6 +1416,244 @@
             text-align: center;
             padding: 4rem 2rem;
             color: var(--gray-400);
+        }
+
+        .management-shell {
+            background: var(--white);
+            border: 1px solid var(--gray-100);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-sm);
+            padding: 1.5rem;
+        }
+
+        .management-shell + .management-shell {
+            margin-top: 1rem;
+        }
+
+        .management-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .management-heading {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+
+        .management-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .management-copy {
+            font-size: 0.92rem;
+            color: var(--text-secondary);
+        }
+
+        .management-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.9rem;
+        }
+
+        .management-card {
+            background: linear-gradient(180deg, rgba(255, 252, 245, 0.95) 0%, var(--white) 100%);
+            border: 1px solid var(--gray-100);
+            border-radius: var(--radius-lg);
+            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
+            transition: var(--transition-base);
+        }
+
+        .management-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(212, 165, 116, 0.45);
+            box-shadow: var(--shadow-md);
+        }
+
+        .management-card.interactive {
+            cursor: pointer;
+        }
+
+        .management-empty {
+            border-style: dashed;
+            background: linear-gradient(180deg, rgba(245, 243, 238, 0.6) 0%, rgba(255, 255, 255, 0.95) 100%);
+        }
+
+        .management-inline-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .file-row {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr) auto;
+            gap: 1rem;
+            align-items: center;
+            padding: 1rem 1.1rem;
+        }
+
+        .file-icon {
+            width: 3rem;
+            height: 3rem;
+            border-radius: 1rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, rgba(45, 43, 107, 0.12) 0%, rgba(212, 165, 116, 0.28) 100%);
+            color: var(--olive-deep);
+            flex-shrink: 0;
+        }
+
+        .file-icon svg {
+            width: 1.35rem;
+            height: 1.35rem;
+        }
+
+        .file-content {
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+
+        .file-title {
+            font-size: 0.98rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .file-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+            color: var(--text-secondary);
+            font-size: 0.84rem;
+        }
+
+        .file-meta-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.35rem 0.6rem;
+            border-radius: 999px;
+            background: rgba(212, 165, 116, 0.12);
+        }
+
+        .file-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            justify-content: flex-end;
+        }
+
+        .file-upload-input {
+            display: none;
+        }
+
+        .course-picker-grid,
+        .group-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1rem;
+        }
+
+        .course-picker-card {
+            width: 100%;
+            text-align: left;
+            color: inherit;
+            font: inherit;
+            appearance: none;
+            -webkit-appearance: none;
+            padding: 1.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .course-picker-info {
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+
+        .course-picker-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .course-picker-subtitle {
+            font-size: 0.84rem;
+            color: var(--text-secondary);
+        }
+
+        .course-picker-arrow {
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(45, 43, 107, 0.1);
+            color: var(--olive-deep);
+            flex-shrink: 0;
+        }
+
+        .course-picker-arrow svg {
+            width: 1rem;
+            height: 1rem;
+        }
+
+        .group-card-surface {
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .group-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .group-card-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .group-card-description {
+            font-size: 0.88rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .group-member-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.4rem 0.8rem;
+            border-radius: 999px;
+            background: rgba(45, 43, 107, 0.1);
+            color: var(--olive-deep);
+            font-size: 0.84rem;
+            font-weight: 700;
+            white-space: nowrap;
         }
 
         .bridge-class-grid {
@@ -3497,6 +3994,129 @@
             border-radius: 50%;
         }
 
+        .library-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .library-toolbar-main,
+        .library-toolbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+            flex-wrap: wrap;
+        }
+
+        .library-search-box {
+            width: min(320px, 100%);
+            background: var(--white);
+        }
+
+        .library-result-count {
+            color: var(--gray-500);
+            font-size: 0.9rem;
+        }
+
+        .library-result-count strong {
+            color: var(--olive-deep);
+        }
+
+        .icon-btn.is-active {
+            background: var(--olive);
+            color: var(--cream);
+            border-color: var(--olive);
+        }
+
+        .library-request-btn {
+            padding: 0.5rem 1rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .resource-grid-state {
+            grid-column: 1 / -1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.65rem;
+            text-align: center;
+            padding: 3.5rem 1.5rem;
+            border: 1px dashed rgba(212, 165, 116, 0.45);
+            border-radius: var(--radius-xl);
+            background: linear-gradient(180deg, rgba(255, 252, 245, 0.92) 0%, var(--white) 100%);
+            color: var(--olive-deep);
+        }
+
+        .resource-grid-state svg {
+            width: 3.5rem;
+            height: 3.5rem;
+            opacity: 0.55;
+        }
+
+        .resource-grid-state.error {
+            color: var(--terracotta);
+            border-color: rgba(26, 107, 74, 0.28);
+        }
+
+        .resource-grid-state p {
+            margin: 0;
+        }
+
+        .resource-grid-state-subtitle {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .calendar-shell {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .calendar-toolbar-shell {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .calendar-title {
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--olive-deep);
+        }
+
+        .calendar-nav-shell {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .calendar-nav-shell .bridge-secondary-btn {
+            padding: 0.55rem 0.9rem;
+        }
+
+        .calendar-upcoming-section {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .calendar-section-title {
+            margin: 0;
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--olive-deep);
+        }
+
         /* Resource Library Page Styles */
         .library-filters {
             display: flex;
@@ -3629,6 +4249,18 @@
             text-transform: uppercase;
             letter-spacing: 0.05em;
             box-shadow: 0 2px 8px rgba(26, 107, 74, 0.3);
+        }
+
+        .resource-content-badge {
+            position: absolute;
+            top: 0.75rem;
+            right: 0.75rem;
+            background: rgba(0,0,0,0.6);
+            color: #fff;
+            padding: 0.2rem 0.55rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 600;
         }
 
         .resource-content {
@@ -3809,7 +4441,9 @@
             }
 
             .bridge-class-grid,
-            .bridge-form-grid {
+            .bridge-form-grid,
+            .course-picker-grid,
+            .group-grid {
                 grid-template-columns: 1fr;
             }
 
@@ -3831,6 +4465,26 @@
 
             .bridge-detail-chip {
                 justify-content: space-between;
+            }
+
+            .management-header,
+            .group-card-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .file-row {
+                grid-template-columns: 1fr;
+            }
+
+            .file-actions,
+            .management-inline-actions {
+                justify-content: stretch;
+            }
+
+            .file-actions > *,
+            .management-inline-actions > * {
+                width: 100%;
             }
 
             .bridge-detail-stats {
@@ -3873,6 +4527,24 @@
 
             .discussion-modal-note {
                 margin-right: 0;
+            }
+
+            .dashboard-row-card {
+                align-items: flex-start;
+            }
+
+            .dashboard-row-side {
+                width: 100%;
+                align-items: flex-start;
+            }
+
+            .dashboard-row-title {
+                white-space: normal;
+            }
+
+            .library-toolbar,
+            .calendar-toolbar-shell {
+                align-items: stretch;
             }
 
             .video-player-overlay {
@@ -5209,18 +5881,18 @@
             <!-- Library View (Hidden by default) -->
             <div class="dashboard" id="libraryView" style="display: none;">
                 <!-- Library Header -->
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                    <div style="display: flex; align-items: center; gap: 1rem;">
-                        <div class="search-box" style="width: 300px; background: var(--white);">
+                <div class="library-toolbar">
+                    <div class="library-toolbar-main">
+                        <div class="search-box library-search-box">
                             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                             <input type="text" data-i18n-placeholder="library.searchPlaceholder" placeholder="搜尋知識建材..." id="librarySearch">
                         </div>
-                        <span style="color: var(--gray-500); font-size: 0.9rem;" id="libraryResultCount">找到 <strong>128</strong> 個建材</span>
+                        <span class="library-result-count" id="libraryResultCount">找到 <strong>128</strong> 個建材</span>
                     </div>
-                    <div style="display: flex; gap: 0.5rem;">
-                        <button class="icon-btn" style="background: var(--olive); color: var(--cream);" title="卡片檢視"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></button>
+                    <div class="library-toolbar-actions">
+                        <button class="icon-btn is-active" title="卡片檢視"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></button>
                         <button class="icon-btn" title="列表檢視" onclick="showToast(t('library.switchToList'))"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></button>
-                        <button class="btn-primary" style="padding: 0.5rem 1rem; display: flex; align-items: center; gap: 0.5rem;" onclick="showToast(t('library.requestCustomToast'))"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span data-i18n="library.requestCustom">申請客製建材</span></button>
+                        <button class="btn-primary library-request-btn" onclick="showToast(t('library.requestCustomToast'))"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span data-i18n="library.requestCustom">申請客製建材</span></button>
                     </div>
                 </div>
                 <div class="library-filters">
@@ -5265,11 +5937,11 @@
 
                 <div class="resource-grid" id="resourceGrid">
                     <!-- 教材將由 JavaScript 動態載入 -->
-                    <div class="loading-placeholder" style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: var(--olive-deep);">
+                    <div class="resource-grid-state">
                         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite;">
                             <path d="M12 2v4m0 12v4m10-10h-4M6 12H2m15.5-7.5L15 7m-6 10l-2.5 2.5m13-2.5L17 17M7 7L4.5 4.5"/>
                         </svg>
-                        <p style="margin-top: 16px;" data-i18n="library.loadingResources">載入教材中...</p>
+                        <p data-i18n="library.loadingResources">載入教材中...</p>
                     </div>
                 </div>
             </div>
@@ -5339,19 +6011,23 @@
 
             <!-- 行事曆視圖 -->
             <div class="dashboard" id="moodleCalendarView" style="display: none;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                    <button onclick="MoodleUI.prevMonth()" class="btn-secondary" style="padding: 0.5rem 1rem;">
-                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
-                    </button>
-                    <h2 id="calendarTitle" style="font-size: 1.25rem; font-weight: 600; margin: 0;"></h2>
-                    <button onclick="MoodleUI.nextMonth()" class="btn-secondary" style="padding: 0.5rem 1rem;">
-                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9,6 15,12 9,18"/></svg>
-                    </button>
-                </div>
-                <div id="calendarGrid" class="calendar-grid"></div>
-                <div style="margin-top: 2rem;">
-                    <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem;" data-i18n="moodle.upcomingEvents">即將到來的事件</h3>
-                    <div id="upcomingEventsList"></div>
+                <div class="calendar-shell">
+                    <div class="calendar-toolbar-shell">
+                        <h2 id="calendarTitle" class="calendar-title"></h2>
+                        <div class="calendar-nav-shell">
+                            <button onclick="MoodleUI.prevMonth()" class="bridge-secondary-btn" type="button">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
+                            </button>
+                            <button onclick="MoodleUI.nextMonth()" class="bridge-secondary-btn" type="button">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9,6 15,12 9,18"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="calendarGrid" class="calendar-grid"></div>
+                    <div class="calendar-upcoming-section">
+                        <h3 class="calendar-section-title" data-i18n="moodle.upcomingEvents">即將到來的事件</h3>
+                        <div id="upcomingEventsList"></div>
+                    </div>
                 </div>
             </div>
 
@@ -5436,7 +6112,7 @@
     <!-- Modal Overlay -->
     <div id="modalOverlay" class="modal-overlay" onclick="closeModal()">
         <!-- Resource Detail Modal -->
-        <div id="resourceModal" class="modal" onclick="event.stopPropagation()">
+        <div id="resourceModal" class="modal resource-modal" onclick="event.stopPropagation()">
             <div class="modal-header">
                 <h2 id="modalTitle">建材詳情</h2>
                 <button class="modal-close" onclick="closeModal()">&times;</button>
@@ -5630,6 +6306,765 @@
             border-color: var(--olive-light);
             background: var(--cream);
         }
+
+        .resource-modal {
+            max-width: 860px;
+        }
+
+        .resource-modal .modal-body {
+            padding: 0;
+            max-height: min(72vh, 760px);
+        }
+
+        .resource-detail-shell {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            padding: 1.5rem;
+        }
+
+        .resource-detail-hero {
+            display: grid;
+            grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.9fr);
+            gap: 1.25rem;
+        }
+
+        .resource-detail-main,
+        .resource-detail-aside {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .resource-detail-surface,
+        .resource-preview-surface,
+        .resource-detail-info-card,
+        .resource-detail-notice {
+            border-radius: 22px;
+            border: 1px solid rgba(212, 197, 169, 0.35);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(247, 243, 235, 0.94) 100%);
+            box-shadow: var(--shadow-card);
+        }
+
+        .resource-detail-surface {
+            padding: 1.35rem;
+        }
+
+        .resource-detail-kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.35rem 0.78rem;
+            border-radius: 999px;
+            font-size: 0.74rem;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            background: rgba(45, 43, 107, 0.1);
+            color: var(--olive-deep);
+            margin-bottom: 0.85rem;
+        }
+
+        .resource-detail-title {
+            font-family: var(--font-heading);
+            font-size: 1.55rem;
+            line-height: 1.15;
+            color: var(--olive-deep);
+            margin-bottom: 0.6rem;
+        }
+
+        .resource-detail-description {
+            color: var(--gray-600);
+            line-height: 1.7;
+            font-size: 0.94rem;
+        }
+
+        .resource-detail-tags {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-top: 1rem;
+        }
+
+        .resource-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.38rem 0.82rem;
+            border-radius: 999px;
+            font-size: 0.76rem;
+            font-weight: 700;
+            background: rgba(45, 43, 107, 0.08);
+            color: var(--olive-deep);
+        }
+
+        .resource-chip.tone-type {
+            background: linear-gradient(135deg, var(--olive) 0%, var(--olive-deep) 100%);
+            color: var(--cream);
+        }
+
+        .resource-chip.tone-lti {
+            background: linear-gradient(135deg, #0891b2 0%, #06b6d4 100%);
+            color: white;
+        }
+
+        .resource-preview-surface {
+            padding: 1rem;
+            overflow: hidden;
+        }
+
+        .resource-preview-frame {
+            position: relative;
+            width: 100%;
+            padding-bottom: 56.25%;
+            border-radius: 18px;
+            overflow: hidden;
+            background: linear-gradient(135deg, rgba(45, 43, 107, 0.08) 0%, rgba(212, 197, 169, 0.18) 100%);
+        }
+
+        .resource-preview-frame iframe,
+        .resource-preview-frame video,
+        .resource-preview-frame .resource-preview-embed {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: #0f172a;
+        }
+
+        .resource-preview-card {
+            display: flex;
+            align-items: center;
+            gap: 0.9rem;
+            padding: 1rem;
+            border-radius: 18px;
+            border: 1px solid transparent;
+        }
+
+        .resource-preview-card.tone-file {
+            background: rgba(14, 165, 233, 0.08);
+            border-color: rgba(14, 165, 233, 0.18);
+        }
+
+        .resource-preview-card.tone-web {
+            background: rgba(22, 163, 74, 0.08);
+            border-color: rgba(22, 163, 74, 0.18);
+        }
+
+        .resource-preview-card.tone-upload {
+            background: rgba(217, 119, 6, 0.1);
+            border-color: rgba(217, 119, 6, 0.18);
+        }
+
+        .resource-preview-card.tone-warning {
+            background: rgba(220, 38, 38, 0.08);
+            border-color: rgba(220, 38, 38, 0.14);
+            color: #991b1b;
+        }
+
+        .resource-preview-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .resource-preview-card.tone-file .resource-preview-icon {
+            background: rgba(2, 132, 199, 0.14);
+            color: #0369a1;
+        }
+
+        .resource-preview-card.tone-web .resource-preview-icon {
+            background: rgba(22, 163, 74, 0.14);
+            color: #15803d;
+        }
+
+        .resource-preview-card.tone-upload .resource-preview-icon {
+            background: rgba(217, 119, 6, 0.16);
+            color: #b45309;
+        }
+
+        .resource-preview-card.tone-warning .resource-preview-icon {
+            background: rgba(220, 38, 38, 0.12);
+            color: #b91c1c;
+        }
+
+        .resource-preview-icon svg {
+            width: 22px;
+            height: 22px;
+        }
+
+        .resource-preview-copy {
+            min-width: 0;
+            flex: 1;
+        }
+
+        .resource-preview-title {
+            font-size: 0.92rem;
+            font-weight: 700;
+            color: var(--charcoal);
+        }
+
+        .resource-preview-note {
+            margin-top: 0.25rem;
+            font-size: 0.82rem;
+            color: var(--gray-500);
+            line-height: 1.6;
+        }
+
+        .resource-preview-card.tone-warning .resource-preview-title,
+        .resource-preview-card.tone-warning .resource-preview-note {
+            color: inherit;
+        }
+
+        .resource-preview-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.72rem 1rem;
+            border-radius: 999px;
+            background: linear-gradient(135deg, var(--olive) 0%, var(--olive-deep) 100%);
+            color: white;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 700;
+            white-space: nowrap;
+            box-shadow: 0 10px 20px rgba(45, 43, 107, 0.16);
+        }
+
+        .resource-preview-card.tone-file .resource-preview-link {
+            background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+        }
+
+        .resource-preview-card.tone-web .resource-preview-link {
+            background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+        }
+
+        .resource-preview-card.tone-upload .resource-preview-link {
+            background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+        }
+
+        .resource-detail-notice {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.9rem;
+            padding: 1rem 1.1rem;
+            background: linear-gradient(180deg, rgba(254, 243, 199, 0.85) 0%, rgba(255, 251, 235, 0.96) 100%);
+            border-color: rgba(245, 158, 11, 0.28);
+        }
+
+        .resource-detail-notice-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 14px;
+            background: rgba(217, 119, 6, 0.14);
+            color: #b45309;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .resource-detail-notice-icon svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .resource-detail-notice-title {
+            font-size: 0.92rem;
+            font-weight: 700;
+            color: #92400e;
+        }
+
+        .resource-detail-notice-copy {
+            margin-top: 0.2rem;
+            font-size: 0.86rem;
+            line-height: 1.6;
+            color: #a16207;
+        }
+
+        .resource-detail-stats {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.85rem;
+        }
+
+        .resource-detail-stat {
+            padding: 0.95rem 1rem;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.72);
+            border: 1px solid rgba(212, 197, 169, 0.3);
+        }
+
+        .resource-detail-stat-label {
+            font-size: 0.76rem;
+            color: var(--gray-500);
+            margin-bottom: 0.3rem;
+        }
+
+        .resource-detail-stat-value {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--charcoal);
+            line-height: 1.4;
+            word-break: break-word;
+        }
+
+        .resource-detail-info-card {
+            padding: 1.2rem;
+        }
+
+        .resource-detail-section-title {
+            font-size: 0.92rem;
+            font-weight: 700;
+            color: var(--olive-deep);
+            margin-bottom: 0.8rem;
+        }
+
+        .resource-detail-list {
+            margin: 0;
+            padding-left: 1.2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.55rem;
+            color: var(--gray-600);
+            line-height: 1.55;
+        }
+
+        .resource-modal-footer-note {
+            margin-right: auto;
+            font-size: 0.8rem;
+            color: var(--gray-500);
+        }
+
+        .resource-modal-btn-external {
+            background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%) !important;
+        }
+
+        .resource-modal-btn-external:hover {
+            box-shadow: 0 6px 16px rgba(8, 145, 178, 0.26) !important;
+        }
+
+        @media (max-width: 900px) {
+            .resource-detail-hero {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .resource-detail-shell {
+                padding: 1rem;
+            }
+
+            .resource-detail-stats {
+                grid-template-columns: 1fr;
+            }
+
+            .resource-preview-card {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .resource-preview-link {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        .quiz-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(26, 58, 92, 0.58);
+            backdrop-filter: blur(6px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.25rem;
+            z-index: 2100;
+        }
+
+        .quiz-modal-shell {
+            width: min(960px, 100%);
+            max-height: min(92vh, 920px);
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.99) 0%, rgba(247, 243, 235, 0.96) 100%);
+            border-radius: 28px;
+            border: 1px solid rgba(212, 197, 169, 0.32);
+            box-shadow: 0 30px 80px rgba(26, 58, 92, 0.24);
+            overflow: hidden;
+        }
+
+        .quiz-modal-header,
+        .quiz-modal-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 1.2rem 1.4rem;
+        }
+
+        .quiz-modal-header {
+            border-bottom: 1px solid rgba(212, 197, 169, 0.28);
+            background: linear-gradient(180deg, rgba(252, 250, 244, 0.96) 0%, rgba(255, 255, 255, 0.95) 100%);
+        }
+
+        .quiz-modal-footer {
+            border-top: 1px solid rgba(212, 197, 169, 0.28);
+            background: rgba(255, 255, 255, 0.55);
+        }
+
+        .quiz-modal-copy {
+            min-width: 0;
+        }
+
+        .quiz-modal-title {
+            font-family: var(--font-heading);
+            font-size: 1.35rem;
+            color: var(--olive-deep);
+            margin: 0;
+        }
+
+        .quiz-modal-subtitle {
+            margin-top: 0.25rem;
+            color: var(--gray-500);
+            font-size: 0.84rem;
+            line-height: 1.5;
+        }
+
+        .quiz-modal-timer {
+            min-width: 92px;
+            padding: 0.85rem 1rem;
+            border-radius: 18px;
+            background: rgba(45, 43, 107, 0.08);
+            border: 1px solid rgba(45, 43, 107, 0.12);
+            text-align: center;
+        }
+
+        .quiz-modal-timer-label {
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: var(--gray-500);
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .quiz-modal-timer-value {
+            margin-top: 0.2rem;
+            font-size: 1.45rem;
+            font-weight: 700;
+            line-height: 1;
+            color: var(--olive);
+        }
+
+        .quiz-modal-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.4rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .quiz-question-card {
+            padding: 1.2rem;
+            border-radius: 24px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(252, 250, 244, 0.96) 100%);
+            border: 1px solid rgba(212, 197, 169, 0.3);
+            box-shadow: var(--shadow-card);
+        }
+
+        .quiz-question-head {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.95rem;
+            margin-bottom: 1rem;
+        }
+
+        .quiz-question-number {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--olive) 0%, var(--olive-deep) 100%);
+            color: var(--cream);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .quiz-question-copy {
+            min-width: 0;
+            flex: 1;
+        }
+
+        .quiz-question-text {
+            margin: 0;
+            font-size: 1rem;
+            color: var(--charcoal);
+            line-height: 1.7;
+        }
+
+        .quiz-question-image {
+            width: 100%;
+            max-height: 280px;
+            object-fit: cover;
+            border-radius: 18px;
+            margin-top: 1rem;
+            border: 1px solid rgba(212, 197, 169, 0.28);
+        }
+
+        .quiz-options {
+            display: flex;
+            flex-direction: column;
+            gap: 0.65rem;
+            padding-left: calc(34px + 0.95rem);
+        }
+
+        .quiz-option {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.85rem 1rem;
+            border-radius: 18px;
+            border: 1px solid rgba(212, 197, 169, 0.38);
+            background: rgba(255, 255, 255, 0.72);
+            cursor: pointer;
+            transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .quiz-option:hover {
+            border-color: var(--olive-light);
+            background: rgba(168, 184, 154, 0.08);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .quiz-option:has(input:checked) {
+            border-color: var(--olive);
+            background: rgba(168, 184, 154, 0.12);
+            box-shadow: 0 0 0 3px rgba(168, 184, 154, 0.12);
+        }
+
+        .quiz-option-input {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--olive);
+            flex-shrink: 0;
+        }
+
+        .quiz-option-text {
+            color: var(--charcoal);
+            line-height: 1.55;
+        }
+
+        .quiz-answer-field {
+            padding-left: calc(34px + 0.95rem);
+        }
+
+        .quiz-answer-textarea {
+            width: 100%;
+            min-height: 120px;
+            resize: vertical;
+            border-radius: 18px;
+            border: 1px solid rgba(212, 197, 169, 0.38);
+            background: rgba(255, 255, 255, 0.78);
+            padding: 0.95rem 1rem;
+            font-size: 0.96rem;
+            line-height: 1.65;
+            color: var(--charcoal);
+        }
+
+        .quiz-answer-textarea:focus {
+            outline: none;
+            border-color: var(--olive);
+            box-shadow: 0 0 0 3px rgba(168, 184, 154, 0.14);
+        }
+
+        .quiz-modal-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-left: auto;
+        }
+
+        .quiz-modal-btn {
+            border: none;
+            border-radius: 999px;
+            padding: 0.8rem 1.2rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+        }
+
+        .quiz-modal-btn.secondary {
+            background: var(--white);
+            color: var(--charcoal);
+            border: 1px solid rgba(212, 197, 169, 0.44);
+        }
+
+        .quiz-modal-btn.primary {
+            background: linear-gradient(135deg, var(--olive) 0%, var(--olive-deep) 100%);
+            color: var(--cream);
+            box-shadow: 0 10px 22px rgba(45, 43, 107, 0.16);
+        }
+
+        .quiz-modal-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .quiz-result-shell {
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+        }
+
+        .quiz-result-hero {
+            text-align: center;
+            padding: 0.6rem 0 0.2rem;
+        }
+
+        .quiz-result-score-ring {
+            width: 132px;
+            height: 132px;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.2rem;
+            color: white;
+            box-shadow: 0 18px 40px rgba(26, 58, 92, 0.16);
+        }
+
+        .quiz-result-score-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .quiz-result-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 0.45rem;
+        }
+
+        .quiz-result-copy {
+            color: var(--gray-500);
+            line-height: 1.7;
+        }
+
+        .quiz-result-metrics {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.9rem;
+        }
+
+        .quiz-result-metric {
+            padding: 1rem;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.78);
+            border: 1px solid rgba(212, 197, 169, 0.34);
+            text-align: center;
+        }
+
+        .quiz-result-metric-value {
+            font-size: 1.55rem;
+            font-weight: 700;
+            color: var(--olive-deep);
+        }
+
+        .quiz-result-metric-label {
+            margin-top: 0.3rem;
+            font-size: 0.8rem;
+            color: var(--gray-500);
+        }
+
+        .quiz-result-details {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .quiz-result-details-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--olive-deep);
+        }
+
+        .quiz-result-item {
+            padding: 1rem;
+            border-radius: 18px;
+            border-left: 4px solid transparent;
+        }
+
+        .quiz-result-item.is-correct {
+            background: rgba(74, 124, 89, 0.1);
+            border-left-color: var(--success);
+        }
+
+        .quiz-result-item.is-incorrect {
+            background: rgba(193, 122, 94, 0.1);
+            border-left-color: var(--terracotta);
+        }
+
+        .quiz-result-item-title {
+            font-weight: 700;
+            color: var(--charcoal);
+            margin-bottom: 0.45rem;
+        }
+
+        .quiz-result-answer {
+            color: var(--gray-600);
+            line-height: 1.65;
+            font-size: 0.92rem;
+        }
+
+        .quiz-result-answer strong.correct {
+            color: var(--success);
+        }
+
+        .quiz-result-answer strong.incorrect {
+            color: var(--terracotta);
+        }
+
+        .quiz-result-answer em {
+            color: var(--gray-500);
+        }
+
+        @media (max-width: 768px) {
+            .quiz-modal-header,
+            .quiz-modal-footer {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .quiz-modal-actions {
+                margin-left: 0;
+                width: 100%;
+                justify-content: stretch;
+            }
+
+            .quiz-modal-actions .quiz-modal-btn {
+                flex: 1;
+            }
+
+            .quiz-options,
+            .quiz-answer-field {
+                padding-left: 0;
+            }
+
+            .quiz-result-metrics {
+                grid-template-columns: 1fr;
+            }
+        }
+
         .dialog-message {
             margin: 0;
             color: var(--charcoal);
@@ -5981,6 +7416,7 @@
         }
         .status-badge.active { background: rgba(74, 124, 89, 0.1); color: var(--success); }
         .status-badge.warning { background: rgba(212, 165, 116, 0.2); color: #B8860B; }
+        .status-badge.pending { background: rgba(107, 114, 128, 0.12); color: var(--gray-600); }
         .btn-sm {
             padding: 0.5rem 1rem;
             background: var(--olive);
@@ -6004,6 +7440,307 @@
             transition: all 0.2s;
         }
         .btn-icon:hover { background: var(--olive); color: var(--cream); border-color: var(--olive); }
+
+        /* License & Quiz Surfaces */
+        .license-dashboard,
+        .quiz-shell {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .license-stats,
+        .quiz-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 1rem;
+            margin-bottom: 0;
+        }
+
+        .license-stat-card,
+        .quiz-summary-card {
+            background: linear-gradient(180deg, var(--white) 0%, var(--cream) 100%);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--sand);
+            box-shadow: var(--shadow-card);
+            padding: 1.25rem 1.35rem;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 1rem;
+            text-align: left;
+        }
+
+        .license-stat-copy,
+        .quiz-summary-copy {
+            min-width: 0;
+        }
+
+        .license-stat-label,
+        .quiz-summary-label {
+            font-size: 0.82rem;
+            color: var(--gray-500);
+            margin-bottom: 0.45rem;
+        }
+
+        .license-stat-value,
+        .quiz-summary-value {
+            font-size: 2rem;
+            font-weight: 700;
+            line-height: 1;
+            color: var(--olive-deep);
+        }
+
+        .license-stat-note,
+        .quiz-summary-note {
+            margin-top: 0.45rem;
+            font-size: 0.8rem;
+            color: var(--gray-500);
+        }
+
+        .license-stat-icon,
+        .quiz-summary-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .license-stat-icon svg,
+        .quiz-summary-icon svg {
+            width: 22px;
+            height: 22px;
+        }
+
+        .license-stat-icon.tone-olive,
+        .quiz-summary-icon.tone-olive {
+            background: rgba(45, 43, 107, 0.1);
+            color: var(--olive);
+        }
+
+        .license-stat-icon.tone-success,
+        .quiz-summary-icon.tone-success {
+            background: rgba(74, 124, 89, 0.12);
+            color: var(--success);
+        }
+
+        .license-stat-icon.tone-terracotta,
+        .quiz-summary-icon.tone-terracotta {
+            background: rgba(193, 122, 94, 0.12);
+            color: var(--terracotta);
+        }
+
+        .license-table-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .license-table-title {
+            font-weight: 600;
+            color: var(--charcoal);
+        }
+
+        .license-table-subtitle,
+        .license-table-note {
+            font-size: 0.8rem;
+            color: var(--gray-500);
+        }
+
+        .license-table-note {
+            color: var(--gray-400);
+        }
+
+        .license-table-action {
+            white-space: nowrap;
+        }
+
+        .license-empty-row {
+            text-align: center;
+            color: var(--gray-500);
+            padding: 2rem 1rem;
+        }
+
+        .quiz-list-shell {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .quiz-row-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1.25rem;
+            padding: 1.35rem 1.4rem;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--sand);
+            background: linear-gradient(180deg, var(--white) 0%, var(--cream) 100%);
+            box-shadow: var(--shadow-card);
+            transition: var(--transition-base);
+        }
+
+        .quiz-row-card.is-clickable {
+            cursor: pointer;
+        }
+
+        .quiz-row-card.is-clickable:hover {
+            transform: translateY(-3px);
+            border-color: var(--olive-light);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .quiz-row-main {
+            display: flex;
+            flex-direction: column;
+            gap: 0.85rem;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .quiz-row-topline {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .quiz-row-title {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--charcoal);
+        }
+
+        .quiz-row-desc {
+            font-size: 0.9rem;
+            line-height: 1.6;
+            color: var(--gray-500);
+        }
+
+        .quiz-row-meta {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            flex-wrap: wrap;
+        }
+
+        .quiz-row-meta-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.45rem 0.8rem;
+            border-radius: 999px;
+            background: var(--gray-100);
+            color: var(--gray-600);
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .quiz-row-meta-pill strong {
+            color: var(--olive-deep);
+        }
+
+        .quiz-status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.38rem 0.72rem;
+            border-radius: 999px;
+            font-size: 0.76rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+        }
+
+        .quiz-status-pill.is-idle {
+            background: rgba(107, 114, 128, 0.12);
+            color: var(--gray-600);
+        }
+
+        .quiz-status-pill.is-progress {
+            background: rgba(193, 122, 94, 0.12);
+            color: var(--terracotta);
+        }
+
+        .quiz-status-pill.is-completed {
+            background: rgba(74, 124, 89, 0.14);
+            color: var(--success);
+        }
+
+        .quiz-row-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.9rem;
+            flex-shrink: 0;
+        }
+
+        .quiz-row-score {
+            min-width: 92px;
+            padding: 0.85rem 0.95rem;
+            border-radius: 16px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(247, 243, 235, 0.95) 100%);
+            border: 1px solid rgba(212, 197, 169, 0.45);
+            text-align: center;
+        }
+
+        .quiz-row-score-value {
+            font-size: 1.55rem;
+            line-height: 1;
+            font-weight: 700;
+            color: var(--olive-deep);
+        }
+
+        .quiz-row-score-value.tone-success { color: var(--success); }
+        .quiz-row-score-value.tone-terracotta { color: var(--terracotta); }
+
+        .quiz-row-score-label {
+            margin-top: 0.3rem;
+            font-size: 0.75rem;
+            color: var(--gray-500);
+        }
+
+        .quiz-launch-btn {
+            border: none;
+            border-radius: 999px;
+            padding: 0.8rem 1.1rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition-base);
+            color: var(--cream);
+            box-shadow: 0 10px 24px rgba(45, 43, 107, 0.18);
+        }
+
+        .quiz-launch-btn svg {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+        }
+
+        .quiz-launch-btn.is-idle {
+            background: linear-gradient(135deg, var(--olive) 0%, var(--olive-deep) 100%);
+        }
+
+        .quiz-launch-btn.is-progress {
+            background: linear-gradient(135deg, var(--terracotta) 0%, var(--terracotta-light) 100%);
+        }
+
+        .quiz-launch-btn.is-completed {
+            background: linear-gradient(135deg, var(--gray-600) 0%, var(--gray-700) 100%);
+        }
+
+        .quiz-launch-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .quiz-empty-state {
+            padding: 3rem 1.5rem;
+        }
 
         /* Settings */
         .settings-shell {
@@ -6243,9 +7980,20 @@
         @media (max-width: 768px) {
             .mobile-menu-btn { display: flex; }
             .courses-grid, .settings-grid { grid-template-columns: 1fr; }
-            .license-stats { grid-template-columns: 1fr; }
+            .license-stats, .quiz-summary-grid { grid-template-columns: 1fr; }
             .data-table { font-size: 0.8rem; }
             .data-table th, .data-table td { padding: 0.75rem 0.5rem; }
+            .quiz-row-card {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .quiz-row-actions {
+                justify-content: space-between;
+                width: 100%;
+            }
+            .quiz-row-score {
+                min-width: 0;
+            }
             .settings-hero-body {
                 flex-direction: column;
                 align-items: flex-start;
@@ -7427,6 +9175,30 @@
             return count.toString();
         }
 
+        function updateLibraryResultCount(count) {
+            const resultEl = document.getElementById('libraryResultCount');
+            if (!resultEl) return;
+            const locale = I18n.getLocale();
+            resultEl.innerHTML = locale === 'en'
+                ? `Showing <strong>${count}</strong> resources`
+                : `找到 <strong>${count}</strong> 個建材`;
+        }
+
+        function renderResourceGridState(title, options = {}) {
+            const toneClass = options.tone === 'error' ? ' error' : '';
+            const subtitle = options.subtitle ? `<p class="resource-grid-state-subtitle">${options.subtitle}</p>` : '';
+            return `
+                <div class="resource-grid-state${toneClass}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path>
+                        <polyline points="14,2 14,8 20,8"></polyline>
+                    </svg>
+                    <p>${title}</p>
+                    ${subtitle}
+                </div>
+            `;
+        }
+
         // 載入教材資源
         async function loadResources() {
             const grid = document.getElementById('resourceGrid');
@@ -7436,36 +9208,30 @@
                     resources = result.data;
                     renderResourceCards(result.data);
                 } else {
-                    grid.innerHTML = `
-                        <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: var(--olive-deep);">
-                            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity: 0.5;">
-                                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-                                <polyline points="14,2 14,8 20,8"/>
-                            </svg>
-                            <p style="margin-top: 16px; font-size: 16px;">目前沒有已發布的教材</p>
-                            <p style="margin-top: 8px; color: var(--gray-500);">敬請期待更多優質內容</p>
-                        </div>
-                    `;
+                    updateLibraryResultCount(0);
+                    grid.innerHTML = renderResourceGridState(
+                        I18n.getLocale() === 'en' ? 'No published resources yet' : '目前沒有已發布的教材',
+                        { subtitle: I18n.getLocale() === 'en' ? 'Check back later for new materials.' : '敬請期待更多優質內容' }
+                    );
                 }
             } catch (error) {
                 console.error('Load resources error:', error);
-                grid.innerHTML = `
-                    <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: var(--terracotta);">
-                        <p>載入教材時發生錯誤，請稍後再試</p>
-                    </div>
-                `;
+                updateLibraryResultCount(0);
+                grid.innerHTML = renderResourceGridState(
+                    I18n.getLocale() === 'en' ? 'Failed to load resources' : '載入教材時發生錯誤，請稍後再試',
+                    { tone: 'error' }
+                );
             }
         }
 
         // 渲染教材卡片
         function renderResourceCards(resourceList) {
             const grid = document.getElementById('resourceGrid');
+            updateLibraryResultCount(Array.isArray(resourceList) ? resourceList.length : 0);
             if (!resourceList || resourceList.length === 0) {
-                grid.innerHTML = `
-                    <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: var(--olive-deep);">
-                        <p>沒有找到符合條件的教材</p>
-                    </div>
-                `;
+                grid.innerHTML = renderResourceGridState(
+                    I18n.getLocale() === 'en' ? 'No matching resources found' : '沒有找到符合條件的教材'
+                );
                 return;
             }
 
@@ -7502,7 +9268,7 @@
                     <div class="resource-card" onclick="openResourceModal('${r.resourceId}')">
                         <div class="resource-cover" style="background: ${bgColor};">
                             <span class="resource-type-badge">${typeLabel}</span>
-                            ${contentBadge ? `<span style="position:absolute;top:10px;right:10px;background:rgba(0,0,0,0.6);color:#fff;padding:2px 8px;border-radius:12px;font-size:0.75rem;">${contentBadge}</span>` : ''}
+                            ${contentBadge ? `<span class="resource-content-badge">${contentBadge}</span>` : ''}
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 ${icon}
                             </svg>
@@ -7542,6 +9308,7 @@
 
         // 篩選教材
         function filterResources() {
+            const searchQuery = (document.getElementById('librarySearch')?.value || '').trim().toLowerCase();
             const categoryFilter = document.getElementById('filterCategory')?.value || '';
             const gradeLevelFilter = document.getElementById('filterGradeLevel')?.value || '';
             const typeFilter = document.getElementById('filterType')?.value || '';
@@ -7560,6 +9327,19 @@
                 } else {
                     filtered = filtered.filter(r => r.type === typeFilter && !r.ltiToolId);
                 }
+            }
+            if (searchQuery) {
+                filtered = filtered.filter(r => {
+                    const tags = Array.isArray(r.tags) ? r.tags.join(' ') : '';
+                    const haystack = [
+                        r.title,
+                        r.description,
+                        r.authorName,
+                        r.creatorName,
+                        tags
+                    ].filter(Boolean).join(' ').toLowerCase();
+                    return haystack.includes(searchQuery);
+                });
             }
 
             renderResourceCards(filtered);
@@ -7769,176 +9549,295 @@
             return match ? match[1] : null;
         }
 
-        function buildResourceContentHtml(resource) {
-            if (!resource.contentType) return '';
+        function getResourceDisplayType(resource = {}) {
+            if (resource.ltiToolId || resource.requiresEnrollment) return 'lti';
+            return resource.type || resource.contentType || 'document';
+        }
 
-            const ct = resource.contentType;
-            const url = resource.contentUrl;
+        function getResourceTypeLabel(resource = {}) {
+            const typeKey = getResourceDisplayType(resource);
+            return typeLabels[typeKey] || resource.type || resource.contentType || '教材';
+        }
+
+        function getResourceCategoryLabel(resource = {}) {
+            return categoryLabels[resource.category] || resource.category || '未分類';
+        }
+
+        function getResourceGradeLevelLabel(resource = {}) {
+            return gradeLevelLabels[resource.gradeLevel] || resource.gradeLevel || '不限年級';
+        }
+
+        function getResourceAuthorLabel(resource = {}) {
+            return resource.authorName || resource.creatorName || resource.authorId || resource.creatorId || '未知作者';
+        }
+
+        function formatResourceRating(resource = {}) {
+            const rating = resource.rating ?? resource.averageRating;
+            const numericRating = Number(rating);
+            return Number.isFinite(numericRating) && numericRating > 0 ? numericRating.toFixed(1) : '-';
+        }
+
+        function getResourceTags(resource = {}) {
+            const tags = [];
+            const gradeLevelLabel = getResourceGradeLevelLabel(resource);
+            const categoryLabel = getResourceCategoryLabel(resource);
+            if (gradeLevelLabel && gradeLevelLabel !== '不限年級') tags.push(gradeLevelLabel);
+            if (categoryLabel && categoryLabel !== '未分類') tags.push(categoryLabel);
+            if (Array.isArray(resource.tags)) tags.push(...resource.tags);
+            return [...new Set(tags.filter(Boolean))];
+        }
+
+        function buildResourcePreviewHtml(resource = {}) {
+            const ct = resource.contentType || resource.type;
+            const url = resource.contentUrl || resource.url || resource.videoUrl || resource.fileUrl || '';
             const embed = resource.contentEmbed;
-            const fileName = resource.contentFileName;
-            let html = '';
+            const fileName = resource.contentFileName || resource.fileName || resource.title || '教材檔案';
 
-            if (ct === 'video' && url) {
+            if ((ct === 'video' || resource.type === 'video') && url) {
                 const ytId = getYouTubeId(url);
                 const vimeoId = getVimeoId(url);
                 if (ytId) {
-                    html = `<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:8px;margin-bottom:1rem;">
-                        <iframe src="https://www.youtube.com/embed/${ytId}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;" allowfullscreen></iframe>
-                    </div>`;
-                } else if (vimeoId) {
-                    html = `<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:8px;margin-bottom:1rem;">
-                        <iframe src="https://player.vimeo.com/video/${vimeoId}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;" allowfullscreen></iframe>
-                    </div>`;
-                } else {
-                    html = `<div style="margin-bottom:1rem;">
-                        <video controls style="width:100%;border-radius:8px;" src="${url}"></video>
-                    </div>`;
+                    return `
+                        <div class="resource-preview-surface">
+                            <div class="resource-preview-frame">
+                                <iframe src="https://www.youtube.com/embed/${encodeURIComponent(ytId)}" allowfullscreen title="${escapeHtml(fileName)}"></iframe>
+                            </div>
+                        </div>
+                    `;
                 }
-            } else if (ct === 'file' && url) {
-                html = `<div style="background:#f0f9ff;border:1px solid #bae6fd;padding:1rem;border-radius:8px;margin-bottom:1rem;display:flex;align-items:center;gap:0.75rem;">
-                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#0284c7" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
-                    <div style="flex:1;">
-                        <strong style="color:#0369a1;">${fileName || '教材檔案'}</strong>
-                        <p style="margin:0.25rem 0 0;color:#64748b;font-size:0.85rem;">點擊下方按鈕開啟或下載檔案</p>
+                if (vimeoId) {
+                    return `
+                        <div class="resource-preview-surface">
+                            <div class="resource-preview-frame">
+                                <iframe src="https://player.vimeo.com/video/${encodeURIComponent(vimeoId)}" allowfullscreen title="${escapeHtml(fileName)}"></iframe>
+                            </div>
+                        </div>
+                    `;
+                }
+                return `
+                    <div class="resource-preview-surface">
+                        <div class="resource-preview-frame">
+                            <video controls src="${escapeHtml(url)}"></video>
+                        </div>
                     </div>
-                    <a href="${url}" target="_blank" rel="noopener noreferrer" style="background:#0284c7;color:#fff;padding:8px 16px;border-radius:6px;text-decoration:none;font-size:0.9rem;white-space:nowrap;">開啟檔案</a>
-                </div>`;
-            } else if (ct === 'webpage' && url) {
-                html = `<div style="background:#f0fdf4;border:1px solid #bbf7d0;padding:1rem;border-radius:8px;margin-bottom:1rem;display:flex;align-items:center;gap:0.75rem;">
-                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#16a34a" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
-                    <div style="flex:1;">
-                        <strong style="color:#15803d;">外部教材連結</strong>
-                        <p style="margin:0.25rem 0 0;color:#64748b;font-size:0.85rem;">點擊按鈕前往教材頁面</p>
+                `;
+            }
+
+            if (ct === 'file' && url) {
+                return `
+                    <div class="resource-preview-surface">
+                        <div class="resource-preview-card tone-file">
+                            <div class="resource-preview-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+                            </div>
+                            <div class="resource-preview-copy">
+                                <div class="resource-preview-title">${escapeHtml(fileName)}</div>
+                                <div class="resource-preview-note">點擊按鈕開啟教材檔案，或交由橋隊成員下載後離線使用。</div>
+                            </div>
+                            <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="resource-preview-link">開啟檔案</a>
+                        </div>
                     </div>
-                    <a href="${url}" target="_blank" rel="noopener noreferrer" style="background:#16a34a;color:#fff;padding:8px 16px;border-radius:6px;text-decoration:none;font-size:0.9rem;white-space:nowrap;">前往教材</a>
-                </div>`;
-            } else if (ct === 'embed' && embed) {
-                // Sanitize: only allow iframe tags with safe attributes
+                `;
+            }
+
+            if (ct === 'webpage' && url) {
+                return `
+                    <div class="resource-preview-surface">
+                        <div class="resource-preview-card tone-web">
+                            <div class="resource-preview-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                            </div>
+                            <div class="resource-preview-copy">
+                                <div class="resource-preview-title">外部教材連結</div>
+                                <div class="resource-preview-note">此教材會在新分頁開啟，保留平台學習脈絡，同時前往外部內容頁面。</div>
+                            </div>
+                            <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="resource-preview-link">前往教材</a>
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (ct === 'embed' && embed) {
                 const tempDiv = document.createElement('div');
                 tempDiv.innerHTML = embed;
                 const iframes = tempDiv.querySelectorAll('iframe');
                 let safeHtml = '';
-                iframes.forEach(iframe => {
+                iframes.forEach((iframe) => {
                     const src = iframe.getAttribute('src') || '';
                     if (src.startsWith('https://') || src.startsWith('http://')) {
                         const safeIframe = document.createElement('iframe');
                         safeIframe.src = src;
-                        safeIframe.style.cssText = 'width:100%;min-height:400px;border:none;';
+                        safeIframe.className = 'resource-preview-embed';
                         safeIframe.setAttribute('allowfullscreen', '');
-                        if (iframe.getAttribute('width')) safeIframe.width = iframe.getAttribute('width');
-                        if (iframe.getAttribute('height')) safeIframe.height = iframe.getAttribute('height');
+                        safeIframe.setAttribute('title', fileName);
                         safeHtml += safeIframe.outerHTML;
                     }
                 });
+
                 if (safeHtml) {
-                    html = `<div style="margin-bottom:1rem;border-radius:8px;overflow:hidden;">${safeHtml}</div>`;
-                } else {
-                    html = `<div style="background:#fef2f2;border:1px solid #fecaca;padding:1rem;border-radius:8px;margin-bottom:1rem;color:#991b1b;">嵌入碼格式不正確，請聯繫管理員</div>`;
+                    return `
+                        <div class="resource-preview-surface">
+                            <div class="resource-preview-frame">
+                                ${safeHtml}
+                            </div>
+                        </div>
+                    `;
                 }
-            } else if (ct === 'upload' && url) {
-                html = `<div style="background:#fef3c7;border:1px solid #fcd34d;padding:1rem;border-radius:8px;margin-bottom:1rem;display:flex;align-items:center;gap:0.75rem;">
-                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#d97706" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                    <div style="flex:1;">
-                        <strong style="color:#92400e;">${fileName || '已上傳檔案'}</strong>
-                        <p style="margin:0.25rem 0 0;color:#64748b;font-size:0.85rem;">點擊按鈕下載此檔案</p>
+
+                return `
+                    <div class="resource-preview-surface">
+                        <div class="resource-preview-card tone-warning">
+                            <div class="resource-preview-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                            </div>
+                            <div class="resource-preview-copy">
+                                <div class="resource-preview-title">嵌入內容格式有誤</div>
+                                <div class="resource-preview-note">目前無法安全顯示這段嵌入內容，請聯繫管理員確認來源設定。</div>
+                            </div>
+                        </div>
                     </div>
-                    <a href="${url}" download="${fileName || ''}" style="background:#d97706;color:#fff;padding:8px 16px;border-radius:6px;text-decoration:none;font-size:0.9rem;white-space:nowrap;">下載檔案</a>
-                </div>`;
+                `;
             }
 
-            return html;
+            if (ct === 'upload' && url) {
+                return `
+                    <div class="resource-preview-surface">
+                        <div class="resource-preview-card tone-upload">
+                            <div class="resource-preview-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            </div>
+                            <div class="resource-preview-copy">
+                                <div class="resource-preview-title">${escapeHtml(fileName)}</div>
+                                <div class="resource-preview-note">這份教材已上傳到平台儲存空間，可直接下載分發或搭配課程使用。</div>
+                            </div>
+                            <a href="${escapeHtml(url)}" download="${escapeHtml(fileName)}" class="resource-preview-link">下載檔案</a>
+                        </div>
+                    </div>
+                `;
+            }
+
+            return '';
         }
 
+        function renderResourceModalBody(resource = {}) {
+            const typeLabel = getResourceTypeLabel(resource);
+            const categoryLabel = getResourceCategoryLabel(resource);
+            const gradeLevelLabel = getResourceGradeLevelLabel(resource);
+            const authorName = getResourceAuthorLabel(resource);
+            const isLtiResource = getResourceDisplayType(resource) === 'lti';
+            const tags = getResourceTags(resource);
+            const previewHtml = buildResourcePreviewHtml(resource);
+
+            const statItems = [
+                { label: '作者', value: authorName },
+                { label: '觀看', value: formatViewCount(resource.viewCount) },
+                { label: '評分', value: formatResourceRating(resource) }
+            ];
+            if (resource.duration) statItems.push({ label: '時長', value: `${resource.duration} 分鐘` });
+            if (resource.unitCount) statItems.push({ label: '單元數', value: `${resource.unitCount} 個` });
+
+            const infoItems = [
+                `類型：${isLtiResource ? '外部工具 (LTI)' : typeLabel}`,
+                `分類：${categoryLabel}`,
+                `適用年級：${gradeLevelLabel}`,
+                isLtiResource
+                    ? '需先加入相關課程後使用'
+                    : (resource.pricingModel === 'free' ? '免費教材，可直接使用' : '需加入授權或橋隊流程後使用')
+            ];
+
+            const ltiNotice = isLtiResource ? `
+                <div class="resource-detail-notice">
+                    <div class="resource-detail-notice-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    </div>
+                    <div>
+                        <div class="resource-detail-notice-title">此教材需加入相關課程後才能使用</div>
+                        <div class="resource-detail-notice-copy">這是 LTI 外部工具整合教材。先加入包含此教材的課程，才能啟用完整學習流程與權限。</div>
+                    </div>
+                </div>
+            ` : '';
+
+            return `
+                <div class="resource-detail-shell">
+                    <div class="resource-detail-hero">
+                        <div class="resource-detail-main">
+                            <div class="resource-detail-surface">
+                                <div class="resource-detail-kicker">${isLtiResource ? '外部工具教材' : '教材詳情'}</div>
+                                <div class="resource-detail-title">${escapeHtml(resource.title || '教材詳情')}</div>
+                                <div class="resource-detail-description">${escapeHtml(resource.description || '目前尚未提供教材說明。')}</div>
+                                <div class="resource-detail-tags">
+                                    <span class="resource-chip ${isLtiResource ? 'tone-lti' : 'tone-type'}">${escapeHtml(typeLabel)}</span>
+                                    ${tags.map((tag) => `<span class="resource-chip">${escapeHtml(tag)}</span>`).join('')}
+                                </div>
+                            </div>
+                            ${previewHtml}
+                            ${ltiNotice}
+                        </div>
+                        <div class="resource-detail-aside">
+                            <div class="resource-detail-surface">
+                                <div class="resource-detail-section-title">教材摘要</div>
+                                <div class="resource-detail-stats">
+                                    ${statItems.map((item) => `
+                                        <div class="resource-detail-stat">
+                                            <div class="resource-detail-stat-label">${escapeHtml(item.label)}</div>
+                                            <div class="resource-detail-stat-value">${escapeHtml(String(item.value || '-'))}</div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                            <div class="resource-detail-info-card">
+                                <div class="resource-detail-section-title">教材資訊</div>
+                                <ul class="resource-detail-list">
+                                    ${infoItems.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderResourceModalFooter(resource = {}) {
+            const isLtiResource = getResourceDisplayType(resource) === 'lti';
+            const courseId = resource.courseId || resource.relatedCourseId || resource.enrollmentCourseId || 'crs_demo001';
+            const courseAction = JSON.stringify(String(courseId));
+
+            if (isLtiResource) {
+                return `
+                    <div class="resource-modal-footer-note">此教材會引導使用者前往課程報名或課程詳情頁。</div>
+                    <button class="btn-secondary" onclick="closeModal()">關閉</button>
+                    <button class="btn-primary resource-modal-btn-external" onclick="navigateToCourse(${courseAction})">
+                        前往課程報名
+                    </button>
+                `;
+            }
+
+            return `
+                <div class="resource-modal-footer-note">可先將教材加入授權流程，再分配到課程或橋隊。</div>
+                <button class="btn-secondary" onclick="closeModal()">關閉</button>
+                <button class="btn-primary" onclick="addToLicense()">加入授權</button>
+            `;
+        }
+
+        function showResourceModalForResource(resource = {}) {
+            currentResourceId = resource.resourceId || resource.id || null;
+            document.getElementById('modalTitle').textContent = resource.title || '教材詳情';
+            document.getElementById('modalBody').innerHTML = renderResourceModalBody(resource);
+            document.getElementById('modalFooter').innerHTML = renderResourceModalFooter(resource);
+            document.getElementById('modalOverlay').classList.add('active');
+            document.getElementById('resourceModal').classList.add('active');
+        }
+
+        window.showResourceModalForResource = showResourceModalForResource;
+
         function openResourceModal(resourceId) {
-            const resource = resources.find(r => r.resourceId === resourceId);
+            const resource = resources.find((r) => String(r.resourceId || r.id) === String(resourceId));
             if (!resource) {
                 showToast('找不到該教材');
                 return;
             }
 
-            currentResourceId = resourceId;
-            const typeLabel = typeLabels[resource.type] || resource.type;
-            const categoryLabel = categoryLabels[resource.category] || resource.category;
-            const gradeLevelLabel = gradeLevelLabels[resource.gradeLevel] || resource.gradeLevel;
-            const authorName = resource.authorName || resource.creatorName || resource.authorId || resource.creatorId || '未知作者';
-
-            // 判斷是否為 LTI 外部工具教材
-            const isLtiResource = resource.ltiToolId || resource.requiresEnrollment;
-
-            // 建立標籤
-            const tags = [];
-            if (gradeLevelLabel) tags.push(gradeLevelLabel);
-            if (categoryLabel) tags.push(categoryLabel);
-            if (resource.tags && Array.isArray(resource.tags)) {
-                tags.push(...resource.tags);
-            }
-
-            // LTI 教材提示區塊
-            const ltiNotice = isLtiResource ? `
-                <div style="background: #fef3c7; border: 1px solid #f59e0b; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; display: flex; align-items: flex-start; gap: 0.75rem;">
-                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#d97706" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
-                        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-                    </svg>
-                    <div>
-                        <strong style="color: #92400e;">此教材需加入相關課程後才能使用</strong>
-                        <p style="margin: 0.25rem 0 0; color: #a16207; font-size: 0.9rem;">
-                            此為 LTI 外部工具整合教材，需先加入包含此教材的課程才可開始學習。
-                        </p>
-                    </div>
-                </div>
-            ` : '';
-
-            // 建立內容呈現區塊
-            const contentHtml = buildResourceContentHtml(resource);
-
-            document.getElementById('modalTitle').textContent = resource.title || '教材詳情';
-            document.getElementById('modalBody').innerHTML = `
-                <div style="margin-bottom: 1rem;">
-                    <span class="tag" style="background: ${isLtiResource ? '#0891b2' : 'var(--olive)'}; color: var(--cream);">${isLtiResource ? '外部工具' : typeLabel}</span>
-                    ${tags.map(t => `<span class="tag">${t}</span>`).join(' ')}
-                </div>
-                <p style="margin-bottom: 1rem; color: var(--gray-500);">${resource.description || '暫無描述'}</p>
-                ${contentHtml}
-                ${ltiNotice}
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
-                    <div><strong>作者：</strong>${authorName}</div>
-                    <div><strong>觀看：</strong>${formatViewCount(resource.viewCount)}</div>
-                    <div><strong>評分：</strong>${resource.rating ? resource.rating.toFixed(1) : '-'}</div>
-                    ${resource.duration ? `<div><strong>時長：</strong>${resource.duration} 分鐘</div>` : ''}
-                    ${resource.unitCount ? `<div><strong>單元數：</strong>${resource.unitCount} 個</div>` : ''}
-                </div>
-                <div style="background: var(--gray-100); padding: 1rem; border-radius: 8px;">
-                    <h4 style="margin-bottom: 0.5rem;">教材資訊</h4>
-                    <ul style="margin-left: 1.5rem; color: var(--gray-500);">
-                        <li>類型：${isLtiResource ? '外部工具 (LTI)' : typeLabel}</li>
-                        <li>分類：${categoryLabel}</li>
-                        <li>適用年級：${gradeLevelLabel}</li>
-                        ${isLtiResource ? '<li>需加入課程後使用</li>' : (resource.pricingModel === 'free' ? '<li>免費教材</li>' : '<li>需取得授權</li>')}
-                    </ul>
-                </div>
-            `;
-
-            // 根據教材類型更新 Modal 底部按鈕
-            const modalFooter = document.getElementById('modalFooter');
-            if (isLtiResource) {
-                modalFooter.innerHTML = `
-                    <button class="btn-secondary" onclick="closeModal()">關閉</button>
-                    <button class="btn-primary" onclick="navigateToCourse('crs_demo001')" style="background: #0891b2;">
-                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; vertical-align: middle; margin-right: 4px;">
-                            <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15,3 21,3 21,9"/><line x1="10" y1="14" x2="21" y2="3"/>
-                        </svg>
-                        前往課程報名
-                    </button>
-                `;
-            } else {
-                modalFooter.innerHTML = `
-                    <button class="btn-secondary" onclick="closeModal()">關閉</button>
-                    <button class="btn-primary" onclick="addToLicense()">加入授權</button>
-                `;
-            }
-
-            document.getElementById('modalOverlay').classList.add('active');
-            document.getElementById('resourceModal').classList.add('active');
+            showResourceModalForResource(resource);
         }
 
         function navigateToCourse(courseId) {
@@ -10358,14 +12257,7 @@
         const librarySearch = document.getElementById('librarySearch');
         if (librarySearch) {
             librarySearch.addEventListener('input', function() {
-                const query = this.value.toLowerCase();
-                document.querySelectorAll('#libraryView .resource-card').forEach(card => {
-                    const title = card.querySelector('.resource-title')?.textContent.toLowerCase() || '';
-                    const desc = card.querySelector('.resource-desc')?.textContent.toLowerCase() || '';
-                    const tags = Array.from(card.querySelectorAll('.tag')).map(t => t.textContent.toLowerCase()).join(' ');
-                    const match = title.includes(query) || desc.includes(query) || tags.includes(query);
-                    card.style.display = match ? 'block' : 'none';
-                });
+                filterResources();
             });
         }
 

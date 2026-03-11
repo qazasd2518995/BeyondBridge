@@ -1406,7 +1406,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(44, 44, 44, 0.5);
+            background: rgba(26, 58, 92, 0.4);
             backdrop-filter: blur(4px);
             display: none;
             align-items: center;
@@ -1422,13 +1422,25 @@
         }
 
         .confirm-dialog {
-            background: white;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(247, 243, 235, 0.96) 100%);
             border-radius: var(--radius-xl);
             width: 100%;
             max-width: 420px;
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+            box-shadow: var(--shadow-lg);
+            border: 1px solid rgba(212, 197, 169, 0.34);
             animation: confirmDialogIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
             overflow: hidden;
+            position: relative;
+        }
+
+        .confirm-dialog::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--olive) 0%, var(--terracotta) 52%, var(--olive-light) 100%);
         }
 
         @keyframes confirmDialogIn {
@@ -1443,10 +1455,11 @@
         }
 
         .confirm-dialog-header {
-            padding: 1.5rem 1.5rem 0;
+            padding: 1.5rem 1.5rem 1rem;
             display: flex;
             align-items: flex-start;
             gap: 1rem;
+            background: linear-gradient(135deg, var(--cream) 0%, rgba(247, 243, 235, 0.5) 100%);
         }
 
         .confirm-dialog-icon {
@@ -1533,6 +1546,8 @@
             display: flex;
             justify-content: flex-end;
             gap: 0.75rem;
+            border-top: 1px solid rgba(212, 197, 169, 0.28);
+            background: rgba(255, 255, 255, 0.4);
         }
 
         .confirm-dialog-btn {
@@ -1587,6 +1602,131 @@
             opacity: 0.5;
             cursor: not-allowed;
             transform: none !important;
+        }
+
+        .admin-toast-stack {
+            position: fixed;
+            right: 1.5rem;
+            bottom: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.75rem;
+            z-index: 2300;
+            pointer-events: none;
+        }
+
+        .admin-toast {
+            position: relative;
+            min-width: 300px;
+            max-width: min(420px, calc(100vw - 2rem));
+            display: flex;
+            align-items: flex-start;
+            gap: 0.85rem;
+            padding: 0.95rem 1rem;
+            border-radius: 18px;
+            border: 1px solid rgba(212, 197, 169, 0.28);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(247, 243, 235, 0.94) 100%);
+            box-shadow: var(--shadow-lg);
+            opacity: 0;
+            transform: translateY(10px) scale(0.98);
+            transition: opacity 0.22s ease, transform 0.22s ease;
+            overflow: hidden;
+            pointer-events: auto;
+        }
+
+        .admin-toast.show {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+
+        .admin-toast::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: var(--olive);
+        }
+
+        .admin-toast.success::before { background: var(--success); }
+        .admin-toast.error::before { background: var(--danger); }
+        .admin-toast.warning::before { background: #D69E2E; }
+        .admin-toast.info::before { background: var(--info); }
+
+        .admin-toast-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .admin-toast-icon svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .admin-toast.success .admin-toast-icon {
+            background: rgba(72, 187, 120, 0.14);
+            color: var(--success);
+        }
+
+        .admin-toast.error .admin-toast-icon {
+            background: rgba(245, 101, 101, 0.12);
+            color: var(--danger);
+        }
+
+        .admin-toast.warning .admin-toast-icon {
+            background: rgba(214, 158, 46, 0.14);
+            color: #B7791F;
+        }
+
+        .admin-toast.info .admin-toast-icon {
+            background: rgba(66, 153, 225, 0.12);
+            color: var(--info);
+        }
+
+        .admin-toast-copy {
+            min-width: 0;
+            flex: 1;
+        }
+
+        .admin-toast-title {
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: var(--charcoal);
+            margin-bottom: 0.15rem;
+        }
+
+        .admin-toast-message {
+            font-size: 0.84rem;
+            line-height: 1.55;
+            color: var(--gray-600);
+            word-break: break-word;
+        }
+
+        .admin-toast-close {
+            width: 30px;
+            height: 30px;
+            border: none;
+            background: transparent;
+            border-radius: 999px;
+            color: var(--gray-400);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s ease, color 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .admin-toast-close:hover {
+            background: rgba(160, 174, 192, 0.14);
+            color: var(--charcoal);
         }
 
         /* ==================== 麵包屑導航 ==================== */
@@ -2619,14 +2759,21 @@
         }
 
         .admin-entity-card {
-            background: white;
-            border-radius: 12px;
-            padding: 1rem;
-            border: 1px solid var(--gray-100);
-            box-shadow: var(--shadow-sm);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(247, 243, 235, 0.92) 100%);
+            border-radius: 18px;
+            padding: 1.1rem;
+            border: 1px solid rgba(212, 197, 169, 0.28);
+            box-shadow: var(--shadow-card);
             display: flex;
             flex-direction: column;
             gap: 0.85rem;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+
+        .admin-entity-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+            border-color: rgba(168, 184, 154, 0.46);
         }
 
         .admin-entity-card-head {
@@ -2643,20 +2790,59 @@
         }
 
         .admin-entity-card-icon {
-            width: 50px;
-            height: 50px;
-            border-radius: 14px;
+            width: 54px;
+            height: 54px;
+            border-radius: 16px;
+            border: 1px solid rgba(212, 197, 169, 0.28);
             background: rgba(168, 184, 154, 0.18);
             color: var(--olive-deep);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5rem;
             flex-shrink: 0;
+        }
+
+        .admin-entity-card-icon svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .admin-entity-card-icon.tone-badge {
+            background: rgba(214, 158, 46, 0.14);
+            color: #B7791F;
+        }
+
+        .admin-entity-card-icon.tone-h5p {
+            background: rgba(66, 153, 225, 0.14);
+            color: var(--info);
+        }
+
+        .admin-entity-card-icon.tone-path {
+            background: rgba(45, 43, 107, 0.12);
+            color: var(--olive);
+        }
+
+        .admin-entity-card-icon.tone-rubric {
+            background: rgba(193, 122, 94, 0.12);
+            color: var(--terracotta);
         }
 
         .admin-entity-card-copy {
             min-width: 0;
+        }
+
+        .admin-entity-card-kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.28rem 0.65rem;
+            border-radius: 999px;
+            background: rgba(168, 184, 154, 0.12);
+            color: var(--olive-deep);
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            margin-bottom: 0.45rem;
         }
 
         .admin-entity-card-title {
@@ -2985,38 +3171,18 @@
         }
 
         .rubric-card {
-            background: white;
-            border-radius: 10px;
-            padding: 1rem;
-            box-shadow: var(--shadow-sm);
-            border: 1px solid rgba(212, 197, 169, 0.16);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(247, 243, 235, 0.92) 100%);
+            border-radius: 18px;
+            padding: 1.1rem;
+            box-shadow: var(--shadow-card);
+            border: 1px solid rgba(212, 197, 169, 0.28);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
         }
 
-        .rubric-card-head {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            gap: 1rem;
-        }
-
-        .rubric-card-title {
-            margin: 0 0 0.5rem 0;
-            color: var(--olive-deep);
-        }
-
-        .rubric-card-desc {
-            color: var(--gray-500);
-            font-size: 0.875rem;
-            margin: 0;
-        }
-
-        .rubric-card-meta {
-            display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
-            margin-top: 0.75rem;
-            color: var(--gray-400);
-            font-size: 0.875rem;
+        .rubric-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+            border-color: rgba(168, 184, 154, 0.46);
         }
 
         .live-indicator .pulse {
@@ -5753,6 +5919,8 @@
             </div>
         </div>
     </div>
+
+    <div class="admin-toast-stack" id="adminToastStack" aria-live="polite" aria-atomic="false"></div>
 
     <script src="../js/i18n.js?v=1"></script>
     <script src="../js/api.js"></script>
@@ -8698,18 +8866,57 @@
             }
         }
 
+        function getAdminToastIcon(type) {
+            const icons = {
+                success: '<polyline points="20 6 9 17 4 12"/><path d="M12 3a9 9 0 1 1 0 18"/>',
+                error: '<circle cx="12" cy="12" r="9"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>',
+                warning: '<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+                info: '<circle cx="12" cy="12" r="9"/><line x1="12" y1="10" x2="12" y2="16"/><line x1="12" y1="7" x2="12.01" y2="7"/>'
+            };
+            return icons[type] || icons.success;
+        }
+
+        function dismissAdminToast(toast) {
+            if (!toast) return;
+            toast.classList.remove('show');
+            window.setTimeout(() => toast.remove(), 220);
+        }
+
         // 顯示提示訊息
         function showToast(message, type = 'success') {
+            const stack = document.getElementById('adminToastStack');
+            if (!stack) return;
+
+            const tone = ['success', 'error', 'warning', 'info'].includes(type) ? type : 'success';
+            const titleMap = {
+                success: I18n.getLocale() === 'en' ? 'Saved' : '已完成',
+                error: I18n.getLocale() === 'en' ? 'Error' : '發生錯誤',
+                warning: I18n.getLocale() === 'en' ? 'Warning' : '請注意',
+                info: I18n.getLocale() === 'en' ? 'Update' : '系統通知'
+            };
             const toast = document.createElement('div');
-            toast.style.cssText = `
-                position: fixed; bottom: 2rem; right: 2rem; padding: 1rem 1.5rem;
-                background: ${type === 'error' ? '#dc3545' : '#28a745'}; color: white;
-                border-radius: 8px; z-index: 10000; animation: slideIn 0.3s ease;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            toast.className = `admin-toast ${tone}`;
+            toast.innerHTML = `
+                <div class="admin-toast-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${getAdminToastIcon(tone)}</svg>
+                </div>
+                <div class="admin-toast-copy">
+                    <div class="admin-toast-title">${escapeHtml(titleMap[tone])}</div>
+                    <div class="admin-toast-message">${escapeHtml(String(message || ''))}</div>
+                </div>
+                <button type="button" class="admin-toast-close" aria-label="Close notification">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
             `;
-            toast.textContent = message;
-            document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 3000);
+
+            const closeBtn = toast.querySelector('.admin-toast-close');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', () => dismissAdminToast(toast));
+            }
+
+            stack.appendChild(toast);
+            requestAnimationFrame(() => toast.classList.add('show'));
+            window.setTimeout(() => dismissAdminToast(toast), 3200);
         }
 
         // 初始化管理員 WebSocket
@@ -9359,6 +9566,42 @@
             renderQuestionTable(filtered);
         }
 
+        function getAdminEntityIcon(kind) {
+            const icons = {
+                badge: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="m8 13-2 8 6-3 6 3-2-8"/></svg>',
+                h5p: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M8 9v6"/><path d="M16 9v6"/><path d="M8 12h8"/></svg>',
+                path: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h6"/><path d="M3 12h12"/><path d="M3 18h18"/><circle cx="11" cy="6" r="2"/><circle cx="17" cy="12" r="2"/><circle cx="21" cy="18" r="2"/></svg>',
+                rubric: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>'
+            };
+            return icons[kind] || icons.path;
+        }
+
+        function renderAdminEntityCard({ tone = 'path', kicker = '', title = '', description = '', actions = '', leadMarkup = '', stats = [] }) {
+            return `
+                <div class="admin-entity-card">
+                    <div class="admin-entity-card-head">
+                        <div class="admin-entity-card-main">
+                            <div class="admin-entity-card-icon tone-${tone}">
+                                ${getAdminEntityIcon(tone)}
+                            </div>
+                            <div class="admin-entity-card-copy">
+                                ${kicker ? `<span class="admin-entity-card-kicker">${escapeHtml(String(kicker))}</span>` : ''}
+                                <h4 class="admin-entity-card-title">${escapeHtml(String(title))}</h4>
+                                <p class="admin-entity-card-desc">${escapeHtml(String(description))}</p>
+                            </div>
+                        </div>
+                        ${actions ? `<div class="admin-entity-card-actions">${actions}</div>` : ''}
+                    </div>
+                    <div class="admin-entity-card-meta">
+                        ${leadMarkup || '<span></span>'}
+                        <div class="admin-entity-card-stats">
+                            ${stats.filter(Boolean).map((item) => `<span>${escapeHtml(String(item))}</span>`).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
         function renderBadgesGrid(badges) {
             const grid = document.getElementById('badgesGrid');
             if (!grid) return;
@@ -9370,31 +9613,17 @@
 
             grid.innerHTML = badges.map((badge) => {
                 const badgeId = badge.id || badge.badgeId || '';
-                const icon = badge.icon || '🏆';
                 const statusLabel = badge.isActive ? t('admin.filter.active') : t('admin.badges.inactive');
                 const statusClass = badge.isActive ? 'badge-success' : 'badge-warning';
-                return `
-                    <div class="admin-entity-card">
-                        <div class="admin-entity-card-head">
-                            <div class="admin-entity-card-main">
-                                <div class="admin-entity-card-icon">${escapeHtml(String(icon))}</div>
-                                <div class="admin-entity-card-copy">
-                                    <h4 class="admin-entity-card-title">${escapeHtml(String(badge.name || t('admin.badges.unnamed')))}</h4>
-                                    <p class="admin-entity-card-desc">${escapeHtml(String(badge.description || t('admin.badges.noDescription')))}</p>
-                                </div>
-                            </div>
-                            <div class="admin-entity-card-actions">
-                                <button class="btn-icon" onclick="editBadge('${escapeHtml(String(badgeId))}')" title="${t('common.edit')}"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-                            </div>
-                        </div>
-                        <div class="admin-entity-card-meta">
-                            <span class="badge ${statusClass}">${escapeHtml(String(statusLabel))}</span>
-                            <div class="admin-entity-card-stats">
-                                <span>${escapeHtml(t('admin.badges.awarded', { count: badge.awardedCount || 0 }))}</span>
-                            </div>
-                        </div>
-                    </div>
-                `;
+                return renderAdminEntityCard({
+                    tone: 'badge',
+                    kicker: I18n.getLocale() === 'en' ? 'Badge' : '徽章',
+                    title: badge.name || t('admin.badges.unnamed'),
+                    description: badge.description || t('admin.badges.noDescription'),
+                    actions: `<button class="btn-icon" onclick="editBadge('${escapeHtml(String(badgeId))}')" title="${t('common.edit')}"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>`,
+                    leadMarkup: `<span class="badge ${statusClass}">${escapeHtml(String(statusLabel))}</span>`,
+                    stats: [t('admin.badges.awarded', { count: badge.awardedCount || 0 })]
+                });
             }).join('');
         }
 
@@ -9412,31 +9641,19 @@
                 const libraryName = content.libraryName || 'Unknown';
                 const createdAt = content.createdAt ? new Date(content.createdAt).toLocaleDateString('zh-TW') : '-';
 
-                return `
-                    <div class="admin-entity-card">
-                        <div class="admin-entity-card-head">
-                            <div class="admin-entity-card-main">
-                                <div class="admin-entity-card-icon">H5</div>
-                                <div class="admin-entity-card-copy">
-                                    <h4 class="admin-entity-card-title">${escapeHtml(String(content.title || '-'))}</h4>
-                                    <p class="admin-entity-card-desc">${escapeHtml(String(content.courseName || t('admin.courses.uncategorized')))}</p>
-                                </div>
-                            </div>
-                            <div class="admin-entity-card-actions">
-                                <button class="btn-icon" onclick="previewH5p('${escapeHtml(String(contentId))}')" title="${t('common.preview')}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
-                                <button class="btn-icon" onclick="editH5p('${escapeHtml(String(contentId))}')" title="${t('common.edit')}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-                                <button class="btn-icon" onclick="deleteH5p('${escapeHtml(String(contentId))}')" title="${t('common.delete')}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
-                            </div>
-                        </div>
-                        <div class="admin-entity-card-meta">
-                            <span class="badge badge-info">${escapeHtml(String(libraryName))}</span>
-                            <div class="admin-entity-card-stats">
-                                <span>${escapeHtml(String(createdAt))}</span>
-                                <span>${escapeHtml(String(content.interactionCount || 0))} ${t('admin.h5p.interactions')}</span>
-                            </div>
-                        </div>
-                    </div>
-                `;
+                return renderAdminEntityCard({
+                    tone: 'h5p',
+                    kicker: 'H5P',
+                    title: content.title || '-',
+                    description: content.courseName || t('admin.courses.uncategorized'),
+                    actions: `
+                        <button class="btn-icon" onclick="previewH5p('${escapeHtml(String(contentId))}')" title="${t('common.preview')}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+                        <button class="btn-icon" onclick="editH5p('${escapeHtml(String(contentId))}')" title="${t('common.edit')}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                        <button class="btn-icon" onclick="deleteH5p('${escapeHtml(String(contentId))}')" title="${t('common.delete')}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+                    `,
+                    leadMarkup: `<span class="badge badge-info">${escapeHtml(String(libraryName))}</span>`,
+                    stats: [createdAt, `${content.interactionCount || 0} ${t('admin.h5p.interactions')}`]
+                });
             }).join('');
         }
 
@@ -9468,26 +9685,17 @@
                 const statusClass = path.isActive ? 'badge-success' : 'badge-warning';
                 const statusLabel = path.isActive ? t('admin.filter.active') : t('admin.paths.inactive');
 
-                return `
-                    <div class="admin-entity-card">
-                        <div class="admin-entity-card-head">
-                            <div class="admin-entity-card-main">
-                                <div class="admin-entity-card-icon">🧭</div>
-                                <div class="admin-entity-card-copy">
-                                    <h4 class="admin-entity-card-title">${escapeHtml(String(path.name || t('admin.paths.list')))}</h4>
-                                    <p class="admin-entity-card-desc">${escapeHtml(String(path.description || t('admin.paths.noDescription')))}</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="admin-entity-card-meta">
-                            <span class="badge ${statusClass}">${escapeHtml(String(statusLabel))}</span>
-                            <div class="admin-entity-card-stats">
-                                <span>${escapeHtml(t('admin.paths.courseCount', { count: path.courseCount || 0 }))}</span>
-                                <span>${escapeHtml(t('admin.paths.enrolledCount', { count: path.enrolledCount || 0 }))}</span>
-                            </div>
-                        </div>
-                    </div>
-                `;
+                return renderAdminEntityCard({
+                    tone: 'path',
+                    kicker: I18n.getLocale() === 'en' ? 'Learning Path' : '學習路徑',
+                    title: path.name || t('admin.paths.list'),
+                    description: path.description || t('admin.paths.noDescription'),
+                    leadMarkup: `<span class="badge ${statusClass}">${escapeHtml(String(statusLabel))}</span>`,
+                    stats: [
+                        t('admin.paths.courseCount', { count: path.courseCount || 0 }),
+                        t('admin.paths.enrolledCount', { count: path.enrolledCount || 0 })
+                    ]
+                });
             }).join('');
         }
 
@@ -9861,25 +10069,19 @@
                     return;
                 }
 
-                container.innerHTML = rubrics.map(rubric => `
-                    <div class="rubric-card">
-                        <div class="rubric-card-head">
-                            <div>
-                                <h4 class="rubric-card-title">${escapeHtml(rubric.name || t('admin.rubrics.unnamed'))}</h4>
-                                <p class="rubric-card-desc">${escapeHtml(rubric.description || t('admin.rubrics.noDescription'))}</p>
-                            </div>
-                            <div>
-                                <button class="btn-icon" onclick="editRubric('${rubric.id}')" title="${t('common.edit')}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-                            </div>
-                        </div>
-                        <div class="rubric-card-meta">
-                            <span>${t('admin.rubrics.criteriaCount')}: ${rubric.criteriaCount || 0}</span>
-                            <span>${t('admin.rubrics.totalScore')}: ${rubric.totalScore || 0}</span>
-                            <span>${t('admin.rubrics.courseCount')}: ${rubric.usageCount ?? rubric.courseCount ?? 0}</span>
-                            <span>${t('admin.rubrics.createdDate')}: ${rubric.createdAt ? new Date(rubric.createdAt).toLocaleDateString('zh-TW') : '-'}</span>
-                        </div>
-                    </div>
-                `).join('');
+                container.innerHTML = rubrics.map((rubric) => renderAdminEntityCard({
+                    tone: 'rubric',
+                    kicker: 'Rubric',
+                    title: rubric.name || t('admin.rubrics.unnamed'),
+                    description: rubric.description || t('admin.rubrics.noDescription'),
+                    actions: `<button class="btn-icon" onclick="editRubric('${escapeHtml(String(rubric.id || rubric.rubricId || ''))}')" title="${t('common.edit')}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>`,
+                    leadMarkup: `<span class="badge badge-info">${escapeHtml(String(t('admin.rubrics.criteriaCount')))}: ${escapeHtml(String(rubric.criteriaCount || 0))}</span>`,
+                    stats: [
+                        `${t('admin.rubrics.totalScore')}: ${rubric.totalScore || 0}`,
+                        `${t('admin.rubrics.courseCount')}: ${rubric.usageCount ?? rubric.courseCount ?? 0}`,
+                        `${t('admin.rubrics.createdDate')}: ${rubric.createdAt ? new Date(rubric.createdAt).toLocaleDateString('zh-TW') : '-'}`
+                    ]
+                })).join('');
             } catch (error) {
                 console.error('Load rubrics error:', error);
                 const container = document.getElementById('rubricsContainer');
