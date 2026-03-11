@@ -265,7 +265,7 @@ const MoodleUI = {
 
     container.innerHTML = courses.map(course => `
       <div class="moodle-course-card" onclick="MoodleUI.openCourse('${course.courseId}')">
-        <div class="course-cover" style="background: ${this.getCourseGradient(course.category)}">
+        <div class="course-cover" data-cover-gradient="${this.escapeText(this.getCourseGradient(course.category))}">
           <span class="course-category">${course.category || t('moodleCourse.defaultCategory')}</span>
           ${course.isEnrolled ? `<span class="enrolled-badge">${t('moodleCourse.enrolled')}</span>` : ''}
         </div>
@@ -279,13 +279,14 @@ const MoodleUI = {
           </div>
           ${course.isEnrolled && course.progress !== undefined ? `
             <div class="course-progress-bar">
-              <div class="progress-fill" style="width: ${course.progress}%"></div>
+              <div class="progress-fill" data-progress-width="${this.clampProgressValue(course.progress)}"></div>
             </div>
             <span class="progress-text">${course.progress}% ${t('moodleCourse.complete')}</span>
           ` : ''}
         </div>
       </div>
     `).join('');
+    this.applyDynamicUiMetrics(container);
   },
 
   /**
@@ -372,20 +373,21 @@ const MoodleUI = {
       </div>
 
       <!-- 參與者區 -->
-      <div id="courseParticipantsPanel" class="course-panel" style="display: none;">
+      <div id="courseParticipantsPanel" class="course-panel">
         <div class="loading">${t('common.loading')}</div>
       </div>
 
       <!-- 成績區 -->
-      <div id="courseGradesPanel" class="course-panel" style="display: none;">
+      <div id="courseGradesPanel" class="course-panel">
         <div class="loading">${t('common.loading')}</div>
       </div>
 
       <!-- 報表區 (教師) -->
-      <div id="courseReportsPanel" class="course-panel" style="display: none;">
+      <div id="courseReportsPanel" class="course-panel">
         <div class="loading">${t('common.loading')}</div>
       </div>
     `;
+    this.applyDynamicUiMetrics(container);
   },
 
   /**
@@ -460,9 +462,11 @@ const MoodleUI = {
       lti: '#ec4899'
     };
 
-    return activities.map(activity => `
+    return activities.map((activity) => {
+      const accentColor = activityColors[activity.type] || 'var(--gray-400)';
+      return `
       <div class="activity-item ${activity.visible === false ? 'hidden-activity' : ''}" onclick="MoodleUI.openActivity('${activity.type}', '${activity.activityId}', '${courseId}')">
-        <div class="activity-icon" style="background: ${activityColors[activity.type] || 'var(--gray-400)'}20; color: ${activityColors[activity.type] || 'var(--gray-400)'}">
+        <div class="activity-icon" data-accent-color="${this.escapeText(accentColor)}">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
             ${activityIcons[activity.type] || activityIcons.page}
           </svg>
@@ -484,7 +488,8 @@ const MoodleUI = {
           </div>
         ` : ''}
       </div>
-    `).join('');
+    `;
+    }).join('');
   },
 
   /**
@@ -497,14 +502,14 @@ const MoodleUI = {
 
     // 隱藏所有面板
     document.querySelectorAll('.course-panel').forEach(p => {
-      p.style.display = 'none';
+      p.hidden = true;
       p.classList.remove('active');
     });
 
     const panelId = `course${tab.charAt(0).toUpperCase() + tab.slice(1)}Panel`;
     const panel = document.getElementById(panelId);
     if (panel) {
-      panel.style.display = 'block';
+      panel.hidden = false;
       panel.classList.add('active');
     }
 
@@ -570,6 +575,7 @@ const MoodleUI = {
       if (result.success) {
         const participants = result.data || [];
         panel.innerHTML = this.renderParticipantsList(participants);
+        this.applyDynamicUiMetrics(panel);
       }
     } catch (error) {
       console.error('Load participants error:', error);
@@ -610,7 +616,7 @@ const MoodleUI = {
                 <td>${p.enrolledAt ? new Date(p.enrolledAt).toLocaleDateString(I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW') : '-'}</td>
                 <td>
                   <div class="mini-progress">
-                    <div class="mini-progress-fill" style="width: ${p.progress || 0}%"></div>
+                    <div class="mini-progress-fill" data-progress-width="${this.clampProgressValue(p.progress || 0)}"></div>
                   </div>
                   <span class="progress-text-sm">${p.progress || 0}%</span>
                 </td>
@@ -845,7 +851,7 @@ const MoodleUI = {
       const activity = result.data;
       const content = activity.content || activity.description || `<p>${t('moodleActivity.noPageContent')}</p>`;
       MoodleUI.createModal('page-activity-modal', activity.title || t('moodleActivity.pageTitle'), `
-        <div class="page-activity-content" style="line-height: 1.8; font-size: 0.95rem;">
+        <div class="page-activity-content">
           ${content}
         </div>
       `, { maxWidth: '800px' });
@@ -905,88 +911,109 @@ const MoodleUI = {
   },
 
   /**
-   * YouTube 影片全螢幕播放器
+   * 共用活動 viewer shell
    */
-  openVideoViewer(title, youtubeId, originalUrl) {
-    const existing = document.getElementById('video-viewer-overlay');
+  openActivityViewerShell({ overlayId, title, subtitle = '', externalUrl = '', externalLabel = '' }) {
+    const isEnglish = I18n.getLocale() === 'en';
+    const closeLabel = isEnglish ? 'Close' : '關閉';
+    const defaultExternalHint = isEnglish ? 'External resource' : '外部資源';
+    const defaultExternalLabel = isEnglish ? 'Open in new tab' : '在新分頁開啟';
+    const existing = document.getElementById(overlayId);
     if (existing) existing.remove();
 
     const overlay = document.createElement('div');
-    overlay.id = 'video-viewer-overlay';
-    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:10000;background:rgba(0,0,0,0.9);display:flex;flex-direction:column;';
-
-    const header = document.createElement('div');
-    header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:10px 20px;color:#fff;flex-shrink:0;';
-    header.innerHTML = `
-      <h3 style="margin:0;font-size:1rem;font-weight:500;">${title}</h3>
-      <button id="video-viewer-close" style="background:none;border:none;color:#fff;font-size:1.5rem;cursor:pointer;padding:4px 8px;">&times;</button>
-    `;
-    overlay.appendChild(header);
-
-    const content = document.createElement('div');
-    content.id = 'video-viewer-content';
-    content.style.cssText = 'flex:1;display:flex;align-items:center;justify-content:center;padding:0 20px 20px;';
-    content.innerHTML = `
-      <div style="width:100%;max-width:960px;aspect-ratio:16/9;position:relative;">
-        <iframe id="yt-embed-frame" src="https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=1&rel=0&modestbranding=1"
-                style="width:100%;height:100%;border:none;border-radius:8px;"
-                referrerpolicy="strict-origin-when-cross-origin"
-                allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>
+    overlay.id = overlayId;
+    overlay.className = 'activity-viewer-overlay';
+    overlay.innerHTML = `
+      <div class="activity-viewer-shell">
+        <div class="activity-viewer-header">
+          <div class="activity-viewer-title-block">
+            <h3>${this.escapeText(title)}</h3>
+            ${subtitle ? `<p>${this.escapeText(subtitle)}</p>` : ''}
+          </div>
+          <button type="button" class="activity-viewer-close" data-viewer-close aria-label="${this.escapeText(closeLabel)}">&times;</button>
+        </div>
+        <div class="activity-viewer-body"></div>
+        ${externalUrl ? `
+          <div class="activity-viewer-footer">
+            <span class="activity-viewer-meta">${this.escapeText(defaultExternalHint)}</span>
+            <a class="activity-viewer-link" href="${this.escapeText(externalUrl)}" target="_blank" rel="noopener noreferrer">
+              ${this.escapeText(externalLabel || defaultExternalLabel)}
+            </a>
+          </div>
+        ` : ''}
       </div>
     `;
-    overlay.appendChild(content);
+
+    const close = () => {
+      overlay.remove();
+      document.removeEventListener('keydown', escHandler);
+    };
+    const escHandler = (event) => {
+      if (event.key === 'Escape') {
+        close();
+      }
+    };
+
+    overlay.addEventListener('click', (event) => {
+      if (event.target === overlay) {
+        close();
+      }
+    });
+    overlay.querySelector('[data-viewer-close]')?.addEventListener('click', close);
+
     document.body.appendChild(overlay);
-
-    // 偵測嵌入失敗（Error 150/153 = 不允許嵌入），顯示縮圖 + 連結
-    const iframe = document.getElementById('yt-embed-frame');
-    setTimeout(() => {
-      try {
-        // 如果 iframe 內容無法存取（跨域正常），不處理
-        // 用一個備案：同時顯示一個可點擊的縮圖覆蓋層
-      } catch(e) {}
-    }, 3000);
-
-    // 加一個備案按鈕，以防影片無法嵌入
-    const fallbackUrl = originalUrl || `https://www.youtube.com/watch?v=${youtubeId}`;
-    const fallback = document.createElement('div');
-    fallback.style.cssText = 'text-align:center;padding:10px;flex-shrink:0;';
-    fallback.innerHTML = `<a href="${fallbackUrl}" target="_blank" style="color:#aaa;font-size:0.85rem;text-decoration:underline;">${t('moodleActivity.openInNewTab') || '若影片無法播放，點此在新分頁開啟'}</a>`;
-    overlay.appendChild(fallback);
-
-    document.getElementById('video-viewer-close').onclick = () => overlay.remove();
-    const escHandler = (e) => { if (e.key === 'Escape') { overlay.remove(); document.removeEventListener('keydown', escHandler); } };
     document.addEventListener('keydown', escHandler);
+
+    return {
+      overlay,
+      body: overlay.querySelector('.activity-viewer-body'),
+      close
+    };
+  },
+
+  /**
+   * YouTube 影片全螢幕播放器
+   */
+  openVideoViewer(title, youtubeId, originalUrl) {
+    const fallbackUrl = originalUrl || `https://www.youtube.com/watch?v=${youtubeId}`;
+    const viewer = this.openActivityViewerShell({
+      overlayId: 'video-viewer-overlay',
+      title,
+      subtitle: t('moodleActivity.video') || 'Video',
+      externalUrl: fallbackUrl
+    });
+
+    viewer.body.innerHTML = `
+      <div class="activity-viewer-frame">
+        <iframe id="yt-embed-frame"
+                class="activity-viewer-embed"
+                src="https://www.youtube-nocookie.com/embed/${this.escapeText(youtubeId)}?autoplay=1&rel=0&modestbranding=1"
+                referrerpolicy="strict-origin-when-cross-origin"
+                allow="autoplay; encrypted-media; fullscreen"
+                allowfullscreen></iframe>
+      </div>
+    `;
   },
 
   /**
    * 網頁全螢幕 iframe 瀏覽器（不跳出平台）
    */
   openWebViewer(title, url) {
-    const existing = document.getElementById('web-viewer-overlay');
-    if (existing) existing.remove();
+    const viewer = this.openActivityViewerShell({
+      overlayId: 'web-viewer-overlay',
+      title,
+      subtitle: url,
+      externalUrl: url
+    });
 
-    const overlay = document.createElement('div');
-    overlay.id = 'web-viewer-overlay';
-    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:10000;background:rgba(0,0,0,0.9);display:flex;flex-direction:column;';
-
-    const header = document.createElement('div');
-    header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:#1a1a2e;color:#fff;flex-shrink:0;';
-    header.innerHTML = `
-      <h3 style="margin:0;font-size:0.95rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;margin-right:12px;">${title}</h3>
-      <button id="web-viewer-close" style="background:none;border:none;color:#fff;font-size:1.5rem;cursor:pointer;padding:4px 8px;flex-shrink:0;">&times;</button>
+    viewer.body.innerHTML = `
+      <div class="activity-viewer-frame">
+        <iframe src="${this.escapeText(url)}"
+                class="activity-viewer-embed"
+                allow="autoplay; encrypted-media; fullscreen"></iframe>
+      </div>
     `;
-    overlay.appendChild(header);
-
-    const content = document.createElement('div');
-    content.style.cssText = 'flex:1;overflow:hidden;';
-    content.innerHTML = `<iframe src="${url}" style="width:100%;height:100%;border:none;background:#fff;" allow="autoplay; encrypted-media; fullscreen"></iframe>`;
-    overlay.appendChild(content);
-
-    document.body.appendChild(overlay);
-
-    document.getElementById('web-viewer-close').onclick = () => overlay.remove();
-    const escHandler = (e) => { if (e.key === 'Escape') { overlay.remove(); document.removeEventListener('keydown', escHandler); } };
-    document.addEventListener('keydown', escHandler);
   },
 
   /**
@@ -1013,47 +1040,45 @@ const MoodleUI = {
       const token = localStorage.getItem('accessToken');
       const authedUrl = viewUrl + '?token=' + encodeURIComponent(token);
 
-      // 移除舊的 viewer
-      const existing = document.getElementById('file-viewer-overlay');
-      if (existing) existing.remove();
-
-      // 建立全螢幕 viewer overlay
-      const overlay = document.createElement('div');
-      overlay.id = 'file-viewer-overlay';
-      overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:10000;background:rgba(0,0,0,0.85);display:flex;flex-direction:column;';
-      overlay.oncontextmenu = () => false;
-
-      // 標題列
-      const header = document.createElement('div');
-      header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:10px 20px;background:rgba(0,0,0,0.95);color:#fff;flex-shrink:0;';
-      header.innerHTML = `
-        <h3 style="margin:0;font-size:1rem;font-weight:500;">${title}</h3>
-        <button id="file-viewer-close" style="background:none;border:none;color:#fff;font-size:1.5rem;cursor:pointer;padding:4px 8px;">&times;</button>
-      `;
-      overlay.appendChild(header);
-
-      // 內容區域
-      const content = document.createElement('div');
-      content.style.cssText = 'flex:1;overflow:hidden;';
+      const viewer = this.openActivityViewerShell({
+        overlayId: 'file-viewer-overlay',
+        title,
+        subtitle: contentType,
+        externalUrl: authedUrl
+      });
+      viewer.overlay.oncontextmenu = () => false;
 
       if (contentType === 'application/pdf') {
-        content.innerHTML = `<iframe src="${authedUrl}#toolbar=0&navpanes=0&scrollbar=1" style="width:100%;height:100%;border:none;"></iframe>`;
+        viewer.body.innerHTML = `
+          <div class="activity-viewer-frame">
+            <iframe src="${this.escapeText(`${authedUrl}#toolbar=0&navpanes=0&scrollbar=1`)}" class="activity-viewer-embed"></iframe>
+          </div>
+        `;
       } else if (contentType.startsWith('image/')) {
-        content.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;padding:1rem;"><img src="${authedUrl}" style="max-width:100%;max-height:100%;object-fit:contain;" oncontextmenu="return false" draggable="false" /></div>`;
+        viewer.body.innerHTML = `
+          <div class="activity-viewer-frame">
+            <div class="activity-viewer-media">
+              <img src="${this.escapeText(authedUrl)}" oncontextmenu="return false" draggable="false" />
+            </div>
+          </div>
+        `;
       } else if (contentType.startsWith('video/')) {
-        content.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;"><video controls controlslist="nodownload" disablepictureinpicture style="max-width:100%;max-height:100%;" oncontextmenu="return false"><source src="${authedUrl}" type="${contentType}"></video></div>`;
+        viewer.body.innerHTML = `
+          <div class="activity-viewer-frame">
+            <div class="activity-viewer-media">
+              <video controls controlslist="nodownload" disablepictureinpicture oncontextmenu="return false">
+                <source src="${this.escapeText(authedUrl)}" type="${this.escapeText(contentType)}">
+              </video>
+            </div>
+          </div>
+        `;
       } else {
-        content.innerHTML = `<iframe src="${authedUrl}" style="width:100%;height:100%;border:none;"></iframe>`;
+        viewer.body.innerHTML = `
+          <div class="activity-viewer-frame">
+            <iframe src="${this.escapeText(authedUrl)}" class="activity-viewer-embed"></iframe>
+          </div>
+        `;
       }
-
-      overlay.appendChild(content);
-      document.body.appendChild(overlay);
-
-      // 關閉按鈕
-      document.getElementById('file-viewer-close').onclick = () => overlay.remove();
-      // ESC 關閉
-      const escHandler = (e) => { if (e.key === 'Escape') { overlay.remove(); document.removeEventListener('keydown', escHandler); } };
-      document.addEventListener('keydown', escHandler);
 
     } catch (error) {
       console.error('開啟檔案活動失敗:', error);
@@ -1103,6 +1128,8 @@ const MoodleUI = {
    * 開啟 LTI 啟動 Modal
    */
   openLtiLaunchModal(launchUrl, toolName) {
+    const existing = document.getElementById('ltiLaunchModal');
+    if (existing) existing.remove();
     const modal = document.createElement('div');
     modal.id = 'ltiLaunchModal';
     modal.className = 'modal-overlay';
@@ -1110,7 +1137,7 @@ const MoodleUI = {
       <div class="modal-content modal-fullscreen">
         <div class="modal-header">
           <h3>🔗 ${toolName}</h3>
-          <div style="display: flex; gap: 0.5rem;">
+          <div class="modal-header-actions">
             <button onclick="MoodleUI.openLtiInNewWindow()" class="btn-secondary btn-sm" title="${t('moodleActivity.openNewWindow')}">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
@@ -1121,8 +1148,8 @@ const MoodleUI = {
             <button onclick="MoodleUI.closeModal('ltiLaunchModal')" class="modal-close">&times;</button>
           </div>
         </div>
-        <div class="modal-body" style="padding: 0; height: calc(100vh - 120px);">
-          <iframe id="ltiLaunchFrame" src="${launchUrl}" style="width: 100%; height: 100%; border: none;"></iframe>
+        <div class="modal-body">
+          <iframe id="ltiLaunchFrame" class="lti-launch-frame" src="${launchUrl}"></iframe>
         </div>
       </div>
     `;
@@ -1221,7 +1248,7 @@ const MoodleUI = {
 
     const toolId = select.value;
     if (!toolId) {
-      infoDiv.style.display = 'none';
+      infoDiv.hidden = true;
       return;
     }
 
@@ -1229,9 +1256,9 @@ const MoodleUI = {
     if (tool) {
       nameEl.textContent = tool.name;
       descEl.textContent = tool.description || t('moodleLti.noDescription');
-      infoDiv.style.display = 'block';
+      infoDiv.hidden = false;
     } else {
-      infoDiv.style.display = 'none';
+      infoDiv.hidden = true;
     }
   },
 
@@ -1327,50 +1354,50 @@ const MoodleUI = {
         </div>
         <div class="modal-body">
           <div class="activity-types-grid">
-            <div class="activity-type-card" onclick="MoodleUI.selectActivityType('page')">
-              <div class="type-icon" style="background: var(--olive)20; color: var(--olive)">
+            <div class="activity-type-card" onclick="MoodleUI.selectActivityType('page', this)">
+              <div class="type-icon tone-olive">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
               </div>
               <span>${t('moodleAddActivity.typePage')}</span>
               <p>${t('moodleAddActivity.typePageDesc')}</p>
             </div>
-            <div class="activity-type-card" onclick="MoodleUI.selectActivityType('url')">
-              <div class="type-icon" style="background: #6366f120; color: #6366f1">
+            <div class="activity-type-card" onclick="MoodleUI.selectActivityType('url', this)">
+              <div class="type-icon tone-indigo">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
               </div>
               <span>${t('moodleAddActivity.typeUrl')}</span>
               <p>${t('moodleAddActivity.typeUrlDesc')}</p>
             </div>
-            <div class="activity-type-card" onclick="MoodleUI.selectActivityType('file')">
-              <div class="type-icon" style="background: #10b98120; color: #10b981">
+            <div class="activity-type-card" onclick="MoodleUI.selectActivityType('file', this)">
+              <div class="type-icon tone-emerald">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
               </div>
               <span>${t('moodleAddActivity.typeFile')}</span>
               <p>${t('moodleAddActivity.typeFileDesc')}</p>
             </div>
-            <div class="activity-type-card" onclick="MoodleUI.selectActivityType('assignment')">
-              <div class="type-icon" style="background: var(--terracotta)20; color: var(--terracotta)">
+            <div class="activity-type-card" onclick="MoodleUI.selectActivityType('assignment', this)">
+              <div class="type-icon tone-terracotta">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
               </div>
               <span>${t('moodleAddActivity.typeAssignment')}</span>
               <p>${t('moodleAddActivity.typeAssignmentDesc')}</p>
             </div>
-            <div class="activity-type-card" onclick="MoodleUI.selectActivityType('quiz')">
-              <div class="type-icon" style="background: #8b5cf620; color: #8b5cf6">
+            <div class="activity-type-card" onclick="MoodleUI.selectActivityType('quiz', this)">
+              <div class="type-icon tone-violet">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
               </div>
               <span>${t('moodleAddActivity.typeQuiz')}</span>
               <p>${t('moodleAddActivity.typeQuizDesc')}</p>
             </div>
-            <div class="activity-type-card" onclick="MoodleUI.selectActivityType('forum')">
-              <div class="type-icon" style="background: #f59e0b20; color: #f59e0b">
+            <div class="activity-type-card" onclick="MoodleUI.selectActivityType('forum', this)">
+              <div class="type-icon tone-amber">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
               </div>
               <span>${t('moodleAddActivity.typeForum')}</span>
               <p>${t('moodleAddActivity.typeForumDesc')}</p>
             </div>
-            <div class="activity-type-card" onclick="MoodleUI.selectActivityType('lti')">
-              <div class="type-icon" style="background: #ec489920; color: #ec4899">
+            <div class="activity-type-card" onclick="MoodleUI.selectActivityType('lti', this)">
+              <div class="type-icon tone-pink">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 12h8"/><path d="M12 8v8"/><circle cx="12" cy="12" r="3"/></svg>
               </div>
               <span>${t('moodleAddActivity.typeLti')}</span>
@@ -1378,13 +1405,13 @@ const MoodleUI = {
             </div>
           </div>
 
-          <div id="activityFormArea" style="display: none; margin-top: 1.5rem;">
+          <div id="activityFormArea" class="activity-form-shell" hidden>
             <!-- 活動表單會動態插入這裡 -->
           </div>
         </div>
-        <div class="modal-footer" id="activityModalFooter" style="display: none;">
+        <div class="modal-footer" id="activityModalFooter" hidden>
           <button onclick="MoodleUI.closeModal('addActivityModal')" class="btn-secondary">${t('common.cancel')}</button>
-          <button onclick="MoodleUI.submitAddActivity('${courseId}', '${sectionId}')" class="btn-primary">${t('moodleCourse.addActivity')}</button>
+          <button onclick="MoodleUI.submitAddActivity(${this.toInlineActionValue(courseId)}, ${this.toInlineActionValue(sectionId)})" class="btn-primary">${t('moodleCourse.addActivity')}</button>
         </div>
       </div>
     `;
@@ -1397,18 +1424,18 @@ const MoodleUI = {
   /**
    * 選擇活動類型
    */
-  selectActivityType(type) {
+  selectActivityType(type, triggerEl = null) {
     this.selectedActivityType = type;
 
     // 高亮選中的卡片
     document.querySelectorAll('.activity-type-card').forEach(card => card.classList.remove('selected'));
-    event.currentTarget.classList.add('selected');
+    if (triggerEl) triggerEl.classList.add('selected');
 
     // 顯示表單
     const formArea = document.getElementById('activityFormArea');
     const footer = document.getElementById('activityModalFooter');
-    formArea.style.display = 'block';
-    footer.style.display = 'flex';
+    formArea.hidden = false;
+    footer.hidden = false;
 
     // 根據類型顯示不同表單
     formArea.innerHTML = this.getActivityForm(type);
@@ -1521,13 +1548,11 @@ const MoodleUI = {
             </select>
             <p class="form-hint">${t('moodleAddActivity.ltiToolHint')}</p>
           </div>
-          <div id="ltiToolInfo" style="display: none; margin-top: 1rem;">
-            <div style="background: var(--gray-100); padding: 1rem; border-radius: 8px;">
-              <h4 id="ltiToolName" style="margin-bottom: 0.5rem;"></h4>
-              <p id="ltiToolDesc" style="font-size: 0.9rem; color: var(--gray-600);"></p>
-            </div>
+          <div id="ltiToolInfo" class="lti-tool-info-card" hidden>
+            <h4 id="ltiToolName"></h4>
+            <p id="ltiToolDesc"></p>
           </div>
-          <div class="form-group" style="margin-top: 1rem;">
+          <div class="form-group form-checkbox-row">
             <label>
               <input type="checkbox" id="ltiDeepLinking">
               ${t('moodleAddActivity.deepLinkLabel')}
@@ -1622,24 +1647,24 @@ const MoodleUI = {
     const modal = document.createElement('div');
     modal.id = modalId;
     modal.className = 'modal-overlay';
-    modal.style.display = 'flex';
     modal.onclick = (e) => { if (e.target === modal) this.closeModal(modalId); };
 
     const maxWidth = options.maxWidth || '600px';
 
     modal.innerHTML = `
-      <div class="modal" style="max-width: ${maxWidth}; width: 90%;">
+      <div class="modal-content modal-generic">
         <div class="modal-header">
-          <h2 class="modal-title">${title}</h2>
+          <h3 class="modal-title">${title}</h3>
           <button class="modal-close" onclick="MoodleUI.closeModal('${modalId}')">&times;</button>
         </div>
-        <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+        <div class="modal-body modal-scroll-body">
           ${bodyHtml}
         </div>
       </div>
     `;
 
     document.body.appendChild(modal);
+    modal.querySelector('.modal-content')?.style.setProperty('--modal-max-width', maxWidth);
     return modal;
   },
 
@@ -1649,6 +1674,10 @@ const MoodleUI = {
   closeModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) modal.remove();
+    if (modalId === 'ltiLaunchModal') {
+      window.removeEventListener('message', this.handleLtiMessage);
+      this.currentLtiLaunchUrl = null;
+    }
   },
 
   escapeText(value) {
@@ -1673,6 +1702,121 @@ const MoodleUI = {
     if (!normalized) return '';
     if (normalized.length <= maxLength) return normalized;
     return `${normalized.slice(0, maxLength).trim()}...`;
+  },
+
+  clampProgressValue(value) {
+    if (window.PlatformUIRuntime?.clampProgressValue) {
+      return window.PlatformUIRuntime.clampProgressValue(value);
+    }
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return 0;
+    return Math.max(0, Math.min(100, numeric));
+  },
+
+  getSoftAccentBackground(color) {
+    if (window.PlatformUIRuntime?.getSoftAccentBackground) {
+      return window.PlatformUIRuntime.getSoftAccentBackground(color);
+    }
+    const normalized = String(color || '').trim();
+    const cssVarPalette = {
+      'var(--olive)': 'rgba(111, 135, 58, 0.16)',
+      'var(--terracotta)': 'rgba(190, 96, 62, 0.16)',
+      'var(--gray-500)': 'rgba(107, 114, 128, 0.16)',
+      'var(--gray-400)': 'rgba(148, 163, 184, 0.16)'
+    };
+    if (cssVarPalette[normalized]) return cssVarPalette[normalized];
+
+    const hexMatch = normalized.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+    if (hexMatch) {
+      const hex = hexMatch[1];
+      const fullHex = hex.length === 3
+        ? hex.split('').map(part => part + part).join('')
+        : hex;
+      const red = parseInt(fullHex.slice(0, 2), 16);
+      const green = parseInt(fullHex.slice(2, 4), 16);
+      const blue = parseInt(fullHex.slice(4, 6), 16);
+      return `rgba(${red}, ${green}, ${blue}, 0.16)`;
+    }
+
+    const rgbMatch = normalized.match(/^rgba?\(([^)]+)\)$/i);
+    if (rgbMatch) {
+      const parts = rgbMatch[1]
+        .split(',')
+        .map(part => Number(part.trim()))
+        .filter(Number.isFinite);
+      if (parts.length >= 3) {
+        return `rgba(${parts[0]}, ${parts[1]}, ${parts[2]}, 0.16)`;
+      }
+    }
+
+    return 'rgba(148, 163, 184, 0.16)';
+  },
+
+  getScopedNodes(root, selector) {
+    if (window.PlatformUIRuntime?.getScopedNodes) {
+      return window.PlatformUIRuntime.getScopedNodes(root, selector);
+    }
+    const nodes = [];
+    if (!root) return nodes;
+    if (root instanceof Element && root.matches(selector)) {
+      nodes.push(root);
+    }
+    if (typeof root.querySelectorAll === 'function') {
+      nodes.push(...root.querySelectorAll(selector));
+    }
+    return nodes;
+  },
+
+  applyDynamicUiMetrics(root = document) {
+    if (window.PlatformUIRuntime?.applyRuntimeUi) {
+      window.PlatformUIRuntime.applyRuntimeUi(root);
+      return;
+    }
+    this.getScopedNodes(root, '[data-progress-width]').forEach((node) => {
+      node.style.width = `${this.clampProgressValue(node.dataset.progressWidth)}%`;
+    });
+
+    this.getScopedNodes(root, '[data-cover-gradient]').forEach((node) => {
+      const gradient = node.dataset.coverGradient;
+      if (gradient) {
+        node.style.background = gradient;
+      }
+    });
+
+    this.getScopedNodes(root, '[data-accent-color]').forEach((node) => {
+      const accentColor = node.dataset.accentColor || 'var(--gray-400)';
+      node.style.color = accentColor;
+      node.style.background = this.getSoftAccentBackground(accentColor);
+    });
+
+    this.getScopedNodes(root, '[data-tree-indent]').forEach((node) => {
+      const indentLevel = Number(node.dataset.treeIndent);
+      const paddingLeft = Number.isFinite(indentLevel) ? Math.max(0, indentLevel * 20) : 0;
+      node.style.paddingLeft = `${paddingLeft}px`;
+    });
+  },
+
+  ensureDynamicUiMetricsObserver() {
+    if (window.PlatformUIRuntime?.observeRuntimeUi) {
+      window.PlatformUIRuntime.observeRuntimeUi(document.body);
+      return;
+    }
+    if (this._dynamicUiMetricsObserver || typeof MutationObserver === 'undefined' || !document.body) {
+      return;
+    }
+
+    this._dynamicUiMetricsObserver = new MutationObserver((mutations) => {
+      const seenNodes = new Set();
+      mutations.forEach((mutation) => {
+        mutation.addedNodes.forEach((node) => {
+          if (!(node instanceof Element) || seenNodes.has(node)) return;
+          seenNodes.add(node);
+          this.applyDynamicUiMetrics(node);
+        });
+      });
+    });
+
+    this._dynamicUiMetricsObserver.observe(document.body, { childList: true, subtree: true });
   },
 
   formatPlatformDate(value, options = {}) {
@@ -1755,6 +1899,206 @@ const MoodleUI = {
         <h3>${this.escapeText(title)}</h3>
         ${hint ? `<p>${this.escapeText(hint)}</p>` : ''}
       </div>
+    `;
+  },
+
+  getDifficultyMeta(difficulty = 'beginner') {
+    const key = String(difficulty || 'beginner').toLowerCase();
+    const isEnglish = I18n.getLocale() === 'en';
+    const map = {
+      beginner: {
+        label: t('moodlePaths.beginner') || (isEnglish ? 'Beginner' : '初階'),
+        className: 'beginner',
+        toneClass: 'tone-mint',
+        icon: '🌱'
+      },
+      intermediate: {
+        label: t('moodlePaths.intermediate') || (isEnglish ? 'Intermediate' : '中階'),
+        className: 'intermediate',
+        toneClass: 'tone-gold',
+        icon: '🧭'
+      },
+      advanced: {
+        label: t('moodlePaths.advanced') || (isEnglish ? 'Advanced' : '進階'),
+        className: 'advanced',
+        toneClass: 'tone-rose',
+        icon: '🚀'
+      }
+    };
+    return map[key] || {
+      label: difficulty || (isEnglish ? 'General' : '一般'),
+      className: 'intermediate',
+      toneClass: this.getSurfaceToneClass(difficulty || 'path'),
+      icon: '📘'
+    };
+  },
+
+  getBadgeTypeLabel(type = '') {
+    const map = {
+      course: t('moodleBadges.course'),
+      site: t('moodleBadges.site'),
+      manual: t('moodleBadges.manual')
+    };
+    return map[type] || type || '—';
+  },
+
+  getBadgeStatusLabel(status = '') {
+    return status === 'active' ? t('common.active') : t('common.draft');
+  },
+
+  getManagementStatusMeta(status = '', fallbackLabel = '') {
+    const key = String(status || '').toLowerCase();
+    const labelMap = {
+      active: t('common.active'),
+      published: t('common.published'),
+      draft: t('common.draft'),
+      inactive: t('common.inactive'),
+      archived: t('moodleScorm.archived'),
+      completed: t('common.completed'),
+      complete: t('common.completed'),
+      pending: t('common.pending'),
+      failed: t('common.failed')
+    };
+    const toneMap = {
+      active: 'is-success',
+      published: 'is-success',
+      completed: 'is-success',
+      complete: 'is-success',
+      draft: 'is-warning',
+      pending: 'is-warning',
+      inactive: 'is-neutral',
+      archived: 'is-neutral',
+      failed: 'is-danger'
+    };
+    return {
+      label: fallbackLabel || labelMap[key] || status || '—',
+      toneClass: toneMap[key] || 'is-neutral'
+    };
+  },
+
+  renderManagementStatusBadge(status = '', fallbackLabel = '') {
+    const meta = this.getManagementStatusMeta(status, fallbackLabel);
+    return `<span class="management-status-badge ${meta.toneClass}">${this.escapeText(meta.label)}</span>`;
+  },
+
+  renderManagementMetricGrid(cards = []) {
+    const items = cards
+      .filter(card => card && card.label)
+      .map(card => `
+        <div class="management-metric-card${card.tone ? ` ${card.tone}` : ''}">
+          <div class="management-metric-value">${this.escapeText(card.value ?? '—')}</div>
+          <div class="management-metric-label">${this.escapeText(card.label)}</div>
+          ${card.helper ? `<div class="management-metric-helper">${this.escapeText(card.helper)}</div>` : ''}
+        </div>
+      `)
+      .join('');
+    return items ? `<div class="management-metric-grid">${items}</div>` : '';
+  },
+
+  renderManagementDetailHeader({ backAction, backLabel, kicker = '', title, subtitle = '', actions = [] }) {
+    const buttons = actions
+      .filter(action => action && action.label && action.onclick)
+      .map(action => `
+        <button type="button" class="${action.className || 'btn-secondary'}" onclick="${action.onclick}">
+          ${this.escapeText(action.label)}
+        </button>
+      `)
+      .join('');
+
+    return `
+      <button type="button" class="management-back-link" onclick="${backAction}">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="15,18 9,12 15,6"/>
+        </svg>
+        ${this.escapeText(backLabel || t('common.back') || '返回')}
+      </button>
+      <div class="management-detail-header">
+        <div class="management-detail-copy">
+          ${kicker ? `<div class="management-detail-kicker">${this.escapeText(kicker)}</div>` : ''}
+          <h2>${this.escapeText(title)}</h2>
+          ${subtitle ? `<p>${this.escapeText(subtitle)}</p>` : ''}
+        </div>
+        ${buttons ? `<div class="management-detail-actions">${buttons}</div>` : ''}
+      </div>
+    `;
+  },
+
+  getAuditCategoryClass(eventType = '') {
+    const value = String(eventType || '').toLowerCase();
+    if (!value) return 'category-system';
+    if (/(security|auth|login|password|token|session)/.test(value)) return 'category-security';
+    if (/(user|role|permission|profile)/.test(value)) return 'category-user';
+    if (/(course|enrol|enroll|class)/.test(value)) return 'category-course';
+    if (/(assignment|submission)/.test(value)) return 'category-assignment';
+    if (/(quiz|attempt|question)/.test(value)) return 'category-quiz';
+    if (/(grade|score|rubric)/.test(value)) return 'category-grade';
+    if (/(file|upload|resource|download)/.test(value)) return 'category-file';
+    return 'category-system';
+  },
+
+  renderH5pTypeIcon(contentType = '') {
+    const type = String(contentType || '').toLowerCase();
+    const stroke = 'currentColor';
+    if (type.includes('video')) {
+      return `
+        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="${stroke}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="10 8 16 12 10 16 10 8"/>
+          <rect x="3" y="5" width="18" height="14" rx="2"/>
+        </svg>
+      `;
+    }
+    if (type.includes('presentation')) {
+      return `
+        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="${stroke}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="12" rx="2"/>
+          <line x1="8" y1="20" x2="16" y2="20"/>
+          <line x1="12" y1="16" x2="12" y2="20"/>
+        </svg>
+      `;
+    }
+    if (type.includes('quiz')) {
+      return `
+        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="${stroke}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9"/>
+          <path d="M9.5 9a2.5 2.5 0 014.6 1.3c0 1.6-2.1 2-2.1 3.4"/>
+          <line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+      `;
+    }
+    if (type.includes('drag')) {
+      return `
+        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="${stroke}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 7h8"/>
+          <path d="M8 12h8"/>
+          <path d="M8 17h8"/>
+          <path d="M5 7h.01"/>
+          <path d="M5 12h.01"/>
+          <path d="M5 17h.01"/>
+        </svg>
+      `;
+    }
+    if (type.includes('dialog') || type.includes('card')) {
+      return `
+        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="${stroke}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="4" y="5" width="16" height="12" rx="2"/>
+          <path d="M8 21l4-4 4 4"/>
+        </svg>
+      `;
+    }
+    if (type.includes('timeline')) {
+      return `
+        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="${stroke}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12h14"/>
+          <circle cx="8" cy="12" r="2"/>
+          <circle cx="16" cy="12" r="2"/>
+        </svg>
+      `;
+    }
+    return `
+      <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="${stroke}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+        <polyline points="14,2 14,8 20,8"/>
+      </svg>
     `;
   },
 
@@ -2184,7 +2528,7 @@ const MoodleUI = {
                 </svg>
                 <p>${t('moodleAssignment.uploadHint')}</p>
               </div>
-              <input type="file" id="submissionFile" style="display: none" onchange="MoodleUI.handleFileSelect(this)">
+              <input type="file" id="submissionFile" class="hidden-file-input" onchange="MoodleUI.handleFileSelect(this)">
               <div id="selectedFiles"></div>
             </div>
           ` : ''}
@@ -2214,7 +2558,7 @@ const MoodleUI = {
                 </div>
                 <div class="submission-actions">
                   <button onclick="MoodleUI.viewSubmission('${assignment.assignmentId}', '${s.studentId}')" class="btn-sm">${t('moodleAssignment.viewBtn')}</button>
-                  <input type="number" id="grade_${s.studentId}" value="${s.grade || ''}" placeholder="${t('moodleGrade.score')}" style="width: 80px">
+                  <input type="number" id="grade_${s.studentId}" class="grade-input-compact" value="${s.grade || ''}" placeholder="${t('moodleGrade.score')}">
                   <button onclick="MoodleUI.gradeSubmission('${assignment.assignmentId}', '${s.studentId}')" class="btn-primary">${t('moodleAssignment.gradeBtn')}</button>
                 </div>
               </div>
@@ -2488,7 +2832,7 @@ const MoodleUI = {
         <div class="quiz-progress">
           <span>${t('moodleQuiz.questionOf')} ${this.currentQuestionIndex + 1} / ${totalQuestions} ${t('moodleQuiz.questionSuffix')}</span>
           <div class="quiz-progress-bar">
-            <div class="quiz-progress-fill" style="width: ${progress}%"></div>
+            <div class="quiz-progress-fill" data-progress-width="${this.clampProgressValue(progress)}"></div>
           </div>
           ${attempt.timeLimit ? `
             <div class="quiz-timer" id="quizTimer">
@@ -2521,6 +2865,7 @@ const MoodleUI = {
         </div>
       </div>
     `;
+    this.applyDynamicUiMetrics(container);
   },
 
   /**
@@ -2702,9 +3047,9 @@ const MoodleUI = {
 
     const header = `
       <section class="forum-shell">
-        <div class="forum-header-panel">
-          <div class="forum-header-top">
-            <div style="display:flex; align-items:flex-start; gap:0.75rem; flex-wrap:wrap;">
+          <div class="forum-header-panel">
+            <div class="forum-header-top">
+            <div class="forum-header-cluster">
               <button type="button" class="forum-back-btn" onclick="MoodleUI.loadForums()">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
                 <span>${t('common.back') || '返回'}</span>
@@ -2717,8 +3062,8 @@ const MoodleUI = {
                 <h2 class="forum-header-title">${safeCourseName} · ${this.escapeText(t('moodleForum.title'))}</h2>
                 <p class="forum-header-subtitle">集中整理此課程的公告、提問與交流主題。列表只保留重要摘要，點進去可以看到完整討論脈絡與回覆。</p>
               </div>
-            </div>
-            <div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
+              </div>
+            <div class="forum-header-actions">
               <button type="button" class="forum-header-btn secondary" onclick="showView('moodleCourses'); MoodleUI.loadCourses();">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
                 <span>${t('sidebar.courseCenter') || '課程中心'}</span>
@@ -2766,7 +3111,7 @@ const MoodleUI = {
                 <div class="forum-card-content">
                   <div class="forum-card-topline">
                     <div>
-                      <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.35rem;">
+                      <div class="forum-card-title-row">
                         <span class="forum-type-badge ${typeMeta.className}">${this.escapeText(typeMeta.label)}</span>
                         <h3 class="forum-card-title">${forumName}</h3>
                       </div>
@@ -2817,10 +3162,10 @@ const MoodleUI = {
               <div class="forum-card-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
               </div>
-              <div class="forum-card-content">
-                <div class="forum-card-topline">
-                  <div>
-                    <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.35rem;">
+                <div class="forum-card-content">
+                  <div class="forum-card-topline">
+                    <div>
+                    <div class="forum-card-title-row">
                       <span class="forum-type-badge ${typeMeta.className}">${this.escapeText(typeMeta.label)}</span>
                       <h3 class="forum-card-title">${this.escapeText(forum.title || forum.name || t('moodleForum.title'))}</h3>
                     </div>
@@ -2876,7 +3221,7 @@ const MoodleUI = {
         <section class="forum-shell">
           <div class="forum-header-panel">
             <div class="forum-header-top">
-              <div style="display:flex; align-items:flex-start; gap:0.75rem; flex-wrap:wrap;">
+              <div class="forum-header-cluster">
                 <button type="button" class="forum-back-btn" onclick="${backAction}">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
                   <span>${t('moodleForum.backToForums')}</span>
@@ -2887,7 +3232,7 @@ const MoodleUI = {
                   <p class="forum-header-subtitle">${safeDescription}</p>
                 </div>
               </div>
-              <div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
+              <div class="forum-header-actions">
                 <button type="button" class="forum-header-btn secondary" onclick="showView('moodleCourses'); MoodleUI.loadCourses();">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
                   <span>${t('sidebar.courseCenter') || '課程中心'}</span>
@@ -2925,7 +3270,7 @@ const MoodleUI = {
                       <div class="forum-topic-content">
                         <div class="forum-topic-topline">
                           <div>
-                            <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.35rem;">
+                            <div class="forum-topic-title-row">
                               ${discussion.pinned ? `<span class="forum-topic-badge">${t('moodleForum.pinned')}</span>` : ''}
                               <h3 class="forum-topic-title">${safeSubject}</h3>
                             </div>
@@ -3132,8 +3477,8 @@ const MoodleUI = {
 
       // 預設顯示提示
       container.innerHTML = `
-        <div class="empty-list" style="text-align: center; padding: 3rem;">
-          <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1" style="margin-bottom: 1rem; opacity: 0.5;">
+        <div class="empty-list">
+          <svg class="empty-list-icon" viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1">
             <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
             <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
           </svg>
@@ -3306,7 +3651,7 @@ const MoodleUI = {
     modal.id = 'createForumModal';
     modal.className = 'modal-overlay active';
     modal.innerHTML = `
-      <div class="modal active discussion-modal" style="max-width: 640px;" role="dialog" aria-modal="true" aria-labelledby="createForumModalTitle">
+      <div class="modal active discussion-modal discussion-modal-md" role="dialog" aria-modal="true" aria-labelledby="createForumModalTitle">
         <div class="modal-header">
           <h2 id="createForumModalTitle">新增討論區</h2>
           <button onclick="MoodleUI.closeModal('createForumModal')" class="modal-close">&times;</button>
@@ -3386,7 +3731,7 @@ const MoodleUI = {
     modal.id = 'newDiscussionModal';
     modal.className = 'modal-overlay active';
     modal.innerHTML = `
-      <div class="modal active discussion-modal" style="max-width: 680px;" role="dialog" aria-modal="true" aria-labelledby="newDiscussionModalTitle">
+      <div class="modal active discussion-modal discussion-modal-lg" role="dialog" aria-modal="true" aria-labelledby="newDiscussionModalTitle">
         <div class="modal-header">
           <h2 id="newDiscussionModalTitle">${t('moodleDiscussion.newTitle')}</h2>
           <button onclick="MoodleUI.closeModal('newDiscussionModal')" class="modal-close">&times;</button>
@@ -3484,7 +3829,7 @@ const MoodleUI = {
         <section class="forum-thread-shell">
           <div class="forum-thread-panel">
             <div class="forum-thread-top">
-              <div style="display:flex; align-items:flex-start; gap:0.75rem; flex-wrap:wrap;">
+              <div class="forum-header-cluster">
                 <button type="button" class="forum-back-btn" onclick="MoodleUI.openForum(${this.toInlineActionValue(forumId)})">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
                   <span>${t('moodleDiscussion.backToForum')}</span>
@@ -3693,7 +4038,7 @@ const MoodleUI = {
     }
 
     const bodyHtml = `
-      <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+      <div class="calendar-day-event-list">
         ${dayEvents.map(event => {
           const eventDateValue = this.getCalendarEventDate(event);
           const eventDate = eventDateValue ? new Date(eventDateValue) : null;
@@ -3703,15 +4048,15 @@ const MoodleUI = {
           const encodedCourseId = encodeURIComponent(event.courseId || '');
           return `
             <button type="button"
-              onclick="MoodleUI.handleCalendarEventClick('${encodedType}', '${encodedCourseId}')"
-              style="width: 100%; border: 1px solid var(--gray-200); border-radius: 10px; background: var(--white); text-align: left; padding: 0.85rem 1rem; cursor: pointer;">
-              <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem;">
-                <div>
-                  <div style="font-size: 0.78rem; color: var(--gray-500); margin-bottom: 0.2rem;">${this.getCalendarEventTypeLabel(eventType)}</div>
-                  <div style="font-size: 0.95rem; font-weight: 600; color: var(--charcoal);">${event.title || '未命名事件'}</div>
-                  ${event.courseName ? `<div style="font-size: 0.78rem; color: var(--gray-500); margin-top: 0.15rem;">${event.courseName}</div>` : ''}
+              class="calendar-day-event-item"
+              onclick="MoodleUI.handleCalendarEventClick('${encodedType}', '${encodedCourseId}')">
+              <div class="calendar-day-event-main">
+                <div class="calendar-day-event-copy">
+                  <div class="calendar-day-event-type">${this.getCalendarEventTypeLabel(eventType)}</div>
+                  <div class="calendar-day-event-title">${this.escapeText(event.title || '未命名事件')}</div>
+                  ${event.courseName ? `<div class="calendar-day-event-course">${this.escapeText(event.courseName)}</div>` : ''}
                 </div>
-                <div style="font-size: 0.78rem; color: var(--gray-500); white-space: nowrap;">
+                <div class="calendar-day-event-time">
                   ${validDate ? validDate.toLocaleTimeString(I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW', { hour: '2-digit', minute: '2-digit' }) : '--:--'}
                 </div>
               </div>
@@ -3807,9 +4152,9 @@ const MoodleUI = {
     if (badge) {
       if (count > 0) {
         badge.textContent = count > 99 ? '99+' : count;
-        badge.style.display = 'inline-block';
+        badge.hidden = false;
       } else {
-        badge.style.display = 'none';
+        badge.hidden = true;
       }
     }
   },
@@ -5077,7 +5422,7 @@ const MoodleUI = {
               </label>
             </div>
 
-            <div id="completionSettingsArea" style="${settings.enabled ? '' : 'display:none'}">
+            <div id="completionSettingsArea" ${settings.enabled ? '' : 'hidden'}>
               <div class="form-group">
                 <label>${t('moodleGradeSettings.aggregation')}</label>
                 <select id="completionAggregation">
@@ -5104,7 +5449,7 @@ const MoodleUI = {
 
       // 綁定啟用開關事件
       document.getElementById('completionEnabled').onchange = function() {
-        document.getElementById('completionSettingsArea').style.display = this.checked ? '' : 'none';
+        document.getElementById('completionSettingsArea').hidden = !this.checked;
       };
 
       modal.onclick = (e) => { if (e.target === modal) this.closeModal('courseCompletionModal'); };
@@ -5257,7 +5602,7 @@ const MoodleUI = {
           <h4>${t('moodleCompletion.courseProgress')}</h4>
           <div class="completion-progress">
             <div class="progress-bar">
-              <div class="progress-fill" style="width: ${progress}%"></div>
+              <div class="progress-fill" data-progress-width="${this.clampProgressValue(progress)}"></div>
             </div>
             <span class="progress-text">${status.completedCriteria}/${status.totalCriteria} ${t('moodleCompletion.completed')}</span>
           </div>
@@ -5712,6 +6057,7 @@ const MoodleUI = {
       // 建立樹狀結構
       const categories = result.data;
       container.innerHTML = this.renderCategoryTree(categories, null, 0);
+      this.applyDynamicUiMetrics(container);
     } catch (error) {
       console.error('Load categories error:', error);
       document.getElementById('categoriesTree').innerHTML = `
@@ -5728,7 +6074,7 @@ const MoodleUI = {
     if (children.length === 0) return '';
 
     return `
-      <ul class="category-tree-list" style="padding-left: ${level * 20}px;">
+      <ul class="category-tree-list" data-tree-indent="${level}">
         ${children.map(cat => `
           <li class="category-tree-item">
             <div class="category-node" onclick="MoodleUI.selectCategory('${cat.id}')" data-category-id="${cat.id}">
@@ -5741,7 +6087,7 @@ const MoodleUI = {
               <span class="category-name">${cat.name}</span>
               <span class="course-count">(${cat.courseCount || 0})</span>
             </div>
-            <div class="category-children" style="display: none;">
+            <div class="category-children" hidden>
               ${this.renderCategoryTree(categories, cat.id, level + 1)}
             </div>
           </li>
@@ -5757,8 +6103,8 @@ const MoodleUI = {
     const item = icon.closest('.category-tree-item');
     const children = item.querySelector('.category-children');
     if (children && children.innerHTML.trim()) {
-      const isExpanded = children.style.display !== 'none';
-      children.style.display = isExpanded ? 'none' : 'block';
+      const isExpanded = !children.hidden;
+      children.hidden = isExpanded;
       icon.textContent = isExpanded ? '▶' : '▼';
     }
   },
@@ -6055,6 +6401,8 @@ const MoodleUI = {
    * 初始化 Moodle UI
    */
   init() {
+    this.ensureDynamicUiMetricsObserver();
+    this.applyDynamicUiMetrics(document);
     // 定期更新通知數量
     this.updateNotificationCount();
     setInterval(() => this.updateNotificationCount(), 60000);
@@ -6091,39 +6439,49 @@ const MoodleUI = {
       rubrics.filter(r => r.status === this.currentRubricsFilter);
 
     container.innerHTML = `
-      <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
-        <h2 style="margin:0;">${t('moodleRubrics.title')}</h2>
-        <div style="display:flex;gap:0.5rem;">
+      <div class="rubrics-container">
+      <div class="rubrics-header">
+        <h2>${t('moodleRubrics.title')}</h2>
+        <div class="rubrics-toolbar">
           <button onclick="MoodleUI.openCreateRubricModal()" class="btn-primary">+ ${t('moodleRubrics.createBtn')}</button>
           ${templates.length > 0 ? '<button onclick="MoodleUI.openCreateRubricFromTemplate()" class="btn-secondary">從範本建立</button>' : ''}
         </div>
       </div>
-      <div class="filter-tabs" style="display:flex;gap:0.5rem;margin-bottom:1.5rem;">
+      <div class="badges-tabs">
         ${['all','active','draft'].map(f => `
-          <button class="btn-sm ${this.currentRubricsFilter === f ? 'btn-primary' : 'btn-secondary'}"
+          <button class="badge-tab ${this.currentRubricsFilter === f ? 'active' : ''}"
                   onclick="MoodleUI.currentRubricsFilter='${f}';MoodleUI.renderRubricsPage(document.getElementById('rubricsContent'),MoodleUI._rubricsData,MoodleUI._rubricsTemplates)">
             ${f === 'all' ? t('common.all') : f === 'active' ? t('common.active') : t('common.draft')}
           </button>
         `).join('')}
       </div>
-      <div class="card-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1rem;">
-        ${filtered.length === 0 ? `<p style="color:var(--gray-400);grid-column:1/-1;text-align:center;padding:3rem;">${t('moodleRubrics.noRubrics')}</p>` :
+      <div class="rubrics-list">
+        ${filtered.length === 0 ? this.renderActivityEmptyState({
+          icon: '<svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>',
+          title: t('moodleRubrics.noRubrics')
+        }) :
           filtered.map(r => `
-            <div class="card" style="padding:1.5rem;border:1px solid var(--gray-200);border-radius:8px;cursor:pointer;"
-                 onclick="MoodleUI.viewRubricDetail('${r.rubricId || r.id}')">
-              <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:0.75rem;">
-                <h3 style="margin:0;font-size:1.1rem;">${r.name || t('common.unnamed')}</h3>
-                <span style="padding:2px 8px;border-radius:4px;font-size:0.75rem;background:${r.status === 'active' ? '#dcfce7;color:#166534' : '#fef3c7;color:#92400e'};">
-                  ${r.status === 'active' ? t('common.active') : t('common.draft')}
-                </span>
+            <div class="rubric-card" onclick="MoodleUI.viewRubricDetail(${this.toInlineActionValue(r.rubricId || r.id)})">
+              <div class="rubric-card-header">
+                <div class="rubric-info">
+                  <h3>${this.escapeText(r.name || t('common.unnamed'))}</h3>
+                  <p>${this.escapeText(this.truncateText(r.description || t('common.noDescription'), 140))}</p>
+                  <div class="rubric-meta">
+                    <span>${t('moodleRubrics.criteria')}：${(r.criteria || []).length}</span>
+                    <span>${t('moodleRubrics.maxScore')}：${r.maxScore || 0}</span>
+                  </div>
+                </div>
+                <span class="badge-status-pill ${r.status === 'active' ? 'is-active' : 'is-draft'}">${r.status === 'active' ? t('common.active') : t('common.draft')}</span>
               </div>
-              <p style="margin:0 0 0.5rem;color:var(--gray-400);font-size:0.9rem;">${r.description || t('common.noDescription')}</p>
-              <div style="display:flex;gap:1rem;font-size:0.85rem;color:var(--gray-400);">
-                <span>${t('moodleRubrics.criteria')}：${(r.criteria || []).length}</span>
-                <span>${t('moodleRubrics.maxScore')}：${r.maxScore || 0}</span>
+              <div class="rubric-preview">
+                <ul class="rubric-criteria-preview">
+                  ${(r.criteria || []).slice(0, 3).map(c => `<li>${this.escapeText(c.name || t('moodleRubrics.criteria'))}</li>`).join('')}
+                  ${(r.criteria || []).length > 3 ? `<li>+ ${(r.criteria || []).length - 3} ${t('moodleRubrics.criteria')}</li>` : ''}
+                </ul>
               </div>
             </div>
           `).join('')}
+      </div>
       </div>`;
   },
 
@@ -6137,45 +6495,70 @@ const MoodleUI = {
       const r = result.data;
       const criteria = r.criteria || [];
       container.innerHTML = `
-        <div style="margin-bottom:1rem;">
-          <button onclick="MoodleUI.openRubricsManager()" class="back-btn" style="background:none;border:none;cursor:pointer;color:var(--primary);font-size:0.9rem;">← ${t('common.backToList')}</button>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
-          <div>
-            <h2 style="margin:0 0 0.25rem;">${r.name || t('common.unnamed')}</h2>
-            <p style="margin:0;color:var(--gray-400);">${r.description || ''}</p>
+        <div class="rubrics-container">
+        <button onclick="MoodleUI.openRubricsManager()" class="btn-back">${t('common.backToList')}</button>
+        <div class="rubric-card">
+          <div class="rubric-card-header">
+          <div class="rubric-info">
+            <h3>${this.escapeText(r.name || t('common.unnamed'))}</h3>
+            <p>${this.escapeText(r.description || '')}</p>
+            <div class="rubric-meta">
+              <span>${t('moodleRubrics.criteria')}：${criteria.length}</span>
+              <span>${t('moodleRubrics.maxScore')}：${r.maxScore || 0}</span>
+            </div>
           </div>
-          <div style="display:flex;gap:0.5rem;">
-            <button onclick="MoodleUI.duplicateRubric('${rubricId}')" class="btn-sm btn-secondary">${t('common.duplicate')}</button>
-            <button onclick="MoodleUI.deleteRubric('${rubricId}')" class="btn-sm" style="background:#fee2e2;color:#dc2626;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;">${t('moodleGradeCategory.delete')}</button>
+          <div class="rubric-actions">
+            <button onclick="MoodleUI.duplicateRubric(${this.toInlineActionValue(rubricId)})" class="btn-sm btn-secondary">${t('common.duplicate')}</button>
+            <button onclick="MoodleUI.deleteRubric(${this.toInlineActionValue(rubricId)})" class="btn-sm btn-danger">${t('moodleGradeCategory.delete')}</button>
           </div>
-        </div>
-        <div style="overflow-x:auto;">
-          <table style="width:100%;border-collapse:collapse;font-size:0.9rem;">
+          </div>
+        <div class="rubric-preview">
+          <div class="badge-detail-info">
+            <div class="badge-info-item">
+              <label>${t('common.status')}</label>
+              <span>${r.status === 'active' ? t('common.active') : t('common.draft')}</span>
+            </div>
+            <div class="badge-info-item">
+              <label>${t('moodleRubrics.criteria')}</label>
+              <span>${criteria.length}</span>
+            </div>
+            <div class="badge-info-item">
+              <label>${t('moodleRubrics.maxScore')}</label>
+              <span>${r.maxScore || 0}</span>
+            </div>
+            <div class="badge-info-item">
+              <label>${t('moodleGradebook.letterCol')}</label>
+              <span>${criteria.reduce((count, item) => count + (item.levels || []).length, 0)}</span>
+            </div>
+          </div>
+          <div class="badge-table-shell">
+          <table class="rubric-table">
             <thead>
-              <tr style="background:var(--gray-100);">
-                <th style="padding:10px;text-align:left;border:1px solid var(--gray-200);">${t('moodleRubrics.criteria')}</th>
-                <th style="padding:10px;text-align:left;border:1px solid var(--gray-200);">${t('common.description')}</th>
-                <th style="padding:10px;text-align:center;border:1px solid var(--gray-200);">${t('moodleGrade.score')}</th>
-                <th style="padding:10px;text-align:left;border:1px solid var(--gray-200);">${t('moodleGradebook.letterCol')}</th>
+              <tr>
+                <th class="criterion-header">${t('moodleRubrics.criteria')}</th>
+                <th>${t('common.description')}</th>
+                <th>${t('moodleGrade.score')}</th>
+                <th>${t('moodleGradebook.letterCol')}</th>
               </tr>
             </thead>
             <tbody>
               ${criteria.map(c => `
                 <tr>
-                  <td style="padding:10px;border:1px solid var(--gray-200);font-weight:600;">${c.name || ''}</td>
-                  <td style="padding:10px;border:1px solid var(--gray-200);">${c.description || ''}</td>
-                  <td style="padding:10px;text-align:center;border:1px solid var(--gray-200);">${c.maxScore || c.points || 0}</td>
-                  <td style="padding:10px;border:1px solid var(--gray-200);">
-                    ${(c.levels || []).map(l => `<span style="display:inline-block;margin:2px;padding:2px 6px;background:var(--gray-100);border-radius:4px;font-size:0.8rem;">${l.name}: ${l.score || l.points || 0}</span>`).join(' ')}
+                  <td>${this.escapeText(c.name || '')}</td>
+                  <td>${this.escapeText(c.description || '')}</td>
+                  <td>${c.maxScore || c.points || 0}</td>
+                  <td>
+                    <div class="rubric-level-tags">
+                    ${(c.levels || []).map(l => `<span class="rubric-level-tag">${this.escapeText(l.name)}: ${l.score || l.points || 0}</span>`).join('')}
+                    </div>
                   </td>
                 </tr>
               `).join('')}
             </tbody>
           </table>
         </div>
-        <div style="margin-top:1rem;padding:1rem;background:var(--gray-50);border-radius:8px;">
-          <strong>${t('moodleRubrics.maxScore')}：</strong>${r.maxScore || 0} ｜ <strong>${t('common.status')}：</strong>${r.status === 'active' ? t('common.active') : t('common.draft')}
+        </div>
+        </div>
         </div>`;
     } catch (error) {
       console.error('View rubric detail error:', error);
@@ -6183,55 +6566,76 @@ const MoodleUI = {
     }
   },
 
+  renderRubricCriterionBuilder(criterion = {}) {
+    const levels = Array.isArray(criterion.levels) && criterion.levels.length > 0
+      ? criterion.levels
+      : [
+          { name: t('moodleRubrics.levelExcellent'), score: 25 },
+          { name: t('moodleRubrics.levelGood'), score: 18 },
+          { name: t('moodleRubrics.levelNeedsWork'), score: 10 }
+        ];
+
+    return `
+      <div class="rubric-criterion-item">
+        <div class="rubric-criterion-header">
+          <div class="form-group">
+            <label>${t('moodleRubrics.criterionName')}</label>
+            <input type="text" class="criterion-name" placeholder="${t('moodleRubrics.criterionNamePlaceholder')}" value="${this.escapeText(criterion.name || '')}">
+          </div>
+          <div class="form-group">
+            <label>${t('moodleRubrics.maxScore')}</label>
+            <input type="number" class="criterion-score" value="${this.escapeText(criterion.maxScore || 25)}" min="0">
+          </div>
+          <button type="button" class="rubric-criterion-remove" onclick="this.closest('.rubric-criterion-item').remove()" aria-label="${this.escapeText(t('common.delete') || 'Delete')}">×</button>
+        </div>
+        <div class="form-group">
+          <label>${t('common.description')}</label>
+          <input type="text" class="criterion-desc" placeholder="${t('moodleRubrics.criterionDescPlaceholder')}" value="${this.escapeText(criterion.description || '')}">
+        </div>
+        <div class="criterion-levels">
+          ${levels.map(level => `
+            <div class="criterion-level-chip">
+              <input type="text" class="level-name" value="${this.escapeText(level.name || '')}">
+              <input type="number" class="level-score" value="${this.escapeText(level.score || level.points || 0)}" min="0">
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  },
+
   openCreateRubricModal() {
     const modal = document.createElement('div');
     modal.id = 'createRubricModal';
     modal.className = 'modal-overlay';
     modal.innerHTML = `
-      <div class="modal-content modal-lg">
+      <div class="modal-content rubric-builder-modal">
         <div class="modal-header">
           <h3>${t('moodleRubrics.createTitle')}</h3>
           <button onclick="MoodleUI.closeModal('createRubricModal')" class="modal-close">&times;</button>
         </div>
         <div class="modal-body">
-          <div class="form-group">
-            <label>${t('common.name')} *</label>
-            <input type="text" id="rubricName" placeholder="${t('moodleRubrics.namePlaceholder')}">
-          </div>
-          <div class="form-group">
-            <label>${t('common.description')}</label>
-            <textarea id="rubricDescription" rows="2" placeholder="${t('moodleRubrics.descPlaceholder')}"></textarea>
-          </div>
-          <div class="form-group">
-            <label>${t('common.status')}</label>
-            <select id="rubricStatus"><option value="draft">${t('common.draft')}</option><option value="active">${t('common.active')}</option></select>
-          </div>
-          <h4>${t('moodleRubrics.gradingCriteria')}</h4>
-          <div id="rubricCriteriaList">
-            <div class="rubric-criterion-item" style="border:1px solid var(--gray-200);border-radius:8px;padding:1rem;margin-bottom:0.75rem;">
-              <div class="form-row">
-                <div class="form-group" style="flex:1"><label>${t('moodleRubrics.criterionName')}</label><input type="text" class="criterion-name" placeholder="${t('moodleRubrics.criterionNamePlaceholder')}"></div>
-                <div class="form-group" style="flex:1"><label>${t('moodleAssignmentCreate.maxScore')}</label><input type="number" class="criterion-score" value="25" min="0"></div>
-                <button type="button" onclick="this.closest('.rubric-criterion-item').remove()" style="align-self:flex-end;background:none;border:none;color:#dc2626;cursor:pointer;font-size:1.2rem;padding:6px;">×</button>
-              </div>
-              <div class="form-group"><label>${t('common.description')}</label><input type="text" class="criterion-desc" placeholder="${t('moodleRubrics.criterionDescPlaceholder')}"></div>
-              <div class="criterion-levels" style="display:flex;gap:0.5rem;flex-wrap:wrap;">
-                <div style="background:var(--gray-50);padding:6px 8px;border-radius:4px;font-size:0.85rem;">
-                  <input type="text" class="level-name" value="${t('moodleRubrics.levelExcellent')}" style="width:50px;border:none;background:transparent;font-size:0.85rem;">
-                  <input type="number" class="level-score" value="25" min="0" style="width:40px;border:none;background:transparent;font-size:0.85rem;">
-                </div>
-                <div style="background:var(--gray-50);padding:6px 8px;border-radius:4px;font-size:0.85rem;">
-                  <input type="text" class="level-name" value="${t('moodleRubrics.levelGood')}" style="width:50px;border:none;background:transparent;font-size:0.85rem;">
-                  <input type="number" class="level-score" value="18" min="0" style="width:40px;border:none;background:transparent;font-size:0.85rem;">
-                </div>
-                <div style="background:var(--gray-50);padding:6px 8px;border-radius:4px;font-size:0.85rem;">
-                  <input type="text" class="level-name" value="${t('moodleRubrics.levelNeedsWork')}" style="width:50px;border:none;background:transparent;font-size:0.85rem;">
-                  <input type="number" class="level-score" value="10" min="0" style="width:40px;border:none;background:transparent;font-size:0.85rem;">
-                </div>
-              </div>
+          <div class="rubric-builder-section">
+            <div class="form-group">
+              <label>${t('common.name')} *</label>
+              <input type="text" id="rubricName" placeholder="${t('moodleRubrics.namePlaceholder')}">
+            </div>
+            <div class="form-group">
+              <label>${t('common.description')}</label>
+              <textarea id="rubricDescription" rows="2" placeholder="${t('moodleRubrics.descPlaceholder')}"></textarea>
+            </div>
+            <div class="form-group">
+              <label>${t('common.status')}</label>
+              <select id="rubricStatus"><option value="draft">${t('common.draft')}</option><option value="active">${t('common.active')}</option></select>
+            </div>
+            <div class="rubric-builder-heading">
+              <h4>${t('moodleRubrics.gradingCriteria')}</h4>
+              <button onclick="MoodleUI.addRubricCriterion()" class="btn-sm btn-secondary">${t('moodleRubrics.addCriterion')}</button>
+            </div>
+            <div id="rubricCriteriaList" class="rubric-builder-list">
+              ${this.renderRubricCriterionBuilder()}
             </div>
           </div>
-          <button onclick="MoodleUI.addRubricCriterion()" class="btn-sm btn-secondary" style="margin-top:0.5rem;">${t('moodleRubrics.addCriterion')}</button>
         </div>
         <div class="modal-footer">
           <button onclick="MoodleUI.closeModal('createRubricModal')" class="btn-secondary">${t('common.cancel')}</button>
@@ -6246,31 +6650,7 @@ const MoodleUI = {
   addRubricCriterion() {
     const list = document.getElementById('rubricCriteriaList');
     if (!list) return;
-    const item = document.createElement('div');
-    item.className = 'rubric-criterion-item';
-    item.style = 'border:1px solid var(--gray-200);border-radius:8px;padding:1rem;margin-bottom:0.75rem;';
-    item.innerHTML = `
-      <div class="form-row">
-        <div class="form-group" style="flex:1"><label>${t('moodleRubrics.criterionName')}</label><input type="text" class="criterion-name" placeholder="${t('moodleRubrics.criterionName')}"></div>
-        <div class="form-group" style="flex:1"><label>${t('moodleRubrics.maxScore')}</label><input type="number" class="criterion-score" value="25" min="0"></div>
-        <button type="button" onclick="this.closest('.rubric-criterion-item').remove()" style="align-self:flex-end;background:none;border:none;color:#dc2626;cursor:pointer;font-size:1.2rem;padding:6px;">×</button>
-      </div>
-      <div class="form-group"><label>${t('common.description')}</label><input type="text" class="criterion-desc" placeholder="${t('moodleRubrics.criterionDescPlaceholder')}"></div>
-      <div class="criterion-levels" style="display:flex;gap:0.5rem;flex-wrap:wrap;">
-        <div style="background:var(--gray-50);padding:6px 8px;border-radius:4px;font-size:0.85rem;">
-          <input type="text" class="level-name" value="${t('moodleRubrics.levelExcellent')}" style="width:50px;border:none;background:transparent;font-size:0.85rem;">
-          <input type="number" class="level-score" value="25" min="0" style="width:40px;border:none;background:transparent;font-size:0.85rem;">
-        </div>
-        <div style="background:var(--gray-50);padding:6px 8px;border-radius:4px;font-size:0.85rem;">
-          <input type="text" class="level-name" value="${t('moodleRubrics.levelGood')}" style="width:50px;border:none;background:transparent;font-size:0.85rem;">
-          <input type="number" class="level-score" value="18" min="0" style="width:40px;border:none;background:transparent;font-size:0.85rem;">
-        </div>
-        <div style="background:var(--gray-50);padding:6px 8px;border-radius:4px;font-size:0.85rem;">
-          <input type="text" class="level-name" value="${t('moodleRubrics.levelNeedsWork')}" style="width:50px;border:none;background:transparent;font-size:0.85rem;">
-          <input type="number" class="level-score" value="10" min="0" style="width:40px;border:none;background:transparent;font-size:0.85rem;">
-        </div>
-      </div>`;
-    list.appendChild(item);
+    list.insertAdjacentHTML('beforeend', this.renderRubricCriterionBuilder());
   },
 
   async saveRubric() {
@@ -6338,19 +6718,21 @@ const MoodleUI = {
     modal.id = 'rubricTemplateModal';
     modal.className = 'modal-overlay';
     modal.innerHTML = `
-      <div class="modal-content">
+      <div class="modal-content rubric-template-modal">
         <div class="modal-header">
           <h3>${t('moodleRubrics.createFromTemplate')}</h3>
           <button onclick="MoodleUI.closeModal('rubricTemplateModal')" class="modal-close">&times;</button>
         </div>
         <div class="modal-body">
-          ${templates.map(t => `
-            <div style="padding:1rem;border:1px solid var(--gray-200);border-radius:8px;margin-bottom:0.75rem;cursor:pointer;"
-                 onclick="MoodleUI.closeModal('rubricTemplateModal');MoodleUI.duplicateRubric('${t.rubricId || t.id}')">
-              <h4 style="margin:0 0 0.25rem;">${t.name || t('moodleRubrics.template')}</h4>
-              <p style="margin:0;font-size:0.85rem;color:var(--gray-400);">${t.description || ''}</p>
-            </div>
-          `).join('')}
+          <div class="rubric-template-list">
+            ${templates.map(templateItem => `
+              <div class="rubric-template-option"
+                   onclick="MoodleUI.closeModal('rubricTemplateModal');MoodleUI.duplicateRubric(${this.toInlineActionValue(templateItem.rubricId || templateItem.id)})">
+                <h4>${this.escapeText(templateItem.name || (I18n.getLocale() === 'en' ? 'Template' : '範本'))}</h4>
+                <p>${this.escapeText(templateItem.description || t('moodleRubrics.descPlaceholder'))}</p>
+              </div>
+            `).join('')}
+          </div>
         </div>
       </div>
     `;
@@ -6386,55 +6768,61 @@ const MoodleUI = {
 
   renderBadgesPage(container, badges, stats) {
     const user = (typeof API !== 'undefined' && API.getCurrentUser) ? API.getCurrentUser() : null;
+    const isEnglish = I18n.getLocale() === 'en';
     const canManage = !!(user && (user.isAdmin || ['manager', 'coursecreator', 'educator', 'trainer', 'creator', 'teacher', 'assistant'].includes(user.role)));
     const filtered = this.currentBadgesFilter === 'all' ? badges :
       badges.filter(b => b.status === this.currentBadgesFilter || b.type === this.currentBadgesFilter);
 
     container.innerHTML = `
-      <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
-        <h2 style="margin:0;">${t('moodleBadges.title')}</h2>
-        ${canManage ? `<button onclick="MoodleUI.openCreateBadgeModal()" class="btn-primary">${t('moodleBadges.createBadge')}</button>` : ''}
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:1rem;margin-bottom:1.5rem;">
-        <div style="padding:1rem;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border-radius:8px;">
-          <div style="font-size:1.8rem;font-weight:700;">${stats.totalBadges || badges.length}</div>
-          <div style="font-size:0.85rem;opacity:0.9;">${t('moodleBadges.totalBadges')}</div>
+      <div class="badges-container">
+        <div class="badges-header">
+          <h2>${t('moodleBadges.title')}</h2>
+          ${canManage ? `<button onclick="MoodleUI.openCreateBadgeModal()" class="btn-primary">${t('moodleBadges.createBadge')}</button>` : ''}
         </div>
-        <div style="padding:1rem;background:linear-gradient(135deg,#f093fb,#f5576c);color:#fff;border-radius:8px;">
-          <div style="font-size:1.8rem;font-weight:700;">${stats.activeBadges || 0}</div>
-          <div style="font-size:0.85rem;opacity:0.9;">${t('moodleBadges.activeBadges')}</div>
+        <div class="badge-stats-grid">
+          <div class="badge-stat-card tone-violet">
+            <div class="value">${stats.totalBadges || badges.length}</div>
+            <div class="label">${t('moodleBadges.totalBadges')}</div>
+          </div>
+          <div class="badge-stat-card tone-rose">
+            <div class="value">${stats.activeBadges || 0}</div>
+            <div class="label">${t('moodleBadges.activeBadges')}</div>
+          </div>
+          <div class="badge-stat-card tone-sky">
+            <div class="value">${stats.totalIssued || 0}</div>
+            <div class="label">${t('moodleBadges.totalIssued')}</div>
+          </div>
         </div>
-        <div style="padding:1rem;background:linear-gradient(135deg,#4facfe,#00f2fe);color:#fff;border-radius:8px;">
-          <div style="font-size:1.8rem;font-weight:700;">${stats.totalIssued || 0}</div>
-          <div style="font-size:0.85rem;opacity:0.9;">${t('moodleBadges.totalIssued')}</div>
-        </div>
-      </div>
-      <div class="filter-tabs" style="display:flex;gap:0.5rem;margin-bottom:1.5rem;">
+        <div class="badges-tabs">
         ${['all','active','draft','course','site'].map(f => `
-          <button class="btn-sm ${this.currentBadgesFilter === f ? 'btn-primary' : 'btn-secondary'}"
+          <button class="badge-tab ${this.currentBadgesFilter === f ? 'active' : ''}"
                   onclick="MoodleUI.currentBadgesFilter='${f}';MoodleUI.renderBadgesPage(document.getElementById('badgesContent'),MoodleUI._badgesData,MoodleUI._badgesStats)">
             ${{all:t('common.all'),active:t('common.active'),draft:t('common.draft'),course:t('moodleBadges.course'),site:t('moodleBadges.site')}[f]}
           </button>
         `).join('')}
-      </div>
-      <div class="card-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:1rem;">
-        ${filtered.length === 0 ? `<p style="color:var(--gray-400);grid-column:1/-1;text-align:center;padding:3rem;">${t('moodleBadges.noBadges')}</p>` :
+        </div>
+        <div class="badges-grid">
+        ${filtered.length === 0 ? this.renderActivityEmptyState({
+          icon: '<svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>',
+          title: t('moodleBadges.noBadges'),
+          hint: isEnglish ? 'Create a badge or adjust the current filter.' : '建立新徽章，或切換目前的篩選條件。'
+        }) :
           filtered.map(b => `
-            <div class="card" style="padding:1.5rem;border:1px solid var(--gray-200);border-radius:8px;cursor:pointer;text-align:center;"
-                 onclick="MoodleUI.viewBadgeDetail('${b.badgeId || b.id}')">
-              <div style="width:64px;height:64px;margin:0 auto 1rem;background:${b.color || '#f59e0b'};border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.8rem;">
+            <div class="badge-card ${b.status !== 'active' ? 'locked' : ''}"
+                 onclick="MoodleUI.viewBadgeDetail(${this.toInlineActionValue(b.badgeId || b.id)})">
+              <div class="badge-icon ${this.getSurfaceToneClass(b.badgeId || b.id || b.name)}">
                 ${b.icon || '🏆'}
               </div>
-              <h3 style="margin:0 0 0.5rem;font-size:1rem;">${b.name || t('common.unnamed')}</h3>
-              <span style="padding:2px 8px;border-radius:4px;font-size:0.75rem;background:${b.status === 'active' ? '#dcfce7;color:#166534' : '#fef3c7;color:#92400e'};">
-                ${b.status === 'active' ? t('common.active') : t('common.draft')}
-              </span>
-              <div style="margin-top:0.75rem;font-size:0.85rem;color:var(--gray-400);">
-                <span>${t('moodleBadges.typeLabel')}：${({course:t('moodleBadges.course'),site:t('moodleBadges.site'),manual:t('moodleBadges.manual')})[b.type] || b.type || '—'}</span>
-                <span style="margin-left:0.5rem;">${t('moodleBadges.issuedLabel')}：${b.issuedCount || 0}</span>
+              <h3 class="badge-name">${this.escapeText(b.name || t('common.unnamed'))}</h3>
+              <p class="badge-description">${this.escapeText(this.truncateText(b.description || t('common.noDescription'), 96))}</p>
+              <span class="badge-status-pill ${b.status === 'active' ? 'is-active' : 'is-draft'}">${this.getBadgeStatusLabel(b.status)}</span>
+              <div class="badge-criteria">
+                <span>${t('moodleBadges.typeLabel')}：${this.escapeText(this.getBadgeTypeLabel(b.type))}</span>
+                <span>${t('moodleBadges.issuedLabel')}：${b.issuedCount || 0}</span>
               </div>
             </div>
           `).join('')}
+        </div>
       </div>`;
   },
 
@@ -6452,60 +6840,89 @@ const MoodleUI = {
       if (!badgeResult.success) { container.innerHTML = `<div class="error">${t('common.loadFailed')}</div>`; return; }
       const b = badgeResult.data;
       const recipients = recipientsResult.success ? (Array.isArray(recipientsResult.data) ? recipientsResult.data : (recipientsResult.data?.recipients || [])) : [];
+      const isEnglish = I18n.getLocale() === 'en';
 
       container.innerHTML = `
-        <div style="margin-bottom:1rem;">
-          <button onclick="MoodleUI.openBadges()" class="back-btn" style="background:none;border:none;cursor:pointer;color:var(--primary);font-size:0.9rem;">← ${t('common.backToList')}</button>
-        </div>
-        <div style="display:flex;gap:2rem;margin-bottom:2rem;">
-          <div style="width:120px;height:120px;background:${b.color || '#f59e0b'};border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:3rem;flex-shrink:0;">
-            ${b.icon || '🏆'}
+        <div class="badges-container">
+          <button onclick="MoodleUI.openBadges()" class="btn-back">${t('common.backToList')}</button>
+          <div class="badge-detail-page">
+          <div class="badge-detail-header-row">
+            <div class="badge-detail-icon ${this.getSurfaceToneClass(b.badgeId || b.id || b.name)}">
+              ${b.icon || '🏆'}
+            </div>
+            <div class="badge-detail-main">
+              <div class="badge-detail-name">${this.escapeText(b.name || t('common.unnamed'))}</div>
+              <div class="badge-detail-description">${this.escapeText(b.description || t('common.noDescription'))}</div>
+              <div class="badge-summary-tags">
+                <span class="badge-status-pill ${b.status === 'active' ? 'is-active' : 'is-draft'}">${this.getBadgeStatusLabel(b.status)}</span>
+                <span class="badge-summary-pill">${t('moodleBadges.typeLabel')}：${this.escapeText(this.getBadgeTypeLabel(b.type))}</span>
+                <span class="badge-summary-pill">${t('moodleBadges.issuedLabel')}：${b.issuedCount || 0}</span>
+              </div>
+            </div>
+            ${canManage ? `
+            <div class="badge-detail-actions">
+              <button onclick="MoodleUI.openIssueBadgeModal(${this.toInlineActionValue(badgeId)})" class="btn-primary btn-sm">${t('moodleBadges.issueBadge')}</button>
+              <button onclick="MoodleUI.deleteBadge(${this.toInlineActionValue(badgeId)})" class="btn-sm btn-danger">${t('moodleGradeCategory.delete')}</button>
+            </div>
+            ` : ''}
           </div>
-          <div style="flex:1;">
-            <h2 style="margin:0 0 0.5rem;">${b.name || t('common.unnamed')}</h2>
-            <p style="margin:0 0 0.5rem;color:var(--gray-400);">${b.description || t('common.noDescription')}</p>
-            <div style="display:flex;gap:1rem;font-size:0.9rem;">
-              <span>${t('moodleBadges.typeLabel')}：${({course:t('moodleBadges.course'),site:t('moodleBadges.site'),manual:t('moodleBadges.manual')})[b.type] || b.type || '—'}</span>
-              <span>${t('common.status')}：${b.status === 'active' ? t('common.active') : t('common.draft')}</span>
-              <span>${t('moodleBadges.issuedLabel')}：${b.issuedCount || 0}</span>
+          <div class="badge-detail-info">
+            <div class="badge-info-item">
+              <label>${t('moodleBadges.typeLabel')}</label>
+              <span>${this.escapeText(this.getBadgeTypeLabel(b.type))}</span>
+            </div>
+            <div class="badge-info-item">
+              <label>${t('common.status')}</label>
+              <span>${this.getBadgeStatusLabel(b.status)}</span>
+            </div>
+            <div class="badge-info-item">
+              <label>${t('moodleBadges.issuedLabel')}</label>
+              <span>${b.issuedCount || 0}</span>
+            </div>
+            <div class="badge-info-item">
+              <label>${t('moodleBadges.recipients')}</label>
+              <span>${recipients.length}</span>
             </div>
           </div>
-          ${canManage ? `
-            <div style="display:flex;flex-direction:column;gap:0.5rem;">
-              <button onclick="MoodleUI.openIssueBadgeModal('${badgeId}')" class="btn-primary btn-sm">${t('moodleBadges.issueBadge')}</button>
-              <button onclick="MoodleUI.deleteBadge('${badgeId}')" class="btn-sm" style="background:#fee2e2;color:#dc2626;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;">${t('moodleGradeCategory.delete')}</button>
-            </div>
-          ` : ''}
-        </div>
         ${(b.criteria || []).length > 0 ? `
-          <div style="margin-bottom:1.5rem;padding:1rem;background:var(--gray-50);border-radius:8px;">
-            <h4 style="margin:0 0 0.75rem;">${t('moodleBadges.criteria')}</h4>
-            <ul style="margin:0;padding-left:1.5rem;">${b.criteria.map(c => `<li>${c.description || c.type || t('moodleBadges.criterion')}</li>`).join('')}</ul>
+          <div class="badge-criteria-panel">
+            <h4>${t('moodleBadges.criteria')}</h4>
+            <ul>${b.criteria.map(c => `<li>${this.escapeText(c.description || c.type || t('moodleBadges.criterion'))}</li>`).join('')}</ul>
           </div>
         ` : ''}
-        <h3>${t('moodleBadges.recipients')}（${recipients.length}）</h3>
-        ${recipients.length === 0 ? `<p style="color:var(--gray-400);">${t('moodleBadges.noRecipients')}</p>` : `
-          <div style="overflow-x:auto;">
-            <table style="width:100%;border-collapse:collapse;font-size:0.9rem;">
-              <thead><tr style="background:var(--gray-100);">
-                <th style="padding:8px;text-align:left;border:1px solid var(--gray-200);">${t('moodleH5p.uniqueUsers')}</th>
-                <th style="padding:8px;text-align:left;border:1px solid var(--gray-200);">${t('moodleBadges.issueDateCol')}</th>
-                <th style="padding:8px;text-align:center;border:1px solid var(--gray-200);">${t('common.actions')}</th>
+        <div class="badge-recipients-section">
+          <div class="section-title-row">
+            <h3>${t('moodleBadges.recipients')}（${recipients.length}）</h3>
+          </div>
+        ${recipients.length === 0 ? this.renderActivityEmptyState({
+          icon: '<svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1"><circle cx="12" cy="7" r="4"/><path d="M5.5 21a7.5 7.5 0 0113 0"/></svg>',
+          title: t('moodleBadges.noRecipients'),
+          hint: isEnglish ? 'Issue this badge to learners when they meet the criteria.' : '當學員達成條件後，就可以發送這枚徽章。'
+        }) : `
+          <div class="badge-table-shell">
+            <table class="rubric-table">
+              <thead><tr>
+                <th>${t('moodleH5p.uniqueUsers')}</th>
+                <th>${t('moodleBadges.issueDateCol')}</th>
+                <th>${t('common.actions')}</th>
               </tr></thead>
               <tbody>
                 ${recipients.map(r => `
                   <tr>
-                    <td style="padding:8px;border:1px solid var(--gray-200);">${r.userName || r.userId || '—'}</td>
-                    <td style="padding:8px;border:1px solid var(--gray-200);">${this.formatDate(r.issuedAt || r.createdAt, 'datetime')}</td>
-                    <td style="padding:8px;text-align:center;border:1px solid var(--gray-200);">
-                      ${canManage ? `<button onclick="MoodleUI.revokeBadge('${badgeId}','${r.userId}')" class="btn-sm" style="background:#fee2e2;color:#dc2626;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:0.8rem;">${t('moodleBadges.revoke')}</button>` : ''}
+                    <td>${this.escapeText(r.userName || r.userId || '—')}</td>
+                    <td>${this.escapeText(this.formatDate(r.issuedAt || r.createdAt, 'datetime'))}</td>
+                    <td class="table-action-cell">
+                      ${canManage ? `<button onclick="MoodleUI.revokeBadge(${this.toInlineActionValue(badgeId)},${this.toInlineActionValue(r.userId)})" class="btn-sm btn-danger">${t('moodleBadges.revoke')}</button>` : '—'}
                     </td>
                   </tr>
                 `).join('')}
               </tbody>
             </table>
           </div>
-        `}`;
+        `}
+        </div>
+        </div>
+        </div>`;
     } catch (error) {
       console.error('View badge detail error:', error);
       container.innerHTML = `<div class="error">${t('common.loadFailed')}</div>`;
@@ -6672,45 +7089,51 @@ const MoodleUI = {
   renderLearningPathsPage(container, paths) {
     const user = (typeof API !== 'undefined' && API.getCurrentUser) ? API.getCurrentUser() : null;
     const canManage = !!(user && (user.isAdmin || ['manager', 'coursecreator', 'educator', 'trainer', 'creator', 'teacher', 'assistant'].includes(user.role)));
-    const difficultyLabels = { beginner: t('moodlePaths.beginner'), intermediate: t('moodlePaths.intermediate'), advanced: t('moodlePaths.advanced') };
-    const difficultyColors = { beginner: '#dcfce7', intermediate: '#fef3c7', advanced: '#fee2e2' };
-    const difficultyText = { beginner: '#166534', intermediate: '#92400e', advanced: '#dc2626' };
 
     container.innerHTML = `
-      <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
-        <h2 style="margin:0;">${t('moodlePaths.title')}</h2>
-        ${canManage ? `<button onclick="MoodleUI.openCreateLearningPathModal()" class="btn-primary">${t('moodlePaths.create')}</button>` : ''}
-      </div>
-      <div class="card-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1rem;">
-        ${paths.length === 0 ? `<p style="color:var(--gray-400);grid-column:1/-1;text-align:center;padding:3rem;">${t('moodlePaths.noPaths')}</p>` :
+      <div class="learning-paths-container">
+        <div class="learning-paths-header">
+          <h2>${t('moodlePaths.title')}</h2>
+          ${canManage ? `<button onclick="MoodleUI.openCreateLearningPathModal()" class="btn-primary">${t('moodlePaths.create')}</button>` : ''}
+        </div>
+      <div class="learning-paths-grid">
+        ${paths.length === 0 ? this.renderActivityEmptyState({
+          icon: '<svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>',
+          title: t('moodlePaths.noPaths')
+        }) :
           paths.map(p => `
-            <div class="card" style="padding:1.5rem;border:1px solid var(--gray-200);border-radius:8px;cursor:pointer;"
-                 onclick="MoodleUI.viewLearningPathDetail('${p.pathId || p.id}')">
-              <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:0.75rem;">
-                <h3 style="margin:0;font-size:1.1rem;">${p.name || p.title || t('common.unnamed')}</h3>
-                <span style="padding:2px 8px;border-radius:4px;font-size:0.75rem;background:${difficultyColors[p.difficulty] || '#f3f4f6'};color:${difficultyText[p.difficulty] || '#374151'};">
-                  ${difficultyLabels[p.difficulty] || p.difficulty || '—'}
-                </span>
+            ${(() => {
+              const difficultyMeta = this.getDifficultyMeta(p.difficulty);
+              return `
+            <div class="learning-path-card"
+                 onclick="MoodleUI.viewLearningPathDetail(${this.toInlineActionValue(p.pathId || p.id)})">
+              <div class="path-thumbnail ${difficultyMeta.toneClass}">
+                <span class="path-difficulty ${difficultyMeta.className}">${this.escapeText(difficultyMeta.label)}</span>
+                <span class="path-thumbnail-icon">${difficultyMeta.icon}</span>
               </div>
-              <p style="margin:0 0 0.75rem;color:var(--gray-400);font-size:0.9rem;">${p.description || t('common.noDescription')}</p>
-              <div style="display:flex;gap:1rem;font-size:0.85rem;color:var(--gray-400);">
-                <span>${t('moodlePaths.coursesLabel')}${(p.courses || []).length}</span>
-                <span>${t('moodlePaths.durationLabel')}${p.duration || '—'}</span>
-                <span>${t('moodlePaths.enrolledLabel')}${p.enrolledCount || 0}</span>
-              </div>
+              <div class="path-content">
+                <div class="path-title">${this.escapeText(p.name || p.title || t('common.unnamed'))}</div>
+                <div class="path-description">${this.escapeText(this.truncateText(p.description || t('common.noDescription'), 120))}</div>
+                <div class="path-stats">
+                  <span>${t('moodlePaths.coursesLabel')}${(p.courses || []).length}</span>
+                  <span>${t('moodlePaths.durationLabel')}${this.escapeText(p.duration || '—')}</span>
+                  <span>${t('moodlePaths.enrolledLabel')}${p.enrolledCount || 0}</span>
+                </div>
               ${p.progress != null ? `
-                <div style="margin-top:0.75rem;">
-                  <div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:4px;">
-                    <span>${t('moodlePaths.progress')}</span><span>${Math.round(p.progress)}%</span>
+                <div class="path-progress">
+                  <div class="progress-bar">
+                    <div class="progress-fill" data-progress-width="${this.clampProgressValue(p.progress)}"></div>
                   </div>
-                  <div style="height:6px;background:var(--gray-200);border-radius:3px;overflow:hidden;">
-                    <div style="height:100%;width:${p.progress}%;background:var(--primary);border-radius:3px;"></div>
-                  </div>
+                  <div class="progress-text">${t('moodlePaths.progress')} ${Math.round(p.progress)}%</div>
                 </div>
               ` : ''}
             </div>
+            `;
+            })()}
           `).join('')}
+      </div>
       </div>`;
+    this.applyDynamicUiMetrics(container);
   },
 
   async viewLearningPathDetail(pathId) {
@@ -6729,55 +7152,97 @@ const MoodleUI = {
       const report = reportResult.success ? reportResult.data : {};
       const courses = p.courses || [];
       const progress = p.userProgress || p.progress;
+      const overallProgress = Math.round(typeof progress === 'object' ? progress.overallProgress || 0 : progress || 0);
+      const difficultyMeta = this.getDifficultyMeta(p.difficulty);
+      const isEnglish = I18n.getLocale() === 'en';
 
       container.innerHTML = `
-        <div style="margin-bottom:1rem;">
-          <button onclick="MoodleUI.openLearningPaths()" class="back-btn" style="background:none;border:none;cursor:pointer;color:var(--primary);font-size:0.9rem;">← ${t('common.backToList')}</button>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:1.5rem;">
-          <div>
-            <h2 style="margin:0 0 0.5rem;">${p.name || p.title || t('common.unnamed')}</h2>
-            <p style="margin:0;color:var(--gray-400);">${p.description || ''}</p>
-          </div>
-          <div style="display:flex;gap:0.5rem;">
-            <button onclick="MoodleUI.enrollLearningPath('${pathId}')" class="btn-primary btn-sm">${t('moodlePaths.enroll')}</button>
-            ${canManage ? `<button onclick="MoodleUI.deleteLearningPath('${pathId}')" class="btn-sm" style="background:#fee2e2;color:#dc2626;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;">${t('moodleGradeCategory.delete')}</button>` : ''}
-          </div>
-        </div>
-        ${progress != null ? `
-          <div style="margin-bottom:1.5rem;padding:1rem;background:var(--gray-50);border-radius:8px;">
-            <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-              <span>${t('moodlePaths.overallProgress')}</span><span>${Math.round(typeof progress === 'object' ? progress.overallProgress || 0 : progress)}%</span>
+        <div class="learning-path-detail">
+          <button onclick="MoodleUI.openLearningPaths()" class="btn-back">${t('common.backToList')}</button>
+          <div class="path-detail-header">
+            <div class="path-detail-image ${difficultyMeta.toneClass}">
+              <div class="path-thumbnail ${difficultyMeta.toneClass}">
+                <span class="path-difficulty ${difficultyMeta.className}">${this.escapeText(difficultyMeta.label)}</span>
+                <span class="path-thumbnail-icon">${difficultyMeta.icon}</span>
+              </div>
             </div>
-            <div style="height:8px;background:var(--gray-200);border-radius:4px;overflow:hidden;">
-              <div style="height:100%;width:${typeof progress === 'object' ? progress.overallProgress || 0 : progress}%;background:var(--primary);border-radius:4px;"></div>
+            <div class="path-detail-info">
+              <h1>${this.escapeText(p.name || p.title || t('common.unnamed'))}</h1>
+              <p>${this.escapeText(p.description || '')}</p>
+              <div class="path-summary-grid">
+                <div class="path-summary-card">
+                  <label>${t('moodlePaths.coursesLabel')}</label>
+                  <strong>${courses.length}</strong>
+                </div>
+                <div class="path-summary-card">
+                  <label>${t('moodlePaths.durationLabel')}</label>
+                  <strong>${this.escapeText(p.duration || '—')}</strong>
+                </div>
+                <div class="path-summary-card">
+                  <label>${t('moodlePaths.enrolledLabel')}</label>
+                  <strong>${p.enrolledCount || report.totalEnrolled || 0}</strong>
+                </div>
+                <div class="path-summary-card">
+                  <label>${t('moodlePaths.progress')}</label>
+                  <strong>${overallProgress}%</strong>
+                </div>
+              </div>
+              <div class="path-detail-actions">
+                <button onclick="MoodleUI.enrollLearningPath(${this.toInlineActionValue(pathId)})" class="btn-primary btn-sm">${t('moodlePaths.enroll')}</button>
+                ${canManage ? `<button onclick="MoodleUI.deleteLearningPath(${this.toInlineActionValue(pathId)})" class="btn-sm btn-danger">${t('moodleGradeCategory.delete')}</button>` : ''}
+              </div>
+            </div>
+          </div>
+        ${progress != null ? `
+          <div class="path-progress-panel">
+            <div class="path-progress-heading">
+              <span>${t('moodlePaths.overallProgress')}</span><span>${overallProgress}%</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" data-progress-width="${this.clampProgressValue(overallProgress)}"></div>
             </div>
           </div>
         ` : ''}
-        <h3 style="margin-bottom:1rem;">${t('moodlePaths.courseSequence')}（${courses.length} ${t('moodlePaths.courseUnit')}）</h3>
-        <div style="position:relative;padding-left:2rem;">
+        <div class="path-courses-section">
+        <h3>${t('moodlePaths.courseSequence')}（${courses.length} ${t('moodlePaths.courseUnit')}）</h3>
+        <div class="path-course-list">
           ${courses.map((c, idx) => `
-            <div style="display:flex;align-items:start;margin-bottom:1.5rem;position:relative;">
-              <div style="position:absolute;left:-2rem;width:28px;height:28px;background:${c.completed ? 'var(--primary)' : 'var(--gray-300)'};color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.8rem;font-weight:600;">
-                ${c.completed ? '✓' : idx + 1}
+            ${(() => {
+              const statusLabel = c.completed
+                ? (t('common.completed') || (isEnglish ? 'Completed' : '已完成'))
+                : ((c.progress || 0) > 0
+                  ? (t('common.inProgress') || (isEnglish ? 'In progress' : '進行中'))
+                  : (t('common.locked') || (isEnglish ? 'Locked' : '未解鎖')));
+              return `
+            <div class="path-course-item ${c.completed ? 'is-complete' : ''}">
+              <div class="course-order ${c.completed ? 'completed' : ''}">${c.completed ? '✓' : idx + 1}</div>
+              <div class="course-info">
+                <h4>${this.escapeText(c.title || c.name || `${t('moodlePaths.courseDefault')} ${idx + 1}`)}</h4>
+                <p>${this.escapeText(c.description || '')}</p>
               </div>
-              ${idx < courses.length - 1 ? `<div style="position:absolute;left:calc(-2rem + 13px);top:28px;width:2px;height:calc(100% + 0.5rem);background:var(--gray-200);"></div>` : ''}
-              <div style="flex:1;padding:1rem;border:1px solid var(--gray-200);border-radius:8px;margin-left:0.5rem;${c.completed ? 'border-color:var(--primary);background:#f0f9ff;' : ''}">
-                <h4 style="margin:0 0 0.25rem;">${c.title || c.name || t('moodlePaths.courseDefault') + ' ' + (idx + 1)}</h4>
-                <p style="margin:0;font-size:0.85rem;color:var(--gray-400);">${c.description || ''}</p>
+              <div class="course-status ${c.completed ? 'completed' : ((c.progress || 0) > 0 ? 'in-progress' : 'locked')}">
+                ${statusLabel}
               </div>
             </div>
+            `;
+            })()}
           `).join('')}
         </div>
+        </div>
         ${report.totalEnrolled ? `
-          <div style="margin-top:1.5rem;padding:1rem;background:var(--gray-50);border-radius:8px;">
-            <h4 style="margin:0 0 0.5rem;">${t('moodlePaths.statistics')}</h4>
-            <div style="display:flex;gap:2rem;font-size:0.9rem;">
-              <span>${t('moodlePaths.totalEnrolled')}${report.totalEnrolled}</span>
-              <span>${t('moodlePaths.completionRateLabel')}${report.completionRate ? Math.round(report.completionRate) + '%' : '—'}</span>
+          <div class="path-report-grid">
+            <div class="path-summary-card">
+              <label>${t('moodlePaths.totalEnrolled')}</label>
+              <strong>${report.totalEnrolled}</strong>
+            </div>
+            <div class="path-summary-card">
+              <label>${t('moodlePaths.completionRateLabel')}</label>
+              <strong>${report.completionRate ? Math.round(report.completionRate) + '%' : '—'}</strong>
             </div>
           </div>
-        ` : ''}`;
+        ` : ''}
+        </div>`;
+      this.applyDynamicUiMetrics(container);
     } catch (error) {
       console.error('View learning path detail error:', error);
       container.innerHTML = `<div class="error">${t('common.loadFailed')}</div>`;
@@ -6828,7 +7293,7 @@ const MoodleUI = {
           </div>
           <div class="form-group">
             <label>${t('moodlePaths.selectCourses')}</label>
-            <select id="lpCourses" multiple style="min-height:120px;">
+            <select id="lpCourses" class="multi-select-tall" multiple>
               ${courseOptions}
             </select>
           </div>
@@ -6915,91 +7380,133 @@ const MoodleUI = {
   },
 
   renderAuditLogsPage(container, logs, eventTypes, stats, pagination) {
-    const severityColors = { info: '#3b82f6', warning: '#f59e0b', error: '#ef4444', critical: '#dc2626' };
     const severityLabels = { info: t('moodleAudit.severityInfo'), warning: t('moodleAudit.severityWarning'), error: t('moodleAudit.severityError'), critical: t('moodleAudit.severityCritical') };
+    const severityCounts = Object.keys(stats.severityCounts || {}).length > 0
+      ? stats.severityCounts
+      : logs.reduce((acc, log) => {
+          const key = String(log?.severity || 'info').toLowerCase();
+          acc[key] = (acc[key] || 0) + 1;
+          return acc;
+        }, {});
+    const statCards = [
+      {
+        label: t('moodleAudit.totalRecords'),
+        value: String(stats.totalLogs || logs.length || 0)
+      },
+      ...Object.entries(severityCounts).map(([severity, count]) => ({
+        label: severityLabels[severity] || severity,
+        value: String(count || 0),
+        tone: ({
+          info: 'tone-info',
+          warning: 'tone-warning',
+          error: 'tone-danger',
+          critical: 'tone-critical'
+        })[severity] || ''
+      }))
+    ];
 
     container.innerHTML = `
-      <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
-        <h2 style="margin:0;">${t('moodleAudit.title')}</h2>
-        <div style="display:flex;gap:0.5rem;">
-          <button onclick="MoodleUI.exportAuditLogs('csv')" class="btn-secondary btn-sm">${t('moodleGradebook.exportCsv')}</button>
-          <button onclick="MoodleUI.exportAuditLogs('json')" class="btn-secondary btn-sm">${t('moodleAudit.exportJson')}</button>
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:1rem;margin-bottom:1.5rem;">
-        <div style="padding:1rem;background:var(--gray-50);border-radius:8px;text-align:center;">
-          <div style="font-size:1.5rem;font-weight:700;">${stats.totalLogs || logs.length}</div>
-          <div style="font-size:0.8rem;color:var(--gray-400);">${t('moodleAudit.totalRecords')}</div>
-        </div>
-        ${Object.entries(stats.severityCounts || {}).map(([sev, count]) => `
-          <div style="padding:1rem;background:var(--gray-50);border-radius:8px;text-align:center;">
-            <div style="font-size:1.5rem;font-weight:700;color:${severityColors[sev] || '#333'};">${count}</div>
-            <div style="font-size:0.8rem;color:var(--gray-400);">${severityLabels[sev] || sev}</div>
+      <div class="audit-logs-page">
+        <div class="page-header">
+          <h1>
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 6h16"/>
+              <path d="M4 12h16"/>
+              <path d="M4 18h10"/>
+            </svg>
+            ${t('moodleAudit.title')}
+          </h1>
+          <div class="header-actions">
+            <button onclick="MoodleUI.exportAuditLogs('csv')" class="btn-secondary btn-sm">${t('moodleGradebook.exportCsv')}</button>
+            <button onclick="MoodleUI.exportAuditLogs('json')" class="btn-secondary btn-sm">${t('moodleAudit.exportJson')}</button>
           </div>
-        `).join('')}
-      </div>
-      <div style="display:flex;gap:1rem;margin-bottom:1rem;flex-wrap:wrap;align-items:end;">
-        <div class="form-group" style="margin:0;min-width:150px;">
-          <label style="font-size:0.8rem;">${t('moodleAudit.eventType')}</label>
-          <select id="auditFilterType" onchange="MoodleUI.filterAuditLogs()" style="font-size:0.9rem;padding:6px;">
-            <option value="">全部</option>
-            ${eventTypes.map(et => `<option value="${et.type || et}" ${this.currentAuditFilters.eventType === (et.type || et) ? 'selected' : ''}>${et.label || et.name || et}</option>`).join('')}
-          </select>
         </div>
-        <div class="form-group" style="margin:0;min-width:120px;">
-          <label style="font-size:0.8rem;">${t('moodleAudit.severity')}</label>
-          <select id="auditFilterSeverity" onchange="MoodleUI.filterAuditLogs()" style="font-size:0.9rem;padding:6px;">
-            <option value="">${t('common.all')}</option>
-            <option value="info" ${this.currentAuditFilters.severity === 'info' ? 'selected' : ''}>${t('moodleAudit.severityInfo')}</option>
-            <option value="warning" ${this.currentAuditFilters.severity === 'warning' ? 'selected' : ''}>${t('moodleAudit.severityWarning')}</option>
-            <option value="error" ${this.currentAuditFilters.severity === 'error' ? 'selected' : ''}>${t('moodleAudit.severityError')}</option>
-            <option value="critical" ${this.currentAuditFilters.severity === 'critical' ? 'selected' : ''}>${t('moodleAudit.severityCritical')}</option>
-          </select>
+        ${this.renderManagementMetricGrid(statCards)}
+        <div class="audit-filters">
+          <div class="filter-row">
+            <div class="filter-group">
+              <label>${t('moodleAudit.eventType')}</label>
+              <select id="auditFilterType" onchange="MoodleUI.filterAuditLogs()">
+                <option value="">${t('common.all')}</option>
+                ${eventTypes.map(eventType => {
+                  const value = eventType.type || eventType;
+                  const label = eventType.label || eventType.name || eventType;
+                  return `<option value="${this.escapeText(value)}" ${this.currentAuditFilters.eventType === value ? 'selected' : ''}>${this.escapeText(label)}</option>`;
+                }).join('')}
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>${t('moodleAudit.severity')}</label>
+              <select id="auditFilterSeverity" onchange="MoodleUI.filterAuditLogs()">
+                <option value="">${t('common.all')}</option>
+                <option value="info" ${this.currentAuditFilters.severity === 'info' ? 'selected' : ''}>${t('moodleAudit.severityInfo')}</option>
+                <option value="warning" ${this.currentAuditFilters.severity === 'warning' ? 'selected' : ''}>${t('moodleAudit.severityWarning')}</option>
+                <option value="error" ${this.currentAuditFilters.severity === 'error' ? 'selected' : ''}>${t('moodleAudit.severityError')}</option>
+                <option value="critical" ${this.currentAuditFilters.severity === 'critical' ? 'selected' : ''}>${t('moodleAudit.severityCritical')}</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>${t('moodleAudit.startDate')}</label>
+              <input type="date" id="auditFilterStartDate" value="${this.escapeText(this.currentAuditFilters.startDate || '')}" onchange="MoodleUI.filterAuditLogs()">
+            </div>
+            <div class="filter-group">
+              <label>${t('moodleAudit.endDate')}</label>
+              <input type="date" id="auditFilterEndDate" value="${this.escapeText(this.currentAuditFilters.endDate || '')}" onchange="MoodleUI.filterAuditLogs()">
+            </div>
+          </div>
         </div>
-        <div class="form-group" style="margin:0;min-width:140px;">
-          <label style="font-size:0.8rem;">${t('moodleAudit.startDate')}</label>
-          <input type="date" id="auditFilterStartDate" onchange="MoodleUI.filterAuditLogs()" style="font-size:0.9rem;padding:6px;">
-        </div>
-        <div class="form-group" style="margin:0;min-width:140px;">
-          <label style="font-size:0.8rem;">${t('moodleAudit.endDate')}</label>
-          <input type="date" id="auditFilterEndDate" onchange="MoodleUI.filterAuditLogs()" style="font-size:0.9rem;padding:6px;">
-        </div>
-      </div>
-      <div style="overflow-x:auto;">
-        <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
-          <thead>
-            <tr style="background:var(--gray-100);">
-              <th style="padding:8px;text-align:left;border:1px solid var(--gray-200);">${t('moodleAudit.timeCol')}</th>
-              <th style="padding:8px;text-align:left;border:1px solid var(--gray-200);">${t('moodleAudit.eventType')}</th>
-              <th style="padding:8px;text-align:left;border:1px solid var(--gray-200);">${t('common.user')}</th>
-              <th style="padding:8px;text-align:left;border:1px solid var(--gray-200);">IP</th>
-              <th style="padding:8px;text-align:left;border:1px solid var(--gray-200);">${t('common.description')}</th>
-              <th style="padding:8px;text-align:center;border:1px solid var(--gray-200);">${t('moodleAudit.severity')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${logs.length === 0 ? '<tr><td colspan="6" style="padding:2rem;text-align:center;color:var(--gray-400);border:1px solid var(--gray-200);">無記錄</td></tr>' :
-              logs.map(log => `
+        <div class="audit-logs-container">
+          <table class="audit-table">
+            <thead>
+              <tr>
+                <th>${t('moodleAudit.timeCol')}</th>
+                <th>${t('moodleAudit.eventType')}</th>
+                <th>${t('common.user')}</th>
+                <th>IP</th>
+                <th>${t('common.description')}</th>
+                <th class="is-center">${t('moodleAudit.severity')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${logs.length === 0 ? `
                 <tr>
-                  <td style="padding:8px;border:1px solid var(--gray-200);white-space:nowrap;">${this.formatDate(log.createdAt || log.timestamp, 'datetime')}</td>
-                  <td style="padding:8px;border:1px solid var(--gray-200);">${log.eventType || '—'}</td>
-                  <td style="padding:8px;border:1px solid var(--gray-200);">${log.userName || log.userId || '—'}</td>
-                  <td style="padding:8px;border:1px solid var(--gray-200);">${log.ipAddress || log.ip || '—'}</td>
-                  <td style="padding:8px;border:1px solid var(--gray-200);">${log.description || log.message || '—'}</td>
-                  <td style="padding:8px;text-align:center;border:1px solid var(--gray-200);">
-                    <span style="padding:2px 8px;border-radius:4px;font-size:0.75rem;color:#fff;background:${severityColors[log.severity] || '#6b7280'};">
-                      ${severityLabels[log.severity] || log.severity || '—'}
-                    </span>
-                  </td>
+                  <td colspan="6" class="is-center">${t('moodleAudit.noLogs') || '無記錄'}</td>
                 </tr>
-              `).join('')}
-          </tbody>
-        </table>
+              ` : logs.map(log => {
+                const severity = String(log.severity || 'info').toLowerCase();
+                const eventType = log.eventType || '—';
+                const categoryClass = this.getAuditCategoryClass(eventType);
+                const userName = log.userName || log.userId || '—';
+                const userEmail = log.userEmail || log.email || '';
+                const description = log.description || log.message || '—';
+                return `
+                  <tr class="${severity === 'warning' || severity === 'error' || severity === 'critical' ? `severity-${severity}` : ''}">
+                    <td class="log-time">${this.escapeText(this.formatDate(log.createdAt || log.timestamp, 'datetime'))}</td>
+                    <td>
+                      <span class="event-badge ${categoryClass}">${this.escapeText(eventType)}</span>
+                    </td>
+                    <td>
+                      <div class="log-user">
+                        <span class="user-name">${this.escapeText(userName)}</span>
+                        ${userEmail ? `<span class="user-email">${this.escapeText(userEmail)}</span>` : ''}
+                      </div>
+                    </td>
+                    <td class="log-ip">${this.escapeText(log.ipAddress || log.ip || '—')}</td>
+                    <td><span class="log-desc" title="${this.escapeText(description)}">${this.escapeText(description)}</span></td>
+                    <td class="is-center">
+                      <span class="severity-badge ${this.escapeText(severity)}">${this.escapeText(severityLabels[severity] || severity || '—')}</span>
+                    </td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
       </div>
       ${pagination.totalPages > 1 ? `
-        <div style="display:flex;justify-content:center;gap:0.5rem;margin-top:1rem;">
+        <div class="management-pagination">
           ${this.currentAuditFilters.page > 1 ? `<button onclick="MoodleUI.currentAuditFilters.page--;MoodleUI.openAuditLogs()" class="btn-sm btn-secondary">上一頁</button>` : ''}
-          <span style="padding:6px 12px;font-size:0.9rem;">${t('moodleAudit.pageInfo', {current: pagination.page || this.currentAuditFilters.page, total: pagination.totalPages})}</span>
+          <span class="management-pagination-info">${t('moodleAudit.pageInfo', {current: pagination.page || this.currentAuditFilters.page, total: pagination.totalPages})}</span>
           ${(pagination.page || this.currentAuditFilters.page) < pagination.totalPages ? `<button onclick="MoodleUI.currentAuditFilters.page++;MoodleUI.openAuditLogs()" class="btn-sm btn-secondary">下一頁</button>` : ''}
         </div>
       ` : ''}`;
@@ -7064,47 +7571,69 @@ const MoodleUI = {
   renderH5pPage(container, contents, types) {
     const filtered = this.currentH5pFilter === 'all' ? contents :
       contents.filter(c => c.contentType === this.currentH5pFilter || c.status === this.currentH5pFilter);
-    const typeIcons = { 'Interactive Video': '🎬', 'Course Presentation': '📊', 'Quiz': '❓', 'Drag and Drop': '🎯', 'Fill in the Blanks': '✏️', 'Dialog Cards': '🃏', 'Timeline': '📅', 'Flashcards': '🗂️' };
 
     container.innerHTML = `
-      <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
-        <h2 style="margin:0;">${t('moodleH5p.title')}</h2>
-        <button onclick="MoodleUI.openCreateH5pModal()" class="btn-primary">+ ${t('moodleH5p.createBtn')}</button>
-      </div>
-      <div class="filter-tabs" style="display:flex;gap:0.5rem;margin-bottom:1.5rem;flex-wrap:wrap;">
-        <button class="btn-sm ${this.currentH5pFilter === 'all' ? 'btn-primary' : 'btn-secondary'}"
-                onclick="MoodleUI.currentH5pFilter='all';MoodleUI.renderH5pPage(document.getElementById('h5pManagerContent'),MoodleUI._h5pData,MoodleUI._h5pTypes)">${t('common.all')}</button>
-        <button class="btn-sm ${this.currentH5pFilter === 'published' ? 'btn-primary' : 'btn-secondary'}"
-                onclick="MoodleUI.currentH5pFilter='published';MoodleUI.renderH5pPage(document.getElementById('h5pManagerContent'),MoodleUI._h5pData,MoodleUI._h5pTypes)">${t('common.published')}</button>
-        <button class="btn-sm ${this.currentH5pFilter === 'draft' ? 'btn-primary' : 'btn-secondary'}"
-                onclick="MoodleUI.currentH5pFilter='draft';MoodleUI.renderH5pPage(document.getElementById('h5pManagerContent'),MoodleUI._h5pData,MoodleUI._h5pTypes)">${t('common.draft')}</button>
-        ${types.slice(0, 5).map(t => {
-          const typeName = t.name || t.type || t;
-          return `<button class="btn-sm ${this.currentH5pFilter === typeName ? 'btn-primary' : 'btn-secondary'}"
-                onclick="MoodleUI.currentH5pFilter='${typeName}';MoodleUI.renderH5pPage(document.getElementById('h5pManagerContent'),MoodleUI._h5pData,MoodleUI._h5pTypes)">${typeName}</button>`;
-        }).join('')}
-      </div>
-      <div class="card-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;">
-        ${filtered.length === 0 ? `<p style="color:var(--gray-400);grid-column:1/-1;text-align:center;padding:3rem;">${t('moodleH5p.noContent')}</p>` :
-          filtered.map(c => `
-            <div class="card" style="padding:1.5rem;border:1px solid var(--gray-200);border-radius:8px;cursor:pointer;"
-                 onclick="MoodleUI.viewH5pDetail('${c.contentId || c.id}')">
-              <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.75rem;">
-                <span style="font-size:1.5rem;">${typeIcons[c.contentType] || '📦'}</span>
-                <div style="flex:1;">
-                  <h3 style="margin:0;font-size:1rem;">${c.title || t('common.unnamed')}</h3>
-                  <span style="font-size:0.8rem;color:var(--gray-400);">${c.contentType || '—'}</span>
+      <div class="h5p-manager-page">
+        <div class="page-header">
+          <h1>
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="4" width="18" height="14" rx="2"/>
+              <line x1="8" y1="20" x2="16" y2="20"/>
+              <line x1="12" y1="18" x2="12" y2="20"/>
+            </svg>
+            ${t('moodleH5p.title')}
+          </h1>
+          <button onclick="MoodleUI.openCreateH5pModal()" class="btn-primary">+ ${t('moodleH5p.createBtn')}</button>
+        </div>
+        <div class="management-filter-bar">
+          <button class="filter-btn ${this.currentH5pFilter === 'all' ? 'active' : ''}"
+                  onclick="MoodleUI.currentH5pFilter='all';MoodleUI.renderH5pPage(document.getElementById('h5pManagerContent'),MoodleUI._h5pData,MoodleUI._h5pTypes)">${t('common.all')}</button>
+          <button class="filter-btn ${this.currentH5pFilter === 'published' ? 'active' : ''}"
+                  onclick="MoodleUI.currentH5pFilter='published';MoodleUI.renderH5pPage(document.getElementById('h5pManagerContent'),MoodleUI._h5pData,MoodleUI._h5pTypes)">${t('common.published')}</button>
+          <button class="filter-btn ${this.currentH5pFilter === 'draft' ? 'active' : ''}"
+                  onclick="MoodleUI.currentH5pFilter='draft';MoodleUI.renderH5pPage(document.getElementById('h5pManagerContent'),MoodleUI._h5pData,MoodleUI._h5pTypes)">${t('common.draft')}</button>
+          ${types.slice(0, 5).map(typeItem => {
+            const typeName = typeItem.name || typeItem.type || typeItem;
+            const inlineType = this.toInlineActionValue(typeName);
+            return `<button class="filter-btn ${this.currentH5pFilter === typeName ? 'active' : ''}"
+                onclick="MoodleUI.currentH5pFilter=${inlineType};MoodleUI.renderH5pPage(document.getElementById('h5pManagerContent'),MoodleUI._h5pData,MoodleUI._h5pTypes)">${this.escapeText(typeName)}</button>`;
+          }).join('')}
+        </div>
+        <div class="h5p-content-grid">
+          ${filtered.length === 0
+            ? this.renderActivityEmptyState({
+                icon: `
+                  <svg viewBox="0 0 24 24" width="42" height="42" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <rect x="3" y="4" width="18" height="14" rx="2"/>
+                    <line x1="8" y1="20" x2="16" y2="20"/>
+                    <line x1="12" y1="18" x2="12" y2="20"/>
+                  </svg>
+                `,
+                title: t('moodleH5p.noContent'),
+                hint: t('moodleH5p.createTitle')
+              })
+            : filtered.map(content => `
+              <article class="h5p-card" onclick="MoodleUI.viewH5pDetail(${this.toInlineActionValue(content.contentId || content.id)})">
+                <div class="card-thumbnail">
+                  ${this.renderH5pTypeIcon(content.contentType)}
+                  <div class="type-name">${this.escapeText(content.contentType || 'H5P')}</div>
                 </div>
-                <span style="padding:2px 8px;border-radius:4px;font-size:0.7rem;background:${c.status === 'published' ? '#dcfce7;color:#166534' : '#fef3c7;color:#92400e'};">
-                  ${c.status === 'published' ? t('common.published') : t('common.draft')}
-                </span>
-              </div>
-              <div style="display:flex;gap:1rem;font-size:0.8rem;color:var(--gray-400);">
-                <span>${t('moodleH5p.views')}：${c.viewCount || 0}</span>
-                <span>${t('moodleH5p.attempts')}：${c.attemptCount || 0}</span>
-              </div>
-            </div>
-          `).join('')}
+                <div class="card-body">
+                  <h3>${this.escapeText(content.title || t('common.unnamed'))}</h3>
+                  <p>${this.escapeText(content.description || t('moodleH5p.descPlaceholder'))}</p>
+                  <div class="card-stats">
+                    <span>${t('moodleH5p.views')}：${this.escapeText(content.viewCount || 0)}</span>
+                    <span>${t('moodleH5p.attempts')}：${this.escapeText(content.attemptCount || 0)}</span>
+                    <span class="content-status">${this.renderManagementStatusBadge(content.status, content.status === 'published' ? t('common.published') : t('common.draft'))}</span>
+                  </div>
+                  <div class="card-actions">
+                    <button type="button" class="btn-preview" onclick="event.stopPropagation();MoodleUI.viewH5pDetail(${this.toInlineActionValue(content.contentId || content.id)})">${t('common.view')}</button>
+                    <button type="button" class="btn-report" onclick="event.stopPropagation();MoodleUI.duplicateH5pContent(${this.toInlineActionValue(content.contentId || content.id)})">${t('common.duplicate')}</button>
+                  </div>
+                </div>
+              </article>
+            `).join('')}
+        </div>
       </div>`;
   },
 
@@ -7119,48 +7648,70 @@ const MoodleUI = {
         API.h5p.getEmbed(contentId).catch(() => ({ success: false }))
       ]);
       if (!contentResult.success) { container.innerHTML = `<div class="error">${t('common.loadFailed')}</div>`; return; }
-      const c = contentResult.data;
+      const content = contentResult.data;
       const report = reportResult.success ? reportResult.data : {};
       const embed = embedResult.success ? embedResult.data : {};
+      const contentSubtitle = [content.contentType || 'H5P', content.description || '']
+        .filter(Boolean)
+        .join(' · ');
 
       container.innerHTML = `
-        <div style="margin-bottom:1rem;">
-          <button onclick="MoodleUI.openH5pManager()" class="back-btn" style="background:none;border:none;cursor:pointer;color:var(--primary);font-size:0.9rem;">← 返回列表</button>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:1.5rem;">
-          <div>
-            <h2 style="margin:0 0 0.25rem;">${c.title || t('common.unnamed')}</h2>
-            <p style="margin:0;color:var(--gray-400);">${c.contentType || ''} — ${c.description || ''}</p>
-          </div>
-          <div style="display:flex;gap:0.5rem;">
-            <button onclick="MoodleUI.duplicateH5pContent('${contentId}')" class="btn-sm btn-secondary">${t('common.duplicate')}</button>
-            <button onclick="MoodleUI.deleteH5pContent('${contentId}')" class="btn-sm" style="background:#fee2e2;color:#dc2626;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;">${t('moodleGradeCategory.delete')}</button>
-          </div>
-        </div>
-        ${embed.embedCode || embed.html ? `
-          <div style="margin-bottom:1.5rem;padding:1rem;background:var(--gray-50);border-radius:8px;">
-            <h4 style="margin:0 0 0.5rem;">${t('moodleH5p.preview')}</h4>
-            <div style="border:1px solid var(--gray-200);border-radius:4px;min-height:200px;background:#fff;padding:1rem;">
-              ${embed.embedCode || embed.html || `<p style="color:var(--gray-400);text-align:center;">${t('moodleH5p.cannotPreview')}</p>`}
-            </div>
-          </div>
-        ` : ''}
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:1rem;margin-bottom:1.5rem;">
-          <div style="padding:1rem;background:var(--gray-50);border-radius:8px;text-align:center;">
-            <div style="font-size:1.5rem;font-weight:700;">${report.totalAttempts || c.attemptCount || 0}</div>
-            <div style="font-size:0.8rem;color:var(--gray-400);">${t('moodleH5p.totalAttempts')}</div>
-          </div>
-          <div style="padding:1rem;background:var(--gray-50);border-radius:8px;text-align:center;">
-            <div style="font-size:1.5rem;font-weight:700;">${report.uniqueUsers || 0}</div>
-            <div style="font-size:0.8rem;color:var(--gray-400);">${t('moodleH5p.uniqueUsers')}</div>
-          </div>
-          <div style="padding:1rem;background:var(--gray-50);border-radius:8px;text-align:center;">
-            <div style="font-size:1.5rem;font-weight:700;">${report.averageScore != null ? Math.round(report.averageScore) + '%' : '—'}</div>
-            <div style="font-size:0.8rem;color:var(--gray-400);">${t('moodleH5p.avgScore')}</div>
-          </div>
-          <div style="padding:1rem;background:var(--gray-50);border-radius:8px;text-align:center;">
-            <div style="font-size:1.5rem;font-weight:700;">${c.viewCount || 0}</div>
-            <div style="font-size:0.8rem;color:var(--gray-400);">${t('moodleH5p.viewCount')}</div>
+        <div class="management-detail-page">
+          ${this.renderManagementDetailHeader({
+            backAction: 'MoodleUI.openH5pManager()',
+            backLabel: t('common.back'),
+            kicker: 'H5P',
+            title: content.title || t('common.unnamed'),
+            subtitle: contentSubtitle,
+            actions: [
+              {
+                label: t('common.duplicate'),
+                className: 'btn-secondary btn-sm',
+                onclick: `MoodleUI.duplicateH5pContent(${this.toInlineActionValue(contentId)})`
+              },
+              {
+                label: t('moodleGradeCategory.delete'),
+                className: 'btn-sm btn-danger',
+                onclick: `MoodleUI.deleteH5pContent(${this.toInlineActionValue(contentId)})`
+              }
+            ]
+          })}
+          ${this.renderManagementMetricGrid([
+            { label: t('moodleH5p.totalAttempts'), value: String(report.totalAttempts || content.attemptCount || 0) },
+            { label: t('moodleH5p.uniqueUsers'), value: String(report.uniqueUsers || 0) },
+            { label: t('moodleH5p.avgScore'), value: report.averageScore != null ? `${Math.round(report.averageScore)}%` : '—' },
+            { label: t('moodleH5p.viewCount'), value: String(content.viewCount || 0) }
+          ])}
+          <div class="management-panel-grid">
+            <section class="management-panel">
+              <h3>${t('moodleH5p.preview')}</h3>
+              <div class="management-preview-frame">
+                ${(embed.embedCode || embed.html)
+                  ? `<div class="management-rich-preview">${embed.embedCode || embed.html}</div>`
+                  : `<div class="management-empty-preview">${t('moodleH5p.cannotPreview')}</div>`}
+              </div>
+            </section>
+            <section class="management-panel">
+              <h3>${t('common.details')}</h3>
+              <div class="management-kv-list">
+                <div class="management-kv-item">
+                  <div class="management-kv-label">${t('moodleH5p.contentType')}</div>
+                  <div class="management-kv-value">${this.escapeText(content.contentType || 'H5P')}</div>
+                </div>
+                <div class="management-kv-item">
+                  <div class="management-kv-label">${t('common.status')}</div>
+                  <div class="management-kv-value">${this.renderManagementStatusBadge(content.status, content.status === 'published' ? t('common.published') : t('common.draft'))}</div>
+                </div>
+                <div class="management-kv-item">
+                  <div class="management-kv-label">${t('moodleH5p.assignedCourse')}</div>
+                  <div class="management-kv-value">${this.escapeText(content.courseName || content.courseId || t('common.notSpecified'))}</div>
+                </div>
+                <div class="management-kv-item">
+                  <div class="management-kv-label">${t('common.description')}</div>
+                  <div class="management-kv-value">${this.escapeText(content.description || '—')}</div>
+                </div>
+              </div>
+            </section>
           </div>
         </div>`;
     } catch (error) {
@@ -7292,32 +7843,56 @@ const MoodleUI = {
 
   renderLtiPage(container, tools) {
     container.innerHTML = `
-      <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
-        <h2 style="margin:0;">${t('moodleLtiMgmt.title')}</h2>
-        <button onclick="MoodleUI.openRegisterLtiToolModal()" class="btn-primary">+ ${t('moodleLtiMgmt.registerBtn')}</button>
-      </div>
-      <div class="card-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1rem;">
-        ${tools.length === 0 ? `<p style="color:var(--gray-400);grid-column:1/-1;text-align:center;padding:3rem;">${t('moodleLtiMgmt.noTools')}</p>` :
-          tools.map(t => `
-            <div class="card" style="padding:1.5rem;border:1px solid var(--gray-200);border-radius:8px;cursor:pointer;"
-                 onclick="MoodleUI.viewLtiToolDetail('${t.toolId || t.id}')">
-              <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:0.75rem;">
-                <h3 style="margin:0;font-size:1.1rem;">${t.name || t('common.unnamed')}</h3>
-                <div style="display:flex;gap:0.25rem;">
-                  <span style="padding:2px 8px;border-radius:4px;font-size:0.7rem;background:#e0e7ff;color:#3730a3;">
-                    LTI ${t.ltiVersion || t.version || '1.1'}
-                  </span>
-                  <span style="padding:2px 8px;border-radius:4px;font-size:0.7rem;background:${t.status === 'active' ? '#dcfce7;color:#166534' : '#fef3c7;color:#92400e'};">
-                    ${t.status === 'active' ? t('common.active') : t('common.inactive')}
-                  </span>
+      <div class="lti-manager-page">
+        <div class="page-header">
+          <h1>
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 12h6"/>
+              <path d="M12 9v6"/>
+              <path d="M4.93 4.93a10 10 0 1014.14 14.14A10 10 0 004.93 4.93z"/>
+            </svg>
+            ${t('moodleLtiMgmt.title')}
+          </h1>
+          <div class="header-actions">
+            <button onclick="MoodleUI.openRegisterLtiToolModal()" class="btn-primary">+ ${t('moodleLtiMgmt.registerBtn')}</button>
+          </div>
+        </div>
+        <div class="lti-tools-list">
+          ${tools.length === 0
+            ? this.renderActivityEmptyState({
+                icon: `
+                  <svg viewBox="0 0 24 24" width="42" height="42" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <path d="M9 12h6"/>
+                    <path d="M12 9v6"/>
+                    <path d="M4.93 4.93a10 10 0 1014.14 14.14A10 10 0 004.93 4.93z"/>
+                  </svg>
+                `,
+                title: t('moodleLtiMgmt.noTools'),
+                hint: t('moodleLtiMgmt.registerTitle')
+              })
+            : tools.map(tool => `
+              <article class="lti-tool-card" onclick="MoodleUI.viewLtiToolDetail(${this.toInlineActionValue(tool.toolId || tool.id)})">
+                <div class="card-header">
+                  <div>
+                    <h3>${this.escapeText(tool.name || t('common.unnamed'))}</h3>
+                  </div>
+                  ${this.renderManagementStatusBadge(tool.status, tool.status === 'active' ? t('common.active') : t('common.inactive'))}
                 </div>
-              </div>
-              <p style="margin:0 0 0.5rem;color:var(--gray-400);font-size:0.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                ${t.toolUrl || t.launchUrl || t.url || '—'}
-              </p>
-              <p style="margin:0;font-size:0.85rem;color:var(--gray-400);">${t.description || ''}</p>
-            </div>
-          `).join('')}
+                <div class="card-body">
+                  <div class="tool-url">${this.escapeText(tool.toolUrl || tool.launchUrl || tool.url || '—')}</div>
+                  <div class="tool-meta">
+                    <span>LTI ${this.escapeText(tool.ltiVersion || tool.version || '1.1')}</span>
+                    <span>${this.escapeText(tool.consumerKey || t('moodleLtiMgmt.noConsumerKey') || 'Consumer Key —')}</span>
+                  </div>
+                  <p>${this.escapeText(tool.description || t('moodleLtiMgmt.descPlaceholder'))}</p>
+                  <div class="card-actions">
+                    <button type="button" class="btn-launch" onclick="event.stopPropagation();MoodleUI.launchLtiTool(${this.toInlineActionValue(tool.toolId || tool.id)})">${t('moodleScorm.launch')}</button>
+                    <button type="button" class="btn-manage" onclick="event.stopPropagation();MoodleUI.viewLtiToolDetail(${this.toInlineActionValue(tool.toolId || tool.id)})">${t('common.view')}</button>
+                  </div>
+                </div>
+              </article>
+            `).join('')}
+        </div>
       </div>`;
   },
 
@@ -7331,64 +7906,112 @@ const MoodleUI = {
         API.ltiTools.getGrades(toolId).catch(() => ({ success: false }))
       ]);
       if (!toolResult.success) { container.innerHTML = `<div class="error">${t('common.loadFailed')}</div>`; return; }
-      const t = toolResult.data;
+      const tool = toolResult.data;
       const grades = gradesResult.success ? (Array.isArray(gradesResult.data) ? gradesResult.data : (gradesResult.data?.grades || [])) : [];
+      const customParameters = typeof tool.customParameters === 'string'
+        ? tool.customParameters
+        : (tool.customParameters ? JSON.stringify(tool.customParameters, null, 2) : '');
 
       container.innerHTML = `
-        <div style="margin-bottom:1rem;">
-          <button onclick="MoodleUI.openLtiManager()" class="back-btn" style="background:none;border:none;cursor:pointer;color:var(--primary);font-size:0.9rem;">← 返回列表</button>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:1.5rem;">
-          <div>
-            <h2 style="margin:0 0 0.25rem;">${t.name || t('common.unnamed')}</h2>
-            <p style="margin:0;color:var(--gray-400);">${t.description || ''}</p>
+        <div class="management-detail-page">
+          ${this.renderManagementDetailHeader({
+            backAction: 'MoodleUI.openLtiManager()',
+            backLabel: t('common.back'),
+            kicker: 'LTI',
+            title: tool.name || t('common.unnamed'),
+            subtitle: tool.description || (tool.toolUrl || tool.launchUrl || tool.url || ''),
+            actions: [
+              {
+                label: t('moodleScorm.launch'),
+                className: 'btn-primary btn-sm',
+                onclick: `MoodleUI.launchLtiTool(${this.toInlineActionValue(toolId)})`
+              },
+              {
+                label: t('moodleGradeCategory.delete'),
+                className: 'btn-sm btn-danger',
+                onclick: `MoodleUI.deleteLtiTool(${this.toInlineActionValue(toolId)})`
+              }
+            ]
+          })}
+          ${this.renderManagementMetricGrid([
+            { label: t('moodleLtiMgmt.version'), value: `LTI ${tool.ltiVersion || tool.version || '1.1'}` },
+            { label: t('common.status'), value: this.getManagementStatusMeta(tool.status, tool.status === 'active' ? t('common.active') : t('common.inactive')).label },
+            { label: t('moodleLtiMgmt.gradeRecords'), value: String(grades.length || 0) }
+          ])}
+          <div class="management-panel-grid">
+            <section class="management-panel">
+              <h3>${t('moodleLtiMgmt.toolSettings')}</h3>
+              <div class="management-kv-list">
+                <div class="management-kv-item">
+                  <div class="management-kv-label">${t('moodleLtiMgmt.launchUrl')}</div>
+                  <div class="management-kv-value is-code">${this.escapeText(tool.toolUrl || tool.launchUrl || tool.url || '—')}</div>
+                </div>
+                <div class="management-kv-item">
+                  <div class="management-kv-label">${t('moodleLtiMgmt.version')}</div>
+                  <div class="management-kv-value">LTI ${this.escapeText(tool.ltiVersion || tool.version || '1.1')}</div>
+                </div>
+                <div class="management-kv-item">
+                  <div class="management-kv-label">Consumer Key</div>
+                  <div class="management-kv-value is-code">${this.escapeText(tool.consumerKey || '—')}</div>
+                </div>
+                <div class="management-kv-item">
+                  <div class="management-kv-label">${t('common.status')}</div>
+                  <div class="management-kv-value">${this.renderManagementStatusBadge(tool.status, tool.status === 'active' ? t('common.active') : t('common.inactive'))}</div>
+                </div>
+                ${customParameters ? `
+                  <div class="management-kv-item">
+                    <div class="management-kv-label">${t('moodleLtiMgmt.customParams')}</div>
+                    <div class="management-kv-value is-code">${this.escapeText(customParameters)}</div>
+                  </div>
+                ` : ''}
+              </div>
+            </section>
+            <section class="management-panel">
+              <h3>${t('moodleLtiMgmt.privacySettings')}</h3>
+              <div class="management-kv-list">
+                <div class="management-kv-item">
+                  <div class="management-kv-label">${t('moodleLtiMgmt.shareName')}</div>
+                  <div class="management-kv-value">${this.escapeText(tool.shareName !== false ? t('common.yes') : t('common.no'))}</div>
+                </div>
+                <div class="management-kv-item">
+                  <div class="management-kv-label">${t('moodleLtiMgmt.shareEmail')}</div>
+                  <div class="management-kv-value">${this.escapeText(tool.shareEmail !== false ? t('common.yes') : t('common.no'))}</div>
+                </div>
+                <div class="management-kv-item">
+                  <div class="management-kv-label">${t('moodleLtiMgmt.acceptGrades')}</div>
+                  <div class="management-kv-value">${this.escapeText(tool.acceptGrades !== false ? t('common.yes') : t('common.no'))}</div>
+                </div>
+              </div>
+            </section>
           </div>
-          <div style="display:flex;gap:0.5rem;">
-            <button onclick="MoodleUI.launchLtiTool('${toolId}')" class="btn-primary btn-sm">${t('moodleScorm.launch')}</button>
-            <button onclick="MoodleUI.deleteLtiTool('${toolId}')" class="btn-sm" style="background:#fee2e2;color:#dc2626;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;">${t('moodleGradeCategory.delete')}</button>
-          </div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem;">
-          <div style="padding:1rem;background:var(--gray-50);border-radius:8px;">
-            <h4 style="margin:0 0 0.75rem;">${t('moodleLtiMgmt.toolSettings')}</h4>
-            <div style="font-size:0.9rem;">
-              <p><strong>${t('moodleLtiMgmt.launchUrl')}：</strong><span style="word-break:break-all;">${t.toolUrl || t.launchUrl || t.url || '—'}</span></p>
-              <p><strong>${t('moodleLtiMgmt.version')}：</strong>LTI ${t.ltiVersion || t.version || '1.1'}</p>
-              <p><strong>Consumer Key：</strong>${t.consumerKey || '—'}</p>
-              <p><strong>${t('common.status')}：</strong>${t.status === 'active' ? t('common.active') : t('common.inactive')}</p>
-              ${t.customParameters ? `<p><strong>${t('moodleLtiMgmt.customParams')}：</strong>${typeof t.customParameters === 'string' ? t.customParameters : JSON.stringify(t.customParameters)}</p>` : ''}
+          <div class="management-table-shell">
+            <div class="management-table-heading">
+              <h3>${t('moodleLtiMgmt.gradeRecords')} (${grades.length})</h3>
             </div>
-          </div>
-          <div style="padding:1rem;background:var(--gray-50);border-radius:8px;">
-            <h4 style="margin:0 0 0.75rem;">${t('moodleLtiMgmt.privacySettings')}</h4>
-            <div style="font-size:0.9rem;">
-              <p><strong>${t('moodleLtiMgmt.shareName')}：</strong>${t.shareName !== false ? t('common.yes') : t('common.no')}</p>
-              <p><strong>${t('moodleLtiMgmt.shareEmail')}：</strong>${t.shareEmail !== false ? t('common.yes') : t('common.no')}</p>
-              <p><strong>${t('moodleLtiMgmt.acceptGrades')}：</strong>${t.acceptGrades !== false ? t('common.yes') : t('common.no')}</p>
-            </div>
-          </div>
-        </div>
-        ${grades.length > 0 ? `
-          <h3>${t('moodleLtiMgmt.gradeRecords')}（${grades.length}）</h3>
-          <div style="overflow-x:auto;">
-            <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
-              <thead><tr style="background:var(--gray-100);">
-                <th style="padding:8px;text-align:left;border:1px solid var(--gray-200);">${t('common.user')}</th>
-                <th style="padding:8px;text-align:center;border:1px solid var(--gray-200);">${t('moodleGrade.score')}</th>
-                <th style="padding:8px;text-align:left;border:1px solid var(--gray-200);">${t('common.date')}</th>
-              </tr></thead>
+            <table class="management-table">
+              <thead>
+                <tr>
+                  <th>${t('common.user')}</th>
+                  <th class="is-center">${t('moodleGrade.score')}</th>
+                  <th>${t('common.date')}</th>
+                </tr>
+              </thead>
               <tbody>
-                ${grades.map(g => `
+                ${grades.length === 0 ? `
                   <tr>
-                    <td style="padding:8px;border:1px solid var(--gray-200);">${g.userName || g.userId || '—'}</td>
-                    <td style="padding:8px;text-align:center;border:1px solid var(--gray-200);">${g.score != null ? g.score : '—'}</td>
-                    <td style="padding:8px;border:1px solid var(--gray-200);">${this.formatDate(g.createdAt || g.timestamp, 'datetime')}</td>
+                    <td colspan="3" class="is-center">${t('moodleLtiMgmt.noGrades') || t('moodleGrade.noGrades')}</td>
+                  </tr>
+                ` : grades.map(grade => `
+                  <tr>
+                    <td>${this.escapeText(grade.userName || grade.userId || '—')}</td>
+                    <td class="is-center">${this.escapeText(grade.score != null ? grade.score : '—')}</td>
+                    <td>${this.escapeText(this.formatDate(grade.createdAt || grade.timestamp, 'datetime'))}</td>
                   </tr>
                 `).join('')}
               </tbody>
             </table>
           </div>
-        ` : ''}`;
+        </div>`;
     } catch (error) {
       console.error('View LTI tool detail error:', error);
       container.innerHTML = `<div class="error">${t('common.loadFailed')}</div>`;
@@ -7446,14 +8069,14 @@ const MoodleUI = {
             <textarea id="ltiCustomParams" rows="2" placeholder="key1=value1&#10;key2=value2"></textarea>
           </div>
           <h4>${t('moodleLtiMgmt.privacySettings')}</h4>
-          <div style="display:flex;gap:1.5rem;">
-            <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.9rem;">
+          <div class="checkbox-inline-group">
+            <label>
               <input type="checkbox" id="ltiShareName" checked> ${t('moodleLtiMgmt.shareName')}
             </label>
-            <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.9rem;">
+            <label>
               <input type="checkbox" id="ltiShareEmail" checked> ${t('moodleLtiMgmt.shareEmail')}
             </label>
-            <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.9rem;">
+            <label>
               <input type="checkbox" id="ltiAcceptGrades" checked> ${t('moodleLtiMgmt.acceptGrades')}
             </label>
           </div>
@@ -7554,41 +8177,66 @@ const MoodleUI = {
       packages.filter(p => p.status === this.currentScormFilter);
 
     container.innerHTML = `
-      <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
-        <h2 style="margin:0;">${t('moodleScorm.title')}</h2>
-        <button onclick="MoodleUI.openCreateScormModal()" class="btn-primary">+ ${t('moodleScorm.createBtn')}</button>
-      </div>
-      <div class="filter-tabs" style="display:flex;gap:0.5rem;margin-bottom:1.5rem;">
-        ${['all','active','draft','archived'].map(f => `
-          <button class="btn-sm ${this.currentScormFilter === f ? 'btn-primary' : 'btn-secondary'}"
-                  onclick="MoodleUI.currentScormFilter='${f}';MoodleUI.renderScormPage(document.getElementById('scormManagerContent'),MoodleUI._scormData)">
-            ${{all:t('common.all'),active:t('common.active'),draft:t('common.draft'),archived:t('moodleScorm.archived')}[f]}
-          </button>
-        `).join('')}
-      </div>
-      <div class="card-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1rem;">
-        ${filtered.length === 0 ? `<p style="color:var(--gray-400);grid-column:1/-1;text-align:center;padding:3rem;">${t('moodleScorm.noPackages')}</p>` :
-          filtered.map(p => `
-            <div class="card" style="padding:1.5rem;border:1px solid var(--gray-200);border-radius:8px;cursor:pointer;"
-                 onclick="MoodleUI.viewScormDetail('${p.packageId || p.id}')">
-              <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:0.75rem;">
-                <h3 style="margin:0;font-size:1.1rem;">${p.title || p.name || t('common.unnamed')}</h3>
-                <div style="display:flex;gap:0.25rem;">
-                  <span style="padding:2px 8px;border-radius:4px;font-size:0.7rem;background:#e0e7ff;color:#3730a3;">
-                    SCORM ${p.version || p.scormVersion || '1.2'}
-                  </span>
-                  <span style="padding:2px 8px;border-radius:4px;font-size:0.7rem;background:${p.status === 'active' ? '#dcfce7;color:#166534' : '#fef3c7;color:#92400e'};">
-                    ${p.status === 'active' ? t('common.active') : p.status === 'archived' ? t('moodleScorm.archived') : t('common.draft')}
-                  </span>
-                </div>
-              </div>
-              <p style="margin:0 0 0.5rem;color:var(--gray-400);font-size:0.85rem;">${p.description || ''}</p>
-              <div style="display:flex;gap:1rem;font-size:0.8rem;color:var(--gray-400);">
-                <span>${t('moodleCourse.course')}：${p.courseName || p.courseId || '—'}</span>
-                <span>${t('moodleScorm.completionRate')}：${p.completionRate != null ? Math.round(p.completionRate) + '%' : '—'}</span>
-              </div>
-            </div>
+      <div class="scorm-manager-page">
+        <div class="page-header">
+          <h1>
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 4h16v16H4z"/>
+              <path d="M9 9h6v6H9z"/>
+            </svg>
+            ${t('moodleScorm.title')}
+          </h1>
+          <button onclick="MoodleUI.openCreateScormModal()" class="btn-primary">+ ${t('moodleScorm.createBtn')}</button>
+        </div>
+        <div class="scorm-info-banner">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="9"/>
+            <path d="M12 8v5"/>
+            <path d="M12 16h.01"/>
+          </svg>
+          <p>${t('moodleScorm.description') || t('moodleScorm.createTitle')}</p>
+        </div>
+        <div class="management-filter-bar">
+          ${['all','active','draft','archived'].map(filter => `
+            <button class="filter-btn ${this.currentScormFilter === filter ? 'active' : ''}"
+                    onclick="MoodleUI.currentScormFilter='${filter}';MoodleUI.renderScormPage(document.getElementById('scormManagerContent'),MoodleUI._scormData)">
+              ${{all:t('common.all'),active:t('common.active'),draft:t('common.draft'),archived:t('moodleScorm.archived')}[filter]}
+            </button>
           `).join('')}
+        </div>
+        <div class="scorm-list">
+          ${filtered.length === 0
+            ? this.renderActivityEmptyState({
+                icon: `
+                  <svg viewBox="0 0 24 24" width="42" height="42" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <path d="M4 4h16v16H4z"/>
+                    <path d="M9 9h6v6H9z"/>
+                  </svg>
+                `,
+                title: t('moodleScorm.noPackages'),
+                hint: t('moodleScorm.createTitle')
+              })
+            : filtered.map(pkg => `
+              <article class="scorm-card" onclick="MoodleUI.viewScormDetail(${this.toInlineActionValue(pkg.packageId || pkg.id)})">
+                <div class="card-header">
+                  <h3>${this.escapeText(pkg.title || pkg.name || t('common.unnamed'))}</h3>
+                  <span class="version-badge">SCORM ${this.escapeText(pkg.version || pkg.scormVersion || '1.2')}</span>
+                </div>
+                <div class="card-body">
+                  <p>${this.escapeText(pkg.description || t('moodleScorm.descPlaceholder'))}</p>
+                  <div class="card-meta">
+                    <span>${this.escapeText(t('moodleCourse.course'))}：${this.escapeText(pkg.courseName || pkg.courseId || '—')}</span>
+                    <span>${this.escapeText(t('moodleScorm.completionRate'))}：${this.escapeText(pkg.completionRate != null ? `${Math.round(pkg.completionRate)}%` : '—')}</span>
+                    <span>${this.renderManagementStatusBadge(pkg.status, pkg.status === 'active' ? t('common.active') : pkg.status === 'archived' ? t('moodleScorm.archived') : t('common.draft'))}</span>
+                  </div>
+                  <div class="card-actions">
+                    <button type="button" class="btn-launch" onclick="event.stopPropagation();MoodleUI.launchScormPackage(${this.toInlineActionValue(pkg.packageId || pkg.id)})">${t('moodleScorm.launch')}</button>
+                    <button type="button" class="btn-report" onclick="event.stopPropagation();MoodleUI.viewScormDetail(${this.toInlineActionValue(pkg.packageId || pkg.id)})">${t('common.view')}</button>
+                  </div>
+                </div>
+              </article>
+            `).join('')}
+        </div>
       </div>`;
   },
 
@@ -7603,76 +8251,96 @@ const MoodleUI = {
         API.scorm.getAttempts(packageId).catch(() => ({ success: false }))
       ]);
       if (!pkgResult.success) { container.innerHTML = `<div class="error">${t('common.loadFailed')}</div>`; return; }
-      const p = pkgResult.data;
+      const pkg = pkgResult.data;
       const report = reportResult.success ? reportResult.data : {};
       const attempts = attemptsResult.success ? (Array.isArray(attemptsResult.data) ? attemptsResult.data : (attemptsResult.data?.attempts || [])) : [];
+      const subtitle = `SCORM ${pkg.version || pkg.scormVersion || '1.2'}${pkg.description ? ` · ${pkg.description}` : ''}`;
 
       container.innerHTML = `
-        <div style="margin-bottom:1rem;">
-          <button onclick="MoodleUI.openScormManager()" class="back-btn" style="background:none;border:none;cursor:pointer;color:var(--primary);font-size:0.9rem;">← 返回列表</button>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:1.5rem;">
-          <div>
-            <h2 style="margin:0 0 0.25rem;">${p.title || p.name || t('common.unnamed')}</h2>
-            <p style="margin:0;color:var(--gray-400);">SCORM ${p.version || p.scormVersion || '1.2'} — ${p.description || ''}</p>
+        <div class="management-detail-page">
+          ${this.renderManagementDetailHeader({
+            backAction: 'MoodleUI.openScormManager()',
+            backLabel: t('common.back'),
+            kicker: 'SCORM',
+            title: pkg.title || pkg.name || t('common.unnamed'),
+            subtitle,
+            actions: [
+              {
+                label: t('moodleScorm.launch'),
+                className: 'btn-primary btn-sm',
+                onclick: `MoodleUI.launchScormPackage(${this.toInlineActionValue(packageId)})`
+              },
+              {
+                label: t('moodleGradeCategory.delete'),
+                className: 'btn-sm btn-danger',
+                onclick: `MoodleUI.deleteScormPackage(${this.toInlineActionValue(packageId)})`
+              }
+            ]
+          })}
+          ${this.renderManagementMetricGrid([
+            { label: t('moodleScorm.totalAttempts'), value: String(report.totalAttempts || attempts.length || 0) },
+            { label: t('moodleScorm.completionRate'), value: report.completionRate != null ? `${Math.round(report.completionRate)}%` : '—' },
+            { label: t('moodleScorm.passRate'), value: report.passRate != null ? `${Math.round(report.passRate)}%` : '—' },
+            { label: t('moodleScorm.avgScore'), value: report.averageScore != null ? String(Math.round(report.averageScore)) : '—' }
+          ])}
+          <div class="management-panel-grid">
+            <section class="management-panel">
+              <h3>${t('moodleScorm.packageSettings')}</h3>
+              <div class="management-kv-list">
+                <div class="management-kv-item">
+                  <div class="management-kv-label">${t('moodleScorm.assignedCourse')}</div>
+                  <div class="management-kv-value">${this.escapeText(pkg.courseName || pkg.courseId || t('common.notSpecified'))}</div>
+                </div>
+                <div class="management-kv-item">
+                  <div class="management-kv-label">${t('moodleScorm.gradingMethod')}</div>
+                  <div class="management-kv-value">${this.escapeText(pkg.gradingMethod || pkg.gradeMethod || t('moodleScorm.highestScore'))}</div>
+                </div>
+                <div class="management-kv-item">
+                  <div class="management-kv-label">${t('moodleScorm.maxAttempts')}</div>
+                  <div class="management-kv-value">${this.escapeText(pkg.maxAttempts || t('common.unlimited'))}</div>
+                </div>
+                <div class="management-kv-item">
+                  <div class="management-kv-label">${t('common.status')}</div>
+                  <div class="management-kv-value">${this.renderManagementStatusBadge(pkg.status, pkg.status === 'active' ? t('common.active') : pkg.status === 'archived' ? t('moodleScorm.archived') : t('common.draft'))}</div>
+                </div>
+              </div>
+            </section>
           </div>
-          <div style="display:flex;gap:0.5rem;">
-            <button onclick="MoodleUI.launchScormPackage('${packageId}')" class="btn-primary btn-sm">${t('moodleScorm.launch')}</button>
-            <button onclick="MoodleUI.deleteScormPackage('${packageId}')" class="btn-sm" style="background:#fee2e2;color:#dc2626;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;">${t('moodleGradeCategory.delete')}</button>
-          </div>
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:1rem;margin-bottom:1.5rem;">
-          <div style="padding:1rem;background:var(--gray-50);border-radius:8px;text-align:center;">
-            <div style="font-size:1.5rem;font-weight:700;">${report.totalAttempts || attempts.length}</div>
-            <div style="font-size:0.8rem;color:var(--gray-400);">${t('moodleScorm.totalAttempts')}</div>
-          </div>
-          <div style="padding:1rem;background:var(--gray-50);border-radius:8px;text-align:center;">
-            <div style="font-size:1.5rem;font-weight:700;">${report.completionRate != null ? Math.round(report.completionRate) + '%' : '—'}</div>
-            <div style="font-size:0.8rem;color:var(--gray-400);">${t('moodleScorm.completionRate')}</div>
-          </div>
-          <div style="padding:1rem;background:var(--gray-50);border-radius:8px;text-align:center;">
-            <div style="font-size:1.5rem;font-weight:700;">${report.passRate != null ? Math.round(report.passRate) + '%' : '—'}</div>
-            <div style="font-size:0.8rem;color:var(--gray-400);">${t('moodleScorm.passRate')}</div>
-          </div>
-          <div style="padding:1rem;background:var(--gray-50);border-radius:8px;text-align:center;">
-            <div style="font-size:1.5rem;font-weight:700;">${report.averageScore != null ? Math.round(report.averageScore) : '—'}</div>
-            <div style="font-size:0.8rem;color:var(--gray-400);">${t('moodleScorm.avgScore')}</div>
-          </div>
-        </div>
-        <div style="padding:1rem;background:var(--gray-50);border-radius:8px;margin-bottom:1.5rem;">
-          <h4 style="margin:0 0 0.5rem;">${t('moodleScorm.packageSettings')}</h4>
-          <div style="display:flex;gap:2rem;font-size:0.9rem;">
-            <span><strong>${t('moodleScorm.gradingMethod')}：</strong>${p.gradingMethod || p.gradeMethod || t('moodleScorm.highestScore')}</span>
-            <span><strong>${t('moodleScorm.maxAttempts')}：</strong>${p.maxAttempts || t('common.unlimited')}</span>
-          </div>
-        </div>
-        ${attempts.length > 0 ? `
-          <h3>${t('moodleScorm.attemptRecords')}</h3>
-          <div style="overflow-x:auto;">
-            <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
-              <thead><tr style="background:var(--gray-100);">
-                <th style="padding:8px;text-align:left;border:1px solid var(--gray-200);">${t('moodleQuiz.attemptCol')}</th>
-                <th style="padding:8px;text-align:center;border:1px solid var(--gray-200);">${t('common.status')}</th>
-                <th style="padding:8px;text-align:center;border:1px solid var(--gray-200);">${t('moodleGrade.score')}</th>
-                <th style="padding:8px;text-align:left;border:1px solid var(--gray-200);">${t('moodleQuiz.startTime')}</th>
-              </tr></thead>
+          <div class="management-table-shell">
+            <div class="management-table-heading">
+              <h3>${t('moodleScorm.attemptRecords')} (${attempts.length})</h3>
+            </div>
+            <table class="management-table">
+              <thead>
+                <tr>
+                  <th>${t('moodleQuiz.attemptCol')}</th>
+                  <th class="is-center">${t('common.status')}</th>
+                  <th class="is-center">${t('moodleGrade.score')}</th>
+                  <th>${t('moodleQuiz.startTime')}</th>
+                </tr>
+              </thead>
               <tbody>
-                ${attempts.map((a, idx) => `
+                ${attempts.length === 0 ? `
                   <tr>
-                    <td style="padding:8px;border:1px solid var(--gray-200);">#${idx + 1}</td>
-                    <td style="padding:8px;text-align:center;border:1px solid var(--gray-200);">
-                      <span style="padding:2px 8px;border-radius:4px;font-size:0.75rem;background:${a.completionStatus === 'completed' ? '#dcfce7;color:#166534' : '#fef3c7;color:#92400e'};">
-                        ${a.completionStatus || a.status || t('moodleScorm.inProgress')}
-                      </span>
+                    <td colspan="4" class="is-center">${t('moodleScorm.noAttempts') || t('moodleScorm.noPackages')}</td>
+                  </tr>
+                ` : attempts.map((attempt, index) => `
+                  <tr>
+                    <td>#${index + 1}</td>
+                    <td class="is-center">
+                      ${this.renderManagementStatusBadge(
+                        attempt.completionStatus === 'completed' ? 'completed' : 'pending',
+                        attempt.completionStatus || attempt.status || t('moodleScorm.inProgress')
+                      )}
                     </td>
-                    <td style="padding:8px;text-align:center;border:1px solid var(--gray-200);">${a.score != null ? a.score : '—'}</td>
-                    <td style="padding:8px;border:1px solid var(--gray-200);">${this.formatDate(a.startedAt || a.createdAt, 'datetime')}</td>
+                    <td class="is-center">${this.escapeText(attempt.score != null ? attempt.score : '—')}</td>
+                    <td>${this.escapeText(this.formatDate(attempt.startedAt || attempt.createdAt, 'datetime'))}</td>
                   </tr>
                 `).join('')}
               </tbody>
             </table>
           </div>
-        ` : ''}`;
+        </div>`;
     } catch (error) {
       console.error('View SCORM detail error:', error);
       container.innerHTML = `<div class="error">${t('common.loadFailed')}</div>`;
@@ -8763,25 +9431,32 @@ const MoodleUI = {
       const categories = result.success ? (result.data || []) : [];
 
       this.createModal('categoryManageModal', t('moodleQuestionBank.manageCategoriesTitle'), `
-        <div class="category-list">
+        <div class="question-category-manager">
+          <div class="category-list">
           ${categories.map(cat => `
-            <div class="category-item" style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #eee">
-              <span>${cat.name} (${cat.questionCount || 0} ${t('moodleQuestionBank.questionsUnit')})</span>
-              <button onclick="MoodleUI.deleteQuestionCategory('${cat.categoryId}')" class="btn-sm btn-danger">${t('moodleGradeCategory.delete')}</button>
+            <div class="category-item">
+              <div class="category-info">
+                <span class="category-name">${this.escapeText(cat.name)}</span>
+                <span class="category-weight">${this.escapeText(cat.questionCount || 0)} ${t('moodleQuestionBank.questionsUnit')}</span>
+              </div>
+              <div class="category-actions">
+                <button onclick="MoodleUI.deleteQuestionCategory(${this.toInlineActionValue(cat.categoryId)})" class="btn-sm btn-danger">${t('moodleGradeCategory.delete')}</button>
+              </div>
             </div>
           `).join('')}
           ${categories.length === 0 ? `<p class="empty-list">${t('moodleQuestionBank.noCategories')}</p>` : ''}
-        </div>
-        <hr>
-        <form onsubmit="event.preventDefault(); MoodleUI.createQuestionCategory()" style="margin-top:12px">
-          <div class="form-group">
-            <label>${t('moodleQuestionBank.addCategory')}</label>
-            <div style="display:flex;gap:8px">
-              <input type="text" id="newQCatName" placeholder="${t('moodleQuestionBank.categoryPlaceholder')}" required style="flex:1">
-              <button type="submit" class="btn-primary">${t('common.add')}</button>
-            </div>
           </div>
-        </form>
+          <hr class="modal-section-divider">
+          <form class="question-category-form" onsubmit="event.preventDefault(); MoodleUI.createQuestionCategory()">
+            <div class="form-group">
+              <label>${t('moodleQuestionBank.addCategory')}</label>
+              <div class="inline-form-row">
+                <input class="fill" type="text" id="newQCatName" placeholder="${t('moodleQuestionBank.categoryPlaceholder')}" required>
+                <button type="submit" class="btn-primary">${t('common.add')}</button>
+              </div>
+            </div>
+          </form>
+        </div>
       `);
     } catch (error) {
       showToast(t('moodleGradeCategory.loadFailed'));
@@ -8836,25 +9511,19 @@ const MoodleUI = {
       const allCapabilities = (capResult.success && Array.isArray(capResult.data)) ? capResult.data : [];
 
       this.createModal('editRoleModal', t('moodleRoles.editRoleTitle'), `
-        <form onsubmit="event.preventDefault(); MoodleUI.saveRole('${roleId}')">
+        <form onsubmit="event.preventDefault(); MoodleUI.saveRole(${this.toInlineActionValue(roleId)})">
           <div class="form-group">
             <label>${t('moodleRoles.nameLabel')}</label>
-            <input type="text" id="er_name" value="${role.name || ''}" required>
+            <input type="text" id="er_name" value="${this.escapeText(role.name || '')}" required>
           </div>
           <div class="form-group">
             <label>${t('common.description')}</label>
-            <textarea id="er_description" rows="2">${role.description || ''}</textarea>
+            <textarea id="er_description" rows="2">${this.escapeText(role.description || '')}</textarea>
           </div>
           <div class="form-group">
             <label>${t('moodleRoles.permissions')}</label>
-            <div class="capabilities-checkboxes" style="max-height:300px;overflow-y:auto">
-              ${allCapabilities.map(cap => `
-                <label style="display:block;padding:4px 0">
-                  <input type="checkbox" name="capabilities" value="${cap.id}"
-                    ${(role.capabilities || []).includes(cap.id) ? 'checked' : ''}>
-                  ${cap.name || cap.id}
-                </label>
-              `).join('')}
+            <div class="capabilities-grid">
+              ${this.renderCapabilitiesEditor(role.capabilities || [], allCapabilities, false)}
             </div>
           </div>
           <div class="form-actions">
@@ -8869,7 +9538,7 @@ const MoodleUI = {
   },
 
   async saveRole(roleId) {
-    const capabilities = Array.from(document.querySelectorAll('input[name="capabilities"]:checked')).map(cb => cb.value);
+    const capabilities = Array.from(document.querySelectorAll('#editRoleModal input[data-capability]:checked')).map(input => input.dataset.capability);
     const data = {
       name: document.getElementById('er_name').value,
       description: document.getElementById('er_description').value,

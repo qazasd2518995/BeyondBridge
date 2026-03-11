@@ -33,6 +33,26 @@ const App = {
     return ['manager', 'coursecreator', 'educator', 'trainer', 'creator', 'teacher', 'assistant'].includes(user.role);
   },
 
+  clampProgressValue(value) {
+    if (window.PlatformUIRuntime?.clampProgressValue) {
+      return window.PlatformUIRuntime.clampProgressValue(value);
+    }
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return 0;
+    return Math.max(0, Math.min(100, numeric));
+  },
+
+  applyProgressData(root = document) {
+    if (window.PlatformUIRuntime?.applyProgressWidths) {
+      window.PlatformUIRuntime.applyProgressWidths(root);
+      return;
+    }
+    if (!root || typeof root.querySelectorAll !== 'function') return;
+    root.querySelectorAll('[data-progress-width]').forEach((node) => {
+      node.style.width = `${this.clampProgressValue(node.dataset.progressWidth)}%`;
+    });
+  },
+
   /**
    * 初始化應用程式
    */
@@ -67,16 +87,16 @@ const App = {
    * 顯示登入頁面
    */
   showLogin() {
-    document.getElementById('loginView').style.display = 'grid';
-    document.getElementById('appContainer').style.display = 'none';
+    document.getElementById('loginView').hidden = false;
+    document.getElementById('appContainer').hidden = true;
   },
 
   /**
    * 顯示主應用程式
    */
   showApp() {
-    document.getElementById('loginView').style.display = 'none';
-    document.getElementById('appContainer').style.display = 'flex';
+    document.getElementById('loginView').hidden = true;
+    document.getElementById('appContainer').hidden = false;
     this.updateUserUI();
     this.updateSidebarByRole();
   },
@@ -682,19 +702,19 @@ const App = {
 
     // 根據角色顯示對應的儀表板
     if (isTeacher) {
-      if (studentDashboard) studentDashboard.style.display = 'none';
-      if (teacherDashboard) teacherDashboard.style.display = 'block';
+      if (studentDashboard) studentDashboard.hidden = true;
+      if (teacherDashboard) teacherDashboard.hidden = false;
     } else {
-      if (studentDashboard) studentDashboard.style.display = 'block';
-      if (teacherDashboard) teacherDashboard.style.display = 'none';
+      if (studentDashboard) studentDashboard.hidden = false;
+      if (teacherDashboard) teacherDashboard.hidden = true;
     }
 
     // 學生專屬區塊
     if (urgentSection) {
-      urgentSection.style.display = isStudent ? 'block' : 'none';
+      urgentSection.hidden = !isStudent;
     }
     if (achievementsCard) {
-      achievementsCard.style.display = isStudent ? 'block' : 'none';
+      achievementsCard.hidden = !isStudent;
     }
   },
 
@@ -1269,6 +1289,7 @@ const App = {
       const inProgress = this.coursesCache.filter(c => c.progress < 100).slice(0, 3);
       if (inProgress.length > 0) {
         courseList.innerHTML = inProgress.map(course => this.renderCourseItem(course)).join('');
+        this.applyProgressData(courseList);
       }
     }
 
@@ -1276,6 +1297,7 @@ const App = {
     const coursesGrid = document.querySelector('#coursesView .course-list');
     if (coursesGrid) {
       coursesGrid.innerHTML = this.coursesCache.map(course => this.renderCourseItem(course)).join('');
+      this.applyProgressData(coursesGrid);
     }
   },
 
@@ -1299,7 +1321,7 @@ const App = {
           <p class="course-meta">${course.unitCount || '?'} ${t('app.units')} ・ ${t('app.totalHours', {hours: Math.round((course.totalDuration || 0) / 60)})}</p>
           <div class="course-progress">
             <div class="progress-bar">
-              <div class="progress-fill" style="width: ${course.progress || 0}%"></div>
+              <div class="progress-fill" data-progress-width="${this.clampProgressValue(course.progress || 0)}"></div>
             </div>
             <span class="progress-text">${course.progress || 0}%</span>
           </div>
@@ -2998,7 +3020,7 @@ const App = {
                 <p class="course-instructor">${c.instructorName || ''}</p>
                 ${c.progress !== undefined ? `
                   <div class="progress-bar-container">
-                    <div class="progress-bar" style="width:${c.progress}%"></div>
+                    <div class="progress-bar" data-progress-width="${this.clampProgressValue(c.progress)}"></div>
                     <span class="progress-text">${c.progress}%</span>
                   </div>
                 ` : ''}
@@ -3007,6 +3029,7 @@ const App = {
           `).join('')}
         </div>
       `;
+      this.applyProgressData(container);
     } catch (error) {
       console.error('loadMyCoursesView error:', error);
       container.innerHTML = `<div class="error-state">${t('app.loadCourseFailed')}</div>`;
@@ -3322,7 +3345,7 @@ const App = {
                       <span>${video.progress}%</span>
                     </div>
                     <div class="video-progress">
-                      <div class="video-progress-fill" style="width:${video.progress}%;"></div>
+                      <div class="video-progress-fill" data-progress-width="${this.clampProgressValue(video.progress)}"></div>
                     </div>
                   </div>
                   <div class="video-library-card-actions">
@@ -3348,6 +3371,7 @@ const App = {
           </div>
         </section>
       `;
+      this.applyProgressData(container);
     } catch (error) {
       console.error('loadVideosView error:', error);
       container.innerHTML = `<div class="error-state">${t('app.loadVideoFailed')}</div>`;

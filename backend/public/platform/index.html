@@ -330,6 +330,19 @@
             flex: 1;
             margin-left: var(--sidebar-width);
             min-height: 100vh;
+            transition: opacity 0.15s ease;
+        }
+
+        .main-content.is-transitioning {
+            opacity: 0.5;
+        }
+
+        .is-clickable {
+            cursor: pointer;
+        }
+
+        .pulse-once {
+            animation: pulse 0.5s ease;
         }
 
         /* Top Bar */
@@ -4134,6 +4147,10 @@
             opacity: 0.55;
         }
 
+        .resource-grid-spinner {
+            animation: spin 1s linear infinite;
+        }
+
         .resource-grid-state.error {
             color: var(--terracotta);
             border-color: rgba(26, 107, 74, 0.28);
@@ -4823,7 +4840,7 @@
     </style>
 </head>
 <body>
-    <div id="appContainer" class="app-container">
+    <div id="appContainer" class="app-container" hidden>
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="sidebar-header">
@@ -4974,7 +4991,7 @@
                 </div>
 
                 <!-- 教師專用功能區 -->
-                <div class="nav-section teacher-only-nav" id="teacherNavSection" style="display: none;">
+                <div class="nav-section teacher-only-nav" id="teacherNavSection" hidden>
                     <div class="nav-section-title" data-i18n="sidebar.teachingMgmt">教學管理</div>
                     <a href="#" class="nav-item" onclick="showView('questionBank'); MoodleUI.openQuestionBank();">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -5008,12 +5025,12 @@
                             <polyline points="22,4 12,14.01 9,11.01"/>
                         </svg>
                         <span data-i18n="sidebar.completionSettings">課程完成設定</span>
-                        <span class="nav-badge" id="notificationBadge" style="display: none;">0</span>
+                        <span class="nav-badge" id="notificationBadge" hidden>0</span>
                     </a>
                 </div>
 
                 <!-- 管理員專用功能區 -->
-                <div class="nav-section admin-only-nav" id="adminNavSection" style="display: none;">
+                <div class="nav-section admin-only-nav" id="adminNavSection" hidden>
                     <div class="nav-section-title" data-i18n="sidebar.systemAdmin">系統管理</div>
                     <a href="#" class="nav-item" onclick="showView('rolesManagement'); MoodleUI.openRolesManagement();">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -5114,7 +5131,7 @@
             <!-- Top Bar -->
             <header class="top-bar">
                 <div class="page-header-wrapper">
-                    <nav id="breadcrumbNav" class="breadcrumb-nav" style="display: none;">
+                    <nav id="breadcrumbNav" class="breadcrumb-nav" hidden>
                         <!-- 動態生成的麵包屑導航 -->
                     </nav>
                     <h1 class="page-title" id="pageTitle">儀表板 <span>Dashboard</span></h1>
@@ -5412,7 +5429,7 @@
             </div>
 
             <!-- Teacher Dashboard View -->
-            <div class="dashboard" id="teacherDashboardView" style="display: none;">
+            <div class="dashboard" id="teacherDashboardView" hidden>
                 <!-- 教師概覽區域 -->
                 <div class="dashboard-greeting teacher-greeting" id="teacherDashboardGreeting">
                     <div class="greeting-content">
@@ -5680,42 +5697,42 @@
             </div>
 
             <!-- My Courses View -->
-            <div class="dashboard" id="coursesView" style="display: none;">
+            <div class="dashboard" id="coursesView" hidden>
                 <div id="myCoursesContent">
                     <div class="loading-indicator" data-i18n="common.loading">載入中...</div>
                 </div>
             </div>
 
             <!-- License Management View -->
-            <div class="dashboard" id="licensesView" style="display: none;">
+            <div class="dashboard" id="licensesView" hidden>
                 <div id="licensesContent">
                     <div class="loading-indicator" data-i18n="common.loading">載入中...</div>
                 </div>
             </div>
 
             <!-- Videos View - 影音橋段 -->
-            <div class="dashboard" id="videosView" style="display: none;">
+            <div class="dashboard" id="videosView" hidden>
                 <div id="videosContent">
                     <div class="loading-indicator" data-i18n="common.loading">載入中...</div>
                 </div>
             </div>
 
             <!-- Quizzes View - 測驗題庫 -->
-            <div class="dashboard" id="quizzesView" style="display: none;">
+            <div class="dashboard" id="quizzesView" hidden>
                 <div id="quizzesListContent">
                     <div class="loading-indicator" data-i18n="common.loading">載入中...</div>
                 </div>
             </div>
 
             <!-- Discussions View - 互動討論 -->
-            <div class="dashboard" id="discussionsView" style="display: none;">
+            <div class="dashboard" id="discussionsView" hidden>
                 <div id="discussionsListContent">
                     <div class="loading-indicator" data-i18n="common.loading">載入中...</div>
                 </div>
             </div>
 
             <!-- Classes View - 建橋者的橋隊管理 -->
-            <div class="dashboard" id="classesView" style="display: none;">
+            <div class="dashboard" id="classesView" hidden>
                 <!-- Classes Header -->
                 <div class="bridge-view-toolbar">
                     <div>
@@ -5743,14 +5760,14 @@
             </div>
 
             <!-- Class Detail View - 橋隊詳情 -->
-            <div class="dashboard" id="classDetailView" style="display: none;">
+            <div class="dashboard" id="classDetailView" hidden>
                 <div id="classDetailContent">
                     <!-- 橋隊詳情會由 JavaScript 動態載入 -->
                 </div>
             </div>
 
             <!-- Student Classes View - 探橋者的橋隊 -->
-            <div class="dashboard" id="studentClassesView" style="display: none;">
+            <div class="dashboard" id="studentClassesView" hidden>
                 <!-- Student Classes Header -->
                 <div class="bridge-view-toolbar">
                     <div>
@@ -5798,7 +5815,7 @@
             </div>
 
             <!-- Live Support View - 即時客服 -->
-            <div class="dashboard" id="consultationsView" style="display: none;">
+            <div class="dashboard" id="consultationsView" hidden>
                 <div class="support-shell">
                     <div class="support-toolbar">
                         <div class="support-toolbar-main">
@@ -5910,7 +5927,7 @@
             </div>
 
             <!-- Settings View -->
-            <div class="dashboard settings-shell" id="settingsView" style="display: none;">
+            <div class="dashboard settings-shell" id="settingsView" hidden>
                 <!-- Profile Banner -->
                 <div class="card settings-hero">
                     <div class="card-body settings-hero-body">
@@ -6014,7 +6031,7 @@
             </div>
 
             <!-- Library View (Hidden by default) -->
-            <div class="dashboard" id="libraryView" style="display: none;">
+            <div class="dashboard" id="libraryView" hidden>
                 <!-- Library Header -->
                 <div class="library-toolbar">
                     <div class="library-toolbar-main">
@@ -6073,7 +6090,7 @@
                 <div class="resource-grid" id="resourceGrid">
                     <!-- 教材將由 JavaScript 動態載入 -->
                     <div class="resource-grid-state">
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite;">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="resource-grid-spinner">
                             <path d="M12 2v4m0 12v4m10-10h-4M6 12H2m15.5-7.5L15 7m-6 10l-2.5 2.5m13-2.5L17 17M7 7L4.5 4.5"/>
                         </svg>
                         <p data-i18n="library.loadingResources">載入教材中...</p>
@@ -6084,7 +6101,7 @@
             <!-- ==================== Moodle 風格視圖 ==================== -->
 
             <!-- 課程中心視圖 -->
-            <div class="dashboard" id="moodleCoursesView" style="display: none;">
+            <div class="dashboard" id="moodleCoursesView" hidden>
                 <div class="moodle-toolbar">
                     <div class="moodle-toolbar-main">
                         <input type="text" data-i18n-placeholder="moodle.searchCourses" placeholder="搜尋課程..." id="courseSearch" class="form-input moodle-toolbar-field moodle-toolbar-search" onkeyup="MoodleUI.loadCourses({search: this.value})">
@@ -6100,42 +6117,42 @@
             </div>
 
             <!-- 課程詳情視圖 -->
-            <div class="dashboard" id="courseDetailView" style="display: none;">
+            <div class="dashboard" id="courseDetailView" hidden>
                 <div id="courseDetailContent"></div>
             </div>
 
             <!-- 作業管理視圖 -->
-            <div class="dashboard" id="moodleAssignmentsView" style="display: none;">
+            <div class="dashboard" id="moodleAssignmentsView" hidden>
                 <div id="assignmentsList"></div>
             </div>
 
             <!-- 作業詳情視圖 -->
-            <div class="dashboard" id="assignmentDetailView" style="display: none;">
+            <div class="dashboard" id="assignmentDetailView" hidden>
                 <div id="assignmentDetailContent"></div>
             </div>
 
             <!-- 測驗中心視圖 -->
-            <div class="dashboard" id="moodleQuizzesView" style="display: none;">
+            <div class="dashboard" id="moodleQuizzesView" hidden>
                 <div id="quizzesList"></div>
             </div>
 
             <!-- 測驗作答視圖 -->
-            <div class="dashboard" id="quizAttemptView" style="display: none;">
+            <div class="dashboard" id="quizAttemptView" hidden>
                 <div id="quizAttemptContent"></div>
             </div>
 
             <!-- 討論區視圖 -->
-            <div class="dashboard" id="moodleForumsView" style="display: none;">
+            <div class="dashboard" id="moodleForumsView" hidden>
                 <div id="forumsList"></div>
             </div>
 
             <!-- 討論詳情視圖 -->
-            <div class="dashboard" id="forumDetailView" style="display: none;">
+            <div class="dashboard" id="forumDetailView" hidden>
                 <div id="forumDetailContent"></div>
             </div>
 
             <!-- 成績簿視圖 -->
-            <div class="dashboard" id="moodleGradebookView" style="display: none;">
+            <div class="dashboard" id="moodleGradebookView" hidden>
                 <div class="moodle-toolbar">
                     <div class="moodle-toolbar-main">
                     <select id="gradebookCourseSelect" class="form-input moodle-toolbar-field moodle-toolbar-search" onchange="MoodleUI.loadGradebookForCourse(this.value)">
@@ -6147,7 +6164,7 @@
             </div>
 
             <!-- 行事曆視圖 -->
-            <div class="dashboard" id="moodleCalendarView" style="display: none;">
+            <div class="dashboard" id="moodleCalendarView" hidden>
                 <div class="calendar-shell">
                     <div class="calendar-toolbar-shell">
                         <h2 id="calendarTitle" class="calendar-title"></h2>
@@ -6169,77 +6186,77 @@
             </div>
 
             <!-- 通知中心視圖 -->
-            <div class="dashboard" id="moodleNotificationsView" style="display: none;">
+            <div class="dashboard" id="moodleNotificationsView" hidden>
                 <div id="notificationsList"></div>
             </div>
 
             <!-- 檔案管理視圖 -->
-            <div class="dashboard" id="moodleFilesView" style="display: none;">
+            <div class="dashboard" id="moodleFilesView" hidden>
                 <div id="filesContent"></div>
             </div>
 
             <!-- 成績簿管理視圖（教師專用） -->
-            <div class="dashboard" id="gradebookManagementView" style="display: none;">
+            <div class="dashboard" id="gradebookManagementView" hidden>
                 <div id="gradebookManagementContent"></div>
             </div>
 
             <!-- 題庫管理視圖 -->
-            <div class="dashboard" id="questionBankView" style="display: none;">
+            <div class="dashboard" id="questionBankView" hidden>
                 <div id="questionBankContent"></div>
             </div>
 
             <!-- 角色權限管理視圖 -->
-            <div class="dashboard" id="rolesManagementView" style="display: none;">
+            <div class="dashboard" id="rolesManagementView" hidden>
                 <div id="rolesManagementContent"></div>
             </div>
 
             <!-- 課程類別管理視圖 -->
-            <div class="dashboard" id="courseCategoriesView" style="display: none;">
+            <div class="dashboard" id="courseCategoriesView" hidden>
                 <div id="courseCategoriesContent"></div>
             </div>
 
             <!-- 審計日誌視圖 -->
-            <div class="dashboard" id="auditLogsView" style="display: none;">
+            <div class="dashboard" id="auditLogsView" hidden>
                 <div id="auditLogsContent"></div>
             </div>
 
             <!-- 學習路徑視圖 -->
-            <div class="dashboard" id="learningPathsView" style="display: none;">
+            <div class="dashboard" id="learningPathsView" hidden>
                 <div id="learningPathsContent"></div>
             </div>
 
             <!-- 徽章視圖 -->
-            <div class="dashboard" id="badgesView" style="display: none;">
+            <div class="dashboard" id="badgesView" hidden>
                 <div id="badgesContent"></div>
             </div>
 
             <!-- SCORM 管理視圖 -->
-            <div class="dashboard" id="scormManagerView" style="display: none;">
+            <div class="dashboard" id="scormManagerView" hidden>
                 <div id="scormManagerContent"></div>
             </div>
 
             <!-- LTI 外部工具視圖 -->
-            <div class="dashboard" id="ltiManagerView" style="display: none;">
+            <div class="dashboard" id="ltiManagerView" hidden>
                 <div id="ltiManagerContent"></div>
             </div>
 
             <!-- H5P 內容視圖 -->
-            <div class="dashboard" id="h5pManagerView" style="display: none;">
+            <div class="dashboard" id="h5pManagerView" hidden>
                 <div id="h5pManagerContent"></div>
             </div>
 
             <!-- 評分標準視圖 -->
-            <div class="dashboard" id="rubricsView" style="display: none;">
+            <div class="dashboard" id="rubricsView" hidden>
                 <div id="rubricsContent"></div>
             </div>
 
             <!-- 群組管理視圖 -->
-            <div class="dashboard" id="groupsManagerView" style="display: none;">
+            <div class="dashboard" id="groupsManagerView" hidden>
                 <div id="groupsManagerContent"></div>
             </div>
 
             <!-- 課程完成設定視圖 -->
-            <div class="dashboard" id="courseCompletionSettingsView" style="display: none;">
+            <div class="dashboard" id="courseCompletionSettingsView" hidden>
                 <div id="courseCompletionSettingsContent"></div>
             </div>
 
@@ -6360,6 +6377,11 @@
             display: block;
             transform: scale(1) translateY(0);
             opacity: 1;
+        }
+
+        .modal.platform-dialog-modal {
+            width: 90%;
+            max-width: 520px;
         }
         /* Modal accent top bar */
         .modal::before {
@@ -8550,7 +8572,7 @@
            ═══════════════════════════════════════════════════════════ */
 
         .login-view {
-            display: none;
+            display: grid;
             min-height: 100vh;
             background: var(--cream);
             grid-template-columns: 1fr 1fr;
@@ -9198,7 +9220,7 @@
     <div id="toast" class="toast"></div>
 
     <!-- Login View -->
-    <div id="loginView" class="login-view">
+    <div id="loginView" class="login-view" hidden>
         <!-- Left Panel: Visual Gateway -->
         <div class="login-visual">
             <!-- Floating Orbs -->
@@ -9246,7 +9268,7 @@
                 </form>
 
                 <!-- Register Form (Student Only) -->
-                <form id="registerForm" class="login-form" onsubmit="handleRegister(event)" style="display: none;">
+                <form id="registerForm" class="login-form hidden" onsubmit="handleRegister(event)" hidden>
                     <!-- Hidden role field (always student) -->
                     <input type="hidden" id="registerRole" value="student">
 
@@ -9585,7 +9607,9 @@
                 viewName = resolvePrimaryViewName('dashboard');
             }
 
-            document.querySelectorAll('.dashboard').forEach(v => v.style.display = 'none');
+            document.querySelectorAll('.dashboard').forEach((view) => {
+                view.hidden = true;
+            });
 
             const viewMap = {
                 'dashboard': 'dashboardView',
@@ -9631,9 +9655,9 @@
             const viewId = viewMap[viewName] || (viewName === 'teacherDashboard' ? 'teacherDashboardView' : 'dashboardView');
             const viewElement = document.getElementById(viewId);
             if (viewElement) {
-                viewElement.style.display = 'block';
+                viewElement.hidden = false;
             } else {
-                document.getElementById('dashboardView').style.display = 'block';
+                document.getElementById('dashboardView').hidden = false;
                 if (viewName !== 'logout') {
                     showToast('此功能正在開發中...');
                 }
@@ -10148,11 +10172,9 @@
                 overlay.className = 'modal-overlay active';
 
                 const modal = document.createElement('div');
-                modal.className = 'modal active';
+                modal.className = 'modal active platform-dialog-modal';
                 modal.setAttribute('role', 'dialog');
                 modal.setAttribute('aria-modal', 'true');
-                modal.style.width = '90%';
-                modal.style.maxWidth = options.maxWidth || '520px';
 
                 const header = document.createElement('div');
                 header.className = 'modal-header';
@@ -10317,6 +10339,26 @@
         let currentVideo = null;
         let videoProgressInterval = null;
 
+        function clampProgressValue(value) {
+            if (window.PlatformUIRuntime?.clampProgressValue) {
+                return window.PlatformUIRuntime.clampProgressValue(value);
+            }
+            const numeric = Number(value);
+            if (!Number.isFinite(numeric)) return 0;
+            return Math.max(0, Math.min(100, numeric));
+        }
+
+        function setProgressElementValue(element, value) {
+            if (!element) return;
+            if (window.PlatformUIRuntime?.setProgressWidth) {
+                window.PlatformUIRuntime.setProgressWidth(element, value);
+                return;
+            }
+            const progress = clampProgressValue(value);
+            element.dataset.progressWidth = String(progress);
+            element.style.width = `${progress}%`;
+        }
+
         function openVideoPlayer(videoId, videoUrl) {
             const video = videoData[videoId] || {
                 title: '未知影片',
@@ -10418,7 +10460,7 @@
                                     <span id="videoProgressText">進度: ${video.progress}%</span>
                                 </div>
                                 <div class="video-player-progress-track">
-                                    <div id="videoProgressBar" class="video-player-progress-fill" style="width:${video.progress}%;"></div>
+                                    <div id="videoProgressBar" class="video-player-progress-fill" data-progress-width="${clampProgressValue(video.progress)}"></div>
                                 </div>
                             </div>
                         </div>
@@ -10462,6 +10504,7 @@
 
             document.body.appendChild(modal);
             document.body.style.overflow = 'hidden';
+            setProgressElementValue(document.getElementById('videoProgressBar'), video.progress);
 
             // 開始追蹤進度（模擬）
             startProgressTracking();
@@ -10493,7 +10536,7 @@
                     const progressBar = document.getElementById('videoProgressBar');
                     const progressText = document.getElementById('videoProgressText');
 
-                    if (progressBar) progressBar.style.width = currentVideo.progress + '%';
+                    if (progressBar) setProgressElementValue(progressBar, currentVideo.progress);
                     if (progressText) progressText.textContent = `進度: ${currentVideo.progress}%`;
 
                     // 更新本地資料
@@ -10522,7 +10565,7 @@
             const progressBar = document.getElementById('videoProgressBar');
             const progressText = document.getElementById('videoProgressText');
 
-            if (progressBar) progressBar.style.width = '100%';
+            if (progressBar) setProgressElementValue(progressBar, 100);
             if (progressText) progressText.textContent = '進度: 100%';
 
             showToast('已標記為完成！');
@@ -10539,7 +10582,7 @@
                     const progressBar = card.querySelector('.video-progress-fill');
                     const progressText = card.querySelector('.video-library-progress-head span:last-child');
                     if (progressBar) {
-                        progressBar.style.width = progress + '%';
+                        setProgressElementValue(progressBar, progress);
                     }
                     if (progressText) {
                         progressText.textContent = `${progress}%`;
@@ -12229,7 +12272,7 @@
         sidebarFooter.style.position = 'relative';
         sidebarFooter.insertBefore(userMenu, userProfile);
 
-        userProfile.style.cursor = 'pointer';
+        userProfile.classList.add('is-clickable');
         userProfile.addEventListener('click', () => {
             userMenu.classList.toggle('active');
         });
@@ -12256,7 +12299,7 @@
 
         // Calendar day interactions
         document.querySelectorAll('.calendar-day.has-event').forEach(day => {
-            day.style.cursor = 'pointer';
+            day.classList.add('is-clickable');
             day.addEventListener('click', function() {
                 const event = this.querySelector('.event-dot');
                 if (event) {
@@ -12383,7 +12426,7 @@
 
         // Activity items click
         document.querySelectorAll('.activity-item').forEach(item => {
-            item.style.cursor = 'pointer';
+            item.classList.add('is-clickable');
             item.addEventListener('click', function() {
                 const text = this.querySelector('.activity-text').textContent;
                 showToast('正在載入詳情...');
@@ -12392,7 +12435,7 @@
 
         // License table row actions
         document.querySelectorAll('.data-table tbody tr').forEach(row => {
-            row.style.cursor = 'pointer';
+            row.classList.add('is-clickable');
             row.addEventListener('click', function(e) {
                 if (e.target.closest('.btn-icon')) return;
                 const name = this.querySelector('strong')?.textContent || '建材';
@@ -12406,9 +12449,17 @@
                 // Visual feedback that form has been modified
                 const saveBtn = this.closest('.card-body')?.querySelector('.btn-primary');
                 if (saveBtn) {
-                    saveBtn.style.animation = 'pulse 0.5s ease';
+                    saveBtn.classList.remove('pulse-once');
+                    void saveBtn.offsetWidth;
+                    saveBtn.classList.add('pulse-once');
                 }
             });
+        });
+
+        document.addEventListener('animationend', (e) => {
+            if (e.target.classList?.contains('pulse-once')) {
+                e.target.classList.remove('pulse-once');
+            }
         });
 
         // Keyboard shortcuts
@@ -12472,9 +12523,11 @@
         // Smooth page transitions
         document.querySelectorAll('.nav-item').forEach(item => {
             item.addEventListener('click', function() {
-                document.querySelector('.main-content').style.opacity = '0.5';
+                const mainContent = document.querySelector('.main-content');
+                if (!mainContent) return;
+                mainContent.classList.add('is-transitioning');
                 setTimeout(() => {
-                    document.querySelector('.main-content').style.opacity = '1';
+                    mainContent.classList.remove('is-transitioning');
                 }, 150);
             });
         });
@@ -12499,11 +12552,15 @@
             if (tab === 'login') {
                 loginForm.classList.remove('hidden');
                 registerForm.classList.add('hidden');
+                loginForm.hidden = false;
+                registerForm.hidden = true;
                 tabs[0].classList.add('active');
                 tabs[1].classList.remove('active');
             } else {
                 loginForm.classList.add('hidden');
                 registerForm.classList.remove('hidden');
+                loginForm.hidden = true;
+                registerForm.hidden = false;
                 tabs[0].classList.remove('active');
                 tabs[1].classList.add('active');
             }
@@ -12520,13 +12577,17 @@
             errorDiv.textContent = '';
 
             if (tab === 'login') {
-                loginForm.style.display = 'block';
-                registerForm.style.display = 'none';
+                loginForm.hidden = false;
+                registerForm.hidden = true;
+                loginForm.classList.remove('hidden');
+                registerForm.classList.add('hidden');
                 tabs[0].classList.add('active');
                 tabs[1].classList.remove('active');
             } else {
-                loginForm.style.display = 'none';
-                registerForm.style.display = 'block';
+                loginForm.hidden = true;
+                registerForm.hidden = false;
+                loginForm.classList.add('hidden');
+                registerForm.classList.remove('hidden');
                 tabs[0].classList.remove('active');
                 tabs[1].classList.add('active');
             }
@@ -12607,6 +12668,7 @@
 
     <!-- API & App Scripts (v8 - cache bust) -->
     <script src="js/api.js?v=8"></script>
+    <script src="js/ui-runtime.js?v=1"></script>
     <script src="js/app.js?v=8"></script>
     <script src="js/moodle-ui.js?v=8"></script>
     <!-- Socket.io Client (optional - may not be available) -->

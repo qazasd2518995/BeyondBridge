@@ -808,6 +808,10 @@
             font-size: 0.9rem;
         }
 
+        .error-message.is-visible {
+            display: block;
+        }
+
         /* Quick Actions - 快捷操作優化 */
         .quick-actions {
             display: grid;
@@ -3720,6 +3724,10 @@
             max-width: 680px;
         }
 
+        .admin-resource-modal.is-xl {
+            max-width: 760px;
+        }
+
         .admin-resource-body {
             max-height: 70vh;
             overflow-y: auto;
@@ -5924,6 +5932,7 @@
 
     <script src="../js/i18n.js?v=1"></script>
     <script src="../js/api.js"></script>
+    <script src="../js/ui-runtime.js?v=1"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script>
         // ========== 確認對話框組件 ==========
@@ -6104,6 +6113,20 @@
 
         let activeAdminFormDialog = null;
 
+        function setAdminMeterValue(element, value) {
+            if (!element) return;
+            if (window.PlatformUIRuntime?.setProgressWidth) {
+                window.PlatformUIRuntime.setProgressWidth(element, value);
+                return;
+            }
+            const numericValue = Number(value);
+            const boundedValue = Number.isFinite(numericValue)
+                ? Math.max(0, Math.min(100, numericValue))
+                : 0;
+            element.dataset.progressWidth = String(boundedValue);
+            element.style.width = `${boundedValue}%`;
+        }
+
         function closeAdminFormDialog(rejected = true, payload = null) {
             if (!activeAdminFormDialog) return;
 
@@ -6140,8 +6163,9 @@
 
                 const modal = document.createElement('div');
                 modal.className = 'modal admin-resource-modal';
-                modal.style.maxWidth = maxWidth;
-                modal.style.display = 'block';
+                if (String(maxWidth || '') === '760px') {
+                    modal.classList.add('is-xl');
+                }
 
                 const header = document.createElement('div');
                 header.className = 'modal-header';
@@ -7478,25 +7502,26 @@
             const email = document.getElementById('loginEmail').value;
             const password = document.getElementById('loginPassword').value;
             const errorDiv = document.getElementById('loginError');
+            errorDiv.classList.remove('is-visible');
 
             try {
                 const result = await API.auth.login(email, password);
                 if (result.success && result.data.user.isAdmin) {
-                    document.getElementById('loginView').style.display = 'none';
+                    document.getElementById('loginView').hidden = true;
                     document.getElementById('adminPanel').hidden = false;
                     document.getElementById('adminName').textContent = result.data.user.displayName;
                     loadDashboard();
                 } else if (result.success && !result.data.user.isAdmin) {
                     errorDiv.textContent = (typeof t === 'function') ? t('admin.login.error') : t('admin.login.notAdmin');
-                    errorDiv.style.display = 'block';
+                    errorDiv.classList.add('is-visible');
                     API.clearTokens();
                 } else {
                     errorDiv.textContent = result.message || ((typeof t === 'function') ? t('admin.login.error') : t('admin.login.failed'));
-                    errorDiv.style.display = 'block';
+                    errorDiv.classList.add('is-visible');
                 }
             } catch (error) {
                 errorDiv.textContent = (typeof t === 'function') ? t('admin.login.networkError') : t('admin.login.networkError');
-                errorDiv.style.display = 'block';
+                errorDiv.classList.add('is-visible');
             }
         });
 
@@ -10186,7 +10211,7 @@
 
                     document.getElementById('memoryStatus').textContent = `${memoryPercent}%`;
                     document.getElementById('memoryPercent').textContent = `${memoryPercent}%`;
-                    document.getElementById('memoryBar').style.width = `${memoryPercent}%`;
+                    setAdminMeterValue(document.getElementById('memoryBar'), memoryPercent);
                     document.getElementById('memoryDetail').textContent =
                         t('admin.systemMonitor.memoryUsage', { used: memoryUsed.toFixed(1), total: memoryTotal.toFixed(1) });
 
@@ -11771,7 +11796,7 @@
 
         // Check auth on load - 如果未登入或非管理員，跳轉到主平台
         if (API.isLoggedIn() && API.isAdmin()) {
-            document.getElementById('loginView').style.display = 'none';
+            document.getElementById('loginView').hidden = true;
             document.getElementById('adminPanel').hidden = false;
             const user = API.getCurrentUser();
             if (user) document.getElementById('adminName').textContent = user.displayName;
