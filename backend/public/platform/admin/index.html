@@ -11365,7 +11365,7 @@
                     fields: [
                         { name: 'name', label: '徽章名稱', required: true },
                         { name: 'description', label: '徽章描述', type: 'textarea', rows: 3 },
-                        { name: 'icon', label: '徽章圖示', value: '🏆', placeholder: '例如：🏆' },
+                        { name: 'icon', label: '徽章圖示', value: 'trophy', placeholder: '例如：trophy / star / medal' },
                         { name: 'color', label: '徽章顏色', type: 'color', value: '#f59e0b' }
                     ]
                 });
@@ -11374,7 +11374,7 @@
                     () => API.badges.create({
                         name: values.name,
                         description: values.description,
-                        icon: values.icon || '🏆',
+                        icon: values.icon || 'trophy',
                         color: values.color || '#f59e0b',
                         status: 'active'
                     }),

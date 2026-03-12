@@ -1089,6 +1089,21 @@ const API = {
       });
     },
 
+    async updateItem(courseId, itemId, data) {
+      if (!courseId) return { success: false, error: 'MISSING_COURSE_ID' };
+      return API.request(`/gradebook/courses/${courseId}/items/${itemId}`, {
+        method: 'PUT',
+        body: data
+      });
+    },
+
+    async deleteItem(courseId, itemId) {
+      if (!courseId) return { success: false, error: 'MISSING_COURSE_ID' };
+      return API.request(`/gradebook/courses/${courseId}/items/${itemId}`, {
+        method: 'DELETE'
+      });
+    },
+
     async getSettings(courseId) {
       if (!courseId) return { success: false, error: 'MISSING_COURSE_ID' };
       return API.request(`/gradebook/courses/${courseId}/settings`);
@@ -1104,7 +1119,35 @@ const API = {
 
     async exportGrades(courseId, format = 'csv') {
       if (!courseId) return { success: false, error: 'MISSING_COURSE_ID' };
-      return API.request(`/gradebook/courses/${courseId}/export?format=${format}`);
+      const endpoint = `${API.baseUrl}/gradebook/courses/${courseId}/export?format=${encodeURIComponent(format)}`;
+      const headers = {
+        'X-Language': (typeof I18n !== 'undefined' && I18n.getLocale) ? I18n.getLocale() : 'zh-TW'
+      };
+
+      if (API.accessToken) {
+        headers.Authorization = `Bearer ${API.accessToken}`;
+      }
+
+      const response = await fetch(endpoint, { headers });
+      const contentType = response.headers.get('content-type') || '';
+
+      if (contentType.includes('application/json')) {
+        return response.json();
+      }
+
+      const text = await response.text();
+      if (!response.ok) {
+        return {
+          success: false,
+          error: 'EXPORT_FAILED',
+          message: text || '匯出失敗'
+        };
+      }
+
+      return {
+        success: true,
+        data: format === 'csv' ? { csv: text } : { raw: text }
+      };
     }
   },
 
@@ -1193,12 +1236,68 @@ const API = {
 
   // ===== 討論區 API =====
   forums: {
+    normalizeDiscussion(data = {}) {
+      const discussionId = data.discussionId || data.id || null;
+      return {
+        ...data,
+        id: discussionId,
+        discussionId,
+        title: data.title || data.subject || '',
+        subject: data.subject || data.title || '',
+        content: data.content || data.message || '',
+        message: data.message || data.content || '',
+        replyCount: Number(data.replyCount ?? data.postCount ?? 0),
+        lastReply: data.lastReply || data.lastReplyAt || data.latestReply?.createdAt || null
+      };
+    },
+
+    normalizeDiscussionPost(post = {}, depth = 0) {
+      const postId = post.postId || post.id || null;
+      const currentUser = API.getCurrentUser ? API.getCurrentUser() : null;
+      const likedBy = Array.isArray(post.likedBy) ? post.likedBy : [];
+      const replies = Array.isArray(post.replies) ? post.replies : [];
+
+      return {
+        ...post,
+        id: postId,
+        postId,
+        content: post.content || post.message || '',
+        message: post.message || post.content || '',
+        likes: Number(post.likes || 0),
+        liked: typeof post.liked === 'boolean'
+          ? post.liked
+          : !!(currentUser && likedBy.includes(currentUser.userId)),
+        replyDepth: depth,
+        replies: replies.map(reply => this.normalizeDiscussionPost(reply, depth + 1))
+      };
+    },
+
+    flattenDiscussionPosts(posts = [], depth = 0, flat = []) {
+      posts.forEach(post => {
+        const normalized = this.normalizeDiscussionPost(post, depth);
+        flat.push(normalized);
+        if (Array.isArray(normalized.replies) && normalized.replies.length > 0) {
+          this.flattenDiscussionPosts(normalized.replies, depth + 1, flat);
+        }
+      });
+      return flat;
+    },
+
     async list(courseId) {
       return API.request(courseId ? `/forums?courseId=${courseId}` : '/forums');
     },
 
     async get(forumId) {
-      return API.request(`/forums/${forumId}`);
+      const result = await API.request(`/forums/${forumId}`);
+      if (!result?.success || !result.data) return result;
+      const discussions = Array.isArray(result.data.discussions) ? result.data.discussions : [];
+      return {
+        ...result,
+        data: {
+          ...result.data,
+          discussions: discussions.map(discussion => this.normalizeDiscussion(discussion))
+        }
+      };
     },
 
     async create(data) {
@@ -1224,18 +1323,51 @@ const API = {
     async createDiscussion(forumId, data) {
       return API.request(`/forums/${forumId}/discussions`, {
         method: 'POST',
-        body: data
+        body: {
+          ...data,
+          title: data?.title || data?.subject || '',
+          content: data?.content || data?.message || ''
+        }
       });
     },
 
     async getDiscussion(forumId, discussionId) {
-      return API.request(`/forums/${forumId}/discussions/${discussionId}`);
+      const result = await API.request(`/forums/${forumId}/discussions/${discussionId}`);
+      if (!result?.success || !result.data) return result;
+      const rootPosts = Array.isArray(result.data.posts) ? result.data.posts : [];
+      return {
+        ...result,
+        data: {
+          ...this.normalizeDiscussion(result.data),
+          posts: this.flattenDiscussionPosts(rootPosts)
+        }
+      };
+    },
+
+    async updateDiscussion(forumId, discussionId, data) {
+      return API.request(`/forums/${forumId}/discussions/${discussionId}`, {
+        method: 'PUT',
+        body: {
+          ...data,
+          title: data?.title || data?.subject || '',
+          content: data?.content || data?.message || ''
+        }
+      });
+    },
+
+    async deleteDiscussion(forumId, discussionId) {
+      return API.request(`/forums/${forumId}/discussions/${discussionId}`, {
+        method: 'DELETE'
+      });
     },
 
     async replyToDiscussion(forumId, discussionId, data) {
       return API.request(`/forums/${forumId}/discussions/${discussionId}/posts`, {
         method: 'POST',
-        body: data
+        body: {
+          ...data,
+          content: data?.content || data?.message || ''
+        }
       });
     },
 
@@ -1244,10 +1376,37 @@ const API = {
       return this.replyToDiscussion(forumId, discussionId, data);
     },
 
+    async updatePost(forumId, discussionId, postId, data) {
+      return API.request(`/forums/${forumId}/discussions/${discussionId}/posts/${postId}`, {
+        method: 'PUT',
+        body: {
+          ...data,
+          content: data?.content || data?.message || ''
+        }
+      });
+    },
+
+    async deletePost(forumId, discussionId, postId) {
+      return API.request(`/forums/${forumId}/discussions/${discussionId}/posts/${postId}`, {
+        method: 'DELETE'
+      });
+    },
+
     async likePost(forumId, discussionId, postId) {
       return API.request(`/forums/${forumId}/discussions/${discussionId}/posts/${postId}/like`, {
         method: 'POST'
       });
+    },
+
+    async ratePost(forumId, discussionId, postId, rating) {
+      return API.request(`/forums/${forumId}/discussions/${discussionId}/posts/${postId}/rate`, {
+        method: 'POST',
+        body: { rating }
+      });
+    },
+
+    async getPostRatings(forumId, discussionId, postId) {
+      return API.request(`/forums/${forumId}/discussions/${discussionId}/posts/${postId}/ratings`);
     },
 
     async getSubscription(forumId) {
@@ -1267,6 +1426,18 @@ const API = {
       });
     },
 
+    async subscribeDiscussion(forumId, discussionId) {
+      return API.request(`/forums/${forumId}/discussions/${discussionId}/subscribe`, {
+        method: 'POST'
+      });
+    },
+
+    async unsubscribeDiscussion(forumId, discussionId) {
+      return API.request(`/forums/${forumId}/discussions/${discussionId}/subscribe`, {
+        method: 'DELETE'
+      });
+    },
+
     async getUnread(forumId) {
       return API.request(`/forums/${forumId}/unread`);
     },
@@ -1280,6 +1451,31 @@ const API = {
     async markDiscussionRead(forumId, discussionId) {
       return API.request(`/forums/${forumId}/discussions/${discussionId}/mark-read`, {
         method: 'POST'
+      });
+    },
+
+    async pinDiscussion(forumId, discussionId) {
+      return API.request(`/forums/${forumId}/discussions/${discussionId}/pin`, {
+        method: 'POST'
+      });
+    },
+
+    async unpinDiscussion(forumId, discussionId) {
+      return API.request(`/forums/${forumId}/discussions/${discussionId}/pin`, {
+        method: 'DELETE'
+      });
+    },
+
+    async lockDiscussion(forumId, discussionId, reason = '') {
+      return API.request(`/forums/${forumId}/discussions/${discussionId}/lock`, {
+        method: 'POST',
+        body: { reason }
+      });
+    },
+
+    async unlockDiscussion(forumId, discussionId) {
+      return API.request(`/forums/${forumId}/discussions/${discussionId}/lock`, {
+        method: 'DELETE'
       });
     }
   },
@@ -1744,7 +1940,12 @@ const API = {
   gradebookEnhanced: {
     async getCategories(courseId) {
       if (!courseId) return { success: false, error: 'MISSING_COURSE_ID' };
-      return API.request(`/gradebook/courses/${courseId}/categories`);
+      const result = await API.request(`/gradebook/courses/${courseId}/categories`);
+      if (!result?.success) return result;
+      return {
+        ...result,
+        data: Array.isArray(result.data) ? result.data : (result.data?.categories || [])
+      };
     },
 
     async createCategory(courseId, data) {
@@ -1772,7 +1973,12 @@ const API = {
 
     async getSettings(courseId) {
       if (!courseId) return { success: false, error: 'MISSING_COURSE_ID' };
-      return API.request(`/gradebook/courses/${courseId}/settings`);
+      const result = await API.request(`/gradebook/courses/${courseId}/settings`);
+      if (!result?.success) return result;
+      return {
+        ...result,
+        data: result.data?.settings || result.data || {}
+      };
     },
 
     async updateSettings(courseId, data) {
@@ -1785,7 +1991,42 @@ const API = {
 
     async exportGrades(courseId, format = 'csv') {
       if (!courseId) return { success: false, error: 'MISSING_COURSE_ID' };
-      return API.request(`/gradebook/courses/${courseId}/export?format=${format}`);
+      const endpoint = `${API.baseUrl}/gradebook/courses/${courseId}/export?format=${encodeURIComponent(format)}`;
+      const headers = {
+        'X-Language': (typeof I18n !== 'undefined' && I18n.getLocale) ? I18n.getLocale() : 'zh-TW'
+      };
+
+      if (API.accessToken) {
+        headers.Authorization = `Bearer ${API.accessToken}`;
+      }
+
+      const response = await fetch(endpoint, { headers });
+      const contentType = response.headers.get('content-type') || '';
+
+      if (contentType.includes('application/json')) {
+        return response.json();
+      }
+
+      const text = await response.text();
+      if (!response.ok) {
+        return {
+          success: false,
+          error: 'EXPORT_FAILED',
+          message: text || '匯出失敗'
+        };
+      }
+
+      if (format === 'csv') {
+        return {
+          success: true,
+          data: { csv: text }
+        };
+      }
+
+      return {
+        success: true,
+        data: { raw: text }
+      };
     },
 
     async batchUpdateGrades(courseId, grades) {

@@ -86,6 +86,26 @@ function percentToLetter(percent, scaleType = 'letter_5') {
   return { letter: 'F', gpa: 0, percent };
 }
 
+function normalizeManualItem(item = {}) {
+  return {
+    id: item.itemId,
+    itemId: item.itemId,
+    type: 'manual',
+    title: item.title,
+    maxGrade: item.maxGrade,
+    maxScore: item.maxGrade,
+    weight: item.weight,
+    categoryId: item.categoryId || 'default_participation',
+    dueDate: item.dueDate,
+    description: item.description || '',
+    hidden: item.hidden || false,
+    locked: item.locked || false,
+    createdBy: item.createdBy || null,
+    createdAt: item.createdAt || null,
+    updatedAt: item.updatedAt || null
+  };
+}
+
 // ==================== 成績類別管理 ====================
 
 /**
@@ -468,6 +488,128 @@ router.post('/courses/:courseId/items', authMiddleware, async (req, res) => {
 });
 
 /**
+ * PUT /api/gradebook/courses/:courseId/items/:itemId
+ * 更新手動成績項目
+ */
+router.put('/courses/:courseId/items/:itemId', authMiddleware, async (req, res) => {
+  try {
+    const { courseId, itemId } = req.params;
+    const course = await db.getItem(`COURSE#${courseId}`, 'META');
+    if (!course || !canManageCourse(course, req.user)) {
+      return res.status(403).json({
+        success: false,
+        error: 'FORBIDDEN',
+        message: '沒有權限管理此課程成績'
+      });
+    }
+
+    const item = await db.getItem(`COURSE#${courseId}`, `GRADEITEM#${itemId}`);
+    if (!item || item.entityType !== 'MANUAL_GRADE_ITEM') {
+      return res.status(404).json({
+        success: false,
+        error: 'NOT_FOUND',
+        message: '找不到此成績項目'
+      });
+    }
+
+    const updates = {
+      updatedAt: new Date().toISOString()
+    };
+
+    if (typeof req.body.title === 'string') {
+      updates.title = req.body.title.trim();
+    }
+    if (typeof req.body.description === 'string') {
+      updates.description = req.body.description.trim();
+    }
+    if (req.body.maxGrade !== undefined) {
+      updates.maxGrade = parseFloat(req.body.maxGrade) || 0;
+    }
+    if (req.body.weight !== undefined) {
+      updates.weight = req.body.weight === null || req.body.weight === '' ? null : (parseFloat(req.body.weight) || 0);
+    }
+    if (req.body.categoryId !== undefined) {
+      updates.categoryId = req.body.categoryId || 'default_participation';
+    }
+    if (req.body.dueDate !== undefined) {
+      updates.dueDate = req.body.dueDate || null;
+    }
+    if (req.body.hidden !== undefined) {
+      updates.hidden = !!req.body.hidden;
+    }
+    if (req.body.locked !== undefined) {
+      updates.locked = !!req.body.locked;
+    }
+
+    if (!updates.title && item.title) {
+      updates.title = item.title;
+    }
+
+    await db.updateItem(`COURSE#${courseId}`, `GRADEITEM#${itemId}`, updates);
+    const updated = await db.getItem(`COURSE#${courseId}`, `GRADEITEM#${itemId}`);
+
+    res.json({
+      success: true,
+      message: '成績項目已更新',
+      data: normalizeManualItem(updated)
+    });
+  } catch (error) {
+    console.error('Update manual grade item error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'UPDATE_FAILED',
+      message: '更新成績項目失敗'
+    });
+  }
+});
+
+/**
+ * DELETE /api/gradebook/courses/:courseId/items/:itemId
+ * 刪除手動成績項目
+ */
+router.delete('/courses/:courseId/items/:itemId', authMiddleware, async (req, res) => {
+  try {
+    const { courseId, itemId } = req.params;
+    const course = await db.getItem(`COURSE#${courseId}`, 'META');
+    if (!course || !canManageCourse(course, req.user)) {
+      return res.status(403).json({
+        success: false,
+        error: 'FORBIDDEN',
+        message: '沒有權限管理此課程成績'
+      });
+    }
+
+    const item = await db.getItem(`COURSE#${courseId}`, `GRADEITEM#${itemId}`);
+    if (!item || item.entityType !== 'MANUAL_GRADE_ITEM') {
+      return res.status(404).json({
+        success: false,
+        error: 'NOT_FOUND',
+        message: '找不到此成績項目'
+      });
+    }
+
+    const grades = await db.query(`GRADEITEM#${itemId}`, { skPrefix: 'STUDENT#' });
+    await Promise.all([
+      db.deleteItem(`COURSE#${courseId}`, `GRADEITEM#${itemId}`),
+      ...grades.map(grade => db.deleteItem(`GRADEITEM#${itemId}`, grade.SK))
+    ]);
+
+    res.json({
+      success: true,
+      message: '成績項目已刪除',
+      data: { itemId }
+    });
+  } catch (error) {
+    console.error('Delete manual grade item error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'DELETE_FAILED',
+      message: '刪除成績項目失敗'
+    });
+  }
+});
+
+/**
  * PUT /api/gradebook/courses/:courseId/items/:itemId/grades
  * 批量更新手動成績項目的學生成績
  */
@@ -585,19 +727,21 @@ router.get('/my', authMiddleware, async (req, res) => {
         const course = await db.getItem(`COURSE#${progress.courseId}`, 'META');
 
         // 取得課程的所有評分項目
-        const assignments = await db.scan({
-          filter: {
-            expression: 'entityType = :type AND courseId = :courseId',
-            values: { ':type': 'ASSIGNMENT', ':courseId': progress.courseId }
-          }
-        });
-
-        const quizzes = await db.scan({
-          filter: {
-            expression: 'entityType = :type AND courseId = :courseId',
-            values: { ':type': 'QUIZ', ':courseId': progress.courseId }
-          }
-        });
+        const [assignments, quizzes, manualItems] = await Promise.all([
+          db.scan({
+            filter: {
+              expression: 'entityType = :type AND courseId = :courseId',
+              values: { ':type': 'ASSIGNMENT', ':courseId': progress.courseId }
+            }
+          }),
+          db.scan({
+            filter: {
+              expression: 'entityType = :type AND courseId = :courseId',
+              values: { ':type': 'QUIZ', ':courseId': progress.courseId }
+            }
+          }),
+          db.query(`COURSE#${progress.courseId}`, { skPrefix: 'GRADEITEM#' })
+        ]);
 
         // 整理成績項目
         const gradeItems = [];
@@ -667,6 +811,30 @@ router.get('/my', authMiddleware, async (req, res) => {
             graded: completedAttempts.length > 0,
             attemptCount: completedAttempts.length,
             passed: bestPercentage >= q.passingGrade
+          });
+        }
+
+        // 手動成績
+        for (const item of manualItems) {
+          const record = await db.getItem(
+            `GRADEITEM#${item.itemId}`,
+            `STUDENT#${userId}`
+          );
+
+          gradeItems.push({
+            type: 'manual',
+            itemId: item.itemId,
+            title: item.title,
+            category: '手動項目',
+            maxGrade: item.maxGrade,
+            weight: item.weight || null,
+            dueDate: item.dueDate || null,
+            grade: record?.grade ?? null,
+            percentage: record?.grade != null && item.maxGrade
+              ? Math.round((record.grade / item.maxGrade) * 10000) / 100
+              : null,
+            graded: record?.grade !== undefined && record?.grade !== null,
+            feedback: record?.feedback || null
           });
         }
 
@@ -769,38 +937,45 @@ router.get('/courses/:courseId', authMiddleware, async (req, res) => {
     );
 
     // 取得評分項目
-    const assignments = await db.scan({
-      filter: {
-        expression: 'entityType = :type AND courseId = :courseId',
-        values: { ':type': 'ASSIGNMENT', ':courseId': courseId }
-      }
-    });
-
-    const quizzes = await db.scan({
-      filter: {
-        expression: 'entityType = :type AND courseId = :courseId',
-        values: { ':type': 'QUIZ', ':courseId': courseId }
-      }
-    });
+    const [assignments, quizzes, manualItems] = await Promise.all([
+      db.scan({
+        filter: {
+          expression: 'entityType = :type AND courseId = :courseId',
+          values: { ':type': 'ASSIGNMENT', ':courseId': courseId }
+        }
+      }),
+      db.scan({
+        filter: {
+          expression: 'entityType = :type AND courseId = :courseId',
+          values: { ':type': 'QUIZ', ':courseId': courseId }
+        }
+      }),
+      db.query(`COURSE#${courseId}`, { skPrefix: 'GRADEITEM#' })
+    ]);
 
     // 建立評分項目列表
     const gradeColumns = [
       ...assignments.map(a => ({
         id: a.assignmentId,
+        itemId: a.assignmentId,
         type: 'assignment',
         title: a.title,
         maxGrade: a.maxGrade,
+        maxScore: a.maxGrade,
         weight: a.weight,
         dueDate: a.dueDate
       })),
       ...quizzes.map(q => ({
         id: q.quizId,
+        itemId: q.quizId,
         type: 'quiz',
         title: q.title,
         maxGrade: q.totalPoints,
+        maxScore: q.totalPoints,
         weight: q.weight,
         dueDate: q.closeDate
-      }))
+      })),
+      ...manualItems.map(normalizeManualItem)
     ];
 
     // 取得每個學生的成績
@@ -853,6 +1028,27 @@ router.get('/courses/:courseId', authMiddleware, async (req, res) => {
           if (bestScore !== null) {
             totalEarned += bestScore;
             totalPossible += q.totalPoints;
+            gradedCount++;
+          }
+        }
+
+        // 取得手動成績
+        for (const item of manualItems) {
+          const record = await db.getItem(
+            `GRADEITEM#${item.itemId}`,
+            `STUDENT#${e.userId}`
+          );
+
+          grades[item.itemId] = {
+            grade: record?.grade ?? null,
+            submitted: record?.grade !== undefined && record?.grade !== null,
+            gradedAt: record?.gradedAt || null,
+            feedback: record?.feedback || ''
+          };
+
+          if (record?.grade !== undefined && record?.grade !== null) {
+            totalEarned += record.grade;
+            totalPossible += item.maxGrade;
             gradedCount++;
           }
         }
@@ -993,12 +1189,21 @@ router.get('/courses/:courseId/students/:studentId', authMiddleware, async (req,
     }
 
     // 取得作業成績詳情
-    const assignments = await db.scan({
-      filter: {
-        expression: 'entityType = :type AND courseId = :courseId',
-        values: { ':type': 'ASSIGNMENT', ':courseId': courseId }
-      }
-    });
+    const [assignments, quizzes, manualItems] = await Promise.all([
+      db.scan({
+        filter: {
+          expression: 'entityType = :type AND courseId = :courseId',
+          values: { ':type': 'ASSIGNMENT', ':courseId': courseId }
+        }
+      }),
+      db.scan({
+        filter: {
+          expression: 'entityType = :type AND courseId = :courseId',
+          values: { ':type': 'QUIZ', ':courseId': courseId }
+        }
+      }),
+      db.query(`COURSE#${courseId}`, { skPrefix: 'GRADEITEM#' })
+    ]);
 
     const assignmentGrades = await Promise.all(
       assignments.map(async (a) => {
@@ -1023,14 +1228,6 @@ router.get('/courses/:courseId/students/:studentId', authMiddleware, async (req,
         };
       })
     );
-
-    // 取得測驗成績詳情
-    const quizzes = await db.scan({
-      filter: {
-        expression: 'entityType = :type AND courseId = :courseId',
-        values: { ':type': 'QUIZ', ':courseId': courseId }
-      }
-    });
 
     const quizGrades = await Promise.all(
       quizzes.map(async (q) => {
@@ -1069,8 +1266,31 @@ router.get('/courses/:courseId/students/:studentId', authMiddleware, async (req,
       })
     );
 
+    const manualGrades = await Promise.all(
+      manualItems.map(async (item) => {
+        const record = await db.getItem(
+          `GRADEITEM#${item.itemId}`,
+          `STUDENT#${studentId}`
+        );
+
+        return {
+          type: 'manual',
+          itemId: item.itemId,
+          title: item.title,
+          maxGrade: item.maxGrade,
+          dueDate: item.dueDate || null,
+          submission: record ? {
+            submittedAt: record.gradedAt || record.updatedAt || record.createdAt || null,
+            grade: record.grade,
+            feedback: record.feedback,
+            gradedAt: record.gradedAt || null,
+            isLate: false
+          } : null
+        };
+      })
+    );
+
     // 計算總成績
-    const allGrades = [...assignmentGrades, ...quizGrades];
     let totalEarned = 0;
     let totalPossible = 0;
 
@@ -1084,6 +1304,13 @@ router.get('/courses/:courseId/students/:studentId', authMiddleware, async (req,
     quizGrades.forEach(g => {
       if (g.bestAttempt) {
         totalEarned += g.bestAttempt.score;
+        totalPossible += g.maxGrade;
+      }
+    });
+
+    manualGrades.forEach(g => {
+      if (g.submission?.grade !== undefined && g.submission?.grade !== null) {
+        totalEarned += g.submission.grade;
         totalPossible += g.maxGrade;
       }
     });
@@ -1103,7 +1330,8 @@ router.get('/courses/:courseId/students/:studentId', authMiddleware, async (req,
         },
         grades: {
           assignments: assignmentGrades,
-          quizzes: quizGrades
+          quizzes: quizGrades,
+          manual: manualGrades
         },
         summary: {
           totalEarned,

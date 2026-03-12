@@ -3,5 +3,7 @@
   "error.authRateLimited": "登入嘗試過於頻繁，請稍後再試",
   "error.relogin": "請重新登入",
   "error.loginFailed": "登入失敗",
-  "error.networkError": "網路連線錯誤"
+  "error.networkError": "網路連線錯誤",
+  "common.back": "返回",
+  "common.details": "詳細資訊"
 }

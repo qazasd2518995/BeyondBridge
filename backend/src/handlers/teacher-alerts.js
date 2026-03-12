@@ -9,6 +9,8 @@ const express = require('express');
 const router = express.Router();
 const { authMiddleware } = require('../utils/auth');
 const db = require('../utils/db');
+const cache = require('../utils/cache');
+const { canManageCourse } = require('../utils/course-access');
 
 const TEACHING_ROLES = new Set([
   'manager',
@@ -32,6 +34,7 @@ function requireTeachingRole(req, res, next) {
 }
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
+const TEACHER_ANALYTICS_CACHE_TTL_MS = 60 * 1000;
 
 function parseTimestamp(value) {
   if (!value) return null;
@@ -80,16 +83,17 @@ function getSeverityOrder(severity) {
   return 2;
 }
 
-async function getTeacherCourses(teacherId) {
-  return db.scan({
+async function getTeacherCourses(user) {
+  const courses = await db.scan({
     filter: {
-      expression: 'entityType = :type AND (instructorId = :teacherId OR creatorId = :teacherId)',
+      expression: 'entityType = :type',
       values: {
-        ':type': 'COURSE',
-        ':teacherId': teacherId
+        ':type': 'COURSE'
       }
     }
   });
+
+  return courses.filter(course => canManageCourse(course, user));
 }
 
 async function getCourseEnrollments(courseId) {
@@ -101,52 +105,46 @@ async function getCourseEnrollments(courseId) {
   );
 }
 
-async function getAssignmentsByCourse(courseId) {
-  return db.scan({
-    filter: {
-      expression: 'entityType = :type AND courseId = :courseId',
-      values: {
-        ':type': 'ASSIGNMENT',
-        ':courseId': courseId
-      }
-    }
-  });
-}
-
-async function getQuizzesByCourse(courseId) {
-  return db.scan({
-    filter: {
-      expression: 'entityType = :type AND courseId = :courseId',
-      values: {
-        ':type': 'QUIZ',
-        ':courseId': courseId
-      }
-    }
-  });
-}
-
-async function getForumsByCourse(courseId) {
-  return db.scan({
-    filter: {
-      expression: 'entityType = :type AND courseId = :courseId',
-      values: {
-        ':type': 'FORUM',
-        ':courseId': courseId
-      }
-    }
-  });
-}
-
 function getCourseTitle(course) {
   return course?.title || course?.name || '未命名課程';
 }
 
-function isCourseOwner(course, teacherId, isAdmin = false) {
-  if (!course || !teacherId) return false;
-  if (isAdmin) return true;
-  return course.instructorId === teacherId ||
-    course.creatorId === teacherId ||
-    (Array.isArray(course.instructors) && course.instructors.includes(teacherId));
+function getTeacherAnalyticsCacheKey(userId) {
+  return `teacher-analytics:${userId}`;
+}
+
+function groupBy(items, keySelector) {
+  const grouped = new Map();
+  items.forEach(item => {
+    const key = keySelector(item);
+    if (!key) return;
+    const bucket = grouped.get(key);
+    if (bucket) {
+      bucket.push(item);
+      return;
+    }
+    grouped.set(key, [item]);
+  });
+  return grouped;
+}
+
+function getTeacherActorIds(course, teacherId) {
+  return new Set([
+    teacherId,
+    course?.instructorId,
+    course?.teacherId,
+    course?.creatorId,
+    course?.createdBy,
+    ...(Array.isArray(course?.instructors) ? course.instructors : [])
+  ].filter(Boolean));
+}
+
+function isTeacherAuthoredForumItem(item, teacherActorIds) {
+  if (!item) return false;
+  if (item.authorId && teacherActorIds.has(item.authorId)) return true;
+  return item.authorRole === 'instructor' ||
+    item.authorRole === 'assistant' ||
+    item.authorRole === 'teacher';
 }
 
 async function getTeacherCourseContext(courseId, teacherId, isAdmin = false) {
@@ -160,7 +158,7 @@ async function getTeacherCourseContext(courseId, teacherId, isAdmin = false) {
     };
   }
 
-  if (!isCourseOwner(course, teacherId, isAdmin)) {
+  if (!canManageCourse(course, { userId: teacherId, isAdmin })) {
     return {
       ok: false,
       status: 403,
@@ -172,12 +170,85 @@ async function getTeacherCourseContext(courseId, teacherId, isAdmin = false) {
   return { ok: true, course };
 }
 
-async function getCachedUserProfile(cache, userId) {
-  if (!userId) return null;
-  if (cache.has(userId)) return cache.get(userId);
-  const user = await db.getUser(userId);
-  cache.set(userId, user || null);
-  return user || null;
+async function loadTeacherAnalyticsData(courses = []) {
+  const validCourses = courses.filter(course => course?.courseId);
+  const courseIds = new Set(validCourses.map(course => course.courseId));
+
+  if (courseIds.size === 0) {
+    return {
+      enrollmentsByCourse: new Map(),
+      assignmentsByCourse: new Map(),
+      submissionsByAssignment: new Map(),
+      quizzesByCourse: new Map(),
+      attemptsByQuiz: new Map(),
+      forumsByCourse: new Map(),
+      discussionsByForum: new Map(),
+      postsByDiscussion: new Map(),
+      studentMap: new Map()
+    };
+  }
+
+  const [
+    enrollmentEntries,
+    allAssignments,
+    allSubmissions,
+    allQuizzes,
+    allAttempts,
+    allForums,
+    allDiscussions,
+    allPosts
+  ] = await Promise.all([
+    Promise.all(
+      validCourses.map(async course => [course.courseId, await getCourseEnrollments(course.courseId)])
+    ),
+    db.scan({ filter: { expression: 'entityType = :type', values: { ':type': 'ASSIGNMENT' } } }),
+    db.scan({ filter: { expression: 'entityType = :type', values: { ':type': 'ASSIGNMENT_SUBMISSION' } } }),
+    db.scan({ filter: { expression: 'entityType = :type', values: { ':type': 'QUIZ' } } }),
+    db.scan({ filter: { expression: 'entityType = :type', values: { ':type': 'QUIZ_ATTEMPT' } } }),
+    db.scan({ filter: { expression: 'entityType = :type', values: { ':type': 'FORUM' } } }),
+    db.scan({ filter: { expression: 'entityType = :type', values: { ':type': 'DISCUSSION' } } }),
+    db.scan({ filter: { expression: 'entityType = :type', values: { ':type': 'FORUM_POST' } } })
+  ]);
+
+  const enrollmentsByCourse = new Map(enrollmentEntries);
+  const assignments = allAssignments.filter(item => courseIds.has(item.courseId));
+  const quizzes = allQuizzes.filter(item => courseIds.has(item.courseId));
+  const forums = allForums.filter(item => courseIds.has(item.courseId));
+  const forumIds = new Set(forums.map(item => item.forumId).filter(Boolean));
+  const discussions = allDiscussions.filter(item => courseIds.has(item.courseId) || forumIds.has(item.forumId));
+  const discussionIds = new Set(discussions.map(item => item.discussionId).filter(Boolean));
+  const submissions = allSubmissions.filter(item => courseIds.has(item.courseId));
+  const attempts = allAttempts.filter(item => courseIds.has(item.courseId));
+  const posts = allPosts.filter(item => forumIds.has(item.forumId) || discussionIds.has(item.discussionId));
+
+  const studentIds = [
+    ...new Set(
+      [...enrollmentsByCourse.values()]
+        .flat()
+        .map(enrollment => enrollment.userId)
+        .filter(Boolean)
+    )
+  ];
+
+  const studentProfiles = await Promise.all(studentIds.map(studentId => db.getUser(studentId)));
+  const studentMap = new Map();
+  studentProfiles.forEach(student => {
+    if (student?.userId) {
+      studentMap.set(student.userId, student);
+    }
+  });
+
+  return {
+    enrollmentsByCourse,
+    assignmentsByCourse: groupBy(assignments, item => item.courseId),
+    submissionsByAssignment: groupBy(submissions, item => item.assignmentId),
+    quizzesByCourse: groupBy(quizzes, item => item.courseId),
+    attemptsByQuiz: groupBy(attempts, item => item.quizId),
+    forumsByCourse: groupBy(forums, item => item.courseId),
+    discussionsByForum: groupBy(discussions, item => item.forumId),
+    postsByDiscussion: groupBy(posts, item => item.discussionId),
+    studentMap
+  };
 }
 
 function buildTeacherAlert(course, student, tag, nowIso) {
@@ -232,7 +303,7 @@ function buildTeacherAlert(course, student, tag, nowIso) {
   return { ...base, createdAt: nowIso };
 }
 
-async function buildCourseInsights(course, nowTs = Date.now()) {
+async function buildCourseInsights(course, nowTs = Date.now(), preloadedData = null) {
   const courseId = course?.courseId;
   if (!courseId) {
     return {
@@ -244,11 +315,10 @@ async function buildCourseInsights(course, nowTs = Date.now()) {
     };
   }
 
-  const [enrollments, assignments, quizzes] = await Promise.all([
-    getCourseEnrollments(courseId),
-    getAssignmentsByCourse(courseId),
-    getQuizzesByCourse(courseId)
-  ]);
+  const analyticsData = preloadedData || await loadTeacherAnalyticsData([course]);
+  const enrollments = analyticsData.enrollmentsByCourse.get(courseId) || [];
+  const assignments = analyticsData.assignmentsByCourse.get(courseId) || [];
+  const quizzes = analyticsData.quizzesByCourse.get(courseId) || [];
 
   if (!enrollments || enrollments.length === 0) {
     return {
@@ -260,12 +330,7 @@ async function buildCourseInsights(course, nowTs = Date.now()) {
     };
   }
 
-  const studentIds = [...new Set(enrollments.map(e => e.userId).filter(Boolean))];
-  const studentProfiles = await Promise.all(studentIds.map(studentId => db.getUser(studentId)));
-  const studentMap = new Map();
-  studentProfiles.forEach(student => {
-    if (student?.userId) studentMap.set(student.userId, student);
-  });
+  const studentMap = analyticsData.studentMap || new Map();
 
   const progressValues = enrollments.map(e => Number(e.progressPercentage) || 0);
   const avgProgress = Math.round(average(progressValues));
@@ -276,8 +341,8 @@ async function buildCourseInsights(course, nowTs = Date.now()) {
   });
 
   const submittedByAssignment = new Map();
-  await Promise.all(overdueAssignments.map(async (assignment) => {
-    const submissions = await db.query(`ASSIGNMENT#${assignment.assignmentId}`, { skPrefix: 'SUBMISSION#' });
+  overdueAssignments.forEach(assignment => {
+    const submissions = analyticsData.submissionsByAssignment.get(assignment.assignmentId) || [];
     const submittedUserSet = new Set(
       submissions
         .filter(s => !!s.submittedAt)
@@ -285,12 +350,12 @@ async function buildCourseInsights(course, nowTs = Date.now()) {
         .filter(Boolean)
     );
     submittedByAssignment.set(assignment.assignmentId, submittedUserSet);
-  }));
+  });
 
   const attemptsByUser = new Map();
   for (const quiz of quizzes) {
     if (!quiz?.quizId) continue;
-    const attempts = await db.query(`QUIZ#${quiz.quizId}`, { skPrefix: 'ATTEMPT#' });
+    const attempts = analyticsData.attemptsByQuiz.get(quiz.quizId) || [];
     attempts
       .filter(a => a.status === 'completed' && typeof a.percentage === 'number')
       .forEach(a => {
@@ -404,6 +469,175 @@ async function buildCourseInsights(course, nowTs = Date.now()) {
   };
 }
 
+async function buildTeacherAnalyticsSnapshot(user, nowTs = Date.now()) {
+  const teacherId = user.userId;
+  const courses = await getTeacherCourses(user);
+
+  if (!courses || courses.length === 0) {
+    return {
+      alerts: [],
+      dashboard: {
+        totalCourses: 0,
+        totalStudents: 0,
+        avgProgress: 0,
+        pendingAssignments: 0,
+        pendingQuizzes: 0,
+        unrepliedPosts: 0,
+        weeklySubmissions: 0,
+        courses: [],
+        gradingQueue: [],
+        recentSubmissions: []
+      }
+    };
+  }
+
+  const analyticsData = await loadTeacherAnalyticsData(courses);
+  const weekAgoTs = nowTs - (7 * MS_PER_DAY);
+  const nowIso = new Date(nowTs).toISOString();
+  const studentIdSet = new Set();
+  const alerts = [];
+  const courseStats = [];
+  const gradingQueue = [];
+  const recentSubmissions = [];
+
+  let progressSum = 0;
+  let progressCount = 0;
+  let pendingAssignments = 0;
+  let pendingQuizzes = 0;
+  let unrepliedPosts = 0;
+  let weeklySubmissions = 0;
+
+  for (const course of courses) {
+    const courseId = course.courseId;
+    if (!courseId) continue;
+
+    const insights = await buildCourseInsights(course, nowTs, analyticsData);
+    const courseStudents = insights.students || [];
+    const teacherActorIds = getTeacherActorIds(course, teacherId);
+
+    courseStudents.forEach(student => {
+      if (student.studentId) studentIdSet.add(student.studentId);
+      progressSum += student.currentProgress;
+      progressCount++;
+
+      student.riskTags.forEach(tag => {
+        alerts.push(buildTeacherAlert(course, student, tag, nowIso));
+      });
+    });
+
+    let coursePendingAssignments = 0;
+    let coursePendingQuizzes = 0;
+    let courseUnrepliedPosts = 0;
+
+    for (const assignment of insights.assignments || []) {
+      const submissions = analyticsData.submissionsByAssignment.get(assignment.assignmentId) || [];
+
+      for (const sub of submissions) {
+        const studentId = extractSubmissionUserId(sub);
+        if (studentId) studentIdSet.add(studentId);
+        const studentProfile = studentId ? analyticsData.studentMap.get(studentId) : null;
+        const studentName = studentProfile?.displayName || studentProfile?.email || studentId || '學生';
+        const submittedAt = sub.submittedAt || sub.createdAt || null;
+        const queueItem = {
+          assignmentId: assignment.assignmentId,
+          assignmentTitle: assignment.title || '未命名作業',
+          courseId,
+          courseTitle: getCourseTitle(course),
+          studentId: studentId || null,
+          studentName,
+          submittedAt,
+          gradedAt: sub.gradedAt || null,
+          status: sub.status || (sub.gradedAt ? 'graded' : 'submitted')
+        };
+
+        if (submittedAt) {
+          recentSubmissions.push(queueItem);
+        }
+
+        if (sub.submittedAt && !sub.gradedAt) {
+          pendingAssignments++;
+          coursePendingAssignments++;
+          gradingQueue.push(queueItem);
+        }
+
+        const submittedAtTs = parseTimestamp(sub.submittedAt || sub.createdAt);
+        if (submittedAtTs && submittedAtTs >= weekAgoTs) {
+          weeklySubmissions++;
+        }
+      }
+    }
+
+    for (const quiz of insights.quizzes || []) {
+      const attempts = analyticsData.attemptsByQuiz.get(quiz.quizId) || [];
+      const pendingCount = attempts.filter(a => a.status && a.status !== 'completed').length;
+      pendingQuizzes += pendingCount;
+      coursePendingQuizzes += pendingCount;
+    }
+
+    const forums = analyticsData.forumsByCourse.get(courseId) || [];
+    for (const forum of forums) {
+      const discussions = analyticsData.discussionsByForum.get(forum.forumId) || [];
+      for (const discussion of discussions) {
+        if (isTeacherAuthoredForumItem(discussion, teacherActorIds)) {
+          continue;
+        }
+
+        const posts = analyticsData.postsByDiscussion.get(discussion.discussionId) || [];
+        const hasTeacherReply = posts.some(post => isTeacherAuthoredForumItem(post, teacherActorIds));
+        if (!hasTeacherReply) {
+          unrepliedPosts++;
+          courseUnrepliedPosts++;
+        }
+      }
+    }
+
+    courseStats.push({
+      courseId,
+      title: getCourseTitle(course),
+      studentCount: courseStudents.length,
+      avgProgress: insights.avgProgress || 0,
+      pendingGrading: coursePendingAssignments,
+      pendingAssignments: coursePendingAssignments,
+      pendingQuizzes: coursePendingQuizzes,
+      unrepliedPosts: courseUnrepliedPosts
+    });
+  }
+
+  const sortBySubmittedAtDesc = (a, b) => {
+    const aTs = parseTimestamp(a.submittedAt || a.createdAt) || 0;
+    const bTs = parseTimestamp(b.submittedAt || b.createdAt) || 0;
+    return bTs - aTs;
+  };
+
+  return {
+    alerts,
+    dashboard: {
+      totalCourses: courseStats.length,
+      totalStudents: studentIdSet.size,
+      avgProgress: progressCount > 0 ? Math.round(progressSum / progressCount) : 0,
+      pendingAssignments,
+      pendingQuizzes,
+      unrepliedPosts,
+      weeklySubmissions,
+      courses: courseStats,
+      gradingQueue: gradingQueue.sort(sortBySubmittedAtDesc).slice(0, 8),
+      recentSubmissions: recentSubmissions.sort(sortBySubmittedAtDesc).slice(0, 8)
+    }
+  };
+}
+
+async function getTeacherAnalyticsSnapshot(user, nowTs = Date.now()) {
+  const cacheKey = getTeacherAnalyticsCacheKey(user.userId);
+  const cached = cache.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  const snapshot = await buildTeacherAnalyticsSnapshot(user, nowTs);
+  cache.set(cacheKey, snapshot, TEACHER_ANALYTICS_CACHE_TTL_MS);
+  return snapshot;
+}
+
 /**
  * 獲取教師的學生預警列表
  * GET /api/teachers/alerts
@@ -411,34 +645,12 @@ async function buildCourseInsights(course, nowTs = Date.now()) {
 router.get('/alerts', authMiddleware, requireTeachingRole, async (req, res) => {
   try {
     const teacherId = req.user.userId;
-    const alerts = [];
     const nowTs = Date.now();
-    const nowIso = new Date(nowTs).toISOString();
-
-    const courses = await getTeacherCourses(teacherId);
-
-    if (!courses || courses.length === 0) {
-      return res.json({
-        success: true,
-        data: [],
-        summary: getAlertSummary([])
-      });
-    }
-
-    for (const course of courses) {
-      const insights = await buildCourseInsights(course, nowTs);
-      if (!insights.students || insights.students.length === 0) continue;
-
-      insights.students.forEach(student => {
-        student.riskTags.forEach(tag => {
-          alerts.push(buildTeacherAlert(course, student, tag, nowIso));
-        });
-      });
-    }
+    const snapshot = await getTeacherAnalyticsSnapshot(req.user, nowTs);
 
     const dismissedAlerts = await db.query(`TEACHER#${teacherId}`, { skPrefix: 'DISMISSED_ALERT#' });
     const dismissedSet = new Set(dismissedAlerts.map(a => a.alertId));
-    const visibleAlerts = alerts.filter(a => !dismissedSet.has(a.alertId));
+    const visibleAlerts = (snapshot.alerts || []).filter(a => !dismissedSet.has(a.alertId));
 
     visibleAlerts.sort((a, b) => {
       const severityDiff = getSeverityOrder(a.severity) - getSeverityOrder(b.severity);
@@ -508,157 +720,16 @@ router.post('/alerts/:alertId/dismiss', authMiddleware, requireTeachingRole, asy
 router.get('/dashboard', authMiddleware, requireTeachingRole, async (req, res) => {
   try {
     const teacherId = req.user.userId;
-    const courses = await getTeacherCourses(teacherId);
     const nowTs = Date.now();
-    const weekAgoTs = nowTs - (7 * MS_PER_DAY);
-    const userProfileCache = new Map();
-
-    const studentIdSet = new Set();
-    let progressSum = 0;
-    let progressCount = 0;
-    let pendingAssignments = 0;
-    let pendingQuizzes = 0;
-    let unrepliedPosts = 0;
-    let weeklySubmissions = 0;
-    const courseStats = [];
-    const gradingQueue = [];
-    const recentSubmissions = [];
-
-    for (const course of courses) {
-      const courseId = course.courseId;
-      if (!courseId) continue;
-
-      const [insights, forums] = await Promise.all([
-        buildCourseInsights(course, nowTs),
-        getForumsByCourse(courseId)
-      ]);
-
-      const courseStudents = insights.students || [];
-      courseStudents.forEach(student => {
-        if (student.studentId) studentIdSet.add(student.studentId);
-        progressSum += student.currentProgress;
-        progressCount++;
-      });
-
-      let coursePendingAssignments = 0;
-      let coursePendingQuizzes = 0;
-      let courseUnrepliedPosts = 0;
-
-      for (const assignment of insights.assignments || []) {
-        if (!assignment?.assignmentId) continue;
-        const submissions = await db.query(`ASSIGNMENT#${assignment.assignmentId}`, { skPrefix: 'SUBMISSION#' });
-
-        for (const sub of submissions) {
-          const studentId = extractSubmissionUserId(sub);
-          if (studentId) studentIdSet.add(studentId);
-          const studentProfile = await getCachedUserProfile(userProfileCache, studentId);
-          const studentName = studentProfile?.displayName || studentProfile?.email || studentId || '學生';
-          const submittedAt = sub.submittedAt || sub.createdAt || null;
-          const queueItem = {
-            assignmentId: assignment.assignmentId,
-            assignmentTitle: assignment.title || '未命名作業',
-            courseId,
-            courseTitle: getCourseTitle(course),
-            studentId: studentId || null,
-            studentName,
-            submittedAt,
-            gradedAt: sub.gradedAt || null,
-            status: sub.status || (sub.gradedAt ? 'graded' : 'submitted')
-          };
-
-          if (submittedAt) {
-            recentSubmissions.push(queueItem);
-          }
-
-          if (sub.submittedAt && !sub.gradedAt) {
-            pendingAssignments++;
-            coursePendingAssignments++;
-            gradingQueue.push(queueItem);
-          }
-
-          const submittedAtTs = parseTimestamp(sub.submittedAt || sub.createdAt);
-          if (submittedAtTs && submittedAtTs >= weekAgoTs) {
-            weeklySubmissions++;
-          }
-        }
-      }
-
-      for (const quiz of insights.quizzes || []) {
-        if (!quiz?.quizId) continue;
-        const attempts = await db.query(`QUIZ#${quiz.quizId}`, { skPrefix: 'ATTEMPT#' });
-        const pendingCount = attempts.filter(a => a.status && a.status !== 'completed').length;
-        pendingQuizzes += pendingCount;
-        coursePendingQuizzes += pendingCount;
-      }
-
-      for (const forum of forums) {
-        if (!forum?.forumId) continue;
-        const discussions = await db.query(`FORUM#${forum.forumId}`, { skPrefix: 'DISCUSSION#' });
-
-        for (const discussion of discussions) {
-          const authoredByTeacher = discussion.authorId === teacherId ||
-            discussion.authorId === course.instructorId ||
-            discussion.authorRole === 'instructor';
-          if (authoredByTeacher) continue;
-
-          const posts = await db.query(`DISCUSSION#${discussion.discussionId}`, { skPrefix: 'POST#' });
-          const hasTeacherReply = posts.some(post =>
-            post.authorId === teacherId ||
-            post.authorId === course.instructorId ||
-            post.authorRole === 'instructor' ||
-            post.authorRole === 'assistant' ||
-            post.authorRole === 'teacher'
-          );
-
-          if (!hasTeacherReply) {
-            unrepliedPosts++;
-            courseUnrepliedPosts++;
-          }
-        }
-      }
-
-      courseStats.push({
-        courseId,
-        title: getCourseTitle(course),
-        studentCount: courseStudents.length,
-        avgProgress: insights.avgProgress || 0,
-        pendingGrading: coursePendingAssignments,
-        pendingAssignments: coursePendingAssignments,
-        pendingQuizzes: coursePendingQuizzes,
-        unrepliedPosts: courseUnrepliedPosts
-      });
-    }
-
-    const totalStudents = studentIdSet.size;
-    const totalCourses = courseStats.length;
-    const avgProgress = progressCount > 0
-      ? Math.round(progressSum / progressCount)
-      : 0;
+    const snapshot = await getTeacherAnalyticsSnapshot(req.user, nowTs);
     const notifications = await db.query(`USER#${teacherId}`, { skPrefix: 'NOTIFICATION#' });
     const pendingNotifications = notifications.filter(n => !n.readAt).length;
-
-    const sortBySubmittedAtDesc = (a, b) => {
-      const aTs = parseTimestamp(a.submittedAt || a.createdAt) || 0;
-      const bTs = parseTimestamp(b.submittedAt || b.createdAt) || 0;
-      return bTs - aTs;
-    };
-    const recentSubmissionList = recentSubmissions.sort(sortBySubmittedAtDesc).slice(0, 8);
-    const gradingQueueList = gradingQueue.sort(sortBySubmittedAtDesc).slice(0, 8);
 
     res.json({
       success: true,
       data: {
-        totalCourses,
-        totalStudents,
-        avgProgress,
-        pendingAssignments,
-        pendingQuizzes,
-        unrepliedPosts,
-        weeklySubmissions,
+        ...snapshot.dashboard,
         pendingNotifications,
-        courses: courseStats,
-        gradingQueue: gradingQueueList,
-        recentSubmissions: recentSubmissionList
       }
     });
 

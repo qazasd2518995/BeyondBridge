@@ -3,5 +3,7 @@
   "error.authRateLimited": "Too many login attempts. Please try again later.",
   "error.relogin": "Please log in again.",
   "error.loginFailed": "Login failed.",
-  "error.networkError": "Network connection error."
+  "error.networkError": "Network connection error.",
+  "common.back": "Back",
+  "common.details": "Details"
 }

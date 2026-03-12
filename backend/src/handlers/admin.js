@@ -10,6 +10,7 @@ const fs = require('fs/promises');
 const db = require('../utils/db');
 const auth = require('../utils/auth');
 const cache = require('../utils/cache');
+const ADMIN_ANALYTICS_CACHE_TTL_MS = 2 * 60 * 1000;
 
 // 所有管理員路由都需要管理員權限
 router.use(auth.adminMiddleware);
@@ -990,6 +991,18 @@ router.post('/licenses/grant', async (req, res) => {
  */
 router.get('/analytics/overview', async (req, res) => {
   try {
+    const CACHE_KEY = 'admin:analytics:overview';
+    const cached = cache.get(CACHE_KEY);
+    if (cached) {
+      return res.json({
+        success: true,
+        data: {
+          ...cached,
+          fromCache: true
+        }
+      });
+    }
+
     const [users, resources, licenses, chatRooms] = await Promise.all([
       db.scan({ filter: { expression: 'entityType = :type', values: { ':type': 'USER' } } }),
       db.scan({ filter: { expression: 'entityType = :type', values: { ':type': 'RESOURCE' } } }),
@@ -1160,38 +1173,42 @@ router.get('/analytics/overview', async (req, res) => {
       ? Math.round((ratedChats.filter(room => Number(room.rating.score) >= 4).length / ratedChats.length) * 100)
       : 0;
 
+    const responseData = {
+      metrics: {
+        totalUsers: users.length,
+        newUsersThisMonth,
+        newUsersLastMonth,
+        totalResources,
+        totalResourcesLastMonth,
+        publishedResources,
+        publishedResourcesLastMonth,
+        resourcesLastMonth: publishedResourcesLastMonth, // backward compatibility
+        activeLicenses,
+        activeLicensesLastMonth,
+        licensesLastMonth: activeLicensesLastMonth, // backward compatibility
+        avgCustomerRating: Math.round(avgRating * 10) / 10
+      },
+      userGrowthTrend,
+      userRoles,
+      userRolesList: Object.entries(userRoles).map(([role, count]) => ({ role, count })),
+      resourceCategories,
+      resourceCategoriesList: Object.entries(resourceCategories).map(([name, count]) => ({ name, count })),
+      licenseStatus,
+      licenseStatusList: Object.entries(licenseStatus).map(([status, count]) => ({ status, count })),
+      topResources,
+      supportStats: {
+        totalChats,
+        closedChats,
+        avgRating: Math.round(avgSupportRating * 10) / 10,
+        satisfactionRate
+      }
+    };
+
+    cache.set(CACHE_KEY, responseData, ADMIN_ANALYTICS_CACHE_TTL_MS);
+
     res.json({
       success: true,
-      data: {
-        metrics: {
-          totalUsers: users.length,
-          newUsersThisMonth,
-          newUsersLastMonth,
-          totalResources,
-          totalResourcesLastMonth,
-          publishedResources,
-          publishedResourcesLastMonth,
-          resourcesLastMonth: publishedResourcesLastMonth, // backward compatibility
-          activeLicenses,
-          activeLicensesLastMonth,
-          licensesLastMonth: activeLicensesLastMonth, // backward compatibility
-          avgCustomerRating: Math.round(avgRating * 10) / 10
-        },
-        userGrowthTrend,
-        userRoles,
-        userRolesList: Object.entries(userRoles).map(([role, count]) => ({ role, count })),
-        resourceCategories,
-        resourceCategoriesList: Object.entries(resourceCategories).map(([name, count]) => ({ name, count })),
-        licenseStatus,
-        licenseStatusList: Object.entries(licenseStatus).map(([status, count]) => ({ status, count })),
-        topResources,
-        supportStats: {
-          totalChats,
-          closedChats,
-          avgRating: Math.round(avgSupportRating * 10) / 10,
-          satisfactionRate
-        }
-      }
+      data: responseData
     });
 
   } catch (error) {
@@ -1648,6 +1665,18 @@ function calcPercentTrend(current, previous) {
 router.get('/analytics/user-activity', async (req, res) => {
   try {
     const { range = '30d', groupBy = 'day' } = req.query;
+    const cacheKey = `admin:analytics:user-activity:${range}:${groupBy}`;
+    const cached = cache.get(cacheKey);
+    if (cached) {
+      return res.json({
+        success: true,
+        data: {
+          ...cached,
+          fromCache: true
+        }
+      });
+    }
+
     const days = USER_ACTIVITY_RANGE_DAYS[range] || 30;
     const now = new Date();
     const todayStart = startOfUtcDay(now);
@@ -1672,6 +1701,11 @@ router.get('/analytics/user-activity', async (req, res) => {
 
     const knownUserIds = new Set(
       users.map(u => u.userId).filter(Boolean)
+    );
+    const userMap = new Map(
+      users
+        .filter(user => user?.userId)
+        .map(user => [user.userId, user])
     );
 
     const lookbackDays = Math.max(days, 30) * 2;
@@ -1735,6 +1769,7 @@ router.get('/analytics/user-activity', async (req, res) => {
     const dailyActiveSets = new Map();
     const actionDistribution = {};
     const userActivityCount = new Map();
+    const lastActiveByUser = new Map();
     const activityHeatmap = Array.from({ length: 7 }, () => Array(24).fill(0));
 
     periodEvents.forEach(e => {
@@ -1746,6 +1781,7 @@ router.get('/analytics/user-activity', async (req, res) => {
 
       actionDistribution[e.action] = (actionDistribution[e.action] || 0) + 1;
       userActivityCount.set(e.userId, (userActivityCount.get(e.userId) || 0) + 1);
+      lastActiveByUser.set(e.userId, Math.max(lastActiveByUser.get(e.userId) || 0, e.timestamp));
 
       const eventDate = new Date(e.timestamp);
       const day = eventDate.getUTCDay();
@@ -1828,55 +1864,53 @@ router.get('/analytics/user-activity', async (req, res) => {
       .sort((a, b) => b[1] - a[1])
       .slice(0, 10)
       .map(([userId, count], index) => {
-        const user = users.find(u => u.userId === userId);
+        const user = userMap.get(userId);
+        const lastActiveTs = lastActiveByUser.get(userId);
         return {
           rank: index + 1,
           userId,
           name: user?.displayName || user?.email || userId,
           role: user?.role || 'unknown',
           count,
-          lastActive: new Date(
-            Math.max(
-              ...periodEvents
-                .filter(e => e.userId === userId)
-                .map(e => e.timestamp)
-            )
-          ).toISOString()
+          lastActive: lastActiveTs ? new Date(lastActiveTs).toISOString() : null
         };
       });
+    const responseData = {
+      summary: {
+        totalUsers: users.length,
+        activeUsers: users.filter(u => u.status === 'active').length,
+        periodActiveUsers: getActiveUsersInWindow(days, 0).size,
+        dau,
+        wau,
+        mau,
+        retention,
+        dauTrend: calcPercentTrend(dau, dauPrev),
+        wauTrend: calcPercentTrend(wau, wauPrev),
+        mauTrend: calcPercentTrend(mau, mauPrev),
+        newUsersToday: registrationsByDate.get(todayStart.toISOString().slice(0, 10)) || 0
+      },
+      dailyActiveUsers,
+      roleDistribution,
+      registrationTrend,
+      behaviorDistribution: actionDistribution,
+      topActiveUsers,
+      activityHeatmap: {
+        timezone: 'UTC',
+        matrix: activityHeatmap
+      },
+      period: {
+        days,
+        from: periodStart.toISOString(),
+        to: now.toISOString(),
+        groupBy: groupByWeek ? 'week' : 'day'
+      }
+    };
+
+    cache.set(cacheKey, responseData, ADMIN_ANALYTICS_CACHE_TTL_MS);
 
     res.json({
       success: true,
-      data: {
-        summary: {
-          totalUsers: users.length,
-          activeUsers: users.filter(u => u.status === 'active').length,
-          periodActiveUsers: getActiveUsersInWindow(days, 0).size,
-          dau,
-          wau,
-          mau,
-          retention,
-          dauTrend: calcPercentTrend(dau, dauPrev),
-          wauTrend: calcPercentTrend(wau, wauPrev),
-          mauTrend: calcPercentTrend(mau, mauPrev),
-          newUsersToday: registrationsByDate.get(todayStart.toISOString().slice(0, 10)) || 0
-        },
-        dailyActiveUsers,
-        roleDistribution,
-        registrationTrend,
-        behaviorDistribution: actionDistribution,
-        topActiveUsers,
-        activityHeatmap: {
-          timezone: 'UTC',
-          matrix: activityHeatmap
-        },
-        period: {
-          days,
-          from: periodStart.toISOString(),
-          to: now.toISOString(),
-          groupBy: groupByWeek ? 'week' : 'day'
-        }
-      }
+      data: responseData
     });
   } catch (error) {
     console.error('User activity analytics error:', error);

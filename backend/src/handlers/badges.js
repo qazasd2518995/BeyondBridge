@@ -78,6 +78,35 @@ function normalizeCriteria(criteria) {
   return [];
 }
 
+function normalizeBadgeIcon(icon) {
+  const normalized = String(icon || '').trim().toLowerCase();
+  const legacyMap = {
+    '🏆': 'trophy',
+    trophy: 'trophy',
+    award: 'trophy',
+    '⭐': 'star',
+    star: 'star',
+    '🎓': 'graduation-cap',
+    graduationcap: 'graduation-cap',
+    'graduation-cap': 'graduation-cap',
+    cap: 'graduation-cap',
+    '🏅': 'medal',
+    medal: 'medal',
+    '💎': 'gem',
+    gem: 'gem',
+    diamond: 'gem',
+    '🌟': 'sparkles',
+    sparkles: 'sparkles',
+    shiningstar: 'sparkles',
+    '📚': 'books',
+    books: 'books',
+    book: 'books',
+    '🎯': 'target',
+    target: 'target'
+  };
+  return legacyMap[normalized] || 'trophy';
+}
+
 function normalizeBadge(item) {
   const badgeId = item.badgeId || item.id;
   return {
@@ -85,7 +114,7 @@ function normalizeBadge(item) {
     badgeId,
     name: item.name || '',
     description: item.description || '',
-    icon: item.icon || '🏆',
+    icon: normalizeBadgeIcon(item.icon),
     color: item.color || '#f59e0b',
     image: item.image || '',
     type: item.type || 'manual',
@@ -218,7 +247,7 @@ router.get('/my/collection', authMiddleware, async (req, res) => {
           badgeId: badge.badgeId || badge.id,
           name: badge.name,
           description: badge.description || '',
-          icon: badge.icon || '🏆',
+          icon: normalizeBadgeIcon(badge.icon),
           color: badge.color || '#f59e0b',
           image: badge.image || ''
         },
@@ -263,7 +292,7 @@ router.get('/users/:userId', authMiddleware, async (req, res) => {
         badgeId: badge.badgeId || badge.id,
         name: badge.name,
         description: badge.description || '',
-        icon: badge.icon || '🏆',
+        icon: normalizeBadgeIcon(badge.icon),
         color: badge.color || '#f59e0b',
         image: badge.image || '',
         issuedAt: item.issuedAt || item.updatedAt || item.createdAt
@@ -507,7 +536,7 @@ router.post('/', authMiddleware, async (req, res) => {
       badgeId,
       name: String(name).trim(),
       description: description || '',
-      icon: icon || '🏆',
+      icon: normalizeBadgeIcon(icon),
       color: color || '#f59e0b',
       image: image || '',
       type: type || 'manual',
@@ -565,7 +594,7 @@ router.put('/:badgeId', authMiddleware, async (req, res) => {
     const updates = { updatedAt: new Date().toISOString() };
     if (req.body.name !== undefined) updates.name = String(req.body.name || '').trim();
     if (req.body.description !== undefined) updates.description = String(req.body.description || '');
-    if (req.body.icon !== undefined) updates.icon = req.body.icon || '🏆';
+    if (req.body.icon !== undefined) updates.icon = normalizeBadgeIcon(req.body.icon);
     if (req.body.color !== undefined) updates.color = req.body.color || '#f59e0b';
     if (req.body.image !== undefined) updates.image = req.body.image || '';
     if (req.body.type !== undefined) updates.type = req.body.type || 'manual';
@@ -696,7 +725,7 @@ router.post('/:badgeId/issue', authMiddleware, async (req, res) => {
         badgeId,
         userId,
         badgeName: badge.name,
-        badgeIcon: badge.icon || '🏆',
+        badgeIcon: normalizeBadgeIcon(badge.icon),
         issuedBy: req.user.userId,
         issuedAt,
         message: message || '',

@@ -167,7 +167,10 @@ router.get('/:id', authMiddleware, async (req, res) => {
         delete d.SK;
         return {
           ...d,
+          subject: d.subject || d.title || '',
+          message: d.message || d.content || '',
           replyCount: posts.length,
+          lastReply: latestPost?.createdAt || d.lastReplyAt || null,
           latestReply: latestPost ? {
             authorName: latestPost.authorName,
             createdAt: latestPost.createdAt
@@ -505,8 +508,13 @@ router.get('/:id/discussions/:discussionId', authMiddleware, async (req, res) =>
       });
     }
 
+    const [storedSubscription, rawPosts] = await Promise.all([
+      db.getItem(`DISCUSSION#${discussionId}`, `SUBSCRIPTION#${userId}`),
+      db.query(`DISCUSSION#${discussionId}`, { skPrefix: 'POST#' })
+    ]);
+
     // 取得回覆
-    let posts = await db.query(`DISCUSSION#${discussionId}`, { skPrefix: 'POST#' });
+    let posts = rawPosts;
 
     // 建立回覆樹狀結構
     posts = posts.map(p => {
@@ -527,6 +535,7 @@ router.get('/:id/discussions/:discussionId', authMiddleware, async (req, res) =>
     // 標記用戶的貼文
     posts = posts.map(p => ({
       ...p,
+      message: p.message || p.content || '',
       isOwner: p.authorId === userId
     }));
 
@@ -534,7 +543,10 @@ router.get('/:id/discussions/:discussionId', authMiddleware, async (req, res) =>
       success: true,
       data: {
         ...discussion,
+        subject: discussion.subject || discussion.title || '',
+        message: discussion.message || discussion.content || '',
         isOwner: discussion.authorId === userId,
+        subscribed: storedSubscription ? storedSubscription.subscribed !== false : false,
         posts: buildPostTree(posts)
       }
     });
@@ -558,11 +570,15 @@ router.post('/:id/discussions', authMiddleware, async (req, res) => {
     const { id } = req.params;
     const userId = req.user.userId;
     const {
-      title,
-      content,
+      title: rawTitle,
+      subject,
+      content: rawContent,
+      message,
       attachments = [],
       pinned = false
     } = req.body;
+    const title = String(rawTitle || subject || '').trim();
+    const content = String(rawContent || message || '').trim();
 
     const forum = await db.getItem(`FORUM#${id}`, 'META');
     if (!forum) {
@@ -576,7 +592,7 @@ router.post('/:id/discussions', authMiddleware, async (req, res) => {
     // 檢查是否已報名課程
     const progress = await db.getItem(`USER#${userId}`, `PROG#COURSE#${forum.courseId}`);
     const course = await db.getItem(`COURSE#${forum.courseId}`, 'META');
-    const isInstructor = course.instructorId === userId;
+    const isInstructor = canManageCourse(course, req.user);
 
     if (!progress && !isInstructor && !req.user.isAdmin) {
       return res.status(403).json({
@@ -655,7 +671,11 @@ router.post('/:id/discussions', authMiddleware, async (req, res) => {
     res.status(201).json({
       success: true,
       message: '討論發起成功',
-      data: discussionItem
+      data: {
+        ...discussionItem,
+        subject: discussionItem.title,
+        message: discussionItem.content
+      }
     });
 
   } catch (error) {
@@ -690,7 +710,7 @@ router.put('/:id/discussions/:discussionId', authMiddleware, async (req, res) =>
     // 權限檢查：作者或教師
     const forum = await db.getItem(`FORUM#${id}`, 'META');
     const course = await db.getItem(`COURSE#${forum.courseId}`, 'META');
-    const isInstructor = course.instructorId === userId;
+    const isInstructor = canManageCourse(course, req.user);
     const isAuthor = discussion.authorId === userId;
 
     if (!isAuthor && !isInstructor && !req.user.isAdmin) {
@@ -768,7 +788,7 @@ router.delete('/:id/discussions/:discussionId', authMiddleware, async (req, res)
     // 權限檢查
     const forum = await db.getItem(`FORUM#${id}`, 'META');
     const course = await db.getItem(`COURSE#${forum.courseId}`, 'META');
-    const isInstructor = course.instructorId === userId;
+    const isInstructor = canManageCourse(course, req.user);
     const isAuthor = discussion.authorId === userId;
 
     if (!isAuthor && !isInstructor && !req.user.isAdmin) {
@@ -822,10 +842,12 @@ router.post('/:id/discussions/:discussionId/posts', authMiddleware, async (req, 
     const { id, discussionId } = req.params;
     const userId = req.user.userId;
     const {
-      content,
+      content: rawContent,
+      message,
       parentPostId, // 回覆特定貼文（巢狀回覆）
       attachments = []
     } = req.body;
+    const content = String(rawContent || message || '').trim();
 
     const discussion = await db.getItem(`DISCUSSION#${discussionId}`, 'META');
     if (!discussion) {
@@ -849,7 +871,7 @@ router.post('/:id/discussions/:discussionId/posts', authMiddleware, async (req, 
     const forum = await db.getItem(`FORUM#${id}`, 'META');
     const progress = await db.getItem(`USER#${userId}`, `PROG#COURSE#${forum.courseId}`);
     const course = await db.getItem(`COURSE#${forum.courseId}`, 'META');
-    const isInstructor = course.instructorId === userId;
+    const isInstructor = canManageCourse(course, req.user);
 
     if (!progress && !isInstructor && !req.user.isAdmin) {
       return res.status(403).json({
@@ -928,7 +950,10 @@ router.post('/:id/discussions/:discussionId/posts', authMiddleware, async (req, 
     res.status(201).json({
       success: true,
       message: '回覆成功',
-      data: postItem
+      data: {
+        ...postItem,
+        message: postItem.content
+      }
     });
 
   } catch (error) {
@@ -966,7 +991,7 @@ router.put('/:id/discussions/:discussionId/posts/:postId', authMiddleware, async
     // 權限檢查
     const forum = await db.getItem(`FORUM#${id}`, 'META');
     const course = await db.getItem(`COURSE#${forum.courseId}`, 'META');
-    const isInstructor = course.instructorId === userId;
+    const isInstructor = canManageCourse(course, req.user);
     const isAuthor = post.authorId === userId;
 
     if (!isAuthor && !isInstructor && !req.user.isAdmin) {
@@ -1031,7 +1056,7 @@ router.delete('/:id/discussions/:discussionId/posts/:postId', authMiddleware, as
     // 權限檢查
     const forum = await db.getItem(`FORUM#${id}`, 'META');
     const course = await db.getItem(`COURSE#${forum.courseId}`, 'META');
-    const isInstructor = course.instructorId === userId;
+    const isInstructor = canManageCourse(course, req.user);
     const isAuthor = post.authorId === userId;
 
     if (!isAuthor && !isInstructor && !req.user.isAdmin) {

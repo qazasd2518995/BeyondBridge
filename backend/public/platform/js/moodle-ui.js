@@ -16,6 +16,7 @@ const MoodleUI = {
   currentQuestionBankCategoryFilter: null,
   currentCalendarEvents: [],
   currentEditingActivity: null,
+  manageableCourseIdsCache: null,
 
   teachingRoles: new Set(['manager', 'coursecreator', 'educator', 'trainer', 'creator', 'teacher', 'assistant']),
 
@@ -73,6 +74,31 @@ const MoodleUI = {
     return !!(content.createdBy && content.createdBy === user.userId);
   },
 
+  isCurrentUser(userId, user = API.getCurrentUser()) {
+    return !!(user && userId && user.userId === userId);
+  },
+
+  async getManageableCourseIds(forceRefresh = false) {
+    if (!forceRefresh && this.manageableCourseIdsCache instanceof Set) {
+      return this.manageableCourseIdsCache;
+    }
+    const courses = await this.getRoleScopedCourses({ manageOnly: true }).catch(() => []);
+    this.manageableCourseIdsCache = new Set(
+      courses
+        .map(course => course.courseId || course.id)
+        .filter(Boolean)
+    );
+    return this.manageableCourseIdsCache;
+  },
+
+  async canManageCourseById(courseId, user = API.getCurrentUser()) {
+    if (!courseId || !user) return false;
+    if (user.isAdmin) return true;
+    if (!this.isTeachingRole(user)) return false;
+    const manageableCourseIds = await this.getManageableCourseIds();
+    return manageableCourseIds.has(courseId);
+  },
+
   ensureViewVisible(viewName) {
     if (typeof window.showView !== 'function') return true;
     const result = window.showView(viewName);
@@ -117,6 +143,27 @@ const MoodleUI = {
     if (['show', 'visible', 'published', 'true', '1'].includes(normalized)) return 'show';
     if (['hide', 'hidden', 'draft', 'false', '0'].includes(normalized)) return 'hide';
     return 'show';
+  },
+
+  getLocalizedCourseCategory(category) {
+    const normalized = String(category || '').trim();
+    if (!normalized) return t('moodleCourse.defaultCategory');
+    if (typeof window !== 'undefined' && window.categoryLabels) {
+      return window.categoryLabels[String(normalized).toLowerCase()] || normalized;
+    }
+    return normalized;
+  },
+
+  getLocalizedQuestionType(type) {
+    const typeLabels = {
+      multiple_choice: t('moodleQuestionBank.multipleChoice'),
+      true_false: t('moodleQuestionBank.trueFalse'),
+      short_answer: t('moodleQuestionBank.shortAnswer'),
+      matching: t('moodleQuestionBank.matching'),
+      fill_blank: t('moodleQuestionBank.fillBlank'),
+      essay: t('moodleQuestionBank.essay')
+    };
+    return typeLabels[type] || type || '—';
   },
 
   normalizeCourseFormat(format) {
@@ -435,7 +482,7 @@ const MoodleUI = {
     container.innerHTML = courses.map(course => `
       <div class="moodle-course-card" onclick="MoodleUI.openCourse('${course.courseId}')">
         <div class="course-cover" data-cover-gradient="${this.escapeText(this.getCourseGradient(course.category))}">
-          <span class="course-category">${course.category || t('moodleCourse.defaultCategory')}</span>
+          <span class="course-category">${this.escapeText(this.getLocalizedCourseCategory(course.category))}</span>
           ${course.isEnrolled ? `<span class="enrolled-badge">${t('moodleCourse.enrolled')}</span>` : ''}
         </div>
         <div class="course-body">
@@ -503,7 +550,7 @@ const MoodleUI = {
         </button>
         <div class="course-header-content">
           <div class="course-header-info">
-            <span class="course-category-badge">${course.category || t('moodleCourse.defaultCategory')}</span>
+          <span class="course-category-badge">${this.escapeText(this.getLocalizedCourseCategory(course.category))}</span>
             <h1>${course.title || course.name || t('moodleCourse.course')}</h1>
             <p>${course.description || course.summary || ''}</p>
             <div class="course-header-meta">
@@ -1413,7 +1460,7 @@ const MoodleUI = {
     if (existing) existing.remove();
     const modal = document.createElement('div');
     modal.id = 'ltiLaunchModal';
-    modal.className = 'modal-overlay';
+    modal.className = 'modal-overlay active';
     modal.innerHTML = `
       <div class="modal-content modal-fullscreen">
         <div class="modal-header">
@@ -1566,7 +1613,7 @@ const MoodleUI = {
   openAddSection(courseId) {
     const modal = document.createElement('div');
     modal.id = 'addSectionModal';
-    modal.className = 'modal-overlay';
+    modal.className = 'modal-overlay active';
     modal.innerHTML = `
       <div class="modal-content">
         <div class="modal-header">
@@ -1626,7 +1673,7 @@ const MoodleUI = {
   openAddActivity(courseId, sectionId) {
     const modal = document.createElement('div');
     modal.id = 'addActivityModal';
-    modal.className = 'modal-overlay';
+    modal.className = 'modal-overlay active';
     modal.innerHTML = `
       <div class="modal-content modal-lg">
         <div class="modal-header">
@@ -1989,7 +2036,7 @@ const MoodleUI = {
 
     const modal = document.createElement('div');
     modal.id = modalId;
-    modal.className = 'modal-overlay';
+    modal.className = 'modal-overlay active';
     modal.onclick = (e) => { if (e.target === modal) this.closeModal(modalId); };
 
     const maxWidth = options.maxWidth || '600px';
@@ -2289,6 +2336,129 @@ const MoodleUI = {
       manual: t('moodleBadges.manual')
     };
     return map[type] || type || '—';
+  },
+
+  getBadgeIconOptions() {
+    return [
+      { value: 'trophy', label: t('moodleBadges.iconTrophy') },
+      { value: 'star', label: t('moodleBadges.iconStar') },
+      { value: 'graduation-cap', label: t('moodleBadges.iconGradCap') },
+      { value: 'medal', label: t('moodleBadges.iconMedal') },
+      { value: 'gem', label: t('moodleBadges.iconDiamond') },
+      { value: 'sparkles', label: t('moodleBadges.iconShiningStar') },
+      { value: 'books', label: t('moodleBadges.iconBooks') },
+      { value: 'target', label: t('moodleBadges.iconTarget') }
+    ];
+  },
+
+  normalizeBadgeIcon(icon = '') {
+    const normalized = String(icon || '').trim().toLowerCase();
+    const legacyMap = {
+      '🏆': 'trophy',
+      trophy: 'trophy',
+      award: 'trophy',
+      '⭐': 'star',
+      star: 'star',
+      '🎓': 'graduation-cap',
+      graduationcap: 'graduation-cap',
+      'graduation-cap': 'graduation-cap',
+      cap: 'graduation-cap',
+      '🏅': 'medal',
+      medal: 'medal',
+      '💎': 'gem',
+      gem: 'gem',
+      diamond: 'gem',
+      '🌟': 'sparkles',
+      sparkles: 'sparkles',
+      shiningstar: 'sparkles',
+      '📚': 'books',
+      books: 'books',
+      book: 'books',
+      '🎯': 'target',
+      target: 'target'
+    };
+    return legacyMap[normalized] || 'trophy';
+  },
+
+  renderBadgeIcon(icon = 'trophy') {
+    const key = this.normalizeBadgeIcon(icon);
+    const icons = {
+      trophy: `
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M8 4h8v3a4 4 0 0 1-4 4 4 4 0 0 1-4-4V4Z"/>
+          <path d="M7 5H4a1 1 0 0 0-1 1 4 4 0 0 0 4 4"/>
+          <path d="M17 5h3a1 1 0 0 1 1 1 4 4 0 0 1-4 4"/>
+          <path d="M12 11v4"/>
+          <path d="M9 21h6"/>
+          <path d="M10 15h4v3h-4z"/>
+        </svg>
+      `,
+      star: `
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="m12 3 2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 16.9 6.8 19.99l.99-5.78-4.21-4.1 5.82-.85L12 3Z"/>
+        </svg>
+      `,
+      'graduation-cap': `
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="m2 9 10-5 10 5-10 5-10-5Z"/>
+          <path d="M6 11.5V16c0 .6 2.7 3 6 3s6-2.4 6-3v-4.5"/>
+          <path d="M22 9v6"/>
+        </svg>
+      `,
+      medal: `
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="m8 3 4 6 4-6"/>
+          <path d="M12 21a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z"/>
+          <path d="m12 13 1.2 2.1 2.3.3-1.7 1.6.4 2.3-2.2-1.2-2.2 1.2.4-2.3-1.7-1.6 2.3-.3L12 13Z"/>
+        </svg>
+      `,
+      gem: `
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M6 4h12l4 5-10 11L2 9l4-5Z"/>
+          <path d="m9 4 3 16 3-16"/>
+          <path d="M2 9h20"/>
+        </svg>
+      `,
+      sparkles: `
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="m12 3 1.3 3.7L17 8l-3.7 1.3L12 13l-1.3-3.7L7 8l3.7-1.3L12 3Z"/>
+          <path d="m5 14 .8 2.2L8 17l-2.2.8L5 20l-.8-2.2L2 17l2.2-.8L5 14Z"/>
+          <path d="m19 12 .9 2.6L22.5 15l-2.6.9L19 18.5l-.9-2.6-2.6-.9 2.6-.9L19 12Z"/>
+        </svg>
+      `,
+      books: `
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15.5A2.5 2.5 0 0 0 17.5 16H4V5.5Z"/>
+          <path d="M4 16v2a2 2 0 0 0 2 2h14"/>
+          <path d="M8 7h7"/>
+          <path d="M8 10h7"/>
+        </svg>
+      `,
+      target: `
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="8"/>
+          <circle cx="12" cy="12" r="4"/>
+          <path d="M12 2v3"/>
+          <path d="M12 19v3"/>
+          <path d="M2 12h3"/>
+          <path d="M19 12h3"/>
+          <circle cx="12" cy="12" r="1.5"/>
+        </svg>
+      `
+    };
+    return `<span class="badge-icon-glyph badge-icon-${key}" aria-hidden="true">${icons[key] || icons.trophy}</span>`;
+  },
+
+  updateBadgeIconPreview(iconValue = null) {
+    const preview = document.getElementById('badgeIconPreview');
+    const label = document.getElementById('badgeIconPreviewLabel');
+    if (!preview) return;
+    const iconKey = this.normalizeBadgeIcon(iconValue || document.getElementById('badgeIcon')?.value);
+    const option = this.getBadgeIconOptions().find(item => item.value === iconKey);
+    preview.innerHTML = this.renderBadgeIcon(iconKey);
+    if (label) {
+      label.textContent = option?.label || '';
+    }
   },
 
   getBadgeStatusLabel(status = '') {
@@ -3579,8 +3749,14 @@ const MoodleUI = {
       const container = document.getElementById('forumDetailContent');
       const typeMeta = this.getForumTypeMeta(forum.type);
       const discussions = Array.isArray(forum.discussions) ? forum.discussions : [];
+      const currentUser = API.getCurrentUser();
+      const canManageForum = await this.canManageCourseById(forum.courseId, currentUser);
+      const subscriptionResult = await API.forums.getSubscription(forumId).catch(() => ({ success: false }));
+      const isSubscribed = subscriptionResult?.success
+        ? subscriptionResult.data?.subscribed !== false
+        : !!forum.subscribed;
       const safeTitle = this.escapeText(forum.title || forum.name || t('moodleForum.title'));
-      const safeDescription = this.escapeText(forum.description || '這個討論區暫時沒有補充說明。');
+      const safeDescription = this.escapeText(forum.description || (I18n.getLocale() === 'en' ? 'No additional description is available for this forum yet.' : '這個討論區暫時沒有補充說明。'));
       const backAction = this.currentForumCourseId
         ? `showView('moodleForums'); MoodleUI.loadForums(${this.toInlineActionValue(this.currentForumCourseId)})`
         : `showView('moodleForums')`;
@@ -3605,6 +3781,14 @@ const MoodleUI = {
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
                   <span>${t('sidebar.courseCenter') || '課程中心'}</span>
                 </button>
+                <button type="button" class="forum-header-btn secondary" onclick="MoodleUI.markForumRead(${this.toInlineActionValue(forumId)})">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                  <span>${I18n.getLocale() === 'en' ? 'Mark Read' : '標記已讀'}</span>
+                </button>
+                <button type="button" class="forum-header-btn secondary" onclick="MoodleUI.toggleForumSubscription(${this.toInlineActionValue(forumId)}, ${isSubscribed ? 'true' : 'false'})">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                  <span>${isSubscribed ? (I18n.getLocale() === 'en' ? 'Unsubscribe' : '取消訂閱') : (I18n.getLocale() === 'en' ? 'Subscribe' : '訂閱討論區')}</span>
+                </button>
                 <button type="button" class="forum-header-btn primary" onclick="MoodleUI.openNewDiscussionModal(${this.toInlineActionValue(forumId)})">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                   <span>${t('moodleForum.newDiscussion')}</span>
@@ -3627,11 +3811,12 @@ const MoodleUI = {
               ? this.renderForumState(t('moodleForum.noDiscussions'))
               : discussions.map(discussion => {
                   const discussionId = discussion.discussionId || discussion.id;
-                  const safeSubject = this.escapeText(discussion.subject || '未命名主題');
-                  const safeExcerpt = this.escapeText(this.truncateText(discussion.message || '', 200) || '這則主題尚未提供內容摘要。');
+                  const isAuthor = this.isCurrentUser(discussion.authorId, currentUser);
+                  const safeSubject = this.escapeText(discussion.subject || discussion.title || '未命名主題');
+                  const safeExcerpt = this.escapeText(this.truncateText(discussion.message || discussion.content || '', 200) || (I18n.getLocale() === 'en' ? 'No summary has been provided for this discussion yet.' : '這則主題尚未提供內容摘要。'));
                   const safeAuthor = this.escapeText(discussion.authorName || '匿名');
                   const safeDate = this.escapeText(this.formatPlatformDate(discussion.createdAt, { year: 'numeric', month: 'numeric', day: 'numeric' }) || '');
-                  const safeLastReply = this.escapeText(this.formatPlatformDate(discussion.lastReply, { year: 'numeric', month: 'numeric', day: 'numeric' }) || '');
+                  const safeLastReply = this.escapeText(this.formatPlatformDate(discussion.lastReply || discussion.lastReplyAt || discussion.latestReply?.createdAt, { year: 'numeric', month: 'numeric', day: 'numeric' }) || '');
                   return `
                     <article class="forum-topic-card${discussion.pinned ? ' is-pinned' : ''}" onclick="MoodleUI.openDiscussion(${this.toInlineActionValue(forumId)}, ${this.toInlineActionValue(discussionId)})">
                       <div class="forum-thread-avatar">${this.escapeText((discussion.authorName || 'U').trim().charAt(0) || 'U')}</div>
@@ -3640,12 +3825,13 @@ const MoodleUI = {
                           <div>
                             <div class="forum-topic-title-row">
                               ${discussion.pinned ? `<span class="forum-topic-badge">${t('moodleForum.pinned')}</span>` : ''}
+                              ${discussion.locked ? `<span class="forum-topic-badge">${I18n.getLocale() === 'en' ? 'Locked' : '已鎖定'}</span>` : ''}
                               <h3 class="forum-topic-title">${safeSubject}</h3>
                             </div>
                             <div class="forum-topic-meta">
                               <span>${safeAuthor}</span>
                               ${safeDate ? `<span>•</span><span>${safeDate}</span>` : ''}
-                              ${discussion.lastReply ? `<span>•</span><span>${t('moodleForum.lastReply')} ${safeLastReply}</span>` : ''}
+                              ${(discussion.lastReply || discussion.lastReplyAt || discussion.latestReply?.createdAt) ? `<span>•</span><span>${t('moodleForum.lastReply')} ${safeLastReply}</span>` : ''}
                             </div>
                           </div>
                         </div>
@@ -3655,6 +3841,23 @@ const MoodleUI = {
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                             <span>${Number(discussion.replyCount || 0)} ${t('moodleForum.replies')}</span>
                           </span>
+                          <div class="category-actions">
+                            <button type="button" class="forum-header-btn secondary" onclick="event.stopPropagation(); MoodleUI.openDiscussion(${this.toInlineActionValue(forumId)}, ${this.toInlineActionValue(discussionId)})">
+                              ${I18n.getLocale() === 'en' ? 'Open & Reply' : '查看並回覆'}
+                            </button>
+                            ${(isAuthor || canManageForum) ? `
+                              <button type="button" class="btn-sm" onclick="event.stopPropagation(); MoodleUI.openNewDiscussionModal(${this.toInlineActionValue(forumId)}, ${this.toInlineActionValue(JSON.stringify({
+                                discussionId,
+                                subject: discussion.subject || discussion.title || '',
+                                message: discussion.message || discussion.content || ''
+                              }))})">${t('common.edit')}</button>
+                              <button type="button" class="btn-sm btn-danger" onclick="event.stopPropagation(); MoodleUI.deleteDiscussion(${this.toInlineActionValue(forumId)}, ${this.toInlineActionValue(discussionId)})">${t('common.delete')}</button>
+                            ` : ''}
+                            ${canManageForum ? `
+                              <button type="button" class="btn-sm" onclick="event.stopPropagation(); MoodleUI.toggleDiscussionPinned(${this.toInlineActionValue(forumId)}, ${this.toInlineActionValue(discussionId)}, ${discussion.pinned ? 'true' : 'false'})">${discussion.pinned ? (I18n.getLocale() === 'en' ? 'Unpin' : '取消置頂') : (I18n.getLocale() === 'en' ? 'Pin' : '置頂')}</button>
+                              <button type="button" class="btn-sm" onclick="event.stopPropagation(); MoodleUI.toggleDiscussionLocked(${this.toInlineActionValue(forumId)}, ${this.toInlineActionValue(discussionId)}, ${discussion.locked ? 'true' : 'false'})">${discussion.locked ? (I18n.getLocale() === 'en' ? 'Unlock' : '解除鎖定') : (I18n.getLocale() === 'en' ? 'Lock' : '鎖定')}</button>
+                            ` : ''}
+                          </div>
                         </div>
                       </div>
                     </article>
@@ -4043,7 +4246,7 @@ const MoodleUI = {
                   <tr>
                     <td>${this.escapeText(question.questionText || `${I18n.getLocale() === 'en' ? 'Question' : '題目'} ${index + 1}`)}</td>
                     <td class="is-center">${this.escapeText(String(question.correctRate ?? 0))}%</td>
-                    <td>${this.escapeText(question.type || '—')}</td>
+                    <td>${this.escapeText(this.getLocalizedQuestionType(question.type))}</td>
                   </tr>
                 `).join('')}
               </tbody>
@@ -4299,41 +4502,52 @@ const MoodleUI = {
     }
   },
 
-  openNewDiscussionModal(forumId) {
+  openNewDiscussionModal(forumId, discussion = null) {
+    if (typeof discussion === 'string') {
+      try {
+        discussion = JSON.parse(discussion);
+      } catch (error) {
+        discussion = null;
+      }
+    }
     this.closeModal('newDiscussionModal');
+    const isEditing = !!discussion;
+    const subjectValue = this.escapeText(discussion?.subject || discussion?.title || '');
+    const messageValue = this.escapeText(discussion?.message || discussion?.content || '');
     const modal = document.createElement('div');
     modal.id = 'newDiscussionModal';
     modal.className = 'modal-overlay active';
     modal.innerHTML = `
       <div class="modal active discussion-modal discussion-modal-lg" role="dialog" aria-modal="true" aria-labelledby="newDiscussionModalTitle">
         <div class="modal-header">
-          <h2 id="newDiscussionModalTitle">${t('moodleDiscussion.newTitle')}</h2>
+          <h2 id="newDiscussionModalTitle">${isEditing ? (t('common.edit') + ' ' + t('moodleDiscussion.newTitle')) : t('moodleDiscussion.newTitle')}</h2>
           <button onclick="MoodleUI.closeModal('newDiscussionModal')" class="modal-close">&times;</button>
         </div>
         <form id="newDiscussionForm">
           <div class="modal-body">
+            ${isEditing ? `<input type="hidden" id="editingDiscussionId" value="${this.escapeText(discussion.discussionId || discussion.id || '')}">` : ''}
             <div class="discussion-modal-intro">
               <div class="discussion-modal-intro-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8"/><path d="M8 13h5"/></svg>
               </div>
               <div>
-                <div class="discussion-modal-intro-title">讓主題更容易被回覆</div>
-                <p class="discussion-modal-intro-copy">主旨先說清楚問題，內容補充背景與目前做法，能讓同學與老師更快切入重點。</p>
+                <div class="discussion-modal-intro-title">${I18n.getLocale() === 'en' ? (isEditing ? 'Refine the thread clearly' : 'Make the thread easier to answer') : (isEditing ? '重新整理主題內容' : '讓主題更容易被回覆')}</div>
+                <p class="discussion-modal-intro-copy">${I18n.getLocale() === 'en' ? (isEditing ? 'Update the subject and details so learners and teachers can quickly understand the thread context.' : 'A clear subject and useful context help teachers and learners reply faster.') : (isEditing ? '請把主旨與內容補充完整，讓老師與同學能快速理解討論脈絡。' : '主旨先說清楚問題，內容補充背景與目前做法，能讓同學與老師更快切入重點。')}</p>
               </div>
             </div>
             <div class="bridge-form-group">
               <label class="bridge-form-label" for="discussionSubject">${t('moodleDiscussion.subjectLabel')}</label>
-              <input type="text" id="discussionSubject" class="bridge-form-control" placeholder="${t('moodleDiscussion.subjectPlaceholder')}">
+              <input type="text" id="discussionSubject" class="bridge-form-control" placeholder="${t('moodleDiscussion.subjectPlaceholder')}" value="${subjectValue}">
             </div>
             <div class="bridge-form-group">
               <label class="bridge-form-label" for="discussionMessage">${t('moodleDiscussion.contentLabel')}</label>
-              <textarea id="discussionMessage" rows="7" class="bridge-form-control discussion-form-textarea" placeholder="${t('moodleDiscussion.contentPlaceholder')}"></textarea>
+              <textarea id="discussionMessage" rows="7" class="bridge-form-control discussion-form-textarea" placeholder="${t('moodleDiscussion.contentPlaceholder')}">${messageValue}</textarea>
             </div>
           </div>
           <div class="modal-footer">
-            <div class="discussion-modal-note">發布後會顯示在這個課程論壇中，並納入主題與回覆統計。</div>
+            <div class="discussion-modal-note">${I18n.getLocale() === 'en' ? (isEditing ? 'Updates will be reflected in the forum immediately.' : 'Once published, the discussion will appear in this course forum and count toward discussion statistics.') : (isEditing ? '儲存後會立即更新論壇中的主題內容。' : '發布後會顯示在這個課程論壇中，並納入主題與回覆統計。')}</div>
             <button type="button" onclick="MoodleUI.closeModal('newDiscussionModal')" class="btn-secondary">${t('moodleDiscussion.cancel')}</button>
-            <button type="submit" class="btn-primary">${t('moodleDiscussion.publish')}</button>
+            <button type="submit" class="btn-primary">${isEditing ? t('common.save') : t('moodleDiscussion.publish')}</button>
           </div>
         </form>
       </div>
@@ -4353,6 +4567,7 @@ const MoodleUI = {
   async submitNewDiscussion(forumId) {
     const subject = document.getElementById('discussionSubject').value.trim();
     const message = document.getElementById('discussionMessage').value.trim();
+    const discussionId = document.getElementById('editingDiscussionId')?.value?.trim();
 
     if (!subject || !message) {
       showToast(t('moodleDiscussion.fieldsRequired'));
@@ -4360,17 +4575,245 @@ const MoodleUI = {
     }
 
     try {
-      const result = await API.forums.createDiscussion(forumId, { subject, message });
+      const result = discussionId
+        ? await API.forums.updateDiscussion(forumId, discussionId, { subject, message })
+        : await API.forums.createDiscussion(forumId, { subject, message });
       if (result.success) {
-        showToast(t('moodleDiscussion.published'));
+        showToast(discussionId
+          ? (I18n.getLocale() === 'en' ? 'Discussion updated' : '討論已更新')
+          : t('moodleDiscussion.published'));
         this.closeModal('newDiscussionModal');
-        this.openForum(forumId);
+        if (discussionId) {
+          this.openDiscussion(forumId, discussionId);
+        } else {
+          this.openForum(forumId);
+        }
       } else {
-        showToast(result.message || t('moodleDiscussion.publishFailed'));
+        showToast(result.message || (discussionId ? t('common.updateFailed') : t('moodleDiscussion.publishFailed')));
       }
     } catch (error) {
       console.error('Create discussion error:', error);
-      showToast(t('moodleDiscussion.publishFailed'));
+      showToast(discussionId ? t('common.updateFailed') : t('moodleDiscussion.publishFailed'));
+    }
+  },
+
+  async toggleForumSubscription(forumId, currentlySubscribed) {
+    try {
+      const result = currentlySubscribed
+        ? await API.forums.unsubscribe(forumId)
+        : await API.forums.subscribe(forumId);
+      if (result.success) {
+        showToast(currentlySubscribed
+          ? (I18n.getLocale() === 'en' ? 'Forum unsubscribed' : '已取消訂閱討論區')
+          : (I18n.getLocale() === 'en' ? 'Forum subscribed' : '已訂閱討論區'));
+        this.openForum(forumId);
+      } else {
+        showToast(result.message || t('common.updateFailed'));
+      }
+    } catch (error) {
+      console.error('Toggle forum subscription error:', error);
+      showToast(t('common.updateFailed'));
+    }
+  },
+
+  async markForumRead(forumId) {
+    try {
+      const result = await API.forums.markRead(forumId);
+      if (result.success) {
+        showToast(I18n.getLocale() === 'en' ? 'Marked forum as read' : '已將討論區標記為已讀');
+      } else {
+        showToast(result.message || t('common.updateFailed'));
+      }
+    } catch (error) {
+      console.error('Mark forum read error:', error);
+      showToast(t('common.updateFailed'));
+    }
+  },
+
+  async deleteDiscussion(forumId, discussionId) {
+    const confirmed = await showConfirmDialog({
+      message: I18n.getLocale() === 'en' ? 'Delete this discussion and all replies?' : '確定要刪除此討論與所有回覆嗎？',
+      confirmLabel: t('common.delete'),
+      tone: 'danger'
+    });
+    if (!confirmed) return;
+
+    try {
+      const result = await API.forums.deleteDiscussion(forumId, discussionId);
+      if (result.success) {
+        showToast(I18n.getLocale() === 'en' ? 'Discussion deleted' : '討論已刪除');
+        this.openForum(forumId);
+      } else {
+        showToast(result.message || t('common.deleteFailed'));
+      }
+    } catch (error) {
+      console.error('Delete discussion error:', error);
+      showToast(t('common.deleteFailed'));
+    }
+  },
+
+  async toggleDiscussionPinned(forumId, discussionId, pinned) {
+    try {
+      const result = pinned
+        ? await API.forums.unpinDiscussion(forumId, discussionId)
+        : await API.forums.pinDiscussion(forumId, discussionId);
+      if (result.success) {
+        showToast(pinned
+          ? (I18n.getLocale() === 'en' ? 'Discussion unpinned' : '已取消置頂')
+          : (I18n.getLocale() === 'en' ? 'Discussion pinned' : '討論已置頂'));
+        this.openForum(forumId);
+      } else {
+        showToast(result.message || t('common.updateFailed'));
+      }
+    } catch (error) {
+      console.error('Toggle discussion pin error:', error);
+      showToast(t('common.updateFailed'));
+    }
+  },
+
+  async toggleDiscussionSubscription(forumId, discussionId, subscribed) {
+    try {
+      const result = subscribed
+        ? await API.forums.unsubscribeDiscussion(forumId, discussionId)
+        : await API.forums.subscribeDiscussion(forumId, discussionId);
+      if (result.success) {
+        showToast(subscribed
+          ? (I18n.getLocale() === 'en' ? 'Discussion unsubscribed' : '已取消訂閱討論串')
+          : (I18n.getLocale() === 'en' ? 'Discussion subscribed' : '已訂閱討論串'));
+        this.openDiscussion(forumId, discussionId);
+      } else {
+        showToast(result.message || t('common.updateFailed'));
+      }
+    } catch (error) {
+      console.error('Toggle discussion subscription error:', error);
+      showToast(t('common.updateFailed'));
+    }
+  },
+
+  async toggleDiscussionLocked(forumId, discussionId, locked) {
+    try {
+      const result = locked
+        ? await API.forums.unlockDiscussion(forumId, discussionId)
+        : await API.forums.lockDiscussion(forumId, discussionId);
+      if (result.success) {
+        showToast(locked
+          ? (I18n.getLocale() === 'en' ? 'Discussion unlocked' : '討論已解除鎖定')
+          : (I18n.getLocale() === 'en' ? 'Discussion locked' : '討論已鎖定'));
+        this.openDiscussion(forumId, discussionId);
+      } else {
+        showToast(result.message || t('common.updateFailed'));
+      }
+    } catch (error) {
+      console.error('Toggle discussion lock error:', error);
+      showToast(t('common.updateFailed'));
+    }
+  },
+
+  openEditPostModal(forumId, discussionId, post) {
+    if (typeof post === 'string') {
+      try {
+        post = JSON.parse(post);
+      } catch (error) {
+        post = null;
+      }
+    }
+    this.closeModal('editPostModal');
+    const modal = document.createElement('div');
+    modal.id = 'editPostModal';
+    modal.className = 'modal-overlay active';
+    modal.innerHTML = `
+      <div class="modal active discussion-modal" role="dialog" aria-modal="true" aria-labelledby="editPostModalTitle">
+        <div class="modal-header">
+          <h2 id="editPostModalTitle">${t('common.edit')} ${I18n.getLocale() === 'en' ? 'Reply' : '回覆'}</h2>
+          <button onclick="MoodleUI.closeModal('editPostModal')" class="modal-close">&times;</button>
+        </div>
+        <form id="editPostForm">
+          <div class="modal-body">
+            <div class="bridge-form-group">
+              <label class="bridge-form-label" for="editPostMessage">${t('moodleDiscussion.contentLabel')}</label>
+              <textarea id="editPostMessage" rows="6" class="bridge-form-control discussion-form-textarea">${this.escapeText(post?.message || post?.content || '')}</textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" onclick="MoodleUI.closeModal('editPostModal')" class="btn-secondary">${t('common.cancel')}</button>
+            <button type="submit" class="btn-primary">${t('common.save')}</button>
+          </div>
+        </form>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    modal.onclick = (event) => { if (event.target === modal) this.closeModal('editPostModal'); };
+    modal.querySelector('#editPostForm')?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const message = document.getElementById('editPostMessage')?.value?.trim();
+      if (!message) {
+        showToast(t('moodleDiscussion.replyRequired'));
+        return;
+      }
+      try {
+        const result = await API.forums.updatePost(forumId, discussionId, post.postId, { message });
+        if (result.success) {
+          showToast(I18n.getLocale() === 'en' ? 'Reply updated' : '回覆已更新');
+          this.closeModal('editPostModal');
+          this.openDiscussion(forumId, discussionId);
+        } else {
+          showToast(result.message || t('common.updateFailed'));
+        }
+      } catch (error) {
+        console.error('Edit post error:', error);
+        showToast(t('common.updateFailed'));
+      }
+    });
+  },
+
+  async deletePost(forumId, discussionId, postId) {
+    const confirmed = await showConfirmDialog({
+      message: I18n.getLocale() === 'en' ? 'Delete this reply?' : '確定要刪除此回覆嗎？',
+      confirmLabel: t('common.delete'),
+      tone: 'danger'
+    });
+    if (!confirmed) return;
+
+    try {
+      const result = await API.forums.deletePost(forumId, discussionId, postId);
+      if (result.success) {
+        showToast(I18n.getLocale() === 'en' ? 'Reply deleted' : '回覆已刪除');
+        this.openDiscussion(forumId, discussionId);
+      } else {
+        showToast(result.message || t('common.deleteFailed'));
+      }
+    } catch (error) {
+      console.error('Delete post error:', error);
+      showToast(t('common.deleteFailed'));
+    }
+  },
+
+  async ratePost(forumId, discussionId, postId) {
+    const rating = await showPromptDialog({
+      message: I18n.getLocale() === 'en' ? 'Rate this reply from 1 to 5' : '請輸入 1 到 5 分評價這則回覆',
+      defaultValue: '5',
+      placeholder: '1-5',
+      confirmLabel: t('common.confirm')
+    });
+    if (rating === null) return;
+
+    const numericRating = Number(rating);
+    if (!Number.isFinite(numericRating) || numericRating < 1 || numericRating > 5) {
+      showToast(I18n.getLocale() === 'en' ? 'Please enter a number between 1 and 5' : '請輸入 1 到 5 的數字');
+      return;
+    }
+
+    try {
+      const result = await API.forums.ratePost(forumId, discussionId, postId, numericRating);
+      if (result.success) {
+        showToast(I18n.getLocale() === 'en' ? 'Reply rated' : '已完成評分');
+        this.openDiscussion(forumId, discussionId);
+      } else {
+        showToast(result.message || t('common.updateFailed'));
+      }
+    } catch (error) {
+      console.error('Rate post error:', error);
+      showToast(t('common.updateFailed'));
     }
   },
 
@@ -4388,9 +4831,12 @@ const MoodleUI = {
       const discussion = result.data;
       const container = document.getElementById('forumDetailContent');
       const posts = Array.isArray(discussion.posts) ? discussion.posts : [];
+      const currentUser = API.getCurrentUser();
+      const canManageForum = await this.canManageCourseById(discussion.courseId || this.currentForumCourseId, currentUser);
+      const isDiscussionAuthor = this.isCurrentUser(discussion.authorId, currentUser);
       const safeAuthor = this.escapeText(discussion.authorName || '匿名');
-      const safeSubject = this.escapeText(discussion.subject || '未命名主題');
-      const safeMessage = this.formatMultilineText(discussion.message || '');
+      const safeSubject = this.escapeText(discussion.subject || discussion.title || '未命名主題');
+      const safeMessage = this.formatMultilineText(discussion.message || discussion.content || '');
       const safeCreatedAt = this.escapeText(this.formatPlatformDate(discussion.createdAt, {
         year: 'numeric',
         month: 'numeric',
@@ -4414,13 +4860,20 @@ const MoodleUI = {
                     <span>${posts.length} ${t('moodleDiscussion.repliesCount')}</span>
                   </span>
                   <h2 class="forum-thread-title">${safeSubject}</h2>
-                  <p class="forum-thread-subtitle">以下顯示原始主題與所有回覆。內容會依時間排序，方便你追蹤討論脈絡。</p>
+                  <p class="forum-thread-subtitle">${I18n.getLocale() === 'en' ? 'The original discussion and all replies are shown below in chronological order.' : '以下顯示原始主題與所有回覆。內容會依時間排序，方便你追蹤討論脈絡。'}</p>
+                </div>
+                <div class="category-actions">
+                  <button type="button" class="btn-sm" onclick="MoodleUI.toggleDiscussionSubscription(${this.toInlineActionValue(forumId)}, ${this.toInlineActionValue(discussionId)}, ${discussion.subscribed ? 'true' : 'false'})">
+                    ${discussion.subscribed ? (I18n.getLocale() === 'en' ? 'Unsubscribe' : '取消訂閱') : (I18n.getLocale() === 'en' ? 'Subscribe' : '訂閱討論串')}
+                  </button>
                 </div>
               </div>
             </div>
             <div class="forum-thread-meta">
               <span class="forum-chip">${safeAuthor}</span>
               ${safeCreatedAt ? `<span class="forum-chip">${safeCreatedAt}</span>` : ''}
+              ${discussion.pinned ? `<span class="forum-chip">${I18n.getLocale() === 'en' ? 'Pinned' : '已置頂'}</span>` : ''}
+              ${discussion.locked ? `<span class="forum-chip">${I18n.getLocale() === 'en' ? 'Locked' : '已鎖定'}</span>` : ''}
             </div>
           </div>
 
@@ -4435,9 +4888,19 @@ const MoodleUI = {
                     ${discussion.locked ? `<span>•</span><span>${t('moodleDiscussion.locked')}</span>` : ''}
                   </div>
                 </div>
+                <div class="category-actions">
+                  ${(isDiscussionAuthor || canManageForum) ? `<button type="button" class="btn-sm" onclick="MoodleUI.openNewDiscussionModal(${this.toInlineActionValue(forumId)}, ${this.toInlineActionValue(JSON.stringify({
+                    discussionId,
+                    subject: discussion.subject || discussion.title || '',
+                    message: discussion.message || discussion.content || ''
+                  }))})">${t('common.edit')}</button>` : ''}
+                  ${(isDiscussionAuthor || canManageForum) ? `<button type="button" class="btn-sm btn-danger" onclick="MoodleUI.deleteDiscussion(${this.toInlineActionValue(forumId)}, ${this.toInlineActionValue(discussionId)})">${t('common.delete')}</button>` : ''}
+                  ${canManageForum ? `<button type="button" class="btn-sm" onclick="MoodleUI.toggleDiscussionPinned(${this.toInlineActionValue(forumId)}, ${this.toInlineActionValue(discussionId)}, ${discussion.pinned ? 'true' : 'false'})">${discussion.pinned ? (I18n.getLocale() === 'en' ? 'Unpin' : '取消置頂') : (I18n.getLocale() === 'en' ? 'Pin' : '置頂')}</button>` : ''}
+                  ${canManageForum ? `<button type="button" class="btn-sm" onclick="MoodleUI.toggleDiscussionLocked(${this.toInlineActionValue(forumId)}, ${this.toInlineActionValue(discussionId)}, ${discussion.locked ? 'true' : 'false'})">${discussion.locked ? (I18n.getLocale() === 'en' ? 'Unlock' : '解除鎖定') : (I18n.getLocale() === 'en' ? 'Lock' : '鎖定')}</button>` : ''}
+                </div>
               </div>
               <h3 class="forum-thread-post-title">${safeSubject}</h3>
-              <div class="forum-thread-post-content">${safeMessage || this.escapeText('尚未提供內容。')}</div>
+              <div class="forum-thread-post-content">${safeMessage || this.escapeText(I18n.getLocale() === 'en' ? 'No content provided yet.' : '尚未提供內容。')}</div>
             </div>
           </article>
 
@@ -4450,8 +4913,9 @@ const MoodleUI = {
             </div>
             <div class="forum-thread-replies">
               ${posts.length === 0
-                ? this.renderForumState('目前還沒有任何回覆。你可以成為第一個回應這個主題的人。')
+                ? this.renderForumState(I18n.getLocale() === 'en' ? 'No replies yet. Be the first one to respond to this discussion.' : '目前還沒有任何回覆。你可以成為第一個回應這個主題的人。')
                 : posts.map(post => {
+                    const isPostAuthor = this.isCurrentUser(post.authorId, currentUser);
                     const safePostAuthor = this.escapeText(post.authorName || '匿名');
                     const safePostTime = this.escapeText(this.formatPlatformDate(post.createdAt, {
                       year: 'numeric',
@@ -4460,15 +4924,17 @@ const MoodleUI = {
                       hour: '2-digit',
                       minute: '2-digit'
                     }) || '');
-                    const safePostMessage = this.formatMultilineText(post.message || '');
+                    const safePostMessage = this.formatMultilineText(post.message || post.content || '');
+                    const replyDepth = Number(post.replyDepth || 0);
                     return `
-                      <article class="forum-thread-post is-reply">
+                      <article class="forum-thread-post is-reply${replyDepth > 0 ? ' is-nested-reply' : ''}">
                         <div class="forum-thread-avatar">${this.escapeText((post.authorName || 'U').trim().charAt(0) || 'U')}</div>
                         <div class="forum-thread-post-body">
                           <div class="forum-thread-post-header">
                             <div>
                               <div class="forum-thread-post-author">${safePostAuthor}</div>
                               <div class="forum-thread-post-meta">
+                                ${replyDepth > 0 ? `<span>${'↳'.repeat(Math.min(replyDepth, 3))} ${I18n.getLocale() === 'en' ? 'Reply' : '回覆'}</span>${safePostTime ? '<span>•</span>' : ''}` : ''}
                                 ${safePostTime ? `<span>${safePostTime}</span>` : ''}
                               </div>
                             </div>
@@ -4480,7 +4946,16 @@ const MoodleUI = {
                               <span>${Number(post.likes || 0)}</span>
                             </button>
                           </div>
-                          <div class="forum-thread-post-content">${safePostMessage || this.escapeText('尚未提供內容。')}</div>
+                          <div class="forum-thread-post-content">${safePostMessage || this.escapeText(I18n.getLocale() === 'en' ? 'No content provided yet.' : '尚未提供內容。')}</div>
+                          <div class="category-actions">
+                            <button type="button" class="btn-sm" onclick="MoodleUI.ratePost(${this.toInlineActionValue(forumId)}, ${this.toInlineActionValue(discussionId)}, ${this.toInlineActionValue(post.postId)})">${I18n.getLocale() === 'en' ? 'Rate' : '評分'}</button>
+                            ${Number(post.ratingCount || 0) > 0 ? `<span class="forum-chip">${this.escapeText(`${post.ratingAverage || 0} / 5 (${post.ratingCount})`)}</span>` : ''}
+                            ${(isPostAuthor || canManageForum) ? `<button type="button" class="btn-sm" onclick="MoodleUI.openEditPostModal(${this.toInlineActionValue(forumId)}, ${this.toInlineActionValue(discussionId)}, ${this.toInlineActionValue(JSON.stringify({
+                              postId: post.postId,
+                              message: post.message || post.content || ''
+                            }))})">${t('common.edit')}</button>` : ''}
+                            ${(isPostAuthor || canManageForum) ? `<button type="button" class="btn-sm btn-danger" onclick="MoodleUI.deletePost(${this.toInlineActionValue(forumId)}, ${this.toInlineActionValue(discussionId)}, ${this.toInlineActionValue(post.postId)})">${t('common.delete')}</button>` : ''}
+                          </div>
                         </div>
                       </article>
                     `;
@@ -4501,11 +4976,12 @@ const MoodleUI = {
             <div class="forum-thread-state forum-thread-locked">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
               <div class="forum-thread-state-title">${t('moodleDiscussion.locked')}</div>
-              <div class="forum-thread-state-copy">這則討論已鎖定，目前不能再新增回覆。</div>
+              <div class="forum-thread-state-copy">${I18n.getLocale() === 'en' ? 'This discussion is locked and no more replies can be added.' : '這則討論已鎖定，目前不能再新增回覆。'}</div>
             </div>
           `}
         </section>
       `;
+      API.forums.markDiscussionRead(forumId, discussionId).catch(() => {});
     } catch (error) {
       console.error('Open discussion error:', error);
       showToast(t('moodleDiscussion.loadFailed'));
@@ -4870,6 +5346,7 @@ const MoodleUI = {
    */
   renderFullGradebookManagement(gradebook, categories, settings, courseId) {
     const items = gradebook.columns || gradebook.items || [];
+    const manualItems = items.filter(item => item.type === 'manual');
     const students = (gradebook.students || []).map(s => {
       if (s.grades && !Array.isArray(s.grades)) {
         s.grades = items.map(item => ({
@@ -4881,8 +5358,11 @@ const MoodleUI = {
       return s;
     });
 
+    const scaleType = settings.gradingScale || 'letter_5';
+    const passGrade = Number(gradebook.course?.passingGrade ?? settings.gradeToPass ?? 60);
+
     return `
-      <div class="gradebook-management">
+      <div class="gradebook-management" data-grade-scale="${this.escapeText(scaleType)}" data-grade-to-pass="${passGrade}">
         <div class="gradebook-header">
           <button onclick="showView('moodleGradebook'); MoodleUI.loadGradebook()" class="back-btn">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
@@ -4894,6 +5374,13 @@ const MoodleUI = {
         <!-- 工具列 -->
         <div class="gradebook-toolbar">
           <div class="toolbar-left">
+            <button onclick="MoodleUI.openManualGradeItemModal('${courseId}')" class="btn-primary">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              ${I18n.getLocale() === 'en' ? 'Add Manual Item' : '新增手動項目'}
+            </button>
             <button onclick="MoodleUI.openGradeCategoryModal('${courseId}')" class="btn-secondary">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>
@@ -4963,6 +5450,47 @@ const MoodleUI = {
           </div>
         </div>
 
+        <div class="grade-categories-summary">
+          <div class="section-title-row">
+            <h3>${I18n.getLocale() === 'en' ? 'Manual Grade Items' : '手動評分項目'}</h3>
+          </div>
+          ${manualItems.length === 0 ? this.renderActivityEmptyState({
+            icon: '<svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M9 11h6"/><path d="M12 8v6"/><rect x="3" y="4" width="18" height="16" rx="2"/></svg>',
+            title: I18n.getLocale() === 'en' ? 'No manual items yet' : '尚未建立手動項目',
+            hint: I18n.getLocale() === 'en' ? 'Use manual items for participation, attendance, presentations, or other custom grading.' : '可用於課堂參與、出缺席、口頭報告等自訂評分項目。'
+          }) : `
+          <div class="badge-table-shell">
+            <table class="rubric-table">
+              <thead>
+                <tr>
+                  <th>${I18n.getLocale() === 'en' ? 'Item' : '項目'}</th>
+                  <th>${t('common.description')}</th>
+                  <th>${t('moodleRubrics.maxScore')}</th>
+                  <th>${t('moodleGradebook.weightSuffix')}</th>
+                  <th>${I18n.getLocale() === 'en' ? 'Due date' : '截止日期'}</th>
+                  <th>${t('common.actions')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${manualItems.map(item => `
+                  <tr>
+                    <td>${this.escapeText(item.title || t('common.unnamed'))}</td>
+                    <td>${this.escapeText(item.description || t('common.noDescription'))}</td>
+                    <td>${Number(item.maxGrade || item.maxScore || 0)}</td>
+                    <td>${item.weight != null ? `${Number(item.weight)}%` : '—'}</td>
+                    <td>${item.dueDate ? this.escapeText(this.formatDate(item.dueDate, 'datetime')) : '—'}</td>
+                    <td class="table-action-cell">
+                      <button onclick="MoodleUI.openManualGradeItemModal('${courseId}', '${item.itemId || item.id}')" class="btn-sm">${t('common.edit')}</button>
+                      <button onclick="MoodleUI.deleteManualGradeItem('${courseId}', '${item.itemId || item.id}')" class="btn-sm btn-danger">${t('common.delete')}</button>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+          `}
+        </div>
+
         <!-- 成績表格 -->
         <div class="gradebook-table-container">
           <div class="gradebook-table-wrapper">
@@ -4996,20 +5524,27 @@ const MoodleUI = {
                         <div class="student-name">${student.name}</div>
                       </div>
                     </td>
-                    ${(student.grades || []).map((g, idx) => `
-                      <td class="grade-cell ${g.score === null ? 'not-graded' : ''}"
-                          data-item-id="${items[idx]?.itemId || items[idx]?.id}"
+                    ${(student.grades || []).map((g, idx) => {
+                      const item = items[idx] || {};
+                      const isEditable = item.type === 'manual';
+                      return `
+                      <td class="grade-cell ${g.score === null ? 'not-graded' : ''} ${isEditable ? 'is-editable' : ''}"
+                          data-item-id="${item.itemId || item.id || ''}"
+                          data-item-type="${item.type || ''}"
+                          data-max-grade="${Number(item.maxGrade || item.maxScore || 0)}"
                           data-student-id="${student.userId}"
-                          ondblclick="MoodleUI.editGradeCell(this)">
+                          data-editable="${isEditable ? 'true' : 'false'}"
+                          ${isEditable ? 'ondblclick="MoodleUI.editGradeCell(this)"' : `title="${I18n.getLocale() === 'en' ? 'Assignment and quiz grades are managed from their own grading flows.' : '作業與測驗成績需在各自的評分流程中調整。'}"`}>
                         <span class="grade-value">${g.score !== null ? g.score : '-'}</span>
                         ${g.feedback ? `<span class="has-feedback" title="${t('moodleGradebook.hasFeedback')}">💬</span>` : ''}
                       </td>
-                    `).join('')}
+                    `;
+                    }).join('')}
                     <td class="total-cell">
                       <strong>${(student.total ?? student.summary?.overallPercentage) != null ? (student.total ?? student.summary?.overallPercentage).toFixed(1) : '-'}</strong>
                     </td>
                     <td class="letter-cell">
-                      <span class="letter-grade ${this.getLetterGradeClass(student.letterGrade)}">${student.letterGrade || (student.summary?.passing ? 'P' : student.summary?.overallPercentage != null ? 'F' : '-')}</span>
+                      <span class="letter-grade ${this.getLetterGradeClass(student.letterGrade || this.getLetterGradeLabelForPercentage(student.summary?.overallPercentage, scaleType))}">${student.letterGrade || this.getLetterGradeLabelForPercentage(student.summary?.overallPercentage, scaleType)}</span>
                     </td>
                   </tr>
                 `).join('')}
@@ -5022,13 +5557,7 @@ const MoodleUI = {
         <div class="grade-scale-info">
           <h3>${t('moodleGradebook.gradeScale')}</h3>
           <div class="scale-items">
-            ${(settings.gradeScale || [
-              { letter: 'A', minScore: 90, maxScore: 100 },
-              { letter: 'B', minScore: 80, maxScore: 89 },
-              { letter: 'C', minScore: 70, maxScore: 79 },
-              { letter: 'D', minScore: 60, maxScore: 69 },
-              { letter: 'F', minScore: 0, maxScore: 59 }
-            ]).map(scale => `
+            ${this.getGradeScaleLegend(scaleType).map(scale => `
               <div class="scale-item">
                 <span class="letter-grade ${this.getLetterGradeClass(scale.letter)}">${scale.letter}</span>
                 <span class="score-range">${scale.minScore} - ${scale.maxScore}</span>
@@ -5055,10 +5584,77 @@ const MoodleUI = {
     return classes[letter] || '';
   },
 
+  getLetterGradeLabelForPercentage(percentage, scaleType = 'letter_5') {
+    const value = Number(percentage);
+    if (!Number.isFinite(value)) return '-';
+
+    if (scaleType === 'letter_7') {
+      if (value >= 95) return 'A+';
+      if (value >= 90) return 'A';
+      if (value >= 85) return 'B+';
+      if (value >= 80) return 'B';
+      if (value >= 75) return 'C+';
+      if (value >= 70) return 'C';
+      if (value >= 60) return 'D';
+      return 'F';
+    }
+
+    if (scaleType === 'taiwan_100') {
+      if (value >= 90) return '優';
+      if (value >= 80) return '甲';
+      if (value >= 70) return '乙';
+      if (value >= 60) return '丙';
+      return '丁';
+    }
+
+    if (value >= 90) return 'A';
+    if (value >= 80) return 'B';
+    if (value >= 70) return 'C';
+    if (value >= 60) return 'D';
+    return 'F';
+  },
+
+  getGradeScaleLegend(scaleType = 'letter_5') {
+    if (scaleType === 'letter_7') {
+      return [
+        { letter: 'A+', minScore: 95, maxScore: 100 },
+        { letter: 'A', minScore: 90, maxScore: 94 },
+        { letter: 'B+', minScore: 85, maxScore: 89 },
+        { letter: 'B', minScore: 80, maxScore: 84 },
+        { letter: 'C+', minScore: 75, maxScore: 79 },
+        { letter: 'C', minScore: 70, maxScore: 74 },
+        { letter: 'D', minScore: 60, maxScore: 69 },
+        { letter: 'F', minScore: 0, maxScore: 59 }
+      ];
+    }
+
+    if (scaleType === 'taiwan_100') {
+      return [
+        { letter: '優', minScore: 90, maxScore: 100 },
+        { letter: '甲', minScore: 80, maxScore: 89 },
+        { letter: '乙', minScore: 70, maxScore: 79 },
+        { letter: '丙', minScore: 60, maxScore: 69 },
+        { letter: '丁', minScore: 0, maxScore: 59 }
+      ];
+    }
+
+    return [
+      { letter: 'A', minScore: 90, maxScore: 100 },
+      { letter: 'B', minScore: 80, maxScore: 89 },
+      { letter: 'C', minScore: 70, maxScore: 79 },
+      { letter: 'D', minScore: 60, maxScore: 69 },
+      { letter: 'F', minScore: 0, maxScore: 59 }
+    ];
+  },
+
   /**
    * 編輯成績儲存格
    */
   editGradeCell(cell) {
+    if (cell.dataset.editable !== 'true') {
+      showToast(I18n.getLocale() === 'en' ? 'This grade is managed from its original activity.' : '這個成績需回到原始活動中調整。');
+      return;
+    }
     if (cell.querySelector('input')) return;
 
     const currentValue = cell.querySelector('.grade-value').textContent;
@@ -5120,10 +5716,37 @@ const MoodleUI = {
   async recalculateStudentTotal(studentId) {
     const row = document.querySelector(`tr[data-student-id="${studentId}"]`);
     if (!row) return;
+    const gradeCells = Array.from(row.querySelectorAll('.grade-cell'));
+    let totalEarned = 0;
+    let totalPossible = 0;
 
-    // 暫時顯示載入中
+    gradeCells.forEach(cell => {
+      const score = Number(cell.querySelector('.grade-value')?.textContent);
+      const maxGrade = Number(cell.dataset.maxGrade || 0);
+      if (Number.isFinite(score)) {
+        totalEarned += score;
+        if (Number.isFinite(maxGrade) && maxGrade > 0) {
+          totalPossible += maxGrade;
+        }
+      }
+    });
+
+    const percentage = totalPossible > 0
+      ? Math.round((totalEarned / totalPossible) * 1000) / 10
+      : null;
+    const managementRoot = document.querySelector('.gradebook-management');
+    const scaleType = managementRoot?.dataset.gradeScale || 'letter_5';
     const totalCell = row.querySelector('.total-cell strong');
-    if (totalCell) totalCell.textContent = '...';
+    if (totalCell) {
+      totalCell.textContent = percentage !== null ? percentage.toFixed(1) : '-';
+    }
+
+    const letterCell = row.querySelector('.letter-cell .letter-grade');
+    if (letterCell) {
+      const letter = this.getLetterGradeLabelForPercentage(percentage, scaleType);
+      letterCell.textContent = letter;
+      letterCell.className = `letter-grade ${this.getLetterGradeClass(letter)}`.trim();
+    }
   },
 
   /**
@@ -5132,8 +5755,9 @@ const MoodleUI = {
   async exportGradesCSV(courseId) {
     try {
       const result = await API.gradebookEnhanced.exportGrades(courseId, 'csv');
-      if (result.success && result.data?.csv) {
-        const blob = new Blob([result.data.csv], { type: 'text/csv;charset=utf-8;' });
+      const csvContent = result?.data?.csv;
+      if (result.success && typeof csvContent === 'string' && csvContent.trim()) {
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -5155,26 +5779,30 @@ const MoodleUI = {
    */
   async exportGradesExcel(courseId) {
     try {
-      const result = await API.gradebookEnhanced.exportGrades(courseId, 'excel');
-      if (result.success && result.data?.excel) {
-        // Base64 解碼並下載
-        const byteCharacters = atob(result.data.excel);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `grades_${courseId}_${new Date().toISOString().split('T')[0]}.xlsx`;
-        a.click();
-        URL.revokeObjectURL(url);
-        showToast(t('moodleGradebook.excelExported'));
-      } else {
+      const table = document.querySelector('#gradebookManagementContent .gradebook-table');
+      if (!table) {
         showToast(t('moodleGradebook.exportFailed'));
+        return;
       }
+
+      const excelHtml = `
+        <html xmlns:o="urn:schemas-microsoft-com:office:office"
+              xmlns:x="urn:schemas-microsoft-com:office:excel"
+              xmlns="http://www.w3.org/TR/REC-html40">
+          <head>
+            <meta charset="UTF-8">
+          </head>
+          <body>${table.outerHTML}</body>
+        </html>
+      `;
+      const blob = new Blob([excelHtml], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `grades_${courseId}_${new Date().toISOString().split('T')[0]}.xls`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast(t('moodleGradebook.excelExported'));
     } catch (error) {
       console.error('Export Excel error:', error);
       showToast(t('moodleGradebook.exportFailed'));
@@ -5185,13 +5813,16 @@ const MoodleUI = {
    * 開啟成績類別管理 Modal
    */
   async openGradeCategoryModal(courseId) {
+    this.closeModal('gradeCategoryModal');
     const modal = document.createElement('div');
     modal.id = 'gradeCategoryModal';
-    modal.className = 'modal-overlay';
+    modal.className = 'modal-overlay active';
 
     try {
       const result = await API.gradebookEnhanced.getCategories(courseId);
-      const categories = result.success ? result.data : [];
+      const categories = result.success
+        ? (Array.isArray(result.data) ? result.data : (result.data?.categories || []))
+        : [];
 
       modal.innerHTML = `
         <div class="modal-content modal-lg">
@@ -5299,13 +5930,24 @@ const MoodleUI = {
    * 開啟成績設定 Modal
    */
   async openGradeSettingsModal(courseId) {
+    this.closeModal('gradeSettingsModal');
     const modal = document.createElement('div');
     modal.id = 'gradeSettingsModal';
-    modal.className = 'modal-overlay';
+    modal.className = 'modal-overlay active';
 
     try {
       const result = await API.gradebookEnhanced.getSettings(courseId);
-      const settings = result.success ? result.data : {};
+      const settings = result.success
+        ? (result.data?.settings || result.data || {})
+        : {};
+      const isEnglish = I18n.getLocale() === 'en';
+      const scaleOptions = Array.isArray(settings.availableScales) && settings.availableScales.length > 0
+        ? settings.availableScales
+        : [
+            { id: 'letter_5', name: isEnglish ? 'A-F Letter' : 'A-F 等級' },
+            { id: 'letter_7', name: isEnglish ? 'A+ to F' : 'A+ 到 F' },
+            { id: 'taiwan_100', name: isEnglish ? 'Taiwan scale' : '台灣百分等第' }
+          ];
 
       modal.innerHTML = `
         <div class="modal-content">
@@ -5315,32 +5957,27 @@ const MoodleUI = {
           </div>
           <div class="modal-body">
             <div class="form-group">
-              <label>${t('moodleGradeSettings.aggregation')}</label>
-              <select id="gradeAggregation">
-                <option value="weighted_mean" ${settings.aggregation === 'weighted_mean' ? 'selected' : ''}>${t('moodleGradeSettings.weightedMean')}</option>
-                <option value="simple_mean" ${settings.aggregation === 'simple_mean' ? 'selected' : ''}>${t('moodleGradeSettings.simpleMean')}</option>
-                <option value="highest" ${settings.aggregation === 'highest' ? 'selected' : ''}>${t('moodleGradeSettings.highest')}</option>
-                <option value="sum" ${settings.aggregation === 'sum' ? 'selected' : ''}>${t('moodleGradeSettings.sum')}</option>
-              </select>
+              <label>${isEnglish ? 'Passing grade' : '及格分數'}</label>
+              <input type="number" id="gradeToPass" min="0" max="100" value="${Number(settings.gradeToPass ?? 60)}">
             </div>
             <div class="form-group">
-              <label>${t('moodleGradeSettings.scaleType')}</label>
-              <select id="gradeScaleType">
-                <option value="letter" ${settings.scaleType === 'letter' ? 'selected' : ''}>${t('moodleGradeSettings.letterScale')}</option>
-                <option value="taiwan" ${settings.scaleType === 'taiwan' ? 'selected' : ''}>${t('moodleGradeSettings.taiwanScale')}</option>
-                <option value="percentage" ${settings.scaleType === 'percentage' ? 'selected' : ''}>${t('moodleGradeSettings.percentage')}</option>
+              <label>${isEnglish ? 'Grade scale' : '評分等第'}</label>
+              <select id="gradingScale">
+                ${scaleOptions.map(scale => `
+                  <option value="${scale.id}" ${(settings.gradingScale || 'letter_5') === scale.id ? 'selected' : ''}>${this.escapeText(scale.name)}</option>
+                `).join('')}
               </select>
             </div>
             <div class="form-group">
               <label>
-                <input type="checkbox" id="showLetterGrades" ${settings.showLetterGrades ? 'checked' : ''}>
-                ${t('moodleGradeSettings.showLetter')}
+                <input type="checkbox" id="showGradesImmediately" ${settings.showGradesImmediately !== false ? 'checked' : ''}>
+                ${isEnglish ? 'Show grades to learners immediately' : '評分完成後立即顯示給學員'}
               </label>
             </div>
             <div class="form-group">
               <label>
-                <input type="checkbox" id="includeInOverall" ${settings.includeInOverall !== false ? 'checked' : ''}>
-                ${t('moodleGradeSettings.includeTotal')}
+                <input type="checkbox" id="weightedCategories" ${settings.weightedCategories ? 'checked' : ''}>
+                ${isEnglish ? 'Use weighted categories' : '啟用加權類別'}
               </label>
             </div>
           </div>
@@ -5364,10 +6001,10 @@ const MoodleUI = {
    */
   async saveGradeSettings(courseId) {
     const settings = {
-      aggregation: document.getElementById('gradeAggregation').value,
-      scaleType: document.getElementById('gradeScaleType').value,
-      showLetterGrades: document.getElementById('showLetterGrades').checked,
-      includeInOverall: document.getElementById('includeInOverall').checked
+      gradeToPass: parseFloat(document.getElementById('gradeToPass').value) || 0,
+      gradingScale: document.getElementById('gradingScale').value,
+      showGradesImmediately: document.getElementById('showGradesImmediately').checked,
+      weightedCategories: document.getElementById('weightedCategories').checked
     };
 
     try {
@@ -5382,6 +6019,141 @@ const MoodleUI = {
     } catch (error) {
       console.error('Save grade settings error:', error);
       showToast(t('moodleGradeSettings.saveFailed'));
+    }
+  },
+
+  async openManualGradeItemModal(courseId, itemId = null) {
+    this.closeModal('manualGradeItemModal');
+    const modal = document.createElement('div');
+    modal.id = 'manualGradeItemModal';
+    modal.className = 'modal-overlay active';
+
+    let existingItem = null;
+    if (itemId) {
+      const itemsResult = await API.gradebook.getItems(courseId).catch(() => ({ success: false }));
+      const items = itemsResult?.success
+        ? (Array.isArray(itemsResult.data) ? itemsResult.data : (itemsResult.data?.items || []))
+        : [];
+      existingItem = items.find(item => (item.itemId || item.id) === itemId) || null;
+    }
+
+    const categoriesResult = await API.gradebookEnhanced.getCategories(courseId).catch(() => ({ success: false }));
+    const categories = categoriesResult?.success ? categoriesResult.data : [];
+    const isEditing = !!existingItem;
+
+    modal.innerHTML = `
+      <div class="modal-content modal-lg">
+        <div class="modal-header">
+          <h3>${isEditing ? (t('common.edit') + ' ' + (I18n.getLocale() === 'en' ? 'Manual Item' : '手動項目')) : (I18n.getLocale() === 'en' ? 'Create Manual Grade Item' : '建立手動評分項目')}</h3>
+          <button onclick="MoodleUI.closeModal('manualGradeItemModal')" class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="manualGradeItemId" value="${this.escapeText(existingItem?.itemId || existingItem?.id || '')}">
+          <div class="form-group">
+            <label>${I18n.getLocale() === 'en' ? 'Item name' : '項目名稱'} *</label>
+            <input type="text" id="manualGradeItemTitle" value="${this.escapeText(existingItem?.title || '')}" placeholder="${I18n.getLocale() === 'en' ? 'Attendance, participation, presentation...' : '例如：出席、參與、報告'}">
+          </div>
+          <div class="form-group">
+            <label>${t('common.description')}</label>
+            <textarea id="manualGradeItemDescription" rows="3" placeholder="${I18n.getLocale() === 'en' ? 'Describe how this manual item is graded.' : '描述這個手動項目的評分方式。'}">${this.escapeText(existingItem?.description || '')}</textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>${t('moodleRubrics.maxScore')} *</label>
+              <input type="number" id="manualGradeItemMaxGrade" min="0" step="0.1" value="${Number(existingItem?.maxGrade || existingItem?.maxScore || 100)}">
+            </div>
+            <div class="form-group">
+              <label>${t('moodleGradebook.weightSuffix')}</label>
+              <input type="number" id="manualGradeItemWeight" min="0" max="100" step="0.1" value="${existingItem?.weight ?? ''}" placeholder="${I18n.getLocale() === 'en' ? 'Optional' : '選填'}">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>${t('moodleGradebook.categoryMgmt')}</label>
+              <select id="manualGradeItemCategory">
+                <option value="default_participation">${I18n.getLocale() === 'en' ? 'Default category' : '預設類別'}</option>
+                ${categories.map(category => `
+                  <option value="${this.escapeText(category.categoryId)}" ${(existingItem?.categoryId || '') === category.categoryId ? 'selected' : ''}>
+                    ${this.escapeText(category.name)}
+                  </option>
+                `).join('')}
+              </select>
+            </div>
+            <div class="form-group">
+              <label>${I18n.getLocale() === 'en' ? 'Due date' : '截止日期'}</label>
+              <input type="datetime-local" id="manualGradeItemDueDate" value="${existingItem?.dueDate ? String(existingItem.dueDate).slice(0, 16) : ''}">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button onclick="MoodleUI.closeModal('manualGradeItemModal')" class="btn-secondary">${t('common.cancel')}</button>
+          <button onclick="MoodleUI.saveManualGradeItem('${courseId}')" class="btn-primary">${isEditing ? t('common.save') : t('common.create')}</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+    modal.onclick = (event) => { if (event.target === modal) this.closeModal('manualGradeItemModal'); };
+  },
+
+  async saveManualGradeItem(courseId) {
+    const itemId = document.getElementById('manualGradeItemId')?.value?.trim();
+    const payload = {
+      title: document.getElementById('manualGradeItemTitle')?.value?.trim(),
+      description: document.getElementById('manualGradeItemDescription')?.value?.trim() || '',
+      maxGrade: parseFloat(document.getElementById('manualGradeItemMaxGrade')?.value || 0),
+      weight: document.getElementById('manualGradeItemWeight')?.value?.trim() || null,
+      categoryId: document.getElementById('manualGradeItemCategory')?.value || 'default_participation',
+      dueDate: document.getElementById('manualGradeItemDueDate')?.value || null
+    };
+
+    if (!payload.title) {
+      showToast(I18n.getLocale() === 'en' ? 'Item name is required' : '請輸入項目名稱');
+      return;
+    }
+    if (!Number.isFinite(payload.maxGrade) || payload.maxGrade <= 0) {
+      showToast(I18n.getLocale() === 'en' ? 'Max grade must be greater than 0' : '滿分必須大於 0');
+      return;
+    }
+
+    try {
+      const result = itemId
+        ? await API.gradebook.updateItem(courseId, itemId, payload)
+        : await API.gradebook.createItem(courseId, payload);
+      if (result.success) {
+        showToast(itemId
+          ? (I18n.getLocale() === 'en' ? 'Manual item updated' : '手動項目已更新')
+          : (I18n.getLocale() === 'en' ? 'Manual item created' : '手動項目已建立'));
+        this.closeModal('manualGradeItemModal');
+        this.openGradebookManagement(courseId);
+      } else {
+        showToast(result.message || (itemId ? t('common.updateFailed') : t('common.createFailed')));
+      }
+    } catch (error) {
+      console.error('Save manual grade item error:', error);
+      showToast(itemId ? t('common.updateFailed') : t('common.createFailed'));
+    }
+  },
+
+  async deleteManualGradeItem(courseId, itemId) {
+    const confirmed = await showConfirmDialog({
+      message: I18n.getLocale() === 'en' ? 'Delete this manual grade item and all entered grades?' : '確定要刪除此手動評分項目與已輸入的成績嗎？',
+      confirmLabel: t('common.delete'),
+      tone: 'danger'
+    });
+    if (!confirmed) return;
+
+    try {
+      const result = await API.gradebook.deleteItem(courseId, itemId);
+      if (result.success) {
+        showToast(I18n.getLocale() === 'en' ? 'Manual item deleted' : '手動項目已刪除');
+        this.openGradebookManagement(courseId);
+      } else {
+        showToast(result.message || t('common.deleteFailed'));
+      }
+    } catch (error) {
+      console.error('Delete manual grade item error:', error);
+      showToast(t('common.deleteFailed'));
     }
   },
 
@@ -5699,7 +6471,7 @@ const MoodleUI = {
     const selectedCategoryId = this.currentQuestionBankFilters.categoryId || categories[0]?.categoryId || '';
     const modal = document.createElement('div');
     modal.id = 'createQuestionModal';
-    modal.className = 'modal-overlay';
+    modal.className = 'modal-overlay active';
 
     modal.innerHTML = `
       <div class="modal-content modal-lg">
@@ -5996,7 +6768,7 @@ const MoodleUI = {
         if (!courseOptions) { showToast(t('moodleGradebook.noCourses')); return; }
         const selectorModal = document.createElement('div');
         selectorModal.id = 'courseSelectForCompletionModal';
-        selectorModal.className = 'modal-overlay';
+        selectorModal.className = 'modal-overlay active';
         selectorModal.innerHTML = `
           <div class="modal-content">
             <div class="modal-header">
@@ -6022,7 +6794,7 @@ const MoodleUI = {
     }
     const modal = document.createElement('div');
     modal.id = 'courseCompletionModal';
-    modal.className = 'modal-overlay';
+    modal.className = 'modal-overlay active';
 
     try {
       const result = await API.courseCompletion.getSettings(courseId);
@@ -6498,7 +7270,7 @@ const MoodleUI = {
   async openCreateRoleModal() {
     const modal = document.createElement('div');
     modal.id = 'createRoleModal';
-    modal.className = 'modal-overlay';
+    modal.className = 'modal-overlay active';
 
     try {
       const capResult = await API.roles.getCapabilities();
@@ -6813,7 +7585,7 @@ const MoodleUI = {
   async openCreateCategoryModal(parentId = null) {
     const modal = document.createElement('div');
     modal.id = 'createCategoryModal';
-    modal.className = 'modal-overlay';
+    modal.className = 'modal-overlay active';
 
     try {
       const result = await API.courseCategories.list();
@@ -6911,7 +7683,7 @@ const MoodleUI = {
 
       const modal = document.createElement('div');
       modal.id = 'editCategoryModal';
-      modal.className = 'modal-overlay';
+      modal.className = 'modal-overlay active';
 
       modal.innerHTML = `
         <div class="modal-content">
@@ -7134,6 +7906,7 @@ const MoodleUI = {
           </div>
           <div class="rubric-actions">
             <button onclick="MoodleUI.duplicateRubric(${this.toInlineActionValue(rubricId)})" class="btn-sm btn-secondary">${t('common.duplicate')}</button>
+            ${canManage ? `<button onclick="MoodleUI.openEditRubricModal(${this.toInlineActionValue(rubricId)})" class="btn-sm">${t('common.edit')}</button>` : ''}
             ${canManage ? `<button onclick="MoodleUI.deleteRubric(${this.toInlineActionValue(rubricId)})" class="btn-sm btn-danger">${t('moodleGradeCategory.delete')}</button>` : ''}
           </div>
           </div>
@@ -7229,42 +8002,47 @@ const MoodleUI = {
     `;
   },
 
-  openCreateRubricModal() {
+  openCreateRubricModal(rubric = null) {
+    this.closeModal('createRubricModal');
+    const isEditing = !!rubric;
     const modal = document.createElement('div');
     modal.id = 'createRubricModal';
-    modal.className = 'modal-overlay';
+    modal.className = 'modal-overlay active';
     modal.innerHTML = `
       <div class="modal-content rubric-builder-modal">
         <div class="modal-header">
-          <h3>${t('moodleRubrics.createTitle')}</h3>
+          <h3>${isEditing ? (I18n.getLocale() === 'en' ? 'Edit Rubric' : '編輯評量指標') : t('moodleRubrics.createTitle')}</h3>
           <button onclick="MoodleUI.closeModal('createRubricModal')" class="modal-close">&times;</button>
         </div>
         <div class="modal-body">
           <div class="rubric-builder-section">
+            <input type="hidden" id="rubricId" value="${this.escapeText(rubric?.rubricId || rubric?.id || '')}">
             <div class="form-group">
               <label>${t('common.name')} *</label>
-              <input type="text" id="rubricName" placeholder="${t('moodleRubrics.namePlaceholder')}">
+              <input type="text" id="rubricName" placeholder="${t('moodleRubrics.namePlaceholder')}" value="${this.escapeText(rubric?.name || '')}">
             </div>
             <div class="form-group">
               <label>${t('common.description')}</label>
-              <textarea id="rubricDescription" rows="2" placeholder="${t('moodleRubrics.descPlaceholder')}"></textarea>
+              <textarea id="rubricDescription" rows="2" placeholder="${t('moodleRubrics.descPlaceholder')}">${this.escapeText(rubric?.description || '')}</textarea>
             </div>
             <div class="form-group">
               <label>${t('common.status')}</label>
-              <select id="rubricStatus"><option value="draft">${t('common.draft')}</option><option value="active">${t('common.active')}</option></select>
+              <select id="rubricStatus"><option value="draft" ${(rubric?.status || 'draft') === 'draft' ? 'selected' : ''}>${t('common.draft')}</option><option value="active" ${(rubric?.status || 'draft') === 'active' ? 'selected' : ''}>${t('common.active')}</option></select>
             </div>
             <div class="rubric-builder-heading">
               <h4>${t('moodleRubrics.gradingCriteria')}</h4>
               <button onclick="MoodleUI.addRubricCriterion()" class="btn-sm btn-secondary">${t('moodleRubrics.addCriterion')}</button>
             </div>
             <div id="rubricCriteriaList" class="rubric-builder-list">
-              ${this.renderRubricCriterionBuilder()}
+              ${(Array.isArray(rubric?.criteria) && rubric.criteria.length > 0
+                ? rubric.criteria.map(item => this.renderRubricCriterionBuilder(item)).join('')
+                : this.renderRubricCriterionBuilder())}
             </div>
           </div>
         </div>
         <div class="modal-footer">
           <button onclick="MoodleUI.closeModal('createRubricModal')" class="btn-secondary">${t('common.cancel')}</button>
-          <button onclick="MoodleUI.saveRubric()" class="btn-primary">${t('common.create')}</button>
+          <button onclick="MoodleUI.saveRubric()" class="btn-primary">${isEditing ? t('common.save') : t('common.create')}</button>
         </div>
       </div>
     `;
@@ -7279,6 +8057,7 @@ const MoodleUI = {
   },
 
   async saveRubric() {
+    const rubricId = document.getElementById('rubricId')?.value?.trim();
     const name = document.getElementById('rubricName')?.value?.trim();
     if (!name) { showToast(t('common.nameRequired')); return; }
     const items = document.querySelectorAll('.rubric-criterion-item');
@@ -7298,20 +8077,43 @@ const MoodleUI = {
       });
     });
     try {
-      const result = await API.rubrics.create({
+      const payload = {
         name,
         description: document.getElementById('rubricDescription')?.value || '',
         status: document.getElementById('rubricStatus')?.value || 'draft',
         criteria
-      });
+      };
+      const result = rubricId
+        ? await API.rubrics.update(rubricId, payload)
+        : await API.rubrics.create(payload);
       if (result.success) {
-        showToast(t('moodleRubrics.created'));
+        showToast(rubricId
+          ? (I18n.getLocale() === 'en' ? 'Rubric updated' : '評量指標已更新')
+          : t('moodleRubrics.created'));
         this.closeModal('createRubricModal');
-        this.openRubricsManager();
-      } else { showToast(result.error || t('common.createFailed')); }
+        if (rubricId) {
+          this.viewRubricDetail(rubricId);
+        } else {
+          this.openRubricsManager();
+        }
+      } else { showToast(result.error || (rubricId ? t('common.updateFailed') : t('common.createFailed'))); }
     } catch (error) {
       console.error('Save rubric error:', error);
-      showToast(t('moodleRubrics.createError'));
+      showToast(rubricId ? t('common.updateFailed') : t('moodleRubrics.createError'));
+    }
+  },
+
+  async openEditRubricModal(rubricId) {
+    try {
+      const result = await API.rubrics.get(rubricId);
+      if (!result.success) {
+        showToast(t('common.loadFailed'));
+        return;
+      }
+      this.openCreateRubricModal(result.data);
+    } catch (error) {
+      console.error('Open edit rubric modal error:', error);
+      showToast(t('common.loadFailed'));
     }
   },
 
@@ -7341,7 +8143,7 @@ const MoodleUI = {
     const templates = this._rubricsTemplates || [];
     const modal = document.createElement('div');
     modal.id = 'rubricTemplateModal';
-    modal.className = 'modal-overlay';
+    modal.className = 'modal-overlay active';
     modal.innerHTML = `
       <div class="modal-content rubric-template-modal">
         <div class="modal-header">
@@ -7436,7 +8238,7 @@ const MoodleUI = {
             <div class="badge-card ${b.status !== 'active' ? 'locked' : ''}"
                  onclick="MoodleUI.viewBadgeDetail(${this.toInlineActionValue(b.badgeId || b.id)})">
               <div class="badge-icon ${this.getSurfaceToneClass(b.badgeId || b.id || b.name)}">
-                ${b.icon || '🏆'}
+                ${this.renderBadgeIcon(b.icon)}
               </div>
               <h3 class="badge-name">${this.escapeText(b.name || t('common.unnamed'))}</h3>
               <p class="badge-description">${this.escapeText(this.truncateText(b.description || t('common.noDescription'), 96))}</p>
@@ -7474,7 +8276,7 @@ const MoodleUI = {
           <div class="badge-detail-page">
           <div class="badge-detail-header-row">
             <div class="badge-detail-icon ${this.getSurfaceToneClass(b.badgeId || b.id || b.name)}">
-              ${b.icon || '🏆'}
+              ${this.renderBadgeIcon(b.icon)}
             </div>
             <div class="badge-detail-main">
               <div class="badge-detail-name">${this.escapeText(b.name || t('common.unnamed'))}</div>
@@ -7488,6 +8290,7 @@ const MoodleUI = {
             ${canManage ? `
             <div class="badge-detail-actions">
               <button onclick="MoodleUI.openIssueBadgeModal(${this.toInlineActionValue(badgeId)})" class="btn-primary btn-sm">${t('moodleBadges.issueBadge')}</button>
+              <button onclick="MoodleUI.openEditBadgeModal(${this.toInlineActionValue(badgeId)})" class="btn-sm">${t('common.edit')}</button>
               <button onclick="MoodleUI.deleteBadge(${this.toInlineActionValue(badgeId)})" class="btn-sm btn-danger">${t('moodleGradeCategory.delete')}</button>
             </div>
             ` : ''}
@@ -7531,7 +8334,7 @@ const MoodleUI = {
           <div class="badge-table-shell">
             <table class="rubric-table">
               <thead><tr>
-                <th>${t('moodleH5p.uniqueUsers')}</th>
+                <th>${t('common.user')}</th>
                 <th>${t('moodleBadges.issueDateCol')}</th>
                 <th>${t('common.actions')}</th>
               </tr></thead>
@@ -7559,80 +8362,157 @@ const MoodleUI = {
     }
   },
 
-  openCreateBadgeModal() {
+  async openCreateBadgeModal(badge = null) {
+    this.closeModal('createBadgeModal');
+    const courses = await this.getRoleScopedCourses({ manageOnly: true }).catch(() => []);
+    const isEditing = !!badge;
+    const selectedBadgeIcon = this.normalizeBadgeIcon(badge?.icon);
+    const badgeIconOptions = this.getBadgeIconOptions();
     const modal = document.createElement('div');
     modal.id = 'createBadgeModal';
-    modal.className = 'modal-overlay';
+    modal.className = 'modal-overlay active';
     modal.innerHTML = `
       <div class="modal-content modal-lg">
         <div class="modal-header">
-          <h3>${t('moodleBadges.createTitle')}</h3>
+          <h3>${isEditing ? (I18n.getLocale() === 'en' ? 'Edit Badge' : '編輯徽章') : t('moodleBadges.createTitle')}</h3>
           <button onclick="MoodleUI.closeModal('createBadgeModal')" class="modal-close">&times;</button>
         </div>
         <div class="modal-body">
+          <input type="hidden" id="badgeId" value="${this.escapeText(badge?.badgeId || badge?.id || '')}">
           <div class="form-group">
             <label>${t('moodleBadges.nameLabel')} *</label>
-            <input type="text" id="badgeName" placeholder="${t('moodleBadges.namePlaceholder')}">
+            <input type="text" id="badgeName" placeholder="${t('moodleBadges.namePlaceholder')}" value="${this.escapeText(badge?.name || '')}">
           </div>
           <div class="form-group">
             <label>${t('common.description')}</label>
-            <textarea id="badgeDescription" rows="2" placeholder="${t('moodleBadges.descPlaceholder')}"></textarea>
+            <textarea id="badgeDescription" rows="2" placeholder="${t('moodleBadges.descPlaceholder')}">${this.escapeText(badge?.description || '')}</textarea>
           </div>
           <div class="form-row">
             <div class="form-group">
               <label>${t('moodleBadges.iconLabel')}</label>
+              <div class="badge-icon-preview-card">
+                <div id="badgeIconPreview" class="badge-icon-preview">${this.renderBadgeIcon(selectedBadgeIcon)}</div>
+                <div id="badgeIconPreviewLabel" class="badge-icon-preview-label">${this.escapeText(badgeIconOptions.find(item => item.value === selectedBadgeIcon)?.label || '')}</div>
+              </div>
               <select id="badgeIcon">
-                <option value="🏆">🏆 ${t('moodleBadges.iconTrophy')}</option><option value="⭐">⭐ ${t('moodleBadges.iconStar')}</option>
-                <option value="🎓">🎓 ${t('moodleBadges.iconGradCap')}</option><option value="🏅">🏅 ${t('moodleBadges.iconMedal')}</option>
-                <option value="💎">💎 ${t('moodleBadges.iconDiamond')}</option><option value="🌟">🌟 ${t('moodleBadges.iconShiningStar')}</option>
-                <option value="📚">📚 ${t('moodleBadges.iconBooks')}</option><option value="🎯">🎯 ${t('moodleBadges.iconTarget')}</option>
+                ${badgeIconOptions.map(option => `
+                  <option value="${option.value}" ${selectedBadgeIcon === option.value ? 'selected' : ''}>${this.escapeText(option.label)}</option>
+                `).join('')}
               </select>
             </div>
             <div class="form-group">
               <label>${t('common.type')}</label>
               <select id="badgeType">
-                <option value="course">${t('moodleBadges.typeCourse')}</option><option value="site">${t('moodleBadges.typeSite')}</option><option value="manual">${t('moodleBadges.typeManual')}</option>
+                <option value="course" ${(badge?.type || 'course') === 'course' ? 'selected' : ''}>${t('moodleBadges.typeCourse')}</option><option value="site" ${badge?.type === 'site' ? 'selected' : ''}>${t('moodleBadges.typeSite')}</option><option value="manual" ${badge?.type === 'manual' ? 'selected' : ''}>${t('moodleBadges.typeManual')}</option>
               </select>
             </div>
           </div>
           <div class="form-group">
             <label>${t('common.status')}</label>
-            <select id="badgeStatus"><option value="draft">${t('common.draft')}</option><option value="active">${t('common.active')}</option></select>
+            <select id="badgeStatus"><option value="draft" ${(badge?.status || 'draft') === 'draft' ? 'selected' : ''}>${t('common.draft')}</option><option value="active" ${(badge?.status || 'draft') === 'active' ? 'selected' : ''}>${t('common.active')}</option></select>
+          </div>
+          <div class="form-group" id="badgeCourseField" hidden>
+            <label>${I18n.getLocale() === 'en' ? 'Course' : '對應課程'}</label>
+            <select id="badgeCourseId">
+              <option value="">${I18n.getLocale() === 'en' ? 'Select course' : '選擇課程'}</option>
+              ${courses.map(course => `
+                <option value="${this.escapeText(course.courseId || course.id || '')}" ${badge?.courseId === (course.courseId || course.id || '') ? 'selected' : ''}>${this.escapeText(course.title || course.name || t('moodleCourse.course'))}</option>
+              `).join('')}
+            </select>
           </div>
         </div>
         <div class="modal-footer">
           <button onclick="MoodleUI.closeModal('createBadgeModal')" class="btn-secondary">${t('common.cancel')}</button>
-          <button onclick="MoodleUI.saveBadge()" class="btn-primary">${t('moodleBadges.createBtn')}</button>
+          <button onclick="MoodleUI.saveBadge()" class="btn-primary">${isEditing ? t('common.save') : t('moodleBadges.createBtn')}</button>
         </div>
       </div>
     `;
     document.body.appendChild(modal);
     modal.onclick = (e) => { if (e.target === modal) this.closeModal('createBadgeModal'); };
+    this.updateBadgeCourseFieldVisibility(document.getElementById('badgeType')?.value);
+    this.updateBadgeIconPreview(selectedBadgeIcon);
+    document.getElementById('badgeIcon')?.addEventListener('change', (event) => {
+      this.updateBadgeIconPreview(event.target.value);
+    });
+    document.getElementById('badgeType')?.addEventListener('change', (event) => {
+      this.updateBadgeCourseFieldVisibility(event.target.value);
+    });
+  },
+
+  updateBadgeCourseFieldVisibility(type) {
+    const field = document.getElementById('badgeCourseField');
+    if (!field) return;
+    field.hidden = type !== 'course';
   },
 
   async saveBadge() {
+    const badgeId = document.getElementById('badgeId')?.value?.trim();
     const name = document.getElementById('badgeName')?.value?.trim();
     if (!name) { showToast(t('common.nameRequired')); return; }
+    const type = document.getElementById('badgeType')?.value || 'course';
     try {
-      const result = await API.badges.create({
+      const payload = {
         name,
         description: document.getElementById('badgeDescription')?.value || '',
-        icon: document.getElementById('badgeIcon')?.value || '🏆',
-        type: document.getElementById('badgeType')?.value || 'course',
+        icon: this.normalizeBadgeIcon(document.getElementById('badgeIcon')?.value || 'trophy'),
+        type,
+        courseId: type === 'course' ? (document.getElementById('badgeCourseId')?.value || null) : null,
         status: document.getElementById('badgeStatus')?.value || 'draft'
-      });
+      };
+      const result = badgeId
+        ? await API.badges.update(badgeId, payload)
+        : await API.badges.create(payload);
       if (result.success) {
-        showToast(t('moodleBadges.created'));
+        showToast(badgeId
+          ? (I18n.getLocale() === 'en' ? 'Badge updated' : '徽章已更新')
+          : t('moodleBadges.created'));
         this.closeModal('createBadgeModal');
-        this.openBadges();
-      } else { showToast(result.error || t('common.createFailed')); }
-    } catch (error) { showToast(t('moodleBadges.createError')); }
+        if (badgeId) {
+          this.viewBadgeDetail(badgeId);
+        } else {
+          this.openBadges();
+        }
+      } else { showToast(result.error || (badgeId ? t('common.updateFailed') : t('common.createFailed'))); }
+    } catch (error) { showToast(badgeId ? t('common.updateFailed') : t('moodleBadges.createError')); }
   },
 
-  openIssueBadgeModal(badgeId) {
+  async openEditBadgeModal(badgeId) {
+    try {
+      const result = await API.badges.get(badgeId);
+      if (!result.success) {
+        showToast(t('common.loadFailed'));
+        return;
+      }
+      this.openCreateBadgeModal(result.data);
+    } catch (error) {
+      console.error('Open edit badge modal error:', error);
+      showToast(t('common.loadFailed'));
+    }
+  },
+
+  async openIssueBadgeModal(badgeId) {
+    this.closeModal('issueBadgeModal');
+    let badge = null;
+    let participants = [];
+
+    try {
+      const badgeResult = await API.badges.get(badgeId);
+      if (badgeResult.success) {
+        badge = badgeResult.data;
+      }
+      if (badge?.courseId) {
+        const participantsResult = await API.courses.getParticipants(badge.courseId);
+        if (participantsResult.success) {
+          participants = (participantsResult.data || []).filter(person => person.role !== 'instructor');
+        }
+      }
+    } catch (error) {
+      console.warn('Load badge recipients context failed:', error);
+    }
+
     const modal = document.createElement('div');
     modal.id = 'issueBadgeModal';
-    modal.className = 'modal-overlay';
+    modal.className = 'modal-overlay active';
     modal.innerHTML = `
       <div class="modal-content">
         <div class="modal-header">
@@ -7644,6 +8524,19 @@ const MoodleUI = {
             <label>${t('moodleBadges.userIdsLabel')}</label>
             <input type="text" id="issueBadgeUserIds" placeholder="${t('moodleBadges.userIdsPlaceholder')}">
           </div>
+          ${participants.length > 0 ? `
+          <div class="form-group">
+            <label>${I18n.getLocale() === 'en' ? 'Course learners' : '課程學員'}</label>
+            <div class="badge-recipient-picker">
+              ${participants.map(person => `
+                <label class="checkbox-label">
+                  <input type="checkbox" value="${this.escapeText(person.userId)}" onchange="MoodleUI.toggleBadgeRecipientSelection(this)">
+                  <span>${this.escapeText(person.displayName || person.userId)}${person.email ? ` (${this.escapeText(person.email)})` : ''}</span>
+                </label>
+              `).join('')}
+            </div>
+          </div>
+          ` : ''}
         </div>
         <div class="modal-footer">
           <button onclick="MoodleUI.closeModal('issueBadgeModal')" class="btn-secondary">${t('common.cancel')}</button>
@@ -7653,6 +8546,22 @@ const MoodleUI = {
     `;
     document.body.appendChild(modal);
     modal.onclick = (e) => { if (e.target === modal) this.closeModal('issueBadgeModal'); };
+  },
+
+  toggleBadgeRecipientSelection(input) {
+    const field = document.getElementById('issueBadgeUserIds');
+    if (!field) return;
+    const current = field.value
+      .split(',')
+      .map(value => value.trim())
+      .filter(Boolean);
+    const selected = new Set(current);
+    if (input.checked) {
+      selected.add(input.value);
+    } else {
+      selected.delete(input.value);
+    }
+    field.value = Array.from(selected).join(', ');
   },
 
   async issueBadge(badgeId) {
@@ -7893,7 +8802,7 @@ const MoodleUI = {
 
     const modal = document.createElement('div');
     modal.id = 'createLearningPathModal';
-    modal.className = 'modal-overlay';
+    modal.className = 'modal-overlay active';
     modal.innerHTML = `
       <div class="modal-content modal-lg">
         <div class="modal-header">
@@ -8367,7 +9276,7 @@ const MoodleUI = {
 
     const modal = document.createElement('div');
     modal.id = 'createH5pModal';
-    modal.className = 'modal-overlay';
+    modal.className = 'modal-overlay active';
     modal.innerHTML = `
       <div class="modal-content modal-lg">
         <div class="modal-header">
@@ -8657,7 +9566,7 @@ const MoodleUI = {
   openRegisterLtiToolModal() {
     const modal = document.createElement('div');
     modal.id = 'registerLtiToolModal';
-    modal.className = 'modal-overlay';
+    modal.className = 'modal-overlay active';
     modal.innerHTML = `
       <div class="modal-content modal-lg">
         <div class="modal-header">
@@ -8992,7 +9901,7 @@ const MoodleUI = {
 
     const modal = document.createElement('div');
     modal.id = 'createScormModal';
-    modal.className = 'modal-overlay';
+    modal.className = 'modal-overlay active';
     modal.innerHTML = `
       <div class="modal-content modal-lg">
         <div class="modal-header">
@@ -9115,7 +10024,7 @@ const MoodleUI = {
 
     const modal = document.createElement('div');
     modal.id = 'createCourseModal';
-    modal.className = 'modal-overlay';
+    modal.className = 'modal-overlay active';
     modal.innerHTML = `
       <div class="modal-content modal-lg">
         <div class="modal-header">
@@ -9231,7 +10140,7 @@ const MoodleUI = {
 
     const modal = document.createElement('div');
     modal.id = 'createAssignmentModal';
-    modal.className = 'modal-overlay';
+    modal.className = 'modal-overlay active';
     modal.innerHTML = `
       <div class="modal-content modal-lg">
         <div class="modal-header">
@@ -9336,7 +10245,7 @@ const MoodleUI = {
 
     const modal = document.createElement('div');
     modal.id = 'createQuizModal';
-    modal.className = 'modal-overlay';
+    modal.className = 'modal-overlay active';
     modal.innerHTML = `
       <div class="modal-content modal-lg">
         <div class="modal-header">
@@ -9428,7 +10337,7 @@ const MoodleUI = {
 
     const modal = document.createElement('div');
     modal.id = 'createAnnouncementModal';
-    modal.className = 'modal-overlay';
+    modal.className = 'modal-overlay active';
     modal.innerHTML = `
       <div class="modal-content modal-lg">
         <div class="modal-header">
@@ -10150,7 +11059,7 @@ const MoodleUI = {
       if (format === 'json') {
         questions = JSON.parse(rawData);
       } else {
-        questions = rawData;
+        questions = this.parseQuestionImportCsv(rawData);
       }
       const result = await API.questionBank.import({
         format,
@@ -10168,6 +11077,82 @@ const MoodleUI = {
     } catch (error) {
       showToast(t('moodleQuestionBank.importFailed') + '：' + (error.message || t('moodleQuestionBank.dataFormatError')));
     }
+  },
+
+  parseQuestionImportCsv(rawCsv) {
+    const lines = String(rawCsv || '')
+      .split(/\r?\n/)
+      .map(line => line.trim())
+      .filter(Boolean);
+
+    if (lines.length < 2) {
+      throw new Error(t('moodleQuestionBank.dataFormatError'));
+    }
+
+    const parseCsvRow = (line) => {
+      const values = [];
+      let current = '';
+      let inQuotes = false;
+
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        const next = line[i + 1];
+
+        if (char === '"' && inQuotes && next === '"') {
+          current += '"';
+          i++;
+          continue;
+        }
+
+        if (char === '"') {
+          inQuotes = !inQuotes;
+          continue;
+        }
+
+        if (char === ',' && !inQuotes) {
+          values.push(current.trim());
+          current = '';
+          continue;
+        }
+
+        current += char;
+      }
+
+      values.push(current.trim());
+      return values;
+    };
+
+    const headers = parseCsvRow(lines[0]).map(header => header.toLowerCase());
+    return lines.slice(1).map(line => {
+      const columns = parseCsvRow(line);
+      const row = {};
+      headers.forEach((header, index) => {
+        row[header] = columns[index] ?? '';
+      });
+
+      const options = String(row.options || '')
+        .split('|')
+        .map(option => option.trim())
+        .filter(Boolean);
+      const correctAnswerRaw = row.correctanswer ?? row.correct_answer ?? '';
+      const normalizedType = String(row.type || 'multiple_choice').trim();
+
+      return {
+        questionText: row.questiontext || row.question || '',
+        type: normalizedType,
+        options,
+        correctAnswer: normalizedType === 'true_false'
+          ? String(correctAnswerRaw).toLowerCase() === 'true'
+          : (correctAnswerRaw === '' ? null : Number(correctAnswerRaw)),
+        difficulty: row.difficulty || 'medium',
+        tags: String(row.tags || '')
+          .split('|')
+          .map(tag => tag.trim())
+          .filter(Boolean),
+        explanation: row.explanation || '',
+        points: row.points ? Number(row.points) : 1
+      };
+    }).filter(question => question.questionText);
   },
 
   // ======== Manage Question Categories ========

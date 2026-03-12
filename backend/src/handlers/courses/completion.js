@@ -31,6 +31,35 @@ const AGGREGATION_METHODS = {
   ANY: 'any'            // 任一條件達成即可
 };
 
+function normalizeBadgeIcon(icon) {
+  const normalized = String(icon || '').trim().toLowerCase();
+  const legacyMap = {
+    '🏆': 'trophy',
+    trophy: 'trophy',
+    award: 'trophy',
+    '⭐': 'star',
+    star: 'star',
+    '🎓': 'graduation-cap',
+    graduationcap: 'graduation-cap',
+    'graduation-cap': 'graduation-cap',
+    cap: 'graduation-cap',
+    '🏅': 'medal',
+    medal: 'medal',
+    '💎': 'gem',
+    gem: 'gem',
+    diamond: 'gem',
+    '🌟': 'sparkles',
+    sparkles: 'sparkles',
+    shiningstar: 'sparkles',
+    '📚': 'books',
+    books: 'books',
+    book: 'books',
+    '🎯': 'target',
+    target: 'target'
+  };
+  return legacyMap[normalized] || 'trophy';
+}
+
 async function getBadgeById(badgeId) {
   if (!badgeId) return null;
 
@@ -112,7 +141,7 @@ async function issueCourseCompletionBadge({
     courseId,
     courseTitle: courseTitle || '',
     badgeName: badge.name,
-    badgeIcon: badge.icon || '🏆',
+    badgeIcon: normalizeBadgeIcon(badge.icon),
     issuedBy,
     issuedAt,
     message: '課程完成自動發放',

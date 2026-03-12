@@ -8,6 +8,27 @@ const router = express.Router();
 const db = require('../utils/db');
 const { authMiddleware } = require('../utils/auth');
 
+function normalizeBadgeIconLabel(icon) {
+  const normalized = String(icon || '').trim().toLowerCase();
+  const labels = {
+    trophy: 'TROPHY',
+    award: 'TROPHY',
+    star: 'STAR',
+    'graduation-cap': 'CAP',
+    graduationcap: 'CAP',
+    cap: 'CAP',
+    medal: 'MEDAL',
+    gem: 'GEM',
+    diamond: 'GEM',
+    sparkles: 'SPARK',
+    shiningstar: 'SPARK',
+    books: 'BOOKS',
+    book: 'BOOKS',
+    target: 'TARGET'
+  };
+  return labels[normalized] || 'BADGE';
+}
+
 // ==================== 通知列表 ====================
 
 /**
@@ -556,7 +577,7 @@ async function sendBadgeEarnedEmail(user, title, message, metadata) {
     </p>
     ${metadata.badge ? `
     <div style="text-align: center; margin: 30px 0; padding: 30px; background: linear-gradient(135deg, #fef3c7, #fde68a); border-radius: 12px;">
-      <div style="font-size: 64px; margin-bottom: 10px;">${metadata.badge.image ? `<img src="${metadata.badge.image}" style="width: 80px; height: 80px; border-radius: 50%;">` : '🏆'}</div>
+      <div style="margin-bottom: 10px;">${metadata.badge.image ? `<img src="${metadata.badge.image}" style="width: 80px; height: 80px; border-radius: 50%;">` : `<div style="display: inline-flex; align-items: center; justify-content: center; width: 80px; height: 80px; border-radius: 24px; background: rgba(255,255,255,0.72); color: #92400e; font-size: 14px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;">${normalizeBadgeIconLabel(metadata.badge.icon)}</div>`}</div>
       <div style="font-size: 24px; font-weight: bold; color: #92400e;">${metadata.badge.name}</div>
       <div style="color: #a16207; margin-top: 10px;">${metadata.badge.description || ''}</div>
     </div>
