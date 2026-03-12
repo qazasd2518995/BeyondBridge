@@ -41,6 +41,13 @@ function isTeachingUser(user) {
   return TEACHING_ROLES.has(user.role);
 }
 
+function canManageBadge(badge, user) {
+  if (!badge || !user) return false;
+  if (user.isAdmin) return true;
+  if (!isTeachingUser(user)) return false;
+  return !badge.createdBy || badge.createdBy === user.userId;
+}
+
 function parseInteger(value, fallback, { min = Number.MIN_SAFE_INTEGER, max = Number.MAX_SAFE_INTEGER } = {}) {
   const parsed = parseInt(value, 10);
   if (Number.isNaN(parsed)) return fallback;
@@ -403,6 +410,13 @@ router.get('/:badgeId/recipients', authMiddleware, async (req, res) => {
       });
     }
 
+    if (!canManageBadge(badge, req.user)) {
+      return res.status(403).json({
+        success: false,
+        message: '沒有權限查看徽章獲得者'
+      });
+    }
+
     const records = await getBadgeIssuances(badgeId);
     records.sort((a, b) => new Date(b.issuedAt || 0).getTime() - new Date(a.issuedAt || 0).getTime());
 
@@ -541,7 +555,7 @@ router.put('/:badgeId', authMiddleware, async (req, res) => {
       });
     }
 
-    if (!req.user.isAdmin && badge.createdBy && badge.createdBy !== req.user.userId) {
+    if (!canManageBadge(badge, req.user)) {
       return res.status(403).json({
         success: false,
         message: '無權限更新此徽章'
@@ -594,7 +608,7 @@ router.delete('/:badgeId', authMiddleware, async (req, res) => {
       });
     }
 
-    if (!req.user.isAdmin && badge.createdBy && badge.createdBy !== req.user.userId) {
+    if (!canManageBadge(badge, req.user)) {
       return res.status(403).json({
         success: false,
         message: '無權限刪除此徽章'
@@ -646,6 +660,13 @@ router.post('/:badgeId/issue', authMiddleware, async (req, res) => {
       return res.status(404).json({
         success: false,
         message: '找不到徽章'
+      });
+    }
+
+    if (!canManageBadge(badge, req.user)) {
+      return res.status(403).json({
+        success: false,
+        message: '無權限發放此徽章'
       });
     }
 
@@ -731,6 +752,13 @@ router.delete('/:badgeId/revoke/:userId', authMiddleware, async (req, res) => {
       return res.status(404).json({
         success: false,
         message: '找不到徽章'
+      });
+    }
+
+    if (!canManageBadge(badge, req.user)) {
+      return res.status(403).json({
+        success: false,
+        message: '無權限撤銷此徽章'
       });
     }
 

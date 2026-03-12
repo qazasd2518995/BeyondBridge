@@ -8,6 +8,19 @@ const router = express.Router();
 const db = require('../../utils/db');
 const { authMiddleware } = require('../../utils/auth');
 
+function canManageCourse(course, user) {
+  if (!course || !user) return false;
+  if (user.isAdmin) return true;
+  const ownerIds = new Set([
+    course.instructorId,
+    course.teacherId,
+    course.creatorId,
+    course.createdBy
+  ].filter(Boolean));
+  const inInstructors = Array.isArray(course.instructors) && course.instructors.includes(user.userId);
+  return ownerIds.has(user.userId) || inInstructors;
+}
+
 // ==================== 課程報名 ====================
 
 /**
@@ -194,8 +207,7 @@ router.get('/:id/participants', authMiddleware, async (req, res) => {
     }
 
     // 只有講師和管理員可以看完整參與者列表
-    const isInstructor = course.instructorId === userId;
-    if (!isInstructor && !req.user.isAdmin) {
+    if (!canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',

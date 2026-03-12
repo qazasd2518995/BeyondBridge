@@ -20,6 +20,19 @@ const GROUP_MODES = {
   VISIBLEGROUPS: 2
 };
 
+function canManageCourse(course, user) {
+  if (!course || !user) return false;
+  if (user.isAdmin) return true;
+  const ownerIds = new Set([
+    course.instructorId,
+    course.teacherId,
+    course.creatorId,
+    course.createdBy
+  ].filter(Boolean));
+  const inInstructors = Array.isArray(course.instructors) && course.instructors.includes(user.userId);
+  return ownerIds.has(user.userId) || inInstructors;
+}
+
 /**
  * GET /api/courses/:id/groups
  * 取得課程的所有群組
@@ -44,7 +57,7 @@ router.get('/:id/groups', authMiddleware, async (req, res) => {
 
     // 如果是分開群組模式，且用戶不是講師/管理員，只顯示自己的群組
     if (course.groupMode === GROUP_MODES.SEPARATEGROUPS &&
-        course.instructorId !== userId && !req.user.isAdmin) {
+        !canManageCourse(course, req.user)) {
       // 取得用戶所屬的群組
       const userGroups = await db.query(`USER#${userId}`, { skPrefix: `COURSEGROUP#${id}#` });
       const userGroupIds = userGroups.map(g => g.groupId);
@@ -102,7 +115,7 @@ router.post('/:id/groups', authMiddleware, async (req, res) => {
       });
     }
 
-    if (course.instructorId !== userId && !req.user.isAdmin) {
+    if (!canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -170,7 +183,7 @@ router.put('/:id/groups/:groupId', authMiddleware, async (req, res) => {
       });
     }
 
-    if (course.instructorId !== userId && !req.user.isAdmin) {
+    if (!canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -230,7 +243,7 @@ router.delete('/:id/groups/:groupId', authMiddleware, async (req, res) => {
       });
     }
 
-    if (course.instructorId !== userId && !req.user.isAdmin) {
+    if (!canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -285,7 +298,7 @@ router.get('/:id/groups/:groupId/members', authMiddleware, async (req, res) => {
 
     // 如果是分開群組模式，檢查用戶是否在該群組內
     if (course.groupMode === GROUP_MODES.SEPARATEGROUPS &&
-        course.instructorId !== userId && !req.user.isAdmin) {
+        !canManageCourse(course, req.user)) {
       const userMembership = await db.getItem(`USER#${userId}`, `COURSEGROUP#${id}#${groupId}`);
       if (!userMembership) {
         return res.status(403).json({
@@ -357,7 +370,7 @@ router.post('/:id/groups/:groupId/members', authMiddleware, async (req, res) => 
       });
     }
 
-    if (course.instructorId !== adminUserId && !req.user.isAdmin) {
+    if (!canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -470,7 +483,7 @@ router.delete('/:id/groups/:groupId/members/:userId', authMiddleware, async (req
       });
     }
 
-    if (course.instructorId !== adminUserId && !req.user.isAdmin) {
+    if (!canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -524,7 +537,7 @@ router.put('/:id/group-settings', authMiddleware, async (req, res) => {
       });
     }
 
-    if (course.instructorId !== userId && !req.user.isAdmin) {
+    if (!canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -645,7 +658,7 @@ router.post('/:id/auto-create-groups', authMiddleware, async (req, res) => {
       });
     }
 
-    if (course.instructorId !== userId && !req.user.isAdmin) {
+    if (!canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -786,7 +799,7 @@ router.get('/:id/group-overview', authMiddleware, async (req, res) => {
       });
     }
 
-    if (course.instructorId !== userId && !req.user.isAdmin) {
+    if (!canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',

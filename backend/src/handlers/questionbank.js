@@ -33,6 +33,62 @@ function ensureTeachingAccess(user, res) {
   return false;
 }
 
+function normalizeCourseId(courseId) {
+  if (!courseId) return null;
+  const normalized = String(courseId).trim();
+  return normalized || null;
+}
+
+function canManageCourse(course, user) {
+  if (!course || !user) return false;
+  if (user.isAdmin) return true;
+  const ownerIds = new Set([
+    course.instructorId,
+    course.teacherId,
+    course.creatorId,
+    course.createdBy
+  ].filter(Boolean));
+  const inInstructors = Array.isArray(course.instructors) && course.instructors.includes(user.userId);
+  return ownerIds.has(user.userId) || inInstructors;
+}
+
+async function getManagedCourse(courseId, user, res, { required = false } = {}) {
+  const normalizedCourseId = normalizeCourseId(courseId);
+  if (!normalizedCourseId) {
+    if (required) {
+      res.status(400).json({
+        success: false,
+        message: '題庫操作需要指定課程'
+      });
+      return false;
+    }
+    return null;
+  }
+
+  const course = await db.getItem(`COURSE#${normalizedCourseId}`, 'META');
+  if (!course) {
+    res.status(404).json({
+      success: false,
+      message: '找不到指定課程'
+    });
+    return false;
+  }
+
+  if (!canManageCourse(course, user)) {
+    res.status(403).json({
+      success: false,
+      message: '無權限管理此課程的題庫'
+    });
+    return false;
+  }
+
+  return course;
+}
+
+function getDefaultCategoryId(courseId = null) {
+  return courseId ? `qcat_default_${courseId}` : 'cat_default';
+}
+
 function parseInteger(value, fallback, { min = Number.MIN_SAFE_INTEGER, max = Number.MAX_SAFE_INTEGER } = {}) {
   const parsed = parseInt(value, 10);
   if (Number.isNaN(parsed)) return fallback;
@@ -97,6 +153,7 @@ function normalizeCategory(item) {
   return {
     id: categoryId,
     categoryId,
+    courseId: normalizeCourseId(item.courseId),
     name: item.name || '',
     description: item.description || '',
     parentId: item.parentId || null,
@@ -132,6 +189,7 @@ function normalizeQuestion(item, categoriesMap = new Map()) {
   return {
     id: questionId,
     questionId,
+    courseId: normalizeCourseId(item.courseId || category?.courseId),
     type: item.type || 'multiple_choice',
     questionText,
     title: questionText,
@@ -185,17 +243,22 @@ async function getCategoryById(categoryId) {
   return fallback[0] || null;
 }
 
-async function loadCategories() {
+async function loadCategories(courseId = null) {
   const categories = await db.query('QUESTION_CATEGORIES', { skPrefix: 'CATEGORY#' });
-  return categories.filter(cat => cat.status !== 'deleted');
+  const normalizedCourseId = normalizeCourseId(courseId);
+  return categories.filter(cat => {
+    if (cat.status === 'deleted') return false;
+    if (!normalizedCourseId) return !normalizeCourseId(cat.courseId);
+    return normalizeCourseId(cat.courseId) === normalizedCourseId;
+  });
 }
 
-async function loadCategoriesMap() {
-  const categories = await loadCategories();
+async function loadCategoriesMap(courseId = null) {
+  const categories = await loadCategories(courseId);
   return new Map(categories.map(cat => [cat.categoryId, normalizeCategory(cat)]));
 }
 
-async function loadActiveQuestions() {
+async function loadActiveQuestions(courseId = null) {
   const questions = await db.scan({
     filter: {
       expression: 'entityType = :type AND (#status <> :deleted OR attribute_not_exists(#status))',
@@ -203,19 +266,26 @@ async function loadActiveQuestions() {
       names: { '#status': 'status' }
     }
   });
-  return questions;
+  const normalizedCourseId = normalizeCourseId(courseId);
+  return questions.filter(question => {
+    if (!normalizedCourseId) return !normalizeCourseId(question.courseId);
+    return normalizeCourseId(question.courseId) === normalizedCourseId;
+  });
 }
 
-async function ensureDefaultCategory(userId = 'system') {
-  const existing = await getCategoryById('cat_default');
+async function ensureDefaultCategory(userId = 'system', courseId = null) {
+  const normalizedCourseId = normalizeCourseId(courseId);
+  const defaultCategoryId = getDefaultCategoryId(normalizedCourseId);
+  const existing = await getCategoryById(defaultCategoryId);
   if (existing && existing.status !== 'deleted') return existing;
 
   const now = new Date().toISOString();
   const category = {
     PK: 'QUESTION_CATEGORIES',
-    SK: 'CATEGORY#cat_default',
+    SK: `CATEGORY#${defaultCategoryId}`,
     entityType: 'QUESTION_CATEGORY',
-    categoryId: 'cat_default',
+    categoryId: defaultCategoryId,
+    courseId: normalizedCourseId,
     name: '預設類別',
     description: '系統預設題庫類別',
     parentId: null,
@@ -234,17 +304,11 @@ async function refreshCategoryQuestionCount(categoryId) {
   if (!categoryId) return;
   const category = await getCategoryById(categoryId);
   if (!category || category.status === 'deleted') return;
-
-  const questions = await db.scan({
-    filter: {
-      expression: 'entityType = :type AND categoryId = :cid AND (#status <> :deleted OR attribute_not_exists(#status))',
-      values: { ':type': 'QUESTION', ':cid': categoryId, ':deleted': 'deleted' },
-      names: { '#status': 'status' }
-    }
-  });
+  const questions = await loadActiveQuestions(category.courseId || null);
+  const scopedQuestions = questions.filter(question => question.categoryId === categoryId);
 
   await db.updateItem(category.PK, category.SK, {
-    questionCount: questions.length,
+    questionCount: scopedQuestions.length,
     updatedAt: new Date().toISOString()
   });
 }
@@ -256,6 +320,9 @@ function buildQuestionPayload(body, existing = null) {
   const payload = {
     type,
     questionText: String(questionText || '').trim(),
+    courseId: body.courseId !== undefined
+      ? normalizeCourseId(body.courseId)
+      : normalizeCourseId(existing?.courseId),
     points: body.points !== undefined ? parseInteger(body.points, 10, { min: 0 }) : (existing?.points || 10),
     difficulty: body.difficulty || existing?.difficulty || 'medium',
     tags: body.tags !== undefined ? parseTags(body.tags) : parseTags(existing?.tags),
@@ -263,8 +330,10 @@ function buildQuestionPayload(body, existing = null) {
       ? String(body.explanation || '')
       : String(existing?.explanation || existing?.feedback || ''),
     categoryId: body.categoryId !== undefined
-      ? (body.categoryId || 'cat_default')
-      : (body.category !== undefined ? (body.category || 'cat_default') : (existing?.categoryId || 'cat_default'))
+      ? (body.categoryId || getDefaultCategoryId(normalizeCourseId(body.courseId) || normalizeCourseId(existing?.courseId)))
+      : (body.category !== undefined
+        ? (body.category || getDefaultCategoryId(normalizeCourseId(body.courseId) || normalizeCourseId(existing?.courseId)))
+        : (existing?.categoryId || getDefaultCategoryId(normalizeCourseId(existing?.courseId))))
   };
 
   if (body.options !== undefined) {
@@ -308,6 +377,7 @@ function buildQuestionPayload(body, existing = null) {
 
 function filterQuestions(questions, filters) {
   const {
+    courseId,
     categoryId,
     difficulty,
     search,
@@ -319,6 +389,10 @@ function filterQuestions(questions, filters) {
   const normalizedSearch = String(search || '').trim().toLowerCase();
 
   let filtered = [...questions];
+
+  if (courseId) {
+    filtered = filtered.filter(q => normalizeCourseId(q.courseId) === normalizeCourseId(courseId));
+  }
 
   if (categoryId) {
     filtered = filtered.filter(q => q.categoryId === categoryId);
@@ -355,14 +429,17 @@ function filterQuestions(questions, filters) {
 router.get('/categories', authMiddleware, async (req, res) => {
   try {
     if (!ensureTeachingAccess(req.user, res)) return;
+    const courseId = normalizeCourseId(req.query.courseId);
+    const managedCourse = await getManagedCourse(courseId, req.user, res);
+    if (managedCourse === false) return;
 
-    let categories = await loadCategories();
+    let categories = await loadCategories(courseId);
     if (categories.length === 0) {
-      await ensureDefaultCategory(req.user.userId);
-      categories = await loadCategories();
+      await ensureDefaultCategory(req.user.userId, courseId);
+      categories = await loadCategories(courseId);
     }
 
-    const activeQuestions = await loadActiveQuestions();
+    const activeQuestions = await loadActiveQuestions(courseId);
     const countMap = new Map();
     activeQuestions.forEach(q => {
       const cid = q.categoryId || 'cat_default';
@@ -400,6 +477,10 @@ router.post('/categories', authMiddleware, async (req, res) => {
     }
 
     const { name, description, parentId, sortOrder } = req.body;
+    const courseId = normalizeCourseId(req.body.courseId);
+    const managedCourse = await getManagedCourse(courseId, req.user, res, { required: true });
+    if (!managedCourse) return;
+
     if (!name || !String(name).trim()) {
       return res.status(400).json({
         success: false,
@@ -409,7 +490,7 @@ router.post('/categories', authMiddleware, async (req, res) => {
 
     if (parentId) {
       const parent = await getCategoryById(parentId);
-      if (!parent || parent.status === 'deleted') {
+      if (!parent || parent.status === 'deleted' || normalizeCourseId(parent.courseId) !== courseId) {
         return res.status(400).json({
           success: false,
           message: '父類別不存在'
@@ -424,6 +505,7 @@ router.post('/categories', authMiddleware, async (req, res) => {
       SK: `CATEGORY#${categoryId}`,
       entityType: 'QUESTION_CATEGORY',
       categoryId,
+      courseId,
       name: String(name).trim(),
       description: description || '',
       parentId: parentId || null,
@@ -471,6 +553,11 @@ router.put('/categories/:categoryId', authMiddleware, async (req, res) => {
       });
     }
 
+    const managedCourse = await getManagedCourse(category.courseId, req.user, res, {
+      required: !!normalizeCourseId(category.courseId)
+    });
+    if (managedCourse === false) return;
+
     if (parentId && parentId === categoryId) {
       return res.status(400).json({
         success: false,
@@ -480,7 +567,7 @@ router.put('/categories/:categoryId', authMiddleware, async (req, res) => {
 
     if (parentId) {
       const parent = await getCategoryById(parentId);
-      if (!parent || parent.status === 'deleted') {
+      if (!parent || parent.status === 'deleted' || normalizeCourseId(parent.courseId) !== normalizeCourseId(category.courseId)) {
         return res.status(400).json({
           success: false,
           message: '父類別不存在'
@@ -530,13 +617,13 @@ router.delete('/categories/:categoryId', authMiddleware, async (req, res) => {
       });
     }
 
-    const questions = await db.scan({
-      filter: {
-        expression: 'entityType = :type AND categoryId = :cid AND (#status <> :deleted OR attribute_not_exists(#status))',
-        values: { ':type': 'QUESTION', ':cid': categoryId, ':deleted': 'deleted' },
-        names: { '#status': 'status' }
-      }
+    const managedCourse = await getManagedCourse(category.courseId, req.user, res, {
+      required: !!normalizeCourseId(category.courseId)
     });
+    if (managedCourse === false) return;
+
+    const questions = (await loadActiveQuestions(category.courseId || null))
+      .filter(question => question.categoryId === categoryId);
 
     if (questions.length > 0) {
       return res.status(400).json({
@@ -571,12 +658,24 @@ router.get('/', authMiddleware, async (req, res) => {
   try {
     if (!ensureTeachingAccess(req.user, res)) return;
 
-    const { categoryId, type, types, difficulty, search, page = 1, limit = 20 } = req.query;
+    const { courseId, categoryId, type, types, difficulty, search, page = 1, limit = 20 } = req.query;
+    const managedCourse = await getManagedCourse(courseId, req.user, res, {
+      required: !!normalizeCourseId(courseId)
+    });
+    if (managedCourse === false) return;
 
-    const categoriesMap = await loadCategoriesMap();
-    const rawQuestions = await loadActiveQuestions();
+    const normalizedCourseId = normalizeCourseId(courseId);
+    const categoriesMap = await loadCategoriesMap(normalizedCourseId);
+    const rawQuestions = await loadActiveQuestions(normalizedCourseId);
     const normalizedQuestions = rawQuestions.map(q => normalizeQuestion(q, categoriesMap));
-    const filtered = filterQuestions(normalizedQuestions, { categoryId, type, types, difficulty, search });
+    const filtered = filterQuestions(normalizedQuestions, {
+      courseId: normalizedCourseId,
+      categoryId,
+      type,
+      types,
+      difficulty,
+      search
+    });
 
     const pageNumber = parseInteger(page, 1, { min: 1 });
     const pageSize = parseInteger(limit, 20, { min: 1, max: 200 });
@@ -607,6 +706,7 @@ router.get('/:questionId', authMiddleware, async (req, res) => {
     if (!ensureTeachingAccess(req.user, res)) return;
 
     const { questionId } = req.params;
+    const requestedCourseId = normalizeCourseId(req.query.courseId);
     const question = await getQuestionById(questionId);
 
     if (!question || question.status === 'deleted') {
@@ -616,7 +716,20 @@ router.get('/:questionId', authMiddleware, async (req, res) => {
       });
     }
 
-    const categoriesMap = await loadCategoriesMap();
+    const questionCourseId = normalizeCourseId(question.courseId);
+    if (requestedCourseId && requestedCourseId !== questionCourseId) {
+      return res.status(404).json({
+        success: false,
+        message: '找不到題目'
+      });
+    }
+
+    const managedCourse = await getManagedCourse(questionCourseId || requestedCourseId, req.user, res, {
+      required: !!(questionCourseId || requestedCourseId)
+    });
+    if (managedCourse === false) return;
+
+    const categoriesMap = await loadCategoriesMap(questionCourseId);
     res.json({
       success: true,
       data: normalizeQuestion(question, categoriesMap)
@@ -640,6 +753,9 @@ router.post('/', authMiddleware, async (req, res) => {
     }
 
     const payload = buildQuestionPayload(req.body);
+    const managedCourse = await getManagedCourse(payload.courseId, req.user, res, { required: true });
+    if (!managedCourse) return;
+
     if (!payload.questionText) {
       return res.status(400).json({
         success: false,
@@ -647,13 +763,13 @@ router.post('/', authMiddleware, async (req, res) => {
       });
     }
 
-    if (payload.categoryId === 'cat_default') {
-      await ensureDefaultCategory(req.user.userId);
+    if (payload.categoryId === getDefaultCategoryId(payload.courseId)) {
+      await ensureDefaultCategory(req.user.userId, payload.courseId);
     }
 
     if (payload.categoryId) {
       const category = await getCategoryById(payload.categoryId);
-      if (!category || category.status === 'deleted') {
+      if (!category || category.status === 'deleted' || normalizeCourseId(category.courseId) !== normalizeCourseId(payload.courseId)) {
         return res.status(400).json({
           success: false,
           message: '指定的題目類別不存在'
@@ -683,7 +799,7 @@ router.post('/', authMiddleware, async (req, res) => {
       await refreshCategoryQuestionCount(payload.categoryId);
     }
 
-    const categoriesMap = await loadCategoriesMap();
+    const categoriesMap = await loadCategoriesMap(payload.courseId);
     res.status(201).json({
       success: true,
       data: normalizeQuestion(question, categoriesMap),
@@ -709,6 +825,11 @@ router.put('/:questionId', authMiddleware, async (req, res) => {
       });
     }
 
+    const managedCourse = await getManagedCourse(existing.courseId, req.user, res, {
+      required: !!normalizeCourseId(existing.courseId)
+    });
+    if (managedCourse === false) return;
+
     if (!req.user.isAdmin && existing.createdBy !== req.user.userId && !isTeachingUser(req.user)) {
       return res.status(403).json({
         success: false,
@@ -718,6 +839,7 @@ router.put('/:questionId', authMiddleware, async (req, res) => {
 
     const previousCategoryId = existing.categoryId || null;
     const payload = buildQuestionPayload(req.body, existing);
+    payload.courseId = normalizeCourseId(existing.courseId) || normalizeCourseId(payload.courseId);
 
     if (!payload.questionText) {
       return res.status(400).json({
@@ -726,13 +848,13 @@ router.put('/:questionId', authMiddleware, async (req, res) => {
       });
     }
 
-    if (payload.categoryId === 'cat_default') {
-      await ensureDefaultCategory(req.user.userId);
+    if (payload.categoryId === getDefaultCategoryId(payload.courseId)) {
+      await ensureDefaultCategory(req.user.userId, payload.courseId);
     }
 
     if (payload.categoryId) {
       const category = await getCategoryById(payload.categoryId);
-      if (!category || category.status === 'deleted') {
+      if (!category || category.status === 'deleted' || normalizeCourseId(category.courseId) !== normalizeCourseId(payload.courseId)) {
         return res.status(400).json({
           success: false,
           message: '指定的題目類別不存在'
@@ -755,7 +877,7 @@ router.put('/:questionId', authMiddleware, async (req, res) => {
       await refreshCategoryQuestionCount(payload.categoryId);
     }
 
-    const categoriesMap = await loadCategoriesMap();
+    const categoriesMap = await loadCategoriesMap(payload.courseId);
     res.json({
       success: true,
       data: normalizeQuestion(updated, categoriesMap),
@@ -781,6 +903,11 @@ router.delete('/:questionId', authMiddleware, async (req, res) => {
         message: '找不到題目'
       });
     }
+
+    const managedCourse = await getManagedCourse(question.courseId, req.user, res, {
+      required: !!normalizeCourseId(question.courseId)
+    });
+    if (managedCourse === false) return;
 
     if (!req.user.isAdmin && question.createdBy !== req.user.userId && !isTeachingUser(req.user)) {
       return res.status(403).json({
@@ -818,6 +945,10 @@ router.post('/import', authMiddleware, async (req, res) => {
       });
     }
 
+    const courseId = normalizeCourseId(req.body.courseId);
+    const managedCourse = await getManagedCourse(courseId, req.user, res, { required: true });
+    if (!managedCourse) return;
+
     const inputQuestions = Array.isArray(req.body.questions) ? req.body.questions : [];
     if (inputQuestions.length === 0) {
       return res.status(400).json({
@@ -826,15 +957,15 @@ router.post('/import', authMiddleware, async (req, res) => {
       });
     }
 
-    await ensureDefaultCategory(req.user.userId);
+    await ensureDefaultCategory(req.user.userId, courseId);
 
     const overrideCategoryId = req.body.categoryId || req.body.category || null;
     if (overrideCategoryId) {
-      if (overrideCategoryId === 'cat_default') {
-        await ensureDefaultCategory(req.user.userId);
+      if (overrideCategoryId === getDefaultCategoryId(courseId)) {
+        await ensureDefaultCategory(req.user.userId, courseId);
       }
       const category = await getCategoryById(overrideCategoryId);
-      if (!category || category.status === 'deleted') {
+      if (!category || category.status === 'deleted' || normalizeCourseId(category.courseId) !== courseId) {
         return res.status(400).json({
           success: false,
           message: '指定的匯入類別不存在'
@@ -849,6 +980,7 @@ router.post('/import', authMiddleware, async (req, res) => {
     for (const row of inputQuestions) {
       const payload = buildQuestionPayload({
         ...row,
+        courseId,
         categoryId: overrideCategoryId || row.categoryId || row.category || null
       });
 
@@ -879,7 +1011,7 @@ router.post('/import', authMiddleware, async (req, res) => {
       await refreshCategoryQuestionCount(categoryId);
     }
 
-    const categoriesMap = await loadCategoriesMap();
+    const categoriesMap = await loadCategoriesMap(courseId);
     res.json({
       success: true,
       data: {
@@ -900,20 +1032,24 @@ router.post('/import', authMiddleware, async (req, res) => {
 router.post('/export', authMiddleware, async (req, res) => {
   try {
     const { questionIds, format = 'json' } = req.body || {};
-    const categoriesMap = await loadCategoriesMap();
+    const courseId = normalizeCourseId(req.body?.courseId);
+    const managedCourse = await getManagedCourse(courseId, req.user, res, { required: true });
+    if (!managedCourse) return;
+
+    const categoriesMap = await loadCategoriesMap(courseId);
     let questions = [];
 
     if (Array.isArray(questionIds) && questionIds.length > 0) {
       for (const questionId of questionIds) {
         const question = await getQuestionById(questionId);
-        if (question && question.status !== 'deleted') {
+        if (question && question.status !== 'deleted' && normalizeCourseId(question.courseId) === courseId) {
           questions.push(normalizeQuestion(question, categoriesMap));
         }
       }
     } else {
-      const all = await loadActiveQuestions();
+      const all = await loadActiveQuestions(courseId);
       const normalized = all.map(q => normalizeQuestion(q, categoriesMap));
-      questions = filterQuestions(normalized, req.body || {});
+      questions = filterQuestions(normalized, { ...(req.body || {}), courseId });
     }
 
     const exportData = {

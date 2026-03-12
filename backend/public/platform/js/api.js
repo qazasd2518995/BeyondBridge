@@ -1208,6 +1208,19 @@ const API = {
       });
     },
 
+    async update(forumId, data) {
+      return API.request(`/forums/${forumId}`, {
+        method: 'PUT',
+        body: data
+      });
+    },
+
+    async delete(forumId) {
+      return API.request(`/forums/${forumId}`, {
+        method: 'DELETE'
+      });
+    },
+
     async createDiscussion(forumId, data) {
       return API.request(`/forums/${forumId}/discussions`, {
         method: 'POST',
@@ -1561,13 +1574,24 @@ const API = {
 
   // ===== 題庫 API =====
   questionBank: {
+    buildQuery(params = {}) {
+      return new URLSearchParams(
+        Object.entries(params).filter(([, value]) =>
+          value !== undefined &&
+          value !== null &&
+          value !== ''
+        )
+      ).toString();
+    },
+
     async list(filters = {}) {
-      const params = new URLSearchParams(filters).toString();
+      const params = this.buildQuery(filters);
       return API.request(`/questionbank${params ? '?' + params : ''}`);
     },
 
-    async get(questionId) {
-      return API.request(`/questionbank/${questionId}`);
+    async get(questionId, filters = {}) {
+      const params = this.buildQuery(filters);
+      return API.request(`/questionbank/${questionId}${params ? '?' + params : ''}`);
     },
 
     async create(data) {
@@ -1590,8 +1614,9 @@ const API = {
       });
     },
 
-    async getCategories() {
-      return API.request('/questionbank/categories');
+    async getCategories(filters = {}) {
+      const params = this.buildQuery(filters);
+      return API.request(`/questionbank/categories${params ? '?' + params : ''}`);
     },
 
     async createCategory(data) {

@@ -12,8 +12,10 @@ const MoodleUI = {
   currentAssignmentCourseId: null,
   currentQuizCourseId: null,
   currentForumCourseId: null,
+  currentQuestionBankCourseId: null,
   currentQuestionBankCategoryFilter: null,
   currentCalendarEvents: [],
+  currentEditingActivity: null,
 
   teachingRoles: new Set(['manager', 'coursecreator', 'educator', 'trainer', 'creator', 'teacher', 'assistant']),
 
@@ -39,6 +41,165 @@ const MoodleUI = {
     if (!this.isTeachingRole(user)) return false;
     if (!course) return true;
     return this.isCourseOwner(course, user);
+  },
+
+  canManageCourse(course, user = API.getCurrentUser()) {
+    if (!course || !user) return false;
+    if (!this.isTeachingRole(user)) return false;
+    return this.isCourseOwner(course, user);
+  },
+
+  canViewParticipants(course, user = API.getCurrentUser()) {
+    return this.canTeachCourse(course, user);
+  },
+
+  canManageBadge(badge, user = API.getCurrentUser()) {
+    if (!badge || !user) return false;
+    if (user.isAdmin) return true;
+    if (!this.isTeachingRole(user)) return false;
+    return !badge.createdBy || badge.createdBy === user.userId;
+  },
+
+  canManageRubric(rubric, user = API.getCurrentUser()) {
+    if (!rubric || !user) return false;
+    if (user.isAdmin) return true;
+    if (!this.isTeachingRole(user)) return false;
+    return !rubric.createdBy || rubric.createdBy === user.userId;
+  },
+
+  canManageH5pContent(content, user = API.getCurrentUser()) {
+    if (!content || !user) return false;
+    if (user.isAdmin) return true;
+    return !!(content.createdBy && content.createdBy === user.userId);
+  },
+
+  ensureViewVisible(viewName) {
+    if (typeof window.showView !== 'function') return true;
+    const result = window.showView(viewName);
+    return result?.ok !== false;
+  },
+
+  canManageLearningPath(path, user = API.getCurrentUser()) {
+    if (!path || !user) return false;
+    if (user.isAdmin) return true;
+    if (!this.isTeachingRole(user)) return false;
+    return !path.createdBy || path.createdBy === user.userId;
+  },
+
+  extractCollectionData(result) {
+    if (!result?.success) return [];
+    if (Array.isArray(result.data)) return result.data;
+    if (Array.isArray(result.data?.courses)) return result.data.courses;
+    if (Array.isArray(result.data?.items)) return result.data.items;
+    return [];
+  },
+
+  normalizeCourseRecord(course = {}) {
+    const progressValue = course.progress?.progressPercentage ?? course.progressPercentage ?? course.progress ?? null;
+    const normalizedProgress = Number(progressValue);
+    const visibility = this.normalizeCourseVisibility(course.visibility ?? course.visible);
+    return {
+      ...course,
+      courseId: course.courseId || course.id,
+      isEnrolled: course.isEnrolled ?? Boolean(course.progress),
+      progress: Number.isFinite(normalizedProgress) ? normalizedProgress : course.progress,
+      visibility,
+      visible: visibility === 'show'
+    };
+  },
+
+  normalizeCourseVisibility(value) {
+    if (typeof value === 'boolean') {
+      return value ? 'show' : 'hide';
+    }
+    const normalized = String(value || '').trim().toLowerCase();
+    if (!normalized) return 'show';
+    if (['show', 'visible', 'published', 'true', '1'].includes(normalized)) return 'show';
+    if (['hide', 'hidden', 'draft', 'false', '0'].includes(normalized)) return 'hide';
+    return 'show';
+  },
+
+  normalizeCourseFormat(format) {
+    const normalized = String(format || '').trim().toLowerCase();
+    if (!normalized) return 'topics';
+    if (normalized === 'weekly') return 'weeks';
+    return normalized;
+  },
+
+  normalizeAssignmentSubmissionType(type) {
+    if (type === 'online_text') return 'text';
+    return type || 'text';
+  },
+
+  filterCourseCollection(courses = [], filters = {}) {
+    let filtered = Array.isArray(courses) ? [...courses] : [];
+    const search = String(filters.search || '').trim().toLowerCase();
+    const category = String(filters.category || '').trim().toLowerCase();
+    const instructor = String(filters.instructor || '').trim();
+    const status = String(filters.status || '').trim().toLowerCase();
+
+    if (category) {
+      filtered = filtered.filter(course => String(course.category || '').toLowerCase() === category);
+    }
+
+    if (instructor) {
+      filtered = filtered.filter(course =>
+        course.instructorId === instructor ||
+        course.teacherId === instructor ||
+        course.creatorId === instructor ||
+        course.createdBy === instructor ||
+        (Array.isArray(course.instructors) && course.instructors.includes(instructor))
+      );
+    }
+
+    if (search) {
+      filtered = filtered.filter(course => {
+        const haystack = [
+          course.title,
+          course.name,
+          course.description,
+          course.summary,
+          course.shortName,
+          course.shortname
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        return haystack.includes(search);
+      });
+    }
+
+    if (status) {
+      filtered = filtered.filter(course => String(course.status || 'published').toLowerCase() === status);
+    }
+
+    return filtered;
+  },
+
+  async getRoleScopedCourses({ manageOnly = false, filters = {} } = {}) {
+    const user = API.getCurrentUser();
+    if (!user) return [];
+
+    let courses = [];
+    if (user.isAdmin || user.role === 'admin') {
+      const result = await API.courses.list(filters);
+      courses = this.extractCollectionData(result);
+    } else if (manageOnly || this.isTeachingRole(user)) {
+      const result = await API.courses.getMyCourses('instructor');
+      courses = this.extractCollectionData(result);
+    } else {
+      const result = await API.courses.getMyCourses('student');
+      courses = this.extractCollectionData(result);
+    }
+
+    courses = courses.map(course => this.normalizeCourseRecord(course));
+    courses = this.filterCourseCollection(courses, filters);
+
+    if (manageOnly) {
+      courses = courses.filter(course => this.canManageCourse(course, user));
+    }
+
+    return courses;
   },
 
   normalizeAssignmentState(assignment = {}) {
@@ -69,7 +230,10 @@ const MoodleUI = {
       ...assignment,
       submitted,
       graded,
-      grade: assignment.grade ?? submission?.grade ?? submissionStatus.grade ?? null
+      grade: assignment.grade ?? submission?.grade ?? submissionStatus.grade ?? null,
+      maxPoints: assignment.maxPoints ?? assignment.maxGrade ?? 100,
+      maxGrade: assignment.maxGrade ?? assignment.maxPoints ?? 100,
+      submissionType: this.normalizeAssignmentSubmissionType(assignment.submissionType)
     };
   },
 
@@ -174,14 +338,17 @@ const MoodleUI = {
   /**
    * 通用課程選擇器
    */
-  renderCoursePicker(title, icon, callbackFn, containerId) {
+  async renderCoursePicker(title, icon, callbackFn, containerId) {
     const container = document.getElementById(containerId);
     if (!container) return;
     container.innerHTML = `<div class="loading">${t('common.loading')}</div>`;
 
-    API.courses.list({ enrolled: true }).then(result => {
+    try {
       const isEnglish = I18n.getLocale() === 'en';
-      const courses = result.success ? (Array.isArray(result.data) ? result.data : (result.data?.courses || [])) : [];
+      const courses = await this.getRoleScopedCourses({
+        manageOnly: this.isTeachingRole(),
+        filters: { status: 'published' }
+      });
       container.innerHTML = `
         <div class="activity-picker-page">
           <div class="activity-picker-header">
@@ -225,9 +392,10 @@ const MoodleUI = {
           `}
         </div>
       `;
-    }).catch(() => {
+    } catch (error) {
+      console.error('Render course picker error:', error);
       container.innerHTML = `<div class="error">載入課程失敗</div>`;
-    });
+    }
   },
 
   // ==================== 課程頁面 ====================
@@ -237,10 +405,11 @@ const MoodleUI = {
    */
   async loadCourses(filters = {}) {
     try {
-      const result = await API.courses.list(filters);
-      if (result.success) {
-        this.renderCourseGrid(result.data || []);
-      }
+      const courses = await this.getRoleScopedCourses({
+        manageOnly: this.isTeachingRole(),
+        filters
+      });
+      this.renderCourseGrid(courses);
     } catch (error) {
       console.error('Load courses error:', error);
       showToast(t('moodleCourse.loadFailed'));
@@ -300,9 +469,10 @@ const MoodleUI = {
         return;
       }
 
-      this.currentCourse = result.data;
+      const course = this.normalizeCourseRecord(result.data || {});
+      this.currentCourse = course;
       this.currentCourseId = courseId;
-      this.renderCoursePage(result.data);
+      this.renderCoursePage(course);
       showView('courseDetail');
     } catch (error) {
       console.error('Open course error:', error);
@@ -318,7 +488,11 @@ const MoodleUI = {
     if (!container) return;
 
     const user = API.getCurrentUser();
-    const isTeacher = this.canTeachCourse(course, user);
+    const canTeach = this.canTeachCourse(course, user);
+    const canManage = this.canManageCourse(course, user);
+    const canViewParticipants = this.canViewParticipants(course, user);
+    const canViewReports = canTeach;
+    const courseFormat = this.normalizeCourseFormat(course.format);
 
     container.innerHTML = `
       <!-- 課程頭部 -->
@@ -335,17 +509,17 @@ const MoodleUI = {
             <div class="course-header-meta">
               <span>${t('moodleCourse.teacherLabel')}：${course.instructorName || course.teacherName || t('moodleCourse.teacher')}</span>
               <span>${course.enrollmentCount || course.enrolledCount || 0} ${t('moodleCourse.studentsCount')}</span>
-              <span>${course.format === 'topics' ? t('moodleCourse.formatTopics') : course.format === 'weeks' ? t('moodleCourse.formatWeeks') : t('moodleCourse.formatSingle')}</span>
+              <span>${courseFormat === 'topics' ? t('moodleCourse.formatTopics') : courseFormat === 'weeks' ? t('moodleCourse.formatWeeks') : courseFormat === 'social' ? t('moodleCourse.formatSocial') : t('moodleCourse.formatSingle')}</span>
             </div>
           </div>
           <div class="course-header-actions">
-            ${!course.isEnrolled && !isTeacher ? `
+            ${!course.isEnrolled && !canTeach ? `
               <button onclick="MoodleUI.enrollCourse('${course.courseId}')" class="btn-primary">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
                 ${t('moodleCourse.enroll')}
               </button>
             ` : ''}
-            ${isTeacher ? `
+            ${canManage ? `
               <button onclick="MoodleUI.openCourseSettings('${course.courseId}')" class="btn-secondary">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
                 ${t('moodleCourse.courseSettings')}
@@ -361,21 +535,23 @@ const MoodleUI = {
 
       <!-- 課程導航標籤 -->
       <div class="course-nav-tabs">
-        <button class="nav-tab active" onclick="MoodleUI.switchCourseTab('content')">${t('moodleCourse.tabContent')}</button>
-        <button class="nav-tab" onclick="MoodleUI.switchCourseTab('participants')">${t('moodleCourse.tabParticipants')}</button>
-        <button class="nav-tab" onclick="MoodleUI.switchCourseTab('grades')">${t('moodleCourse.tabGrades')}</button>
-        ${isTeacher ? `<button class="nav-tab" onclick="MoodleUI.switchCourseTab('reports')">${t('moodleCourse.tabReports')}</button>` : ''}
+        <button class="nav-tab active" data-course-tab="content" onclick="MoodleUI.switchCourseTab('content', this)">${t('moodleCourse.tabContent')}</button>
+        ${canViewParticipants ? `<button class="nav-tab" data-course-tab="participants" onclick="MoodleUI.switchCourseTab('participants', this)">${t('moodleCourse.tabParticipants')}</button>` : ''}
+        <button class="nav-tab" data-course-tab="grades" onclick="MoodleUI.switchCourseTab('grades', this)">${t('moodleCourse.tabGrades')}</button>
+        ${canViewReports ? `<button class="nav-tab" data-course-tab="reports" onclick="MoodleUI.switchCourseTab('reports', this)">${t('moodleCourse.tabReports')}</button>` : ''}
       </div>
 
       <!-- 課程內容區 -->
       <div id="courseContentPanel" class="course-panel active">
-        ${this.renderCourseSections(course.sections || [], isTeacher, course.courseId)}
+        ${this.renderCourseSections(course.sections || [], canManage, course.courseId)}
       </div>
 
       <!-- 參與者區 -->
+      ${canViewParticipants ? `
       <div id="courseParticipantsPanel" class="course-panel">
         <div class="loading">${t('common.loading')}</div>
       </div>
+      ` : ''}
 
       <!-- 成績區 -->
       <div id="courseGradesPanel" class="course-panel">
@@ -383,9 +559,11 @@ const MoodleUI = {
       </div>
 
       <!-- 報表區 (教師) -->
+      ${canViewReports ? `
       <div id="courseReportsPanel" class="course-panel">
         <div class="loading">${t('common.loading')}</div>
       </div>
+      ` : ''}
     `;
     this.applyDynamicUiMetrics(container);
   },
@@ -464,8 +642,14 @@ const MoodleUI = {
 
     return activities.map((activity) => {
       const accentColor = activityColors[activity.type] || 'var(--gray-400)';
+      const launchActivityId = activity.launchActivityId || activity.activityId;
+      const managementActivityId = activity.courseActivityId || activity.activityId;
+      const isBrokenLink = Boolean(activity.isBrokenLink) && !launchActivityId;
+      const openAction = isBrokenLink
+        ? `showToast(${this.toInlineActionValue(I18n.getLocale() === 'en' ? 'This activity link needs repair before it can be opened.' : '這個活動連結需要先修復，才能開啟。')})`
+        : `MoodleUI.openActivity('${activity.type}', '${launchActivityId}', '${courseId}')`;
       return `
-      <div class="activity-item ${activity.visible === false ? 'hidden-activity' : ''}" onclick="MoodleUI.openActivity('${activity.type}', '${activity.activityId}', '${courseId}')">
+      <div class="activity-item ${activity.visible === false ? 'hidden-activity' : ''}" onclick="${openAction}">
         <div class="activity-icon" data-accent-color="${this.escapeText(accentColor)}">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
             ${activityIcons[activity.type] || activityIcons.page}
@@ -475,14 +659,15 @@ const MoodleUI = {
           <span class="activity-name">${activity.name || activity.title}</span>
           ${activity.description ? `<span class="activity-desc">${activity.description}</span>` : ''}
           ${activity.dueDate ? `<span class="activity-due">${t('moodleCourse.dueDate')}：${new Date(activity.dueDate).toLocaleDateString(I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW')}</span>` : ''}
+          ${activity.isBrokenLink ? `<span class="activity-desc">${I18n.getLocale() === 'en' ? 'Legacy activity link pending repair' : '舊版活動連結待修復'}</span>` : ''}
         </div>
         ${activity.completed ? `<span class="completed-badge">${t('moodleCourse.completed')}</span>` : ''}
         ${isTeacher ? `
           <div class="activity-actions" onclick="event.stopPropagation()">
-            <button onclick="MoodleUI.editActivity('${courseId}', '${sectionId}', '${activity.activityId}')" class="btn-icon-sm">
+            <button onclick="MoodleUI.editActivity('${courseId}', '${sectionId}', '${managementActivityId}')" class="btn-icon-sm">
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
             </button>
-            <button onclick="MoodleUI.deleteActivity('${courseId}', '${sectionId}', '${activity.activityId}')" class="btn-icon-sm danger">
+            <button onclick="MoodleUI.deleteActivity('${courseId}', '${sectionId}', '${managementActivityId}')" class="btn-icon-sm danger">
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
             </button>
           </div>
@@ -495,10 +680,14 @@ const MoodleUI = {
   /**
    * 切換課程標籤
    */
-  async switchCourseTab(tab) {
+  async switchCourseTab(tab, tabButton = null) {
     // 更新標籤狀態
     document.querySelectorAll('.course-nav-tabs .nav-tab').forEach(t => t.classList.remove('active'));
-    event.target.classList.add('active');
+    const activeTabButton = tabButton ||
+      document.querySelector(`.course-nav-tabs .nav-tab[data-course-tab="${tab}"]`) ||
+      globalThis.event?.currentTarget ||
+      globalThis.event?.target;
+    activeTabButton?.classList?.add('active');
 
     // 隱藏所有面板
     document.querySelectorAll('.course-panel').forEach(p => {
@@ -518,6 +707,8 @@ const MoodleUI = {
       await this.loadParticipants(this.currentCourseId);
     } else if (tab === 'grades' && this.currentCourseId) {
       await this.loadGrades(this.currentCourseId);
+    } else if (tab === 'reports' && this.currentCourseId) {
+      await this.loadCourseReports(this.currentCourseId);
     }
   },
 
@@ -570,6 +761,11 @@ const MoodleUI = {
     const panel = document.getElementById('courseParticipantsPanel');
     if (!panel) return;
 
+    if (!this.canViewParticipants(this.currentCourse, API.getCurrentUser())) {
+      panel.innerHTML = `<div class="error">${I18n.getLocale() === 'en' ? 'You do not have permission to view participants.' : '你沒有權限查看課程參與者。'}</div>`;
+      return;
+    }
+
     try {
       const result = await API.courses.getParticipants(courseId);
       if (result.success) {
@@ -608,11 +804,11 @@ const MoodleUI = {
               <tr>
                 <td>
                   <div class="user-cell">
-                    <div class="user-avatar">${(p.userName || t('moodleParticipant.defaultAvatar'))[0]}</div>
-                    <span>${p.userName || t('moodleParticipant.defaultName')}</span>
+                    <div class="user-avatar">${(p.displayName || p.userName || t('moodleParticipant.defaultAvatar'))[0]}</div>
+                    <span>${p.displayName || p.userName || t('moodleParticipant.defaultName')}</span>
                   </div>
                 </td>
-                <td>${p.userEmail || '-'}</td>
+                <td>${p.email || p.userEmail || '-'}</td>
                 <td>${p.enrolledAt ? new Date(p.enrolledAt).toLocaleDateString(I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW') : '-'}</td>
                 <td>
                   <div class="mini-progress">
@@ -658,6 +854,91 @@ const MoodleUI = {
       console.error('Load grades error:', error);
       panel.innerHTML = `<div class="error">${t('moodleGrade.loadFailed')}</div>`;
     }
+  },
+
+  async loadCourseReports(courseId) {
+    const panel = document.getElementById('courseReportsPanel');
+    if (!panel) return;
+
+    if (!this.canTeachCourse(this.currentCourse, API.getCurrentUser())) {
+      panel.innerHTML = `<div class="error">${I18n.getLocale() === 'en' ? 'You do not have permission to view reports.' : '你沒有權限查看課程報表。'}</div>`;
+      return;
+    }
+
+    try {
+      const result = await API.courseCompletion.getReport(courseId);
+      if (!result.success) {
+        panel.innerHTML = `<div class="error">${this.escapeText(result.message || t('common.loadFailed'))}</div>`;
+        return;
+      }
+
+      panel.innerHTML = this.renderCourseReports(result.data || {});
+      this.applyDynamicUiMetrics(panel);
+    } catch (error) {
+      console.error('Load course reports error:', error);
+      panel.innerHTML = `<div class="error">${I18n.getLocale() === 'en' ? 'Failed to load course reports.' : '課程報表載入失敗。'}</div>`;
+    }
+  },
+
+  renderCourseReports(report = {}) {
+    const students = Array.isArray(report.students) ? report.students : [];
+    const locale = I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW';
+    const completedLabel = t('common.completed') || (locale === 'en-US' ? 'Completed' : '已完成');
+    const inProgressLabel = t('common.inProgress') || (locale === 'en-US' ? 'In progress' : '進行中');
+    const notStartedLabel = locale === 'en-US' ? 'Not started' : '尚未開始';
+
+    return `
+      <div class="path-report-grid">
+        <div class="path-summary-card">
+          <label>${locale === 'en-US' ? 'Learners' : '學員數'}</label>
+          <strong>${report.totalStudents || 0}</strong>
+        </div>
+        <div class="path-summary-card">
+          <label>${t('moodlePaths.completionRateLabel') || (locale === 'en-US' ? 'Completion rate' : '完成率')}</label>
+          <strong>${report.completionRate != null ? `${report.completionRate}%` : '—'}</strong>
+        </div>
+        <div class="path-summary-card">
+          <label>${t('moodlePaths.progress') || (locale === 'en-US' ? 'Average progress' : '平均進度')}</label>
+          <strong>${report.averageProgress != null ? `${report.averageProgress}%` : '—'}</strong>
+        </div>
+        <div class="path-summary-card">
+          <label>${locale === 'en-US' ? 'In progress' : '進行中'}</label>
+          <strong>${report.inProgressCount || 0}</strong>
+        </div>
+      </div>
+      ${students.length === 0 ? this.renderActivityEmptyState({
+        icon: '<svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>',
+        title: locale === 'en-US' ? 'No learner progress yet' : '目前還沒有學員進度資料'
+      }) : `
+        <div class="participants-list">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>${t('moodleParticipant.student')}</th>
+                <th>${t('moodlePaths.progress') || (locale === 'en-US' ? 'Progress' : '進度')}</th>
+                <th>${t('common.status')}</th>
+                <th>${locale === 'en-US' ? 'Completed at' : '完成時間'}</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${students.map(student => {
+                const statusLabel = student.isCompleted
+                  ? completedLabel
+                  : (student.progress > 0 ? inProgressLabel : notStartedLabel);
+                return `
+                  <tr>
+                    <td>${this.escapeText(student.displayName || student.userId || '—')}</td>
+                    <td>${this.escapeText(String(student.progress ?? 0))}%</td>
+                    <td>${this.escapeText(statusLabel)}</td>
+                    <td>${student.completedAt ? this.escapeText(new Date(student.completedAt).toLocaleString(locale)) : '—'}</td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      `}
+    `;
   },
 
   /**
@@ -822,7 +1103,7 @@ const MoodleUI = {
         this.openForum(activityId);
         break;
       case 'lti':
-        this.launchLtiTool(activityId, courseId);
+        this.launchCourseLtiTool(activityId, courseId);
         break;
       case 'page':
         this.openPageActivity(activityId, courseId);
@@ -1089,7 +1370,7 @@ const MoodleUI = {
   /**
    * 啟動 LTI 1.3 外部工具
    */
-  async launchLtiTool(activityId, courseId) {
+  async launchCourseLtiTool(activityId, courseId) {
     try {
       showToast(t('moodleActivity.launchingTool'));
 
@@ -1325,7 +1606,7 @@ const MoodleUI = {
     }
 
     try {
-      const result = await API.courseSections.create(courseId, { name, summary });
+      const result = await API.courseSections.create(courseId, { title: name, summary });
       if (result.success) {
         showToast(t('moodleSection.added'));
         this.closeModal('addSectionModal');
@@ -1498,7 +1779,7 @@ const MoodleUI = {
           <div class="form-group">
             <label>${t('moodleAddActivity.submitTypeLabel')}</label>
             <select id="submissionType">
-              <option value="text">${t('moodleAddActivity.submitTypeText')}</option>
+              <option value="online_text">${t('moodleAddActivity.submitTypeText')}</option>
               <option value="file">${t('moodleAddActivity.submitTypeFile')}</option>
               <option value="both">${t('moodleAddActivity.submitTypeBoth')}</option>
             </select>
@@ -1579,8 +1860,9 @@ const MoodleUI = {
 
     const activityData = {
       type: this.selectedActivityType,
-      name,
-      description
+      title: name,
+      description,
+      visible: true
     };
 
     // 根據類型收集額外資料
@@ -1591,9 +1873,20 @@ const MoodleUI = {
       case 'url':
         activityData.url = document.getElementById('urlValue')?.value;
         break;
+      case 'file':
+        activityData.file = document.getElementById('fileUpload')?.files?.[0] || null;
+        if (!activityData.file) {
+          showToast(I18n.getLocale() === 'en' ? 'Please choose a file.' : '請選擇檔案');
+          return;
+        }
+        break;
       case 'assignment':
         activityData.dueDate = document.getElementById('assignmentDueDate')?.value;
-        activityData.points = parseInt(document.getElementById('assignmentPoints')?.value) || 100;
+        if (!activityData.dueDate) {
+          showToast(I18n.getLocale() === 'en' ? 'Please set a due date.' : '請設定截止時間');
+          return;
+        }
+        activityData.maxGrade = parseInt(document.getElementById('assignmentPoints')?.value) || 100;
         activityData.submissionType = document.getElementById('submissionType')?.value;
         break;
       case 'quiz':
@@ -1622,7 +1915,57 @@ const MoodleUI = {
     }
 
     try {
-      const result = await API.courseSections.addActivity(courseId, sectionId, activityData);
+      let result;
+
+      if (this.selectedActivityType === 'assignment') {
+        result = await API.assignments.create({
+          courseId,
+          sectionId,
+          title: activityData.title,
+          description: activityData.description,
+          dueDate: activityData.dueDate,
+          maxGrade: activityData.maxGrade,
+          submissionType: activityData.submissionType,
+          visible: true
+        });
+      } else if (this.selectedActivityType === 'quiz') {
+        result = await API.quizzes.create({
+          courseId,
+          sectionId,
+          title: activityData.title,
+          description: activityData.description,
+          openDate: activityData.openDate || undefined,
+          closeDate: activityData.closeDate || undefined,
+          timeLimit: Number.isFinite(activityData.timeLimit) ? activityData.timeLimit : undefined,
+          maxAttempts: Number.isFinite(activityData.attempts) ? activityData.attempts : undefined,
+          visible: true
+        });
+      } else if (this.selectedActivityType === 'forum') {
+        result = await API.forums.create({
+          courseId,
+          sectionId,
+          title: activityData.title,
+          description: activityData.description,
+          type: activityData.forumType || 'general',
+          visible: true
+        });
+      } else if (this.selectedActivityType === 'file') {
+        const uploadResult = await API.files.upload(activityData.file, `courses/${courseId}`);
+        if (!uploadResult.success || !uploadResult.data?.fileId) {
+          showToast(uploadResult.message || t('moodleAddActivity.addFailed'));
+          return;
+        }
+        result = await API.courseSections.addActivity(courseId, sectionId, {
+          type: 'file',
+          title: activityData.title,
+          description: activityData.description,
+          fileId: uploadResult.data.fileId,
+          visible: true
+        });
+      } else {
+        result = await API.courseSections.addActivity(courseId, sectionId, activityData);
+      }
+
       if (result.success) {
         showToast(t('moodleAddActivity.added'));
         this.closeModal('addActivityModal');
@@ -1674,6 +2017,12 @@ const MoodleUI = {
   closeModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) modal.remove();
+    if (modalId === 'editActivityModal') {
+      this.currentEditingActivity = null;
+    }
+    if (modalId === 'addActivityModal') {
+      this.selectedActivityType = null;
+    }
     if (modalId === 'ltiLaunchModal') {
       window.removeEventListener('message', this.handleLtiMessage);
       this.currentLtiLaunchUrl = null;
@@ -2243,9 +2592,10 @@ const MoodleUI = {
       : hasClosed
         ? { label: isEnglish ? 'Closed' : '已關閉', tone: 'is-neutral' }
         : { label: isEnglish ? 'Scheduled' : '未開放', tone: 'is-warning' };
+    const openAction = teacherView ? 'MoodleUI.openQuizResults' : 'MoodleUI.openQuiz';
 
     return `
-      <div class="quiz-card${teacherView ? ' is-teacher-card' : ''}" onclick="MoodleUI.openQuiz(${this.toInlineActionValue(q.quizId)})">
+      <div class="quiz-card${teacherView ? ' is-teacher-card' : ''}" onclick="${openAction}(${this.toInlineActionValue(q.quizId)})">
         <div class="quiz-icon">
           <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="10"/>
@@ -2307,9 +2657,13 @@ const MoodleUI = {
 
       // 取得課程名稱
       let courseName = '';
+      let course = null;
       try {
         const courseResult = await API.courses.get(courseId);
-        if (courseResult.success) courseName = courseResult.data.title || courseResult.data.name || '';
+        if (courseResult.success) {
+          course = courseResult.data;
+          courseName = course.title || course.name || '';
+        }
       } catch(e) {}
 
       assignments = assignments.map(a =>
@@ -2325,21 +2679,23 @@ const MoodleUI = {
         assignments = assignments.filter(a => a.graded);
       }
 
-      this.renderAssignmentsWithBack(assignments, courseName, courseId, filter);
+      this.renderAssignmentsWithBack(assignments, courseName, courseId, filter, {
+        canManage: this.canManageCourse(course)
+      });
     } catch (error) {
       console.error('Load assignments error:', error);
       container.innerHTML = `<div class="error">${t('moodleAssignment.loadFailed')}</div>`;
     }
   },
 
-  renderAssignmentsWithBack(assignments, courseName, courseId, currentFilter) {
+  renderAssignmentsWithBack(assignments, courseName, courseId, currentFilter, { canManage = false } = {}) {
     const container = document.getElementById('assignmentsList');
     if (!container) return;
 
     const normalizedAssignments = (Array.isArray(assignments) ? assignments : [])
       .map(a => this.normalizeAssignmentState(a));
     const user = API.getCurrentUser();
-    const isTeacher = this.isTeachingRole(user);
+    const isTeacher = this.isTeachingRole(user) && canManage;
     const isEnglish = I18n.getLocale() === 'en';
     const header = this.renderActivityCollectionHeader({
       backAction: 'MoodleUI.loadAssignments()',
@@ -2687,9 +3043,13 @@ const MoodleUI = {
       let quizzes = quizzesResult.success ? (quizzesResult.data || []) : [];
 
       let courseName = '';
+      let course = null;
       try {
         const courseResult = await API.courses.get(courseId);
-        if (courseResult.success) courseName = courseResult.data.title || courseResult.data.name || '';
+        if (courseResult.success) {
+          course = courseResult.data;
+          courseName = course.title || course.name || '';
+        }
       } catch(e) {}
 
       quizzes = quizzes.map(q =>
@@ -2707,21 +3067,23 @@ const MoodleUI = {
         quizzes = quizzes.filter(q => q.completed);
       }
 
-      this.renderQuizzesWithBack(quizzes, courseName, courseId, filter);
+      this.renderQuizzesWithBack(quizzes, courseName, courseId, filter, {
+        canManage: this.canManageCourse(course)
+      });
     } catch (error) {
       console.error('Load quizzes error:', error);
       container.innerHTML = `<div class="error">${t('moodleQuiz.loadFailed')}</div>`;
     }
   },
 
-  renderQuizzesWithBack(quizzes, courseName, courseId, currentFilter) {
+  renderQuizzesWithBack(quizzes, courseName, courseId, currentFilter, { canManage = false } = {}) {
     const container = document.getElementById('quizzesList');
     if (!container) return;
 
     const normalizedQuizzes = (Array.isArray(quizzes) ? quizzes : [])
       .map(q => this.normalizeQuizState(q));
     const user = API.getCurrentUser();
-    const isTeacher = this.isTeachingRole(user);
+    const isTeacher = this.isTeachingRole(user) && canManage;
     const isEnglish = I18n.getLocale() === 'en';
     const header = this.renderActivityCollectionHeader({
       backAction: 'MoodleUI.loadQuizzes()',
@@ -3019,9 +3381,13 @@ const MoodleUI = {
       let forums = forumsResult.success ? (forumsResult.data || []) : [];
 
       let courseName = '';
+      let course = null;
       try {
         const courseResult = await API.courses.get(courseId);
-        if (courseResult.success) courseName = courseResult.data.title || courseResult.data.name || '';
+        if (courseResult.success) {
+          course = courseResult.data;
+          courseName = course.title || course.name || '';
+        }
       } catch(e) {}
 
       forums = forums.map(f => ({ ...f, courseName, courseId }));
@@ -3030,19 +3396,21 @@ const MoodleUI = {
         forums = forums.filter(f => f.subscribed);
       }
 
-      this.renderForumsWithBack(forums, courseName, courseId);
+      this.renderForumsWithBack(forums, courseName, courseId, {
+        canManage: this.canManageCourse(course)
+      });
     } catch (error) {
       console.error('Load forums error:', error);
       container.innerHTML = `<div class="error">${t('moodleForum.loadFailed')}</div>`;
     }
   },
 
-  renderForumsWithBack(forums, courseName, courseId) {
+  renderForumsWithBack(forums, courseName, courseId, { canManage = false } = {}) {
     const container = document.getElementById('forumsList');
     if (!container) return;
 
     const user = API.getCurrentUser();
-    const isTeacher = this.isTeachingRole(user);
+    const isTeacher = this.isTeachingRole(user) && canManage;
     const safeCourseName = this.escapeText(courseName || t('moodleCourse.course'));
 
     const header = `
@@ -3461,11 +3829,10 @@ const MoodleUI = {
     if (!container) return;
 
     try {
-      // 先載入使用者報名的課程
-      const coursesResult = await API.courses.list({ enrolled: true });
-      if (!coursesResult.success) return;
-
-      const courses = coursesResult.data || [];
+      const user = API.getCurrentUser();
+      const courses = await this.getRoleScopedCourses({
+        manageOnly: this.isTeachingRole(user)
+      });
 
       // 更新課程選擇下拉選單
       if (courseSelect) {
@@ -3540,6 +3907,194 @@ const MoodleUI = {
     }
   },
 
+  renderTeacherQuizResultsPage(quiz = {}, report = {}, course = null) {
+    const container = document.getElementById('quizAttemptContent');
+    if (!container) return;
+
+    const quizMeta = report.quiz || {};
+    const attempts = Array.isArray(report.attempts) ? report.attempts : [];
+    const questionStats = Array.isArray(report.questionStats) ? report.questionStats : [];
+    const stats = report.stats || {};
+    const averageScore = Number(stats.averageScore ?? stats.avgScore);
+    const highestScore = Number(stats.highestScore ?? stats.maxScore);
+    const passingGrade = Number(quizMeta.passingGrade ?? quiz.passingGrade ?? 60);
+    const passedCount = attempts.filter(attempt => Number(attempt.score) >= passingGrade).length;
+    const latestAttemptAt = attempts
+      .map(attempt => attempt.completedAt || attempt.submittedAt || attempt.startedAt)
+      .filter(Boolean)
+      .sort((a, b) => new Date(b) - new Date(a))[0];
+    const courseName = course?.title || course?.name || quiz.courseName || t('moodleCourse.course');
+    const safeBackAction = this.currentQuizCourseId
+      ? `showView('moodleQuizzes'); MoodleUI.loadQuizzes(${this.toInlineActionValue(this.currentQuizCourseId)})`
+      : `showView('moodleQuizzes'); MoodleUI.loadQuizzes()`;
+
+    container.innerHTML = `
+      <div class="management-detail-page">
+        ${this.renderManagementDetailHeader({
+          backAction: safeBackAction,
+          backLabel: t('moodleQuiz.backToList'),
+          kicker: courseName,
+          title: quiz.title || quizMeta.title || t('moodleQuiz.title'),
+          subtitle: quiz.description || t('moodleQuiz.noDesc'),
+          actions: this.currentQuizCourseId
+            ? [{
+                label: I18n.getLocale() === 'en' ? 'Create quiz' : '新增測驗',
+                className: 'btn-primary btn-sm',
+                onclick: `MoodleUI.showCreateQuizModal(${this.toInlineActionValue(this.currentQuizCourseId)})`
+              }]
+            : []
+        })}
+        ${this.renderManagementMetricGrid([
+          { label: I18n.getLocale() === 'en' ? 'Attempts' : '作答次數', value: String(attempts.length) },
+          { label: I18n.getLocale() === 'en' ? 'Average score' : '平均分數', value: Number.isFinite(averageScore) ? `${Math.round(averageScore)}%` : '—' },
+          { label: I18n.getLocale() === 'en' ? 'Pass count' : '通過人數', value: String(passedCount), helper: `${passingGrade}% ${I18n.getLocale() === 'en' ? 'passing grade' : '及格門檻'}` },
+          { label: I18n.getLocale() === 'en' ? 'Highest score' : '最高分', value: Number.isFinite(highestScore) ? `${Math.round(highestScore)}%` : '—' }
+        ])}
+        <div class="management-panel-grid">
+          <section class="management-panel">
+            <h3>${t('common.details')}</h3>
+            <div class="management-kv-list">
+              <div class="management-kv-item">
+                <div class="management-kv-label">${t('moodleQuiz.questionCount')}</div>
+                <div class="management-kv-value">${quiz.questionCount || quizMeta.totalQuestions || 0} ${t('moodleQuiz.questionsUnit')}</div>
+              </div>
+              <div class="management-kv-item">
+                <div class="management-kv-label">${t('moodleQuiz.timeLimit')}</div>
+                <div class="management-kv-value">${quiz.timeLimit ? `${quiz.timeLimit} ${t('moodleQuiz.minutes')}` : t('moodleQuiz.unlimitedTime')}</div>
+              </div>
+              <div class="management-kv-item">
+                <div class="management-kv-label">${t('moodleQuiz.attemptsAllowed')}</div>
+                <div class="management-kv-value">${!quiz.maxAttempts ? t('moodleQuiz.unlimited') : `${quiz.maxAttempts} ${t('moodleQuiz.times')}`}</div>
+              </div>
+              <div class="management-kv-item">
+                <div class="management-kv-label">${t('moodleQuiz.closeDate')}</div>
+                <div class="management-kv-value">${quiz.closeDate ? this.escapeText(this.formatPlatformDate(quiz.closeDate, { dateStyle: 'medium', timeStyle: 'short' }) || '—') : t('moodleQuiz.noLimit')}</div>
+              </div>
+            </div>
+          </section>
+          <section class="management-panel">
+            <h3>${I18n.getLocale() === 'en' ? 'Teaching summary' : '教學摘要'}</h3>
+            <div class="management-kv-list">
+              <div class="management-kv-item">
+                <div class="management-kv-label">${I18n.getLocale() === 'en' ? 'Course' : '課程'}</div>
+                <div class="management-kv-value">${this.escapeText(courseName)}</div>
+              </div>
+              <div class="management-kv-item">
+                <div class="management-kv-label">${I18n.getLocale() === 'en' ? 'Published' : '狀態'}</div>
+                <div class="management-kv-value">${this.renderManagementStatusBadge(quiz.visible === false ? 'draft' : 'published', quiz.visible === false ? t('common.draft') : t('common.published'))}</div>
+              </div>
+              <div class="management-kv-item">
+                <div class="management-kv-label">${I18n.getLocale() === 'en' ? 'Last activity' : '最近作答'}</div>
+                <div class="management-kv-value">${latestAttemptAt ? this.escapeText(this.formatPlatformDate(latestAttemptAt, { dateStyle: 'medium', timeStyle: 'short' }) || '—') : '—'}</div>
+              </div>
+            </div>
+          </section>
+        </div>
+        <div class="management-table-shell">
+          <div class="management-table-heading">
+            <h3>${I18n.getLocale() === 'en' ? 'Attempts' : '作答紀錄'}</h3>
+            <span class="activity-chip">${attempts.length} ${I18n.getLocale() === 'en' ? 'records' : '筆紀錄'}</span>
+          </div>
+          ${attempts.length === 0 ? `
+            <div class="management-empty-preview">${I18n.getLocale() === 'en' ? 'No student attempts yet.' : '目前還沒有學生作答紀錄。'}</div>
+          ` : `
+            <table class="management-table">
+              <thead>
+                <tr>
+                  <th>${I18n.getLocale() === 'en' ? 'Student' : '學生'}</th>
+                  <th>${t('moodleQuiz.startTime')}</th>
+                  <th>${t('moodleQuiz.finishTime')}</th>
+                  <th class="is-center">${t('moodleQuiz.scoreCol')}</th>
+                  <th class="is-center">${I18n.getLocale() === 'en' ? 'Status' : '狀態'}</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${attempts.map(attempt => `
+                  <tr>
+                    <td>${this.escapeText(attempt.userName || attempt.userEmail || attempt.userId || '—')}</td>
+                    <td>${this.escapeText(this.formatPlatformDate(attempt.startedAt, { dateStyle: 'medium', timeStyle: 'short' }) || '—')}</td>
+                    <td>${this.escapeText(this.formatPlatformDate(attempt.completedAt || attempt.submittedAt, { dateStyle: 'medium', timeStyle: 'short' }) || '—')}</td>
+                    <td class="is-center">${attempt.score != null ? this.escapeText(String(attempt.score)) : (attempt.percentage != null ? `${this.escapeText(String(Math.round(attempt.percentage)))}%` : '—')}</td>
+                    <td class="is-center">${this.renderManagementStatusBadge(attempt.status || 'completed', attempt.status === 'completed' ? t('common.completed') : t('common.pending'))}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          `}
+        </div>
+        <div class="management-table-shell">
+          <div class="management-table-heading">
+            <h3>${I18n.getLocale() === 'en' ? 'Question analytics' : '題目分析'}</h3>
+            <span class="activity-chip">${questionStats.length} ${I18n.getLocale() === 'en' ? 'questions' : '題'}</span>
+          </div>
+          ${questionStats.length === 0 ? `
+            <div class="management-empty-preview">${I18n.getLocale() === 'en' ? 'Question analytics will appear after submissions.' : '學生開始作答後，這裡會顯示題目分析。'}</div>
+          ` : `
+            <table class="management-table">
+              <thead>
+                <tr>
+                  <th>${I18n.getLocale() === 'en' ? 'Question' : '題目'}</th>
+                  <th class="is-center">${I18n.getLocale() === 'en' ? 'Correct rate' : '答對率'}</th>
+                  <th>${I18n.getLocale() === 'en' ? 'Type' : '題型'}</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${questionStats.map((question, index) => `
+                  <tr>
+                    <td>${this.escapeText(question.questionText || `${I18n.getLocale() === 'en' ? 'Question' : '題目'} ${index + 1}`)}</td>
+                    <td class="is-center">${this.escapeText(String(question.correctRate ?? 0))}%</td>
+                    <td>${this.escapeText(question.type || '—')}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          `}
+        </div>
+      </div>
+    `;
+  },
+
+  async openQuizResults(quizId, { quiz: preloadedQuiz = null, course: preloadedCourse = null } = {}) {
+    try {
+      let quiz = this.normalizeQuizState(preloadedQuiz || {});
+      if (!quiz.quizId || !quiz.courseId || !quiz.title) {
+        const quizDetailResult = await API.quizzes.get(quizId);
+        if (!quizDetailResult.success) {
+          showToast(quizDetailResult.message || t('moodleQuiz.loadFailed'));
+          return;
+        }
+        quiz = this.normalizeQuizState(quizDetailResult.data || {});
+      }
+
+      const result = await API.quizzes.getResults(quizId);
+      if (!result.success) {
+        showToast(result.message || t('moodleQuiz.loadFailed'));
+        return;
+      }
+
+      let course = preloadedCourse;
+      if (!course && (quiz.courseId || result.data?.quiz?.courseId)) {
+        const courseId = quiz.courseId || result.data?.quiz?.courseId;
+        const courseResult = await API.courses.get(courseId);
+        if (courseResult.success) {
+          course = courseResult.data;
+          this.currentQuizCourseId = courseId;
+        }
+      }
+
+      if (!this.canTeachCourse(course)) {
+        showToast(I18n.getLocale() === 'en' ? 'You do not have permission to view this quiz report.' : '你沒有權限查看這份測驗報表');
+        return;
+      }
+
+      this.renderTeacherQuizResultsPage(quiz, result.data || {}, course);
+      showView('quizAttempt');
+    } catch (error) {
+      console.error('Open quiz results error:', error);
+      showToast(t('moodleQuiz.loadDetailFailed'));
+    }
+  },
+
   /**
    * 開啟測驗詳情
    */
@@ -3552,6 +4107,25 @@ const MoodleUI = {
       }
 
       const quiz = this.normalizeQuizState(result.data || {});
+      const user = API.getCurrentUser();
+      let course = null;
+      if (quiz.courseId) {
+        try {
+          const courseResult = await API.courses.get(quiz.courseId);
+          if (courseResult.success) {
+            course = courseResult.data;
+            this.currentQuizCourseId = quiz.courseId;
+          }
+        } catch (error) {
+          console.warn('Load quiz course for access check failed:', error);
+        }
+      }
+
+      if (this.isTeachingRole(user) && this.canTeachCourse(course, user)) {
+        await this.openQuizResults(quizId, { quiz, course });
+        return;
+      }
+
       const attemptsHistory = Array.isArray(quiz.myAttempts)
         ? quiz.myAttempts
         : (Array.isArray(quiz.attempts) ? quiz.attempts : []);
@@ -4206,12 +4780,11 @@ const MoodleUI = {
       if (!courseId) {
         const container = document.getElementById('gradebookManagementContent');
         if (!container) return;
-        showView('gradebookManagement');
+        if (!this.ensureViewVisible('gradebookManagement')) return;
         container.innerHTML = `<div class="loading">${t('moodleGradebook.loadingCourses')}</div>`;
         try {
           const isEnglish = I18n.getLocale() === 'en';
-          const result = await API.courses.list();
-          const courses = result.success ? (Array.isArray(result.data) ? result.data : (result.data?.courses || [])) : [];
+          const courses = await this.getRoleScopedCourses({ manageOnly: true });
           container.innerHTML = `
             <div class="activity-picker-page">
               <div class="activity-picker-header">
@@ -4266,8 +4839,8 @@ const MoodleUI = {
     const container = document.getElementById('gradebookManagementContent');
     if (!container) return;
 
+    if (!this.ensureViewVisible('gradebookManagement')) return;
     container.innerHTML = `<div class="loading">${t('common.loading')}</div>`;
-    showView('gradebookManagement');
 
     try {
       const [gradebookResult, categoriesResult, settingsResult] = await Promise.all([
@@ -4311,7 +4884,7 @@ const MoodleUI = {
     return `
       <div class="gradebook-management">
         <div class="gradebook-header">
-          <button onclick="showView('moodleCourses')" class="back-btn">
+          <button onclick="showView('moodleGradebook'); MoodleUI.loadGradebook()" class="back-btn">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
             ${t('moodleGradebook.back')}
           </button>
@@ -4816,28 +5389,39 @@ const MoodleUI = {
 
   currentQuestionBankFilters: {},
 
+  async getQuestionBankManagedCourses() {
+    return this.getRoleScopedCourses({ manageOnly: true });
+  },
+
+  async getQuestionBankCategories(courseId = this.currentQuestionBankCourseId) {
+    if (!courseId) return [];
+    const result = await API.questionBank.getCategories({ courseId });
+    return result.success ? (result.data || []) : [];
+  },
+
   /**
    * 開啟題庫管理頁面
    */
-  async openQuestionBank(categoryId) {
+  async openQuestionBank(courseId = null) {
     const container = document.getElementById('questionBankContent');
     if (!container) return;
+    const isEnglish = I18n.getLocale() === 'en';
 
-    // 沒有指定類別 → 顯示課程選擇器（題庫以課程類別分類）
-    if (!categoryId) {
+    // 沒有指定課程 → 顯示課程選擇器
+    if (!courseId) {
+      this.currentQuestionBankCourseId = null;
+      this.currentQuestionBankFilters = {};
+      if (!this.ensureViewVisible('questionBank')) return;
       container.innerHTML = `<div class="loading">${t('common.loading')}</div>`;
-      showView('questionBank');
 
       try {
-        const categoriesResult = await API.questionBank.getCategories();
-        const categories = categoriesResult.success ? categoriesResult.data : [];
-        const isEnglish = I18n.getLocale() === 'en';
+        const courses = await this.getQuestionBankManagedCourses();
 
-        if (categories.length === 0) {
+        if (courses.length === 0) {
           container.innerHTML = this.renderActivityEmptyState({
             icon: '<svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>',
-            title: t('moodleQuestionBank.noQuestions'),
-            hint: isEnglish ? 'Create a category to start building your question bank.' : '先建立題庫類別，再開始整理題目。'
+            title: t('app.noManagedCourses'),
+            hint: isEnglish ? 'No managed courses are available for question bank setup.' : '目前沒有可管理的課程可供設定題庫。'
           });
           return;
         }
@@ -4851,29 +5435,29 @@ const MoodleUI = {
                 </div>
                 <div class="activity-picker-copy">
                   <h2>${t('moodleQuestionBank.title')}</h2>
-                  <p>${isEnglish ? 'Choose a category to manage your question bank.' : '請選擇題庫類別以瀏覽與管理題目。'}</p>
+                  <p>${isEnglish ? 'Choose a course to manage its question bank.' : '請先選擇課程，再管理該課程的題庫。'}</p>
                   <div class="activity-shell-meta">
-                    <span class="activity-chip">${categories.length} ${isEnglish ? 'categories' : '個類別'}</span>
+                    <span class="activity-chip">${courses.length} ${isEnglish ? 'courses' : '門課程'}</span>
                   </div>
                 </div>
               </div>
             </div>
             <div class="activity-picker-grid">
-              ${categories.map(cat => `
-                <div class="activity-picker-card ${this.getSurfaceToneClass(cat.id || cat.categoryId || cat.name)}"
-                     onclick="MoodleUI.openQuestionBank(${this.toInlineActionValue(cat.id || cat.categoryId)})">
+              ${courses.map(course => `
+                <div class="activity-picker-card ${this.getSurfaceToneClass(course.courseId || course.id || course.title || course.name)}"
+                     onclick="MoodleUI.openQuestionBank(${this.toInlineActionValue(course.courseId || course.id)})">
                   <div class="activity-picker-card-accent"></div>
                   <div class="activity-picker-card-body">
                     <div class="activity-picker-card-copy">
-                      <h3 class="activity-picker-card-title">${this.escapeText(cat.name || (isEnglish ? 'Untitled category' : '未命名類別'))}</h3>
-                      <p class="activity-picker-card-summary">${this.escapeText(this.truncateText(cat.description || '', 120) || (isEnglish ? 'No category description yet.' : '尚未提供類別說明。'))}</p>
+                      <h3 class="activity-picker-card-title">${this.escapeText(course.title || course.name || (isEnglish ? 'Untitled course' : '未命名課程'))}</h3>
+                      <p class="activity-picker-card-summary">${this.escapeText(this.truncateText(course.description || course.summary || '', 120) || (isEnglish ? 'Open this course to manage categories and questions.' : '進入此課程後可管理類別與題目。'))}</p>
                     </div>
                     <div class="activity-picker-card-footer">
                       <span class="activity-picker-card-teacher">
                         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                        ${cat.questionCount || 0} ${isEnglish ? 'questions' : '道題目'}
+                        ${this.escapeText(course.shortName || course.courseId || '')}
                       </span>
-                      <span class="activity-picker-card-link">${isEnglish ? 'Open category' : '查看題目'}</span>
+                      <span class="activity-picker-card-link">${isEnglish ? 'Open course' : '進入課程題庫'}</span>
                     </div>
                   </div>
                 </div>
@@ -4888,21 +5472,27 @@ const MoodleUI = {
       return;
     }
 
-    // 有指定類別 → 載入該類別的題目
+    if (this.currentQuestionBankCourseId !== courseId) {
+      this.currentQuestionBankFilters = {};
+    }
+    this.currentQuestionBankCourseId = courseId;
+
+    if (!this.ensureViewVisible('questionBank')) return;
     container.innerHTML = `<div class="loading">${t('common.loading')}</div>`;
-    showView('questionBank');
 
     try {
-      const [questionsResult, categoriesResult] = await Promise.all([
-        API.questionBank.list({ ...this.currentQuestionBankFilters, categoryId }),
-        API.questionBank.getCategories()
+      const [courseResult, questionsResult, categoriesResult] = await Promise.all([
+        API.courses.get(courseId),
+        API.questionBank.list({ ...this.currentQuestionBankFilters, courseId: this.currentQuestionBankCourseId }),
+        API.questionBank.getCategories({ courseId: this.currentQuestionBankCourseId })
       ]);
 
       const questions = questionsResult.success ? questionsResult.data : [];
       const categories = categoriesResult.success ? categoriesResult.data : [];
-      const currentCat = categories.find(c => c.id === categoryId);
+      const currentCat = categories.find(c => c.categoryId === this.currentQuestionBankFilters.categoryId);
+      const course = courseResult.success ? courseResult.data : { courseId: this.currentQuestionBankCourseId };
 
-      container.innerHTML = this.renderQuestionBankPageWithBack(questions, categories, currentCat, categoryId);
+      container.innerHTML = this.renderQuestionBankPageWithBack(questions, categories, currentCat, course);
     } catch (error) {
       console.error('Open question bank error:', error);
       container.innerHTML = `<div class="error">${t('moodleQuestionBank.loadFailed')}</div>`;
@@ -4912,22 +5502,23 @@ const MoodleUI = {
   /**
    * 渲染題庫頁面
    */
-  renderQuestionBankPageWithBack(questions, categories, currentCat, categoryId) {
-    const catName = currentCat ? currentCat.name : '題庫';
+  renderQuestionBankPageWithBack(questions, categories, currentCat, course = {}) {
+    const courseTitle = course.title || course.name || t('moodleQuestionBank.title');
     const isEnglish = I18n.getLocale() === 'en';
     const backHeader = this.renderActivityCollectionHeader({
       backAction: 'MoodleUI.openQuestionBank()',
-      title: `${catName} — ${t('moodleQuestionBank.title')}`,
-      subtitle: isEnglish ? 'Manage questions, categories, and search filters.' : '管理題目內容、分類與搜尋篩選。',
+      title: `${courseTitle} — ${t('moodleQuestionBank.title')}`,
+      subtitle: isEnglish ? 'Manage course-specific questions, categories, and search filters.' : '管理此課程專屬的題目、分類與搜尋篩選。',
       metaChips: [
         { label: `${questions.length} ${isEnglish ? 'questions' : '道題目'}` },
+        { label: this.escapeText(course.shortName || course.courseId || '') },
         currentCat ? { label: this.escapeText(currentCat.name) } : null
       ]
     });
-    return backHeader + this.renderQuestionBankPage(questions, categories);
+    return backHeader + this.renderQuestionBankPage(questions, categories, course);
   },
 
-  renderQuestionBankPage(questions, categories) {
+  renderQuestionBankPage(questions, categories, course = {}) {
     const questionTypes = {
       'multiple_choice': t('moodleQuestionBank.multipleChoice'),
       'true_false': t('moodleQuestionBank.trueFalse'),
@@ -4939,8 +5530,11 @@ const MoodleUI = {
 
     return `
       <div class="question-bank-page">
-        <div class="qb-header">
-          <h1>${t('moodleQuestionBank.title')}</h1>
+          <div class="qb-header">
+          <div>
+            <h1>${t('moodleQuestionBank.title')}</h1>
+            <p class="activity-shell-copy">${this.escapeText(course.title || course.name || '')}</p>
+          </div>
           <div class="qb-actions">
             <button onclick="MoodleUI.openCreateQuestionModal()" class="btn-primary">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
@@ -5058,7 +5652,7 @@ const MoodleUI = {
    */
   async filterQuestionsByCategory(categoryId) {
     this.currentQuestionBankFilters.categoryId = categoryId || undefined;
-    await this.openQuestionBank();
+    await this.openQuestionBank(this.currentQuestionBankCourseId);
   },
 
   /**
@@ -5079,7 +5673,7 @@ const MoodleUI = {
       delete this.currentQuestionBankFilters.types;
     }
 
-    await this.openQuestionBank();
+    await this.openQuestionBank(this.currentQuestionBankCourseId);
   },
 
   /**
@@ -5088,13 +5682,21 @@ const MoodleUI = {
   async searchQuestions() {
     const searchInput = document.getElementById('questionSearch');
     this.currentQuestionBankFilters.search = searchInput?.value || '';
-    await this.openQuestionBank();
+    await this.openQuestionBank(this.currentQuestionBankCourseId);
   },
 
   /**
    * 開啟新增題目 Modal
    */
-  openCreateQuestionModal() {
+  async openCreateQuestionModal() {
+    if (!this.currentQuestionBankCourseId) {
+      showToast(I18n.getLocale() === 'en' ? 'Please select a course first.' : '請先選擇課程。');
+      await this.openQuestionBank();
+      return;
+    }
+
+    const categories = await this.getQuestionBankCategories();
+    const selectedCategoryId = this.currentQuestionBankFilters.categoryId || categories[0]?.categoryId || '';
     const modal = document.createElement('div');
     modal.id = 'createQuestionModal';
     modal.className = 'modal-overlay';
@@ -5125,6 +5727,16 @@ const MoodleUI = {
                 <option value="hard">${t('moodleNewQuestion.diffHard')}</option>
               </select>
             </div>
+          </div>
+          <div class="form-group">
+            <label>${t('moodleQuestionBank.categoriesTitle')}</label>
+            <select id="questionCategory">
+              ${categories.map(category => `
+                <option value="${this.escapeText(category.categoryId)}" ${category.categoryId === selectedCategoryId ? 'selected' : ''}>
+                  ${this.escapeText(category.name)}
+                </option>
+              `).join('')}
+            </select>
           </div>
           <div class="form-group">
             <label>${t('moodleNewQuestion.contentLabel')}</label>
@@ -5261,6 +5873,8 @@ const MoodleUI = {
     }
 
     let questionData = {
+      courseId: this.currentQuestionBankCourseId,
+      categoryId: document.getElementById('questionCategory')?.value || this.currentQuestionBankFilters.categoryId,
       type,
       questionText,
       difficulty,
@@ -5295,7 +5909,7 @@ const MoodleUI = {
       if (result.success) {
         showToast(t('moodleNewQuestion.created'));
         this.closeModal('createQuestionModal');
-        this.openQuestionBank();
+        this.openQuestionBank(this.currentQuestionBankCourseId);
       } else {
         showToast(result.message || t('common.createFailed'));
       }
@@ -5320,7 +5934,7 @@ const MoodleUI = {
       const result = await API.questionBank.delete(questionId);
       if (result.success) {
         showToast(t('moodleNewQuestion.deleted'));
-        this.openQuestionBank();
+        this.openQuestionBank(this.currentQuestionBankCourseId);
       } else {
         showToast(result.message || t('common.deleteFailed'));
       }
@@ -5334,8 +5948,15 @@ const MoodleUI = {
    * 匯出題目
    */
   async exportQuestions() {
+    if (!this.currentQuestionBankCourseId) {
+      showToast(I18n.getLocale() === 'en' ? 'Please select a course first.' : '請先選擇課程。');
+      return;
+    }
     try {
-      const result = await API.questionBank.export(this.currentQuestionBankFilters);
+      const result = await API.questionBank.export({
+        ...this.currentQuestionBankFilters,
+        courseId: this.currentQuestionBankCourseId
+      });
       if (result.success && result.data) {
         const blob = new Blob([JSON.stringify(result.data, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
@@ -5360,14 +5981,14 @@ const MoodleUI = {
    * 開啟課程完成設定（教師）
    */
   async openCourseCompletionSettings(courseId) {
+    if (!this.ensureViewVisible('courseCompletionSettings')) return;
     if (!courseId) {
       courseId = this.currentCourseId;
       if (!courseId) {
         // 顯示課程選擇器 modal
         let courseOptions = '';
         try {
-          const result = await API.courses.list();
-          const courses = result.success ? (Array.isArray(result.data) ? result.data : (result.data?.courses || [])) : [];
+          const courses = await this.getRoleScopedCourses({ manageOnly: true });
           courses.forEach(c => {
             courseOptions += `<option value="${c.courseId || c.id}">${c.title || c.name}</option>`;
           });
@@ -5665,6 +6286,7 @@ const MoodleUI = {
   async openRolesManagement() {
     const container = document.getElementById('rolesManagementContent');
     if (!container) return;
+    if (!this.ensureViewVisible('rolesManagement')) return;
 
     container.innerHTML = `
       <div class="roles-management-page">
@@ -5997,6 +6619,7 @@ const MoodleUI = {
   async openCourseCategories() {
     const container = document.getElementById('courseCategoriesContent');
     if (!container) return;
+    if (!this.ensureViewVisible('courseCategories')) return;
 
     container.innerHTML = `
       <div class="course-categories-page">
@@ -6416,7 +7039,7 @@ const MoodleUI = {
   async openRubricsManager() {
     const container = document.getElementById('rubricsContent');
     if (!container) return;
-    showView('rubrics');
+    if (!this.ensureViewVisible('rubrics')) return;
     container.innerHTML = `<div class="loading">${t('common.loading')}</div>`;
     try {
       const [rubricsResult, templatesResult] = await Promise.all([
@@ -6490,10 +7113,12 @@ const MoodleUI = {
     if (!container) return;
     container.innerHTML = `<div class="loading">${t('common.loading')}</div>`;
     try {
+      const user = (typeof API !== 'undefined' && API.getCurrentUser) ? API.getCurrentUser() : null;
       const result = await API.rubrics.get(rubricId);
       if (!result.success) { container.innerHTML = `<div class="error">${t('common.loadFailed')}</div>`; return; }
       const r = result.data;
       const criteria = r.criteria || [];
+      const canManage = this.canManageRubric(r, user);
       container.innerHTML = `
         <div class="rubrics-container">
         <button onclick="MoodleUI.openRubricsManager()" class="btn-back">${t('common.backToList')}</button>
@@ -6509,7 +7134,7 @@ const MoodleUI = {
           </div>
           <div class="rubric-actions">
             <button onclick="MoodleUI.duplicateRubric(${this.toInlineActionValue(rubricId)})" class="btn-sm btn-secondary">${t('common.duplicate')}</button>
-            <button onclick="MoodleUI.deleteRubric(${this.toInlineActionValue(rubricId)})" class="btn-sm btn-danger">${t('moodleGradeCategory.delete')}</button>
+            ${canManage ? `<button onclick="MoodleUI.deleteRubric(${this.toInlineActionValue(rubricId)})" class="btn-sm btn-danger">${t('moodleGradeCategory.delete')}</button>` : ''}
           </div>
           </div>
         <div class="rubric-preview">
@@ -6832,14 +7457,15 @@ const MoodleUI = {
     container.innerHTML = `<div class="loading">${t('common.loading')}</div>`;
     try {
       const user = (typeof API !== 'undefined' && API.getCurrentUser) ? API.getCurrentUser() : null;
-      const canManage = !!(user && (user.isAdmin || ['manager', 'coursecreator', 'educator', 'trainer', 'creator', 'teacher', 'assistant'].includes(user.role)));
-      const [badgeResult, recipientsResult] = await Promise.all([
-        API.badges.get(badgeId),
-        API.badges.getRecipients(badgeId)
-      ]);
+      const badgeResult = await API.badges.get(badgeId);
       if (!badgeResult.success) { container.innerHTML = `<div class="error">${t('common.loadFailed')}</div>`; return; }
       const b = badgeResult.data;
-      const recipients = recipientsResult.success ? (Array.isArray(recipientsResult.data) ? recipientsResult.data : (recipientsResult.data?.recipients || [])) : [];
+      const canManage = this.canManageBadge(b, user);
+      let recipients = [];
+      if (canManage) {
+        const recipientsResult = await API.badges.getRecipients(badgeId).catch(() => ({ success: false }));
+        recipients = recipientsResult.success ? (Array.isArray(recipientsResult.data) ? recipientsResult.data : (recipientsResult.data?.recipients || [])) : [];
+      }
       const isEnglish = I18n.getLocale() === 'en';
 
       container.innerHTML = `
@@ -6879,10 +7505,12 @@ const MoodleUI = {
               <label>${t('moodleBadges.issuedLabel')}</label>
               <span>${b.issuedCount || 0}</span>
             </div>
+            ${canManage ? `
             <div class="badge-info-item">
               <label>${t('moodleBadges.recipients')}</label>
               <span>${recipients.length}</span>
             </div>
+            ` : ''}
           </div>
         ${(b.criteria || []).length > 0 ? `
           <div class="badge-criteria-panel">
@@ -6890,6 +7518,7 @@ const MoodleUI = {
             <ul>${b.criteria.map(c => `<li>${this.escapeText(c.description || c.type || t('moodleBadges.criterion'))}</li>`).join('')}</ul>
           </div>
         ` : ''}
+        ${canManage ? `
         <div class="badge-recipients-section">
           <div class="section-title-row">
             <h3>${t('moodleBadges.recipients')}（${recipients.length}）</h3>
@@ -6920,6 +7549,7 @@ const MoodleUI = {
             </table>
           </div>
         `}
+        ` : ''}
         </div>
         </div>
         </div>`;
@@ -7142,19 +7772,21 @@ const MoodleUI = {
     container.innerHTML = `<div class="loading">${t('common.loading')}</div>`;
     try {
       const user = (typeof API !== 'undefined' && API.getCurrentUser) ? API.getCurrentUser() : null;
-      const canManage = !!(user && (user.isAdmin || ['manager', 'coursecreator', 'educator', 'trainer', 'creator', 'teacher', 'assistant'].includes(user.role)));
-      const [pathResult, reportResult] = await Promise.all([
-        API.learningPaths.get(pathId),
-        API.learningPaths.getReport(pathId).catch(() => ({ success: false }))
-      ]);
+      const pathResult = await API.learningPaths.get(pathId);
       if (!pathResult.success) { container.innerHTML = `<div class="error">${t('common.loadFailed')}</div>`; return; }
       const p = pathResult.data;
+      const canManage = this.canManageLearningPath(p, user);
+      const canViewReport = this.isTeachingRole(user);
+      const reportResult = canViewReport
+        ? await API.learningPaths.getReport(pathId).catch(() => ({ success: false }))
+        : { success: false };
       const report = reportResult.success ? reportResult.data : {};
       const courses = p.courses || [];
       const progress = p.userProgress || p.progress;
       const overallProgress = Math.round(typeof progress === 'object' ? progress.overallProgress || 0 : progress || 0);
       const difficultyMeta = this.getDifficultyMeta(p.difficulty);
       const isEnglish = I18n.getLocale() === 'en';
+      const enrollmentLabel = t('moodleCourse.enrolled') || (isEnglish ? 'Enrolled' : '已加入');
 
       container.innerHTML = `
         <div class="learning-path-detail">
@@ -7188,7 +7820,8 @@ const MoodleUI = {
                 </div>
               </div>
               <div class="path-detail-actions">
-                <button onclick="MoodleUI.enrollLearningPath(${this.toInlineActionValue(pathId)})" class="btn-primary btn-sm">${t('moodlePaths.enroll')}</button>
+                ${!canManage && !p.userEnrolled ? `<button onclick="MoodleUI.enrollLearningPath(${this.toInlineActionValue(pathId)})" class="btn-primary btn-sm">${t('moodlePaths.enroll')}</button>` : ''}
+                ${!canManage && p.userEnrolled ? `<span class="badge-summary-pill">${this.escapeText(enrollmentLabel)}</span>` : ''}
                 ${canManage ? `<button onclick="MoodleUI.deleteLearningPath(${this.toInlineActionValue(pathId)})" class="btn-sm btn-danger">${t('moodleGradeCategory.delete')}</button>` : ''}
               </div>
             </div>
@@ -7252,8 +7885,7 @@ const MoodleUI = {
   async openCreateLearningPathModal() {
     let courseOptions = '';
     try {
-      const result = await API.courses.list();
-      const courses = result.success ? (Array.isArray(result.data) ? result.data : (result.data?.courses || [])) : [];
+      const courses = await this.getRoleScopedCourses({ manageOnly: true });
       courses.forEach(c => {
         courseOptions += `<option value="${c.courseId || c.id}">${c.title || c.name}</option>`;
       });
@@ -7359,7 +7991,7 @@ const MoodleUI = {
   async openAuditLogs() {
     const container = document.getElementById('auditLogsContent');
     if (!container) return;
-    showView('auditLogs');
+    if (!this.ensureViewVisible('auditLogs')) return;
     container.innerHTML = `<div class="loading">${t('common.loading')}</div>`;
     try {
       const [logsResult, eventTypesResult, statsResult] = await Promise.all([
@@ -7550,7 +8182,7 @@ const MoodleUI = {
   async openH5pManager() {
     const container = document.getElementById('h5pManagerContent');
     if (!container) return;
-    showView('h5pManager');
+    if (!this.ensureViewVisible('h5pManager')) return;
     container.innerHTML = `<div class="loading">${t('common.loading')}</div>`;
     try {
       const [contentResult, typesResult] = await Promise.all([
@@ -7642,6 +8274,7 @@ const MoodleUI = {
     if (!container) return;
     container.innerHTML = `<div class="loading">${t('common.loading')}</div>`;
     try {
+      const user = (typeof API !== 'undefined' && API.getCurrentUser) ? API.getCurrentUser() : null;
       const [contentResult, reportResult, embedResult] = await Promise.all([
         API.h5p.get(contentId),
         API.h5p.getReport(contentId).catch(() => ({ success: false })),
@@ -7651,9 +8284,24 @@ const MoodleUI = {
       const content = contentResult.data;
       const report = reportResult.success ? reportResult.data : {};
       const embed = embedResult.success ? embedResult.data : {};
+      const canManage = this.canManageH5pContent(content, user);
       const contentSubtitle = [content.contentType || 'H5P', content.description || '']
         .filter(Boolean)
         .join(' · ');
+      const detailActions = [
+        {
+          label: t('common.duplicate'),
+          className: 'btn-secondary btn-sm',
+          onclick: `MoodleUI.duplicateH5pContent(${this.toInlineActionValue(contentId)})`
+        }
+      ];
+      if (canManage) {
+        detailActions.push({
+          label: t('moodleGradeCategory.delete'),
+          className: 'btn-sm btn-danger',
+          onclick: `MoodleUI.deleteH5pContent(${this.toInlineActionValue(contentId)})`
+        });
+      }
 
       container.innerHTML = `
         <div class="management-detail-page">
@@ -7663,18 +8311,7 @@ const MoodleUI = {
             kicker: 'H5P',
             title: content.title || t('common.unnamed'),
             subtitle: contentSubtitle,
-            actions: [
-              {
-                label: t('common.duplicate'),
-                className: 'btn-secondary btn-sm',
-                onclick: `MoodleUI.duplicateH5pContent(${this.toInlineActionValue(contentId)})`
-              },
-              {
-                label: t('moodleGradeCategory.delete'),
-                className: 'btn-sm btn-danger',
-                onclick: `MoodleUI.deleteH5pContent(${this.toInlineActionValue(contentId)})`
-              }
-            ]
+            actions: detailActions
           })}
           ${this.renderManagementMetricGrid([
             { label: t('moodleH5p.totalAttempts'), value: String(report.totalAttempts || content.attemptCount || 0) },
@@ -7724,8 +8361,7 @@ const MoodleUI = {
     const types = this._h5pTypes || [];
     let courseOptions = `<option value="">${t('common.notSpecified')}</option>`;
     try {
-      const result = await API.courses.list();
-      const courses = result.success ? (Array.isArray(result.data) ? result.data : (result.data?.courses || [])) : [];
+      const courses = await this.getRoleScopedCourses({ manageOnly: true });
       courses.forEach(c => { courseOptions += `<option value="${c.courseId || c.id}">${c.title || c.name}</option>`; });
     } catch (e) { /* ignore */ }
 
@@ -7828,7 +8464,7 @@ const MoodleUI = {
   async openLtiManager() {
     const container = document.getElementById('ltiManagerContent');
     if (!container) return;
-    showView('ltiManager');
+    if (!this.ensureViewVisible('ltiManager')) return;
     container.innerHTML = `<div class="loading">${t('common.loading')}</div>`;
     try {
       const result = await API.ltiTools.list();
@@ -7886,7 +8522,7 @@ const MoodleUI = {
                   </div>
                   <p>${this.escapeText(tool.description || t('moodleLtiMgmt.descPlaceholder'))}</p>
                   <div class="card-actions">
-                    <button type="button" class="btn-launch" onclick="event.stopPropagation();MoodleUI.launchLtiTool(${this.toInlineActionValue(tool.toolId || tool.id)})">${t('moodleScorm.launch')}</button>
+                    <button type="button" class="btn-launch" onclick="event.stopPropagation();MoodleUI.launchLtiManagementTool(${this.toInlineActionValue(tool.toolId || tool.id)})">${t('moodleScorm.launch')}</button>
                     <button type="button" class="btn-manage" onclick="event.stopPropagation();MoodleUI.viewLtiToolDetail(${this.toInlineActionValue(tool.toolId || tool.id)})">${t('common.view')}</button>
                   </div>
                 </div>
@@ -7924,7 +8560,7 @@ const MoodleUI = {
               {
                 label: t('moodleScorm.launch'),
                 className: 'btn-primary btn-sm',
-                onclick: `MoodleUI.launchLtiTool(${this.toInlineActionValue(toolId)})`
+                onclick: `MoodleUI.launchLtiManagementTool(${this.toInlineActionValue(toolId)})`
               },
               {
                 label: t('moodleGradeCategory.delete'),
@@ -8123,7 +8759,7 @@ const MoodleUI = {
     } catch (error) { showToast(t('moodleLtiMgmt.registerError')); }
   },
 
-  async launchLtiTool(toolId) {
+  async launchLtiManagementTool(toolId) {
     try {
       const result = await API.ltiTools.launch(toolId);
       if (result.success && result.data) {
@@ -8159,7 +8795,7 @@ const MoodleUI = {
   async openScormManager() {
     const container = document.getElementById('scormManagerContent');
     if (!container) return;
-    showView('scormManager');
+    if (!this.ensureViewVisible('scormManager')) return;
     container.innerHTML = `<div class="loading">${t('common.loading')}</div>`;
     try {
       const result = await API.scorm.list();
@@ -8350,8 +8986,7 @@ const MoodleUI = {
   async openCreateScormModal() {
     let courseOptions = `<option value="">${t('common.notSpecified')}</option>`;
     try {
-      const result = await API.courses.list();
-      const courses = result.success ? (Array.isArray(result.data) ? result.data : (result.data?.courses || [])) : [];
+      const courses = await this.getRoleScopedCourses({ manageOnly: true });
       courses.forEach(c => { courseOptions += `<option value="${c.courseId || c.id}">${c.title || c.name}</option>`; });
     } catch (e) { /* ignore */ }
 
@@ -8462,6 +9097,11 @@ const MoodleUI = {
    * 建立課程 Modal
    */
   async showCreateCourseModal() {
+    if (!this.isTeachingRole()) {
+      showToast(I18n.getLocale() === 'en' ? 'You do not have permission to create courses.' : '你沒有建立課程的權限');
+      return;
+    }
+
     let categoryOptions = `<option value="">${t('moodleCourseCreate.selectCategory')}</option>`;
     try {
       const catResult = await API.courseCategories.list();
@@ -8506,15 +9146,15 @@ const MoodleUI = {
               <label>${t('moodleCourseCreate.formatLabel')}</label>
               <select id="newCourseFormat">
                 <option value="topics">${t('moodleCourseCreate.formatTopics')}</option>
-                <option value="weekly">${t('moodleCourseCreate.formatWeekly')}</option>
+                <option value="weeks">${t('moodleCourseCreate.formatWeekly')}</option>
                 <option value="social">${t('moodleCourseCreate.formatSocial')}</option>
               </select>
             </div>
             <div class="form-group">
               <label>${t('moodleCourseCreate.visibilityLabel')}</label>
               <select id="newCourseVisibility">
-                <option value="visible">${t('common.visible')}</option>
-                <option value="hidden">${t('common.hidden')}</option>
+                <option value="show">${t('common.visible')}</option>
+                <option value="hide">${t('common.hidden')}</option>
               </select>
             </div>
           </div>
@@ -8552,9 +9192,9 @@ const MoodleUI = {
         title,
         shortName,
         description: document.getElementById('newCourseDescription')?.value || '',
-        categoryId: document.getElementById('newCourseCategory')?.value || undefined,
-        format: document.getElementById('newCourseFormat')?.value || 'topics',
-        visibility: document.getElementById('newCourseVisibility')?.value || 'visible',
+        category: document.getElementById('newCourseCategory')?.value || undefined,
+        format: this.normalizeCourseFormat(document.getElementById('newCourseFormat')?.value || 'topics'),
+        visibility: this.normalizeCourseVisibility(document.getElementById('newCourseVisibility')?.value || 'show'),
         startDate: document.getElementById('newCourseStartDate')?.value || undefined,
         endDate: document.getElementById('newCourseEndDate')?.value || undefined,
         enrollmentKey: document.getElementById('newCourseEnrollKey')?.value || undefined
@@ -8578,14 +9218,15 @@ const MoodleUI = {
   async showCreateAssignmentModal(preselectedCourseId) {
     let courseOptions = `<option value="">${t('moodleCourseCreate.selectCourse')}</option>`;
     try {
-      const result = await API.courses.list();
-      if (result.success && result.data) {
-        const courses = Array.isArray(result.data) ? result.data : (result.data.courses || []);
-        courses.forEach(c => {
-          const cid = c.courseId || c.id;
-          courseOptions += `<option value="${cid}" ${cid === preselectedCourseId ? 'selected' : ''}>${c.title || c.name}</option>`;
-        });
+      const courses = await this.getRoleScopedCourses({ manageOnly: true });
+      if (courses.length === 0) {
+        showToast(t('moodleGradebook.noCourses'));
+        return;
       }
+      courses.forEach(c => {
+        const cid = c.courseId || c.id;
+        courseOptions += `<option value="${cid}" ${cid === preselectedCourseId ? 'selected' : ''}>${c.title || c.name}</option>`;
+      });
     } catch (e) { /* ignore */ }
 
     const modal = document.createElement('div');
@@ -8613,7 +9254,7 @@ const MoodleUI = {
           <div class="form-row">
             <div class="form-group">
               <label>${t('moodleAddActivity.dueDateLabel')}</label>
-              <input type="datetime-local" id="newAssignmentDueDate">
+              <input type="datetime-local" id="newAssignmentDueDate" required>
             </div>
             <div class="form-group">
               <label>${t('moodleRubrics.maxScore')}</label>
@@ -8624,7 +9265,7 @@ const MoodleUI = {
             <div class="form-group">
               <label>${t('moodleAddActivity.submitTypeLabel')}</label>
               <select id="newAssignmentSubmitType">
-                <option value="text">${t('moodleAddActivity.submitTypeText')}</option>
+                <option value="online_text">${t('moodleAddActivity.submitTypeText')}</option>
                 <option value="file">${t('moodleAddActivity.submitTypeFile')}</option>
                 <option value="both">${t('moodleAssignmentCreate.typeBoth')}</option>
               </select>
@@ -8651,15 +9292,16 @@ const MoodleUI = {
   async saveNewAssignment() {
     const title = document.getElementById('newAssignmentTitle')?.value?.trim();
     const courseId = document.getElementById('newAssignmentCourse')?.value;
-    if (!title || !courseId) { showToast(t('moodleAssignmentCreate.fieldsRequired')); return; }
+    const dueDate = document.getElementById('newAssignmentDueDate')?.value;
+    if (!title || !courseId || !dueDate) { showToast(t('moodleAssignmentCreate.fieldsRequired')); return; }
     try {
       const result = await API.assignments.create({
         title,
         courseId,
         description: document.getElementById('newAssignmentDescription')?.value || '',
-        dueDate: document.getElementById('newAssignmentDueDate')?.value || undefined,
-        maxScore: parseInt(document.getElementById('newAssignmentMaxScore')?.value) || 100,
-        submissionType: document.getElementById('newAssignmentSubmitType')?.value || 'text',
+        dueDate,
+        maxGrade: parseInt(document.getElementById('newAssignmentMaxScore')?.value) || 100,
+        submissionType: document.getElementById('newAssignmentSubmitType')?.value || 'online_text',
         allowLateSubmission: document.getElementById('newAssignmentLateSubmit')?.value === 'true'
       });
       if (result.success) {
@@ -8681,14 +9323,15 @@ const MoodleUI = {
   async showCreateQuizModal(preselectedCourseId) {
     let courseOptions = `<option value="">${t('moodleCourseCreate.selectCourse')}</option>`;
     try {
-      const result = await API.courses.list();
-      if (result.success && result.data) {
-        const courses = Array.isArray(result.data) ? result.data : (result.data.courses || []);
-        courses.forEach(c => {
-          const cid = c.courseId || c.id;
-          courseOptions += `<option value="${cid}" ${cid === preselectedCourseId ? 'selected' : ''}>${c.title || c.name}</option>`;
-        });
+      const courses = await this.getRoleScopedCourses({ manageOnly: true });
+      if (courses.length === 0) {
+        showToast(t('moodleGradebook.noCourses'));
+        return;
       }
+      courses.forEach(c => {
+        const cid = c.courseId || c.id;
+        courseOptions += `<option value="${cid}" ${cid === preselectedCourseId ? 'selected' : ''}>${c.title || c.name}</option>`;
+      });
     } catch (e) { /* ignore */ }
 
     const modal = document.createElement('div');
@@ -8777,13 +9420,10 @@ const MoodleUI = {
   async showCreateAnnouncementModal() {
     let courseOptions = `<option value="">${t('moodleAnnouncement.siteWide')}</option>`;
     try {
-      const result = await API.courses.list();
-      if (result.success && result.data) {
-        const courses = Array.isArray(result.data) ? result.data : (result.data.courses || []);
-        courses.forEach(c => {
-          courseOptions += `<option value="${c.courseId || c.id}">${c.title || c.name}</option>`;
-        });
-      }
+      const courses = await this.getRoleScopedCourses({ manageOnly: true });
+      courses.forEach(c => {
+        courseOptions += `<option value="${c.courseId || c.id}">${c.title || c.name}</option>`;
+      });
     } catch (e) { /* ignore */ }
 
     const modal = document.createElement('div');
@@ -8900,6 +9540,8 @@ const MoodleUI = {
       const result = await API.courses.get(courseId);
       if (!result.success) { showToast(t('moodleCourseSettings.loadFailed')); return; }
       const c = result.data;
+      const courseVisibility = this.normalizeCourseVisibility(c.visibility ?? c.visible);
+      const courseFormat = this.normalizeCourseFormat(c.format);
       this.createModal('courseSettingsModal', t('moodleCourseSettings.title'), `
         <form onsubmit="event.preventDefault(); MoodleUI.saveCourseSettings('${courseId}')">
           <div class="form-group">
@@ -8921,10 +9563,10 @@ const MoodleUI = {
           <div class="form-group">
             <label>${t('moodleCourseCreate.formatLabel')}</label>
             <select id="cs_format">
-              <option value="topics" ${c.format === 'topics' ? 'selected' : ''}>${t('moodleCourseSettings.formatTopics')}</option>
-              <option value="weeks" ${c.format === 'weeks' ? 'selected' : ''}>${t('moodleCourseSettings.formatWeeks')}</option>
-              <option value="social" ${c.format === 'social' ? 'selected' : ''}>${t('moodleCourseSettings.formatSocial')}</option>
-              <option value="singleactivity" ${c.format === 'singleactivity' ? 'selected' : ''}>${t('moodleCourseSettings.formatSingle')}</option>
+              <option value="topics" ${courseFormat === 'topics' ? 'selected' : ''}>${t('moodleCourseSettings.formatTopics')}</option>
+              <option value="weeks" ${courseFormat === 'weeks' ? 'selected' : ''}>${t('moodleCourseSettings.formatWeeks')}</option>
+              <option value="social" ${courseFormat === 'social' ? 'selected' : ''}>${t('moodleCourseSettings.formatSocial')}</option>
+              <option value="singleactivity" ${courseFormat === 'singleactivity' ? 'selected' : ''}>${t('moodleCourseSettings.formatSingle')}</option>
             </select>
           </div>
           <div class="form-row">
@@ -8947,7 +9589,7 @@ const MoodleUI = {
           </div>
           <div class="form-group">
             <label>
-              <input type="checkbox" id="cs_visible" ${c.visible !== false ? 'checked' : ''}> ${t('moodleCourseSettings.visibleToStudents')}
+              <input type="checkbox" id="cs_visible" ${courseVisibility === 'show' ? 'checked' : ''}> ${t('moodleCourseSettings.visibleToStudents')}
             </label>
           </div>
           <div class="form-actions">
@@ -8967,12 +9609,12 @@ const MoodleUI = {
       shortName: document.getElementById('cs_shortName').value,
       description: document.getElementById('cs_description').value,
       category: document.getElementById('cs_category').value,
-      format: document.getElementById('cs_format').value,
+      format: this.normalizeCourseFormat(document.getElementById('cs_format').value),
       startDate: document.getElementById('cs_startDate').value || null,
       endDate: document.getElementById('cs_endDate').value || null,
       enrollmentKey: document.getElementById('cs_enrollmentKey').value,
       maxEnrollment: document.getElementById('cs_maxEnrollment').value ? parseInt(document.getElementById('cs_maxEnrollment').value) : null,
-      visible: document.getElementById('cs_visible').checked
+      visibility: document.getElementById('cs_visible').checked ? 'show' : 'hide'
     };
     try {
       const result = await API.courses.update(courseId, data);
@@ -9000,7 +9642,7 @@ const MoodleUI = {
         <form onsubmit="event.preventDefault(); MoodleUI.saveSection('${courseId}', '${sectionId}')">
           <div class="form-group">
             <label>${t('moodleSectionEdit.nameLabel')}</label>
-            <input type="text" id="es_name" value="${section.name || ''}" required>
+            <input type="text" id="es_name" value="${section.title || section.name || ''}" required>
           </div>
           <div class="form-group">
             <label>${t('moodleSectionEdit.summaryLabel')}</label>
@@ -9024,7 +9666,7 @@ const MoodleUI = {
 
   async saveSection(courseId, sectionId) {
     const data = {
-      name: document.getElementById('es_name').value,
+      title: document.getElementById('es_name').value,
       summary: document.getElementById('es_summary').value,
       visible: document.getElementById('es_visible').checked
     };
@@ -9047,39 +9689,92 @@ const MoodleUI = {
     try {
       const result = await API.courseActivities.get(courseId, activityId);
       if (!result.success) { showToast(t('moodleActivityEdit.loadFailed')); return; }
-      const a = result.data;
+      const a = result.data || {};
+      const activityType = a.type;
+      let detail = {};
+
+      if (a.type === 'assignment') {
+        const detailResult = await API.assignments.get(a.assignmentId || activityId);
+        if (detailResult.success) detail = detailResult.data || {};
+      } else if (a.type === 'quiz') {
+        const detailResult = await API.quizzes.get(a.quizId || activityId);
+        if (detailResult.success) detail = detailResult.data || {};
+      } else if (a.type === 'forum') {
+        const detailResult = await API.forums.get(a.forumId || activityId);
+        if (detailResult.success) detail = detailResult.data || {};
+      }
+
+      const merged = {
+        ...a,
+        ...detail,
+        activityType,
+        forumType: detail.type || a.forumType || 'general'
+      };
+      this.currentEditingActivity = merged;
 
       this.createModal('editActivityModal', t('moodleActivityEdit.title'), `
         <form onsubmit="event.preventDefault(); MoodleUI.saveActivity('${courseId}', '${activityId}')">
           <div class="form-group">
             <label>${t('moodleActivityEdit.nameLabel')}</label>
-            <input type="text" id="ea_name" value="${a.name || ''}" required>
+            <input type="text" id="ea_name" value="${merged.title || merged.name || ''}" required>
           </div>
           <div class="form-group">
             <label>${t('common.description')}</label>
-            <textarea id="ea_description" rows="3">${a.description || ''}</textarea>
+            <textarea id="ea_description" rows="3">${merged.description || ''}</textarea>
           </div>
-          ${a.type === 'assignment' || a.type === 'quiz' ? `
+          ${merged.activityType === 'assignment' ? `
             <div class="form-group">
               <label>${t('moodleAddActivity.dueDateLabel')}</label>
-              <input type="datetime-local" id="ea_dueDate" value="${a.dueDate ? a.dueDate.slice(0, 16) : ''}">
+              <input type="datetime-local" id="ea_dueDate" value="${merged.dueDate ? merged.dueDate.slice(0, 16) : ''}">
             </div>
           ` : ''}
-          ${a.type === 'url' ? `
+          ${merged.activityType === 'quiz' ? `
+            <div class="form-row">
+              <div class="form-group">
+                <label>${t('moodleAddActivity.startTimeLabel')}</label>
+                <input type="datetime-local" id="ea_openDate" value="${merged.openDate ? merged.openDate.slice(0, 16) : ''}">
+              </div>
+              <div class="form-group">
+                <label>${t('moodleAddActivity.endTimeLabel')}</label>
+                <input type="datetime-local" id="ea_closeDate" value="${merged.closeDate ? merged.closeDate.slice(0, 16) : ''}">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>${t('moodleAddActivity.timeLimitLabel')}</label>
+                <input type="number" id="ea_timeLimit" value="${this.escapeText(merged.timeLimit ?? 60)}" min="0">
+              </div>
+              <div class="form-group">
+                <label>${t('moodleAddActivity.attemptsLabel')}</label>
+                <input type="number" id="ea_maxAttempts" value="${this.escapeText(merged.maxAttempts ?? 1)}" min="0">
+              </div>
+            </div>
+          ` : ''}
+          ${merged.activityType === 'forum' ? `
+            <div class="form-group">
+              <label>${t('moodleAddActivity.forumTypeLabel')}</label>
+              <select id="ea_forumType">
+                <option value="general" ${merged.forumType === 'general' ? 'selected' : ''}>${t('moodleAddActivity.forumTypeGeneral')}</option>
+                <option value="qanda" ${merged.forumType === 'qanda' ? 'selected' : ''}>${t('moodleAddActivity.forumTypeQA')}</option>
+                <option value="news" ${merged.forumType === 'news' ? 'selected' : ''}>${t('moodleAddActivity.forumTypeNews')}</option>
+              </select>
+            </div>
+          ` : ''}
+          ${merged.activityType === 'url' ? `
             <div class="form-group">
               <label>${t('moodleActivityEdit.urlLabel')}</label>
-              <input type="url" id="ea_url" value="${a.url || ''}">
+              <input type="url" id="ea_url" value="${merged.url || ''}">
             </div>
           ` : ''}
-          ${a.type === 'page' ? `
+          ${merged.activityType === 'page' ? `
             <div class="form-group">
               <label>${t('moodleActivityEdit.pageContent')}</label>
-              <textarea id="ea_content" rows="6">${a.content || ''}</textarea>
+              <textarea id="ea_content" rows="6">${merged.content || ''}</textarea>
             </div>
           ` : ''}
           <div class="form-group">
             <label>
-              <input type="checkbox" id="ea_visible" ${a.visible !== false ? 'checked' : ''}> 對學生可見
+              <input type="checkbox" id="ea_visible" ${merged.visible !== false ? 'checked' : ''}> 對學生可見
             </label>
           </div>
           <div class="form-actions">
@@ -9094,23 +9789,44 @@ const MoodleUI = {
   },
 
   async saveActivity(courseId, activityId) {
+    const activity = this.currentEditingActivity || {};
     const data = {
-      name: document.getElementById('ea_name').value,
+      title: document.getElementById('ea_name').value,
       description: document.getElementById('ea_description').value,
       visible: document.getElementById('ea_visible').checked
     };
     const dueDate = document.getElementById('ea_dueDate');
     if (dueDate) data.dueDate = dueDate.value ? new Date(dueDate.value).toISOString() : null;
+    const openDate = document.getElementById('ea_openDate');
+    if (openDate) data.openDate = openDate.value ? new Date(openDate.value).toISOString() : null;
+    const closeDate = document.getElementById('ea_closeDate');
+    if (closeDate) data.closeDate = closeDate.value ? new Date(closeDate.value).toISOString() : null;
+    const timeLimit = document.getElementById('ea_timeLimit');
+    if (timeLimit) data.timeLimit = parseInt(timeLimit.value) || 0;
+    const maxAttempts = document.getElementById('ea_maxAttempts');
+    if (maxAttempts) data.maxAttempts = parseInt(maxAttempts.value) || 0;
+    const forumType = document.getElementById('ea_forumType');
+    if (forumType) data.type = forumType.value;
     const url = document.getElementById('ea_url');
     if (url) data.url = url.value;
     const content = document.getElementById('ea_content');
     if (content) data.content = content.value;
 
     try {
-      const result = await API.courseActivities.update(courseId, activityId, data);
+      let result;
+      if ((activity.activityType || activity.type) === 'assignment') {
+        result = await API.assignments.update(activity.assignmentId || activityId, data);
+      } else if ((activity.activityType || activity.type) === 'quiz') {
+        result = await API.quizzes.update(activity.quizId || activityId, data);
+      } else if ((activity.activityType || activity.type) === 'forum') {
+        result = await API.forums.update(activity.forumId || activityId, data);
+      } else {
+        result = await API.courseActivities.update(courseId, activityId, data);
+      }
       if (result.success) {
         showToast(t('moodleActivityEdit.updated'));
         this.closeModal('editActivityModal');
+        this.currentEditingActivity = null;
         this.openCourse(courseId);
       } else {
         showToast(result.message || t('common.updateFailed'));
@@ -9129,7 +9845,17 @@ const MoodleUI = {
     });
     if (!confirmed) return;
     try {
-      const result = await API.courseActivities.delete(courseId, activityId);
+      const detailResult = await API.courseActivities.get(courseId, activityId);
+      let result;
+      if (detailResult.success && detailResult.data?.type === 'assignment') {
+        result = await API.assignments.delete(detailResult.data.assignmentId || activityId);
+      } else if (detailResult.success && detailResult.data?.type === 'quiz') {
+        result = await API.quizzes.delete(detailResult.data.quizId || activityId);
+      } else if (detailResult.success && detailResult.data?.type === 'forum') {
+        result = await API.forums.delete(detailResult.data.forumId || activityId);
+      } else {
+        result = await API.courseActivities.delete(courseId, activityId);
+      }
       if (result.success) {
         showToast(t('moodleActivityEdit.deleted'));
         this.openCourse(courseId);
@@ -9247,7 +9973,7 @@ const MoodleUI = {
   // ======== Edit Question ========
   async editQuestion(questionId) {
     try {
-      const result = await API.questionBank.get(questionId);
+      const result = await API.questionBank.get(questionId, { courseId: this.currentQuestionBankCourseId });
       if (!result.success) { showToast(t('moodleQuestionBank.loadQuestionFailed')); return; }
       const q = result.data;
 
@@ -9311,6 +10037,7 @@ const MoodleUI = {
 
   async saveEditedQuestion(questionId) {
     const data = {
+      courseId: this.currentQuestionBankCourseId,
       questionText: document.getElementById('eq_text').value,
       points: parseInt(document.getElementById('eq_points').value) || 1,
       difficulty: document.getElementById('eq_difficulty').value,
@@ -9328,7 +10055,7 @@ const MoodleUI = {
       if (result.success) {
         showToast(t('moodleQuestionBank.questionUpdated'));
         this.closeModal('editQuestionModal');
-        this.openQuestionBank();
+        this.openQuestionBank(this.currentQuestionBankCourseId);
       } else {
         showToast(result.message || t('common.updateFailed'));
       }
@@ -9340,7 +10067,7 @@ const MoodleUI = {
   // ======== Preview Question ========
   async previewQuestion(questionId) {
     try {
-      const result = await API.questionBank.get(questionId);
+      const result = await API.questionBank.get(questionId, { courseId: this.currentQuestionBankCourseId });
       if (!result.success) { showToast(t('moodleQuestionBank.loadQuestionFailed')); return; }
       const q = result.data;
       const typeNames = {multiple_choice:t('moodleQuestionBank.multipleChoice'), true_false:t('moodleQuestionBank.trueFalse'), short_answer:t('moodleQuestionBank.shortAnswer'), fill_blank:t('moodleQuestionBank.fillBlank'), essay:'申論題'};
@@ -9372,7 +10099,14 @@ const MoodleUI = {
   },
 
   // ======== Import Questions ========
-  openImportQuestionsModal() {
+  async openImportQuestionsModal() {
+    if (!this.currentQuestionBankCourseId) {
+      showToast(I18n.getLocale() === 'en' ? 'Please select a course first.' : '請先選擇課程。');
+      await this.openQuestionBank();
+      return;
+    }
+
+    const categories = await this.getQuestionBankCategories();
     this.createModal('importQuestionsModal', t('moodleQuestionBank.importTitle'), `
       <form onsubmit="event.preventDefault(); MoodleUI.importQuestions()">
         <div class="form-group">
@@ -9388,7 +10122,14 @@ const MoodleUI = {
         </div>
         <div class="form-group">
           <label>${t('moodleQuestionBank.targetCategory')}</label>
-          <input type="text" id="iq_category" placeholder="${t('moodleQuestionBank.categoryPlaceholder')}">
+          <select id="iq_category">
+            <option value="">${t('moodleQuestionBank.allQuestions')}</option>
+            ${categories.map(category => `
+              <option value="${this.escapeText(category.categoryId)}" ${category.categoryId === this.currentQuestionBankFilters.categoryId ? 'selected' : ''}>
+                ${this.escapeText(category.name)}
+              </option>
+            `).join('')}
+          </select>
         </div>
         <div class="form-actions">
           <button type="button" onclick="MoodleUI.closeModal('importQuestionsModal')" class="btn-secondary">${t('common.cancel')}</button>
@@ -9401,7 +10142,7 @@ const MoodleUI = {
   async importQuestions() {
     const format = document.getElementById('iq_format').value;
     const rawData = document.getElementById('iq_data').value.trim();
-    const category = document.getElementById('iq_category').value.trim();
+    const categoryId = document.getElementById('iq_category').value.trim();
     if (!rawData) { showToast(t('moodleQuestionBank.importDataRequired')); return; }
 
     try {
@@ -9411,11 +10152,16 @@ const MoodleUI = {
       } else {
         questions = rawData;
       }
-      const result = await API.questionBank.import({ format, questions, category: category || undefined });
+      const result = await API.questionBank.import({
+        format,
+        questions,
+        courseId: this.currentQuestionBankCourseId,
+        categoryId: categoryId || undefined
+      });
       if (result.success) {
         showToast(`${t('moodleQuestionBank.importSuccess')} ${result.data?.imported || ''} ${t('moodleQuestionBank.questionsUnit')}`);
         this.closeModal('importQuestionsModal');
-        this.openQuestionBank();
+        this.openQuestionBank(this.currentQuestionBankCourseId);
       } else {
         showToast(result.message || t('moodleQuestionBank.importFailed'));
       }
@@ -9427,7 +10173,13 @@ const MoodleUI = {
   // ======== Manage Question Categories ========
   async openCategoryManageModal() {
     try {
-      const result = await API.questionBank.getCategories();
+      if (!this.currentQuestionBankCourseId) {
+        showToast(I18n.getLocale() === 'en' ? 'Please select a course first.' : '請先選擇課程。');
+        await this.openQuestionBank();
+        return;
+      }
+
+      const result = await API.questionBank.getCategories({ courseId: this.currentQuestionBankCourseId });
       const categories = result.success ? (result.data || []) : [];
 
       this.createModal('categoryManageModal', t('moodleQuestionBank.manageCategoriesTitle'), `
@@ -9467,10 +10219,14 @@ const MoodleUI = {
     const name = document.getElementById('newQCatName').value.trim();
     if (!name) return;
     try {
-      const result = await API.questionBank.createCategory({ name });
+      const result = await API.questionBank.createCategory({
+        name,
+        courseId: this.currentQuestionBankCourseId
+      });
       if (result.success) {
         showToast(t('moodleGradeCategory.created'));
         this.openCategoryManageModal();
+        this.openQuestionBank(this.currentQuestionBankCourseId);
       } else {
         showToast(result.message || t('common.createFailed'));
       }
@@ -9491,6 +10247,10 @@ const MoodleUI = {
       if (result.success) {
         showToast(t('moodleGradeCategory.deleted'));
         this.openCategoryManageModal();
+        if (this.currentQuestionBankFilters.categoryId === categoryId) {
+          delete this.currentQuestionBankFilters.categoryId;
+        }
+        this.openQuestionBank(this.currentQuestionBankCourseId);
       } else {
         showToast(result.message || t('common.deleteFailed'));
       }

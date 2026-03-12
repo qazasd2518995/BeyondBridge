@@ -37,7 +37,7 @@ const LTI_ROLES = {
  * GET /api/lti/tools
  * 獲取所有外部工具列表
  */
-router.get('/tools', authMiddleware, async (req, res) => {
+router.get('/tools', adminMiddleware, async (req, res) => {
   try {
     const { courseId, status, limit = 50 } = req.query;
 
@@ -90,7 +90,7 @@ router.get('/tools', authMiddleware, async (req, res) => {
  * GET /api/lti/tools/:toolId
  * 獲取單個 LTI 工具詳情
  */
-router.get('/tools/:toolId', authMiddleware, async (req, res) => {
+router.get('/tools/:toolId', adminMiddleware, async (req, res) => {
   try {
     const { toolId } = req.params;
 
@@ -315,7 +315,7 @@ router.put('/tools/:toolId', adminMiddleware, async (req, res) => {
  * POST /api/lti/tools/:toolId/launch
  * 生成 LTI 啟動請求
  */
-router.post('/tools/:toolId/launch', authMiddleware, async (req, res) => {
+router.post('/tools/:toolId/launch', adminMiddleware, async (req, res) => {
   try {
     const { toolId } = req.params;
     const { courseId, resourceId, returnUrl } = req.body;
@@ -501,7 +501,7 @@ router.post('/outcomes', async (req, res) => {
  * GET /api/lti/tools/:toolId/grades
  * 獲取 LTI 工具的成績記錄
  */
-router.get('/tools/:toolId/grades', authMiddleware, async (req, res) => {
+router.get('/tools/:toolId/grades', adminMiddleware, async (req, res) => {
   try {
     const { toolId } = req.params;
     const { userId, resourceId, limit = 50 } = req.query;

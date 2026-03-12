@@ -11,6 +11,8 @@ const express = require('express');
 const router = express.Router();
 const db = require('../../utils/db');
 const { authMiddleware } = require('../../utils/auth');
+const { canManageCourse } = require('../../utils/course-access');
+const { syncCourseActivityLink, deleteCourseActivityLink } = require('../../utils/course-activities');
 
 // ==================== 作業列表與詳情 ====================
 
@@ -29,6 +31,24 @@ router.get('/', authMiddleware, async (req, res) => {
         values: { ':type': 'ASSIGNMENT' }
       }
     });
+
+    if (!req.user.isAdmin) {
+      const [progressList, teachingCourses] = await Promise.all([
+        db.getUserCourseProgress(userId),
+        db.scan({
+          filter: {
+            expression: 'entityType = :type AND (instructorId = :userId OR teacherId = :userId OR creatorId = :userId OR createdBy = :userId OR contains(instructors, :userId))',
+            values: { ':type': 'COURSE', ':userId': userId }
+          }
+        })
+      ]);
+
+      const allowedCourseIds = new Set([
+        ...progressList.map(item => item.courseId).filter(Boolean),
+        ...teachingCourses.map(item => item.courseId).filter(Boolean)
+      ]);
+      assignments = assignments.filter(item => allowedCourseIds.has(item.courseId));
+    }
 
     // 課程篩選
     if (courseId) {
@@ -109,8 +129,8 @@ router.get('/my', authMiddleware, async (req, res) => {
       // 教師：取得自己課程的所有作業
       const courses = await db.scan({
         filter: {
-          expression: 'entityType = :type AND instructorId = :instructorId',
-          values: { ':type': 'COURSE', ':instructorId': userId }
+          expression: 'entityType = :type AND (instructorId = :userId OR teacherId = :userId OR creatorId = :userId OR createdBy = :userId OR contains(instructors, :userId))',
+          values: { ':type': 'COURSE', ':userId': userId }
         }
       });
 
@@ -245,6 +265,14 @@ router.get('/:id', authMiddleware, async (req, res) => {
 
     // 取得課程資訊
     const course = await db.getItem(`COURSE#${assignment.courseId}`, 'META');
+    const progress = await db.getItem(`USER#${userId}`, `PROG#COURSE#${assignment.courseId}`);
+    if (!req.user.isAdmin && !canManageCourse(course, req.user) && !progress) {
+      return res.status(403).json({
+        success: false,
+        error: 'FORBIDDEN',
+        message: '沒有權限查看此作業'
+      });
+    }
 
     // 取得用戶的提交
     const submission = await db.getItem(`ASSIGNMENT#${id}`, `SUBMISSION#${userId}`);
@@ -329,7 +357,7 @@ router.post('/', authMiddleware, async (req, res) => {
       });
     }
 
-    if (course.instructorId !== userId && !req.user.isAdmin) {
+    if (!canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -468,7 +496,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
 
     // 權限檢查
     const course = await db.getItem(`COURSE#${assignment.courseId}`, 'META');
-    if (course.instructorId !== userId && !req.user.isAdmin) {
+    if (!canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -491,6 +519,13 @@ router.put('/:id', authMiddleware, async (req, res) => {
     }
 
     const updatedAssignment = await db.updateItem(`ASSIGNMENT#${id}`, 'META', updates);
+
+    await syncCourseActivityLink(assignment.courseId, id, {
+      title: updatedAssignment.title || assignment.title,
+      description: updatedAssignment.description || assignment.description,
+      visible: updatedAssignment.visible !== false,
+      dueDate: updatedAssignment.dueDate || assignment.dueDate
+    });
 
     delete updatedAssignment.PK;
     delete updatedAssignment.SK;
@@ -531,7 +566,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
 
     // 權限檢查
     const course = await db.getItem(`COURSE#${assignment.courseId}`, 'META');
-    if (course.instructorId !== userId && !req.user.isAdmin) {
+    if (!canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -547,6 +582,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
 
     // 刪除作業
     await db.deleteItem(`ASSIGNMENT#${id}`, 'META');
+    await deleteCourseActivityLink(assignment.courseId, id);
 
     res.json({
       success: true,

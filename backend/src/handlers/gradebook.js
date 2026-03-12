@@ -54,6 +54,19 @@ const DEFAULT_GRADE_SCALES = {
   }
 };
 
+function canManageCourse(course, user) {
+  if (!course || !user) return false;
+  if (user.isAdmin) return true;
+  const ownerIds = new Set([
+    course.instructorId,
+    course.teacherId,
+    course.creatorId,
+    course.createdBy
+  ].filter(Boolean));
+  const inInstructors = Array.isArray(course.instructors) && course.instructors.includes(user.userId);
+  return ownerIds.has(user.userId) || inInstructors;
+}
+
 /**
  * 將百分比轉換為等第
  */
@@ -95,9 +108,9 @@ router.get('/courses/:courseId/categories', authMiddleware, async (req, res) => 
 
     // 學生和教師都可以查看類別
     const isEnrolled = await db.getItem(`USER#${userId}`, `PROG#COURSE#${courseId}`);
-    const isInstructor = course.instructorId === userId;
+    const canManage = canManageCourse(course, req.user);
 
-    if (!isEnrolled && !isInstructor && !req.user.isAdmin) {
+    if (!isEnrolled && !canManage) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -146,7 +159,7 @@ router.post('/courses/:courseId/categories', authMiddleware, async (req, res) =>
     const { name, nameEn, weight, type, dropLowest, aggregation } = req.body;
 
     const course = await db.getItem(`COURSE#${courseId}`, 'META');
-    if (!course || (course.instructorId !== userId && !req.user.isAdmin)) {
+    if (!course || !canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -211,7 +224,7 @@ router.put('/courses/:courseId/categories/:categoryId', authMiddleware, async (r
     const { name, nameEn, weight, type, dropLowest, aggregation } = req.body;
 
     const course = await db.getItem(`COURSE#${courseId}`, 'META');
-    if (!course || (course.instructorId !== userId && !req.user.isAdmin)) {
+    if (!course || !canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -266,7 +279,7 @@ router.delete('/courses/:courseId/categories/:categoryId', authMiddleware, async
     const userId = req.user.userId;
 
     const course = await db.getItem(`COURSE#${courseId}`, 'META');
-    if (!course || (course.instructorId !== userId && !req.user.isAdmin)) {
+    if (!course || !canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -311,10 +324,10 @@ router.get('/courses/:courseId/items', authMiddleware, async (req, res) => {
       });
     }
 
-    const isInstructor = course.instructorId === userId;
+    const canManage = canManageCourse(course, req.user);
     const isEnrolled = await db.getItem(`USER#${userId}`, `PROG#COURSE#${courseId}`);
 
-    if (!isInstructor && !isEnrolled && !req.user.isAdmin) {
+    if (!canManage && !isEnrolled) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -398,7 +411,7 @@ router.post('/courses/:courseId/items', authMiddleware, async (req, res) => {
     const { title, maxGrade, weight, categoryId, dueDate, description } = req.body;
 
     const course = await db.getItem(`COURSE#${courseId}`, 'META');
-    if (!course || (course.instructorId !== userId && !req.user.isAdmin)) {
+    if (!course || !canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -465,7 +478,7 @@ router.put('/courses/:courseId/items/:itemId/grades', authMiddleware, async (req
     const { grades } = req.body; // Array of { studentId, grade, feedback }
 
     const course = await db.getItem(`COURSE#${courseId}`, 'META');
-    if (!course || (course.instructorId !== userId && !req.user.isAdmin)) {
+    if (!course || !canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -739,7 +752,7 @@ router.get('/courses/:courseId', authMiddleware, async (req, res) => {
     }
 
     // 權限檢查
-    if (course.instructorId !== userId && !req.user.isAdmin) {
+    if (!canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -956,7 +969,7 @@ router.get('/courses/:courseId/students/:studentId', authMiddleware, async (req,
       });
     }
 
-    const isInstructor = course.instructorId === userId;
+    const isInstructor = canManageCourse(course, req.user);
     const isSelf = studentId === userId;
 
     if (!isInstructor && !isSelf && !req.user.isAdmin) {
@@ -1135,7 +1148,7 @@ router.get('/courses/:courseId/export', authMiddleware, async (req, res) => {
 
     // 權限檢查
     const course = await db.getItem(`COURSE#${courseId}`, 'META');
-    if (!course || (course.instructorId !== userId && !req.user.isAdmin)) {
+    if (!course || !canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -1334,7 +1347,7 @@ router.get('/courses/:courseId/settings', authMiddleware, async (req, res) => {
     }
 
     // 檢查權限（教師或管理員）
-    const isInstructor = course.instructorId === userId;
+    const isInstructor = canManageCourse(course, req.user);
     if (!isInstructor && !req.user.isAdmin) {
       return res.status(403).json({
         success: false,
@@ -1386,7 +1399,7 @@ router.put('/courses/:courseId/settings', authMiddleware, async (req, res) => {
     } = req.body;
 
     const course = await db.getItem(`COURSE#${courseId}`, 'META');
-    if (!course || (course.instructorId !== userId && !req.user.isAdmin)) {
+    if (!course || !canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',

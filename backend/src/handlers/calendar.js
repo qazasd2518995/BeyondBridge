@@ -7,6 +7,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../utils/db');
 const { authMiddleware } = require('../utils/auth');
+const { canManageCourse } = require('../utils/course-access');
 
 // ==================== 行事曆事件列表 ====================
 
@@ -517,7 +518,7 @@ router.post('/courses/:courseId/events', authMiddleware, async (req, res) => {
 
     // 權限檢查
     const course = await db.getItem(`COURSE#${courseId}`, 'META');
-    if (!course || (course.instructorId !== userId && !req.user.isAdmin)) {
+    if (!course || !canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -585,7 +586,25 @@ router.post('/courses/:courseId/events', authMiddleware, async (req, res) => {
 router.get('/courses/:courseId/events', authMiddleware, async (req, res) => {
   try {
     const { courseId } = req.params;
+    const userId = req.user.userId;
     const { start, end } = req.query;
+    const course = await db.getItem(`COURSE#${courseId}`, 'META');
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        error: 'COURSE_NOT_FOUND',
+        message: '找不到此課程'
+      });
+    }
+
+    const progress = await db.getItem(`USER#${userId}`, `PROG#COURSE#${courseId}`);
+    if (!req.user.isAdmin && !canManageCourse(course, req.user) && !progress) {
+      return res.status(403).json({
+        success: false,
+        error: 'FORBIDDEN',
+        message: '沒有權限查看此課程事件'
+      });
+    }
 
     let events = await db.query(`COURSE#${courseId}`, { skPrefix: 'EVENT#' });
 
@@ -634,7 +653,7 @@ router.delete('/courses/:courseId/events/:eventId', authMiddleware, async (req, 
 
     // 權限檢查
     const course = await db.getItem(`COURSE#${courseId}`, 'META');
-    if (!course || (course.instructorId !== userId && !req.user.isAdmin)) {
+    if (!course || !canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',

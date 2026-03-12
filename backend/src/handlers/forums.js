@@ -7,6 +7,8 @@ const express = require('express');
 const router = express.Router();
 const db = require('../utils/db');
 const { authMiddleware } = require('../utils/auth');
+const { canManageCourse } = require('../utils/course-access');
+const { syncCourseActivityLink, deleteCourseActivityLink } = require('../utils/course-activities');
 
 // ==================== 討論區列表與詳情 ====================
 
@@ -37,7 +39,7 @@ router.get('/', authMiddleware, async (req, res) => {
         db.getUserCourseProgress(userId),
         db.scan({
           filter: {
-            expression: 'entityType = :type AND (instructorId = :userId OR creatorId = :userId OR contains(instructors, :userId))',
+            expression: 'entityType = :type AND (instructorId = :userId OR teacherId = :userId OR creatorId = :userId OR createdBy = :userId OR contains(instructors, :userId))',
             values: {
               ':type': 'COURSE',
               ':userId': userId
@@ -133,16 +135,18 @@ router.get('/', authMiddleware, async (req, res) => {
 router.get('/:id', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
+    const userId = req.user.userId;
     const { page = 1, limit = 20, sort = 'latest' } = req.query;
 
-    const forum = await db.getItem(`FORUM#${id}`, 'META');
-    if (!forum) {
-      return res.status(404).json({
+    const context = await getForumAccessContext(id, userId, req.user.isAdmin);
+    if (!context.ok) {
+      return res.status(context.status).json({
         success: false,
-        error: 'FORUM_NOT_FOUND',
-        message: '找不到此討論區'
+        error: context.error,
+        message: context.message
       });
     }
+    const forum = context.forum;
 
     // 取得討論列表
     let discussions = await db.query(`FORUM#${id}`, {
@@ -262,7 +266,7 @@ router.post('/', authMiddleware, async (req, res) => {
       });
     }
 
-    if (course.instructorId !== userId && !req.user.isAdmin) {
+    if (!canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -377,7 +381,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
 
     // 權限檢查
     const course = await db.getItem(`COURSE#${forum.courseId}`, 'META');
-    if (course.instructorId !== userId && !req.user.isAdmin) {
+    if (!canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -395,6 +399,12 @@ router.put('/:id', authMiddleware, async (req, res) => {
     updates.updatedAt = new Date().toISOString();
 
     const updatedForum = await db.updateItem(`FORUM#${id}`, 'META', updates);
+
+    await syncCourseActivityLink(forum.courseId, id, {
+      title: updatedForum.title || forum.title,
+      description: updatedForum.description || forum.description,
+      visible: updatedForum.visible !== false
+    });
 
     delete updatedForum.PK;
     delete updatedForum.SK;
@@ -435,7 +445,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
 
     // 權限檢查
     const course = await db.getItem(`COURSE#${forum.courseId}`, 'META');
-    if (course.instructorId !== userId && !req.user.isAdmin) {
+    if (!canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -458,6 +468,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
 
     // 刪除討論區
     await db.deleteItem(`FORUM#${id}`, 'META');
+    await deleteCourseActivityLink(forum.courseId, id);
 
     res.json({
       success: true,
@@ -1156,9 +1167,7 @@ function buildPostTree(posts) {
 
 function isCourseInstructor(course, userId) {
   if (!course || !userId) return false;
-  return course.instructorId === userId ||
-    course.creatorId === userId ||
-    (Array.isArray(course.instructors) && course.instructors.includes(userId));
+  return canManageCourse(course, { userId, isAdmin: false });
 }
 
 function parseTime(value) {

@@ -313,6 +313,21 @@
             justify-content: center;
             font-weight: 600;
             font-size: 0.9rem;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .user-avatar.has-image,
+        .settings-hero-avatar.has-image {
+            background: rgba(255, 255, 255, 0.12);
+            color: transparent;
+        }
+
+        .profile-avatar-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
         }
 
         .user-info {
@@ -4290,6 +4305,10 @@
             gap: 1.5rem;
         }
 
+        .resource-grid.is-list-view {
+            grid-template-columns: 1fr;
+        }
+
         .resource-card {
             background: var(--white);
             border-radius: var(--radius-lg);
@@ -4301,6 +4320,11 @@
             opacity: 0;
             animation: cardReveal 0.5s var(--transition-base) forwards;
             position: relative;
+        }
+
+        .resource-card.list-view {
+            display: grid;
+            grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
         }
 
         .resource-card::before {
@@ -4344,6 +4368,11 @@
             justify-content: center;
             position: relative;
             overflow: hidden;
+        }
+
+        .resource-card.list-view .resource-cover {
+            min-height: 100%;
+            height: 100%;
         }
 
         .resource-cover.tone-video {
@@ -4417,6 +4446,12 @@
         .resource-content {
             padding: 1.25rem;
             background: linear-gradient(180deg, var(--white) 0%, var(--cream) 100%);
+        }
+
+        .resource-card.list-view .resource-content {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
 
         .resource-title {
@@ -4525,6 +4560,10 @@
             height: 14px;
         }
 
+        .settings-avatar-input {
+            display: none;
+        }
+
         /* Responsive */
         @media (max-width: 1200px) {
             .stats-grid {
@@ -4537,6 +4576,14 @@
 
             .resource-grid {
                 grid-template-columns: repeat(2, 1fr);
+            }
+
+            .resource-card.list-view {
+                grid-template-columns: 1fr;
+            }
+
+            .resource-card.list-view .resource-cover {
+                min-height: 180px;
             }
 
             .pending-tasks-grid {
@@ -5945,7 +5992,8 @@
                                 <span id="settingsHeroLicense"><strong data-i18n="settings.licenseQuota">授權額度:</strong> 50/100</span>
                             </div>
                         </div>
-                        <button class="btn-primary settings-avatar-btn" onclick="showToast(t('settings.uploadingAvatar'))" data-i18n="settings.changeAvatar">變更頭像</button>
+                        <button class="btn-primary settings-avatar-btn" onclick="openAvatarPicker()" data-i18n="settings.changeAvatar">變更頭像</button>
+                        <input type="file" id="settingsAvatarInput" class="settings-avatar-input" accept="image/*" hidden onchange="handleAvatarSelection(event)">
                     </div>
                 </div>
                 <div class="settings-grid">
@@ -6046,9 +6094,9 @@
                         <span class="library-result-count" id="libraryResultCount">找到 <strong>128</strong> 個建材</span>
                     </div>
                     <div class="library-toolbar-actions">
-                        <button class="icon-btn is-active" title="卡片檢視"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></button>
-                        <button class="icon-btn" title="列表檢視" onclick="showToast(t('library.switchToList'))"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></button>
-                        <button class="btn-primary library-request-btn" onclick="showToast(t('library.requestCustomToast'))"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span data-i18n="library.requestCustom">申請客製建材</span></button>
+                        <button id="libraryGridViewBtn" class="icon-btn is-active" title="卡片檢視" aria-pressed="true" onclick="setLibraryViewMode('grid')"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></button>
+                        <button id="libraryListViewBtn" class="icon-btn" title="列表檢視" aria-pressed="false" onclick="setLibraryViewMode('list')"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></button>
+                        <button class="btn-primary library-request-btn" onclick="openCustomMaterialRequestModal()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span data-i18n="library.requestCustom">申請客製建材</span></button>
                     </div>
                 </div>
                 <div class="library-filters">
@@ -8001,6 +8049,7 @@
             font-weight: 700;
             box-shadow: 0 12px 30px rgba(0, 0, 0, 0.16);
             flex-shrink: 0;
+            overflow: hidden;
         }
 
         .settings-hero-content {
@@ -9328,6 +9377,7 @@
 
         // Resources data - 動態從 API 載入
         let resources = [];
+        let libraryViewMode = 'grid';
 
         // 教材類型標籤
         const typeLabels = {
@@ -9387,6 +9437,70 @@
                 : `找到 <strong>${count}</strong> 個建材`;
         }
 
+        function updateLibraryViewToggle() {
+            const gridButton = document.getElementById('libraryGridViewBtn');
+            const listButton = document.getElementById('libraryListViewBtn');
+            const isGrid = libraryViewMode !== 'list';
+
+            if (gridButton) {
+                gridButton.classList.toggle('is-active', isGrid);
+                gridButton.setAttribute('aria-pressed', String(isGrid));
+            }
+
+            if (listButton) {
+                listButton.classList.toggle('is-active', !isGrid);
+                listButton.setAttribute('aria-pressed', String(!isGrid));
+            }
+        }
+
+        function getFilteredResources() {
+            const searchQuery = (document.getElementById('librarySearch')?.value || '').trim().toLowerCase();
+            const categoryFilter = document.getElementById('filterCategory')?.value || '';
+            const gradeLevelFilter = document.getElementById('filterGradeLevel')?.value || '';
+            const typeFilter = document.getElementById('filterType')?.value || '';
+
+            let filtered = Array.isArray(resources) ? [...resources] : [];
+
+            if (categoryFilter) {
+                filtered = filtered.filter(r => r.category === categoryFilter);
+            }
+            if (gradeLevelFilter) {
+                filtered = filtered.filter(r => r.gradeLevel === gradeLevelFilter);
+            }
+            if (typeFilter) {
+                if (typeFilter === 'lti') {
+                    filtered = filtered.filter(r => r.ltiToolId || r.requiresEnrollment);
+                } else {
+                    filtered = filtered.filter(r => r.type === typeFilter && !r.ltiToolId);
+                }
+            }
+            if (searchQuery) {
+                filtered = filtered.filter(r => {
+                    const tags = Array.isArray(r.tags) ? r.tags.join(' ') : '';
+                    const haystack = [
+                        r.title,
+                        r.description,
+                        r.authorName,
+                        r.creatorName,
+                        tags
+                    ].filter(Boolean).join(' ').toLowerCase();
+                    return haystack.includes(searchQuery);
+                });
+            }
+
+            return {
+                filtered,
+                activeFilterCount: [categoryFilter, gradeLevelFilter, typeFilter].filter(Boolean).length,
+                hasSearchQuery: Boolean(searchQuery)
+            };
+        }
+
+        function setLibraryViewMode(mode) {
+            libraryViewMode = mode === 'list' ? 'list' : 'grid';
+            updateLibraryViewToggle();
+            filterResources({ silent: true });
+        }
+
         function renderResourceGridState(title, options = {}) {
             const toneClass = options.tone === 'error' ? ' error' : '';
             const subtitle = options.subtitle ? `<p class="resource-grid-state-subtitle">${options.subtitle}</p>` : '';
@@ -9406,6 +9520,7 @@
         async function loadResources() {
             const grid = document.getElementById('resourceGrid');
             try {
+                updateLibraryViewToggle();
                 const result = await API.resources.list({ status: 'published', limit: 50 });
                 if (result.success && result.data.length > 0) {
                     resources = result.data;
@@ -9430,6 +9545,9 @@
         // 渲染教材卡片
         function renderResourceCards(resourceList) {
             const grid = document.getElementById('resourceGrid');
+            if (!grid) return;
+
+            grid.classList.toggle('is-list-view', libraryViewMode === 'list');
             updateLibraryResultCount(Array.isArray(resourceList) ? resourceList.length : 0);
             if (!resourceList || resourceList.length === 0) {
                 grid.innerHTML = renderResourceGridState(
@@ -9470,7 +9588,7 @@
                 }[r.contentType] || '' : '';
 
                 return `
-                    <div class="resource-card" onclick="openResourceModal('${r.resourceId}')">
+                    <div class="resource-card${libraryViewMode === 'list' ? ' list-view' : ''}" onclick="openResourceModal('${r.resourceId}')">
                         <div class="resource-cover ${toneClass}">
                             <span class="resource-type-badge">${typeLabel}</span>
                             ${contentBadge ? `<span class="resource-content-badge">${contentBadge}</span>` : ''}
@@ -9512,46 +9630,11 @@
         }
 
         // 篩選教材
-        function filterResources() {
-            const searchQuery = (document.getElementById('librarySearch')?.value || '').trim().toLowerCase();
-            const categoryFilter = document.getElementById('filterCategory')?.value || '';
-            const gradeLevelFilter = document.getElementById('filterGradeLevel')?.value || '';
-            const typeFilter = document.getElementById('filterType')?.value || '';
-
-            let filtered = resources;
-
-            if (categoryFilter) {
-                filtered = filtered.filter(r => r.category === categoryFilter);
-            }
-            if (gradeLevelFilter) {
-                filtered = filtered.filter(r => r.gradeLevel === gradeLevelFilter);
-            }
-            if (typeFilter) {
-                if (typeFilter === 'lti') {
-                    filtered = filtered.filter(r => r.ltiToolId || r.requiresEnrollment);
-                } else {
-                    filtered = filtered.filter(r => r.type === typeFilter && !r.ltiToolId);
-                }
-            }
-            if (searchQuery) {
-                filtered = filtered.filter(r => {
-                    const tags = Array.isArray(r.tags) ? r.tags.join(' ') : '';
-                    const haystack = [
-                        r.title,
-                        r.description,
-                        r.authorName,
-                        r.creatorName,
-                        tags
-                    ].filter(Boolean).join(' ').toLowerCase();
-                    return haystack.includes(searchQuery);
-                });
-            }
-
+        function filterResources(options = {}) {
+            const { filtered, activeFilterCount, hasSearchQuery } = getFilteredResources();
             renderResourceCards(filtered);
 
-            // 顯示篩選結果訊息
-            const totalFilters = [categoryFilter, gradeLevelFilter, typeFilter].filter(f => f).length;
-            if (totalFilters > 0) {
+            if (!options.silent && (activeFilterCount > 0 || hasSearchQuery)) {
                 showToast(`找到 ${filtered.length} 筆符合條件的教材`);
             }
         }
@@ -9606,14 +9689,21 @@
         // Show different views
         function showView(viewName) {
             viewName = resolvePrimaryViewName(viewName);
-            if (!hasViewAccess(viewName)) {
-                showToast('您目前的角色無法存取此頁面');
-                viewName = resolvePrimaryViewName('dashboard');
+            if (viewName === 'logout') {
+                if (typeof App !== 'undefined') {
+                    App.logout();
+                } else {
+                    showToast('已離開橋樑');
+                    localStorage.clear();
+                    setTimeout(() => window.location.href = '../website/index.html', 1500);
+                }
+                return { ok: true, viewName: 'logout' };
             }
 
-            document.querySelectorAll('.dashboard').forEach((view) => {
-                view.hidden = true;
-            });
+            if (!hasViewAccess(viewName)) {
+                showToast('您目前的角色無法存取此頁面');
+                return { ok: false, reason: 'forbidden', viewName };
+            }
 
             const viewMap = {
                 'dashboard': 'dashboardView',
@@ -9658,25 +9748,17 @@
 
             const viewId = viewMap[viewName] || (viewName === 'teacherDashboard' ? 'teacherDashboardView' : 'dashboardView');
             const viewElement = document.getElementById(viewId);
-            if (viewElement) {
-                viewElement.hidden = false;
-            } else {
-                document.getElementById('dashboardView').hidden = false;
-                if (viewName !== 'logout') {
-                    showToast('此功能正在開發中...');
-                }
+            if (!viewElement) {
+                console.error('[showView] Missing view element for:', viewName, viewId);
+                showToast(`找不到頁面：${viewName}`);
+                return { ok: false, reason: 'missing-view', viewName, viewId };
             }
 
-            if (viewName === 'logout') {
-                if (typeof App !== 'undefined') {
-                    App.logout();
-                } else {
-                    showToast('已離開橋樑');
-                    localStorage.clear();
-                    setTimeout(() => window.location.href = '../website/index.html', 1500);
-                }
-                return;
-            }
+            document.querySelectorAll('.dashboard').forEach((view) => {
+                view.hidden = true;
+            });
+
+            viewElement.hidden = false;
 
             const pageTitleView = viewName === 'teacherDashboard' ? 'dashboard' : viewName;
             document.getElementById('pageTitle').innerHTML = pageTitles[pageTitleView] || pageTitles['dashboard'];
@@ -9697,6 +9779,8 @@
             if (viewLoaders[viewName] && typeof App !== 'undefined' && typeof App[viewLoaders[viewName]] === 'function') {
                 App[viewLoaders[viewName]]();
             }
+
+            return { ok: true, viewName, viewId, pageTitleView };
         }
 
         // 更新側邊欄導航的 active 狀態
@@ -11076,6 +11160,120 @@
             }
         }
 
+        function openCustomMaterialRequestModal(prefill = {}) {
+            const existing = document.getElementById('customMaterialRequestModal');
+            if (existing) existing.remove();
+
+            const overlay = document.createElement('div');
+            overlay.id = 'customMaterialRequestModal';
+            overlay.className = 'modal-overlay active';
+            overlay.innerHTML = `
+                <div class="modal active discussion-modal" role="dialog" aria-modal="true" aria-labelledby="customMaterialModalTitle">
+                    <div class="modal-header">
+                        <h2 id="customMaterialModalTitle">申請客製建材</h2>
+                        <button type="button" class="modal-close" aria-label="關閉">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <form id="customMaterialRequestForm">
+                        <div class="modal-body">
+                            <div class="discussion-modal-intro">
+                                <div class="discussion-modal-intro-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/><rect x="3" y="3" width="18" height="18" rx="4"/></svg>
+                                </div>
+                                <div>
+                                    <div class="discussion-modal-intro-title">告訴我們你需要的教材型態與教學情境</div>
+                                    <p class="discussion-modal-intro-copy">需求越完整，後續回覆與報價會越準確，也比較容易安排適合的製作方式。</p>
+                                </div>
+                            </div>
+                            <div class="discussion-modal-grid">
+                                <div class="bridge-form-group">
+                                    <label class="bridge-form-label" for="customMaterialTitle">需求標題</label>
+                                    <input id="customMaterialTitle" type="text" class="bridge-form-control" maxlength="120" placeholder="例如：國中理化探究式互動教材" value="${escapeHtml(prefill.title || '')}">
+                                </div>
+                                <div class="bridge-form-group">
+                                    <label class="bridge-form-label" for="customMaterialGrade">適用對象</label>
+                                    <select id="customMaterialGrade" class="bridge-form-control">
+                                        <option value="">請選擇</option>
+                                        <option value="elementary"${prefill.gradeLevel === 'elementary' ? ' selected' : ''}>國小</option>
+                                        <option value="junior"${prefill.gradeLevel === 'junior' ? ' selected' : ''}>國中</option>
+                                        <option value="senior"${prefill.gradeLevel === 'senior' ? ' selected' : ''}>高中</option>
+                                        <option value="university"${prefill.gradeLevel === 'university' ? ' selected' : ''}>大學</option>
+                                        <option value="corporate"${prefill.gradeLevel === 'corporate' ? ' selected' : ''}>企業培訓</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="discussion-modal-grid">
+                                <div class="bridge-form-group">
+                                    <label class="bridge-form-label" for="customMaterialBudget">預估預算</label>
+                                    <input id="customMaterialBudget" type="text" class="bridge-form-control" maxlength="40" placeholder="例如：30000" value="${escapeHtml(prefill.estimatedBudget || '')}">
+                                </div>
+                                <div class="bridge-form-group">
+                                    <label class="bridge-form-label" for="customMaterialTimeline">交付時程</label>
+                                    <input id="customMaterialTimeline" type="text" class="bridge-form-control" maxlength="60" placeholder="例如：希望 4 週內完成" value="${escapeHtml(prefill.timeline || '')}">
+                                </div>
+                            </div>
+                            <div class="bridge-form-group">
+                                <label class="bridge-form-label" for="customMaterialDescription">需求內容</label>
+                                <textarea id="customMaterialDescription" class="bridge-form-control discussion-form-textarea" placeholder="請描述教材主題、使用情境、希望的互動形式、是否需要測驗或影音內容。">${escapeHtml(prefill.description || '')}</textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <div class="discussion-modal-note">送出後會建立一筆諮詢案件，你可以在諮詢頁追蹤狀態與回覆。</div>
+                            <button type="button" class="btn-secondary">取消</button>
+                            <button type="submit" class="btn-primary">送出需求</button>
+                        </div>
+                    </form>
+                </div>
+            `;
+
+            document.body.appendChild(overlay);
+            attachDiscussionModalBehavior(overlay, closeCustomMaterialRequestModal, '#customMaterialTitle');
+
+            overlay.querySelector('.modal-close')?.addEventListener('click', closeCustomMaterialRequestModal);
+            overlay.querySelector('.btn-secondary')?.addEventListener('click', closeCustomMaterialRequestModal);
+            overlay.querySelector('#customMaterialRequestForm')?.addEventListener('submit', submitCustomMaterialRequest);
+        }
+
+        function closeCustomMaterialRequestModal() {
+            removeDiscussionModal('customMaterialRequestModal');
+        }
+
+        async function submitCustomMaterialRequest(event) {
+            if (event) event.preventDefault();
+
+            const title = document.getElementById('customMaterialTitle')?.value?.trim();
+            const gradeLevel = document.getElementById('customMaterialGrade')?.value || '';
+            const budget = document.getElementById('customMaterialBudget')?.value?.trim() || '';
+            const timeline = document.getElementById('customMaterialTimeline')?.value?.trim() || '';
+            const description = document.getElementById('customMaterialDescription')?.value?.trim();
+
+            if (!title || !description) {
+                showToast('請填寫需求標題與內容');
+                return;
+            }
+
+            const requestBody = timeline
+                ? `${description}\n\n希望交付時程：${timeline}`
+                : description;
+
+            const success = await App.createConsultation({
+                requestType: 'custom_material',
+                title,
+                description: requestBody,
+                gradeLevel,
+                estimatedBudget: budget
+            });
+
+            if (!success) return;
+
+            closeCustomMaterialRequestModal();
+            showView('consultations');
+            if (typeof App !== 'undefined' && typeof App.loadConsultations === 'function') {
+                App.loadConsultations();
+            }
+        }
+
         function switchConsultTab(btn, filter) {
             setLegacyTabState('.consult-tab', btn);
 
@@ -11088,15 +11286,69 @@
         }
 
         // ========== 設定頁面功能 ==========
-        function syncSettingsProfileHero(displayName, email) {
-            const safeName = (displayName || '').trim();
-            const nameEl = document.getElementById('settingsProfileName');
-            const emailEl = document.getElementById('settingsProfileEmail');
-            const initialEl = document.getElementById('settingsProfileInitial');
+        function openAvatarPicker() {
+            const input = document.getElementById('settingsAvatarInput');
+            if (!input) return;
+            input.value = '';
+            input.click();
+        }
 
-            if (nameEl && safeName) nameEl.textContent = safeName;
-            if (emailEl && email) emailEl.textContent = email;
-            if (initialEl && safeName) initialEl.textContent = safeName.charAt(0);
+        async function fileToAvatarDataUrl(file) {
+            const dataUrl = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = () => reject(new Error('read_failed'));
+                reader.readAsDataURL(file);
+            });
+
+            const image = await new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = () => reject(new Error('image_decode_failed'));
+                img.src = dataUrl;
+            });
+
+            const size = 256;
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+
+            const context = canvas.getContext('2d');
+            if (!context) throw new Error('canvas_unavailable');
+
+            const sourceSize = Math.min(image.width, image.height);
+            const sourceX = (image.width - sourceSize) / 2;
+            const sourceY = (image.height - sourceSize) / 2;
+
+            context.drawImage(image, sourceX, sourceY, sourceSize, sourceSize, 0, 0, size, size);
+            return canvas.toDataURL('image/jpeg', 0.82);
+        }
+
+        async function handleAvatarSelection(event) {
+            const file = event?.target?.files?.[0];
+            if (!file) return;
+
+            if (!file.type.startsWith('image/')) {
+                showToast('請選擇圖片檔案');
+                event.target.value = '';
+                return;
+            }
+
+            if (file.size > 5 * 1024 * 1024) {
+                showToast('圖片請控制在 5MB 內');
+                event.target.value = '';
+                return;
+            }
+
+            try {
+                const avatarUrl = await fileToAvatarDataUrl(file);
+                await App.updateProfile({ avatarUrl });
+            } catch (error) {
+                console.error('Avatar upload error:', error);
+                showToast('頭像更新失敗');
+            } finally {
+                event.target.value = '';
+            }
         }
 
         async function saveProfile() {
@@ -11110,10 +11362,7 @@
                 return;
             }
 
-            const success = await App.updateProfile(data);
-            if (success !== false) {
-                syncSettingsProfileHero(data.displayName, document.getElementById('settingsEmail')?.value || '');
-            }
+            await App.updateProfile(data);
         }
 
         async function saveNotificationSettings() {
@@ -11160,8 +11409,12 @@
         const originalShowView = showView;
         showView = function(viewName) {
             const resolvedViewName = resolvePrimaryViewName(viewName);
-            const finalViewName = hasViewAccess(resolvedViewName) ? resolvedViewName : resolvePrimaryViewName('dashboard');
-            originalShowView(resolvedViewName);
+            const navigationResult = originalShowView(resolvedViewName);
+            if (!navigationResult || navigationResult.ok === false || navigationResult.viewName === 'logout') {
+                return navigationResult;
+            }
+
+            const finalViewName = navigationResult.viewName;
 
             // 更新麵包屑導航
             if (typeof MoodleUI !== 'undefined' && MoodleUI.updateBreadcrumb) {
@@ -11200,6 +11453,8 @@
                     App.loadTeacherDashboardData();
                 }
             }
+
+            return navigationResult;
         };
 
         function openReplyModal(postId) {

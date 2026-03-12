@@ -7,6 +7,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../utils/db');
 const { authMiddleware } = require('../utils/auth');
+const { canManageCourse } = require('../utils/course-access');
 
 const TEACHING_ROLES = new Set([
   'manager',
@@ -250,14 +251,6 @@ async function syncProgressCompletion(courseId, userId, completed) {
   };
 
   await db.updateItem(progress.PK, progress.SK, updates);
-}
-
-function canManageCourse(course, user) {
-  if (!course || !user) return false;
-  if (user.isAdmin) return true;
-  return course.instructorId === user.userId ||
-    course.teacherId === user.userId ||
-    course.createdBy === user.userId;
 }
 
 // ============================================================================

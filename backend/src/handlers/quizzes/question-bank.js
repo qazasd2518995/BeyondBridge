@@ -7,7 +7,17 @@ const express = require('express');
 const router = express.Router();
 const db = require('../../utils/db');
 const { authMiddleware } = require('../../utils/auth');
+const { canManageCourse } = require('../../utils/course-access');
 const { shuffleArray } = require('./utils');
+
+async function canManageQuestion(question, user) {
+  if (!question || !user) return false;
+  if (user.isAdmin) return true;
+  if (question.createdBy === user.userId) return true;
+  if (!question.courseId) return false;
+  const course = await db.getItem(`COURSE#${question.courseId}`, 'META');
+  return canManageCourse(course, user);
+}
 
 // ==================== 題庫管理（Question Bank） ====================
 
@@ -337,7 +347,7 @@ router.put('/questionbank/:questionId', authMiddleware, async (req, res) => {
     const question = questions[0];
 
     // 權限檢查
-    if (question.createdBy !== userId && !req.user.isAdmin) {
+    if (!(await canManageQuestion(question, req.user))) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -402,7 +412,7 @@ router.delete('/questionbank/:questionId', authMiddleware, async (req, res) => {
     const question = questions[0];
 
     // 權限檢查
-    if (question.createdBy !== userId && !req.user.isAdmin) {
+    if (!(await canManageQuestion(question, req.user))) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -637,7 +647,7 @@ router.post('/:id/add-from-bank', authMiddleware, async (req, res) => {
 
     // 權限檢查
     const course = await db.getItem(`COURSE#${quiz.courseId}`, 'META');
-    if (course.instructorId !== userId && !req.user.isAdmin) {
+    if (!canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -742,7 +752,7 @@ router.post('/:id/add-random', authMiddleware, async (req, res) => {
 
     // 權限檢查
     const course = await db.getItem(`COURSE#${quiz.courseId}`, 'META');
-    if (course.instructorId !== userId && !req.user.isAdmin) {
+    if (!canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -883,7 +893,7 @@ router.post('/:id/save-to-bank', authMiddleware, async (req, res) => {
 
     // 權限檢查
     const course = await db.getItem(`COURSE#${quiz.courseId}`, 'META');
-    if (course.instructorId !== userId && !req.user.isAdmin) {
+    if (!canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',

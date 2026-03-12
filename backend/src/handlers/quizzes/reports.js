@@ -7,6 +7,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../../utils/db');
 const { authMiddleware } = require('../../utils/auth');
+const { canManageCourse } = require('../../utils/course-access');
 
 // ==================== 教師報表 ====================
 
@@ -30,7 +31,7 @@ router.get('/:id/results', authMiddleware, async (req, res) => {
 
     // 權限檢查
     const course = await db.getItem(`COURSE#${quiz.courseId}`, 'META');
-    if (course.instructorId !== userId && !req.user.isAdmin) {
+    if (!canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',

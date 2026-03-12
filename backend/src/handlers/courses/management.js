@@ -7,6 +7,12 @@ const express = require('express');
 const router = express.Router();
 const db = require('../../utils/db');
 const { authMiddleware } = require('../../utils/auth');
+const {
+  isTeachingUser,
+  canManageCourse,
+  normalizeCourseVisibility,
+  normalizeCourseFormat
+} = require('../../utils/course-access');
 
 // ==================== 課程管理（教師/管理員） ====================
 
@@ -17,16 +23,26 @@ const { authMiddleware } = require('../../utils/auth');
 router.post('/', authMiddleware, async (req, res) => {
   try {
     const userId = req.user.userId;
+    if (!isTeachingUser(req.user)) {
+      return res.status(403).json({
+        success: false,
+        error: 'FORBIDDEN',
+        message: '只有教師或管理員可以建立課程'
+      });
+    }
+
     const {
       title,
       shortName,
       description,
       summary,
       category,
+      categoryId,
       format = 'topics', // topics, weeks, social, singleactivity
       startDate,
       endDate,
       visibility = 'show', // show, hide
+      visible,
       enrollmentKey,
       selfEnrollment = true,
       maxEnrollment,
@@ -44,6 +60,11 @@ router.post('/', authMiddleware, async (req, res) => {
       });
     }
 
+    const normalizedCategory = category || categoryId || 'general';
+    const normalizedFormat = normalizeCourseFormat(format);
+    const normalizedVisibility = normalizeCourseVisibility(
+      visible !== undefined ? visible : visibility
+    );
     const courseId = db.generateId('course');
     const now = new Date().toISOString();
 
@@ -54,9 +75,9 @@ router.post('/', authMiddleware, async (req, res) => {
       PK: `COURSE#${courseId}`,
       SK: 'META',
       entityType: 'COURSE',
-      GSI1PK: `CAT#${category || 'general'}`,
+      GSI1PK: `CAT#${normalizedCategory}`,
       GSI1SK: `COURSE#${courseId}`,
-      GSI2PK: `STATUS#${visibility === 'show' ? 'published' : 'draft'}`,
+      GSI2PK: `STATUS#${normalizedVisibility === 'show' ? 'published' : 'draft'}`,
       GSI2SK: now,
 
       courseId,
@@ -64,16 +85,16 @@ router.post('/', authMiddleware, async (req, res) => {
       shortName: shortName || title.substring(0, 20),
       description,
       summary,
-      category: category || 'general',
-      format,
+      category: normalizedCategory,
+      format: normalizedFormat,
 
       instructorId: userId,
       instructorName: instructor?.displayName || '未知講師',
 
       startDate,
       endDate,
-      visibility,
-      status: visibility === 'show' ? 'published' : 'draft',
+      visibility: normalizedVisibility,
+      status: normalizedVisibility === 'show' ? 'published' : 'draft',
 
       enrollmentKey,
       selfEnrollment,
@@ -153,7 +174,6 @@ router.post('/', authMiddleware, async (req, res) => {
 router.put('/:id', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user.userId;
     const updates = req.body;
 
     // 取得課程
@@ -167,7 +187,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     }
 
     // 權限檢查
-    if (course.instructorId !== userId && !req.user.isAdmin) {
+    if (!canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -182,13 +202,25 @@ router.put('/:id', authMiddleware, async (req, res) => {
     delete updates.enrollmentCount;
 
     // 更新 GSI 索引（如果需要）
+    if (updates.categoryId && !updates.category) {
+      updates.category = updates.categoryId;
+    }
+    if (updates.visible !== undefined && updates.visibility === undefined) {
+      updates.visibility = normalizeCourseVisibility(updates.visible, course.visibility);
+    }
     if (updates.category) {
       updates.GSI1PK = `CAT#${updates.category}`;
     }
     if (updates.visibility !== undefined) {
+      updates.visibility = normalizeCourseVisibility(updates.visibility, course.visibility);
       updates.status = updates.visibility === 'show' ? 'published' : 'draft';
       updates.GSI2PK = `STATUS#${updates.status}`;
     }
+    if (updates.format) {
+      updates.format = normalizeCourseFormat(updates.format, course.format || 'topics');
+    }
+    delete updates.categoryId;
+    delete updates.visible;
 
     updates.updatedAt = new Date().toISOString();
 
@@ -220,7 +252,6 @@ router.put('/:id', authMiddleware, async (req, res) => {
 router.delete('/:id', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user.userId;
 
     const course = await db.getItem(`COURSE#${id}`, 'META');
     if (!course) {
@@ -232,7 +263,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     }
 
     // 權限檢查
-    if (course.instructorId !== userId && !req.user.isAdmin) {
+    if (!canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',

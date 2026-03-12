@@ -7,6 +7,8 @@ const express = require('express');
 const router = express.Router();
 const db = require('../../utils/db');
 const { authMiddleware, optionalAuthMiddleware } = require('../../utils/auth');
+const { canManageCourse } = require('../../utils/course-access');
+const { createLinkedEntityIndexes, enrichCourseActivity } = require('../../utils/legacy-course-activity-links');
 
 // ==================== 課程列表與詳情 ====================
 
@@ -107,13 +109,15 @@ router.get('/my', authMiddleware, async (req, res) => {
     const { role = 'student' } = req.query;
 
     if (role === 'instructor') {
-      // 教師：取得自己創建的課程
+      // 教師：取得自己可管理的課程
       let courses = await db.scan({
         filter: {
-          expression: 'entityType = :type AND instructorId = :instructorId',
-          values: { ':type': 'COURSE', ':instructorId': userId }
+          expression: 'entityType = :type',
+          values: { ':type': 'COURSE' }
         }
       });
+
+      courses = courses.filter(course => canManageCourse(course, req.user));
 
       courses = courses.map(c => {
         delete c.PK;
@@ -189,7 +193,11 @@ router.get('/:id', optionalAuthMiddleware, async (req, res) => {
     }
 
     // 取得課程章節
-    const sections = await db.query(`COURSE#${id}`, { skPrefix: 'SECTION#' });
+    const [sections, linkedEntities] = await Promise.all([
+      db.query(`COURSE#${id}`, { skPrefix: 'SECTION#' }),
+      db.queryByIndex('GSI1', `COURSE#${id}`, 'GSI1PK')
+    ]);
+    const linkedIndexes = createLinkedEntityIndexes(linkedEntities);
 
     // 取得每個章節的活動
     const sectionsWithActivities = await Promise.all(
@@ -201,11 +209,9 @@ router.get('/:id', optionalAuthMiddleware, async (req, res) => {
         delete section.SK;
         return {
           ...section,
-          activities: activities.map(a => {
-            delete a.PK;
-            delete a.SK;
-            return a;
-          }).sort((a, b) => a.order - b.order)
+          activities: activities
+            .map(a => enrichCourseActivity(a, linkedIndexes))
+            .sort((a, b) => (a.order || 0) - (b.order || 0))
         };
       })
     );

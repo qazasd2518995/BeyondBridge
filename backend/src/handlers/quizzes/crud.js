@@ -7,6 +7,8 @@ const express = require('express');
 const router = express.Router();
 const db = require('../../utils/db');
 const { authMiddleware } = require('../../utils/auth');
+const { canManageCourse } = require('../../utils/course-access');
+const { syncCourseActivityLink, deleteCourseActivityLink } = require('../../utils/course-activities');
 
 // ==================== 測驗列表與詳情 ====================
 
@@ -25,6 +27,24 @@ router.get('/', authMiddleware, async (req, res) => {
         values: { ':type': 'QUIZ' }
       }
     });
+
+    if (!req.user.isAdmin) {
+      const [progressList, teachingCourses] = await Promise.all([
+        db.getUserCourseProgress(userId),
+        db.scan({
+          filter: {
+            expression: 'entityType = :type AND (instructorId = :userId OR teacherId = :userId OR creatorId = :userId OR createdBy = :userId OR contains(instructors, :userId))',
+            values: { ':type': 'COURSE', ':userId': userId }
+          }
+        })
+      ]);
+
+      const allowedCourseIds = new Set([
+        ...progressList.map(item => item.courseId).filter(Boolean),
+        ...teachingCourses.map(item => item.courseId).filter(Boolean)
+      ]);
+      quizzes = quizzes.filter(item => allowedCourseIds.has(item.courseId));
+    }
 
     // 課程篩選
     if (courseId) {
@@ -108,6 +128,14 @@ router.get('/:id', authMiddleware, async (req, res) => {
 
     // 取得課程資訊
     const course = await db.getItem(`COURSE#${quiz.courseId}`, 'META');
+    const progress = await db.getItem(`USER#${userId}`, `PROG#COURSE#${quiz.courseId}`);
+    if (!req.user.isAdmin && !canManageCourse(course, req.user) && !progress) {
+      return res.status(403).json({
+        success: false,
+        error: 'FORBIDDEN',
+        message: '沒有權限查看此測驗'
+      });
+    }
 
     // 取得用戶的作答記錄
     const attempts = await db.query(`QUIZ#${id}`, {
@@ -203,7 +231,7 @@ router.post('/', authMiddleware, async (req, res) => {
       });
     }
 
-    if (course.instructorId !== userId && !req.user.isAdmin) {
+    if (!canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -348,7 +376,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
 
     // 權限檢查
     const course = await db.getItem(`COURSE#${quiz.courseId}`, 'META');
-    if (course.instructorId !== userId && !req.user.isAdmin) {
+    if (!canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -377,6 +405,12 @@ router.put('/:id', authMiddleware, async (req, res) => {
     updates.updatedAt = new Date().toISOString();
 
     const updatedQuiz = await db.updateItem(`QUIZ#${id}`, 'META', updates);
+
+    await syncCourseActivityLink(quiz.courseId, id, {
+      title: updatedQuiz.title || quiz.title,
+      description: updatedQuiz.description || quiz.description,
+      visible: updatedQuiz.visible !== false
+    });
 
     delete updatedQuiz.PK;
     delete updatedQuiz.SK;
@@ -417,7 +451,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
 
     // 權限檢查
     const course = await db.getItem(`COURSE#${quiz.courseId}`, 'META');
-    if (course.instructorId !== userId && !req.user.isAdmin) {
+    if (!canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -433,6 +467,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
 
     // 刪除測驗
     await db.deleteItem(`QUIZ#${id}`, 'META');
+    await deleteCourseActivityLink(quiz.courseId, id);
 
     res.json({
       success: true,
@@ -481,7 +516,7 @@ router.post('/:id/questions', authMiddleware, async (req, res) => {
 
     // 權限檢查
     const course = await db.getItem(`COURSE#${quiz.courseId}`, 'META');
-    if (course.instructorId !== userId && !req.user.isAdmin) {
+    if (!canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -549,7 +584,7 @@ router.put('/:id/questions/:questionId', authMiddleware, async (req, res) => {
 
     // 權限檢查
     const course = await db.getItem(`COURSE#${quiz.courseId}`, 'META');
-    if (course.instructorId !== userId && !req.user.isAdmin) {
+    if (!canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -607,7 +642,7 @@ router.delete('/:id/questions/:questionId', authMiddleware, async (req, res) => 
 
     // 權限檢查
     const course = await db.getItem(`COURSE#${quiz.courseId}`, 'META');
-    if (course.instructorId !== userId && !req.user.isAdmin) {
+    if (!canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',

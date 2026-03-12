@@ -8,6 +8,7 @@ const router = express.Router();
 const crypto = require('crypto');
 const db = require('../../utils/db');
 const { authMiddleware } = require('../../utils/auth');
+const { canManageCourse } = require('../../utils/course-access');
 
 /**
  * 完成條件類型
@@ -340,7 +341,7 @@ router.put('/:id/completion/settings', authMiddleware, async (req, res) => {
       });
     }
 
-    if (course.instructorId !== userId && !req.user.isAdmin) {
+    if (!canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -416,7 +417,7 @@ router.put('/:id/activities/:activityId/completion', authMiddleware, async (req,
 
     // 權限檢查
     const course = await db.getItem(`COURSE#${id}`, 'META');
-    if (!course || (course.instructorId !== userId && !req.user.isAdmin)) {
+    if (!course || !canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -725,7 +726,7 @@ router.post('/:id/completion/manual/:targetUserId', authMiddleware, async (req, 
 
     // 權限檢查
     const course = await db.getItem(`COURSE#${id}`, 'META');
-    if (!course || (course.instructorId !== userId && !req.user.isAdmin)) {
+    if (!course || !canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -819,7 +820,7 @@ router.get('/:id/completion/report', authMiddleware, async (req, res) => {
 
     // 權限檢查
     const course = await db.getItem(`COURSE#${id}`, 'META');
-    if (!course || (course.instructorId !== userId && !req.user.isAdmin)) {
+    if (!course || !canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',

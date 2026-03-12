@@ -7,6 +7,17 @@ const express = require('express');
 const router = express.Router();
 const db = require('../../utils/db');
 const { authMiddleware } = require('../../utils/auth');
+const { canManageCourse } = require('../../utils/course-access');
+const { createLinkedEntityIndexes, enrichCourseActivity } = require('../../utils/legacy-course-activity-links');
+
+function matchesCourseActivityIdentifier(activity, targetId) {
+  return [
+    activity?.activityId,
+    activity?.assignmentId,
+    activity?.quizId,
+    activity?.forumId
+  ].filter(Boolean).includes(targetId);
+}
 
 // ==================== 章節管理 ====================
 
@@ -17,8 +28,7 @@ const { authMiddleware } = require('../../utils/auth');
 router.post('/:id/sections', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user.userId;
-    const { title, summary, visible = true } = req.body;
+    const { title, name, summary, visible = true } = req.body;
 
     // 取得課程並驗證權限
     const course = await db.getItem(`COURSE#${id}`, 'META');
@@ -30,7 +40,7 @@ router.post('/:id/sections', authMiddleware, async (req, res) => {
       });
     }
 
-    if (course.instructorId !== userId && !req.user.isAdmin) {
+    if (!canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -50,7 +60,7 @@ router.post('/:id/sections', authMiddleware, async (req, res) => {
 
       sectionId: sectionNumber,
       courseId: id,
-      title: title || `第 ${existingSections.length + 1} 週`,
+      title: title || name || `第 ${existingSections.length + 1} 週`,
       summary: summary || '',
       order: existingSections.length + 1,
       visible,
@@ -93,12 +103,11 @@ router.post('/:id/sections', authMiddleware, async (req, res) => {
 router.put('/:id/sections/:sectionId', authMiddleware, async (req, res) => {
   try {
     const { id, sectionId } = req.params;
-    const userId = req.user.userId;
     const updates = req.body;
 
     // 驗證權限
     const course = await db.getItem(`COURSE#${id}`, 'META');
-    if (!course || (course.instructorId !== userId && !req.user.isAdmin)) {
+    if (!course || !canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -106,10 +115,15 @@ router.put('/:id/sections/:sectionId', authMiddleware, async (req, res) => {
       });
     }
 
+    if (updates.name && !updates.title) {
+      updates.title = updates.name;
+    }
+
     // 不允許更新的欄位
     delete updates.sectionId;
     delete updates.courseId;
     delete updates.createdAt;
+    delete updates.name;
 
     updates.updatedAt = new Date().toISOString();
 
@@ -145,11 +159,10 @@ router.put('/:id/sections/:sectionId', authMiddleware, async (req, res) => {
 router.delete('/:id/sections/:sectionId', authMiddleware, async (req, res) => {
   try {
     const { id, sectionId } = req.params;
-    const userId = req.user.userId;
 
     // 驗證權限
     const course = await db.getItem(`COURSE#${id}`, 'META');
-    if (!course || (course.instructorId !== userId && !req.user.isAdmin)) {
+    if (!course || !canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -193,10 +206,10 @@ router.delete('/:id/sections/:sectionId', authMiddleware, async (req, res) => {
 router.post('/:id/sections/:sectionId/activities', authMiddleware, async (req, res) => {
   try {
     const { id, sectionId } = req.params;
-    const userId = req.user.userId;
     const {
       type, // page, url, file, assignment, quiz, forum, label, choice, feedback
       title,
+      name,
       description,
       content, // 頁面內容
       url, // 外部連結
@@ -208,7 +221,7 @@ router.post('/:id/sections/:sectionId/activities', authMiddleware, async (req, r
 
     // 驗證權限
     const course = await db.getItem(`COURSE#${id}`, 'META');
-    if (!course || (course.instructorId !== userId && !req.user.isAdmin)) {
+    if (!course || !canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -216,7 +229,8 @@ router.post('/:id/sections/:sectionId/activities', authMiddleware, async (req, r
       });
     }
 
-    if (!type || !title) {
+    const activityTitle = title || name;
+    if (!type || !activityTitle) {
       return res.status(400).json({
         success: false,
         error: 'VALIDATION_ERROR',
@@ -241,7 +255,7 @@ router.post('/:id/sections/:sectionId/activities', authMiddleware, async (req, r
       courseId: id,
       sectionId,
       type,
-      title,
+      title: activityTitle,
       description,
 
       // 類型特定內容
@@ -312,9 +326,21 @@ router.get('/:id/activities/:activityId', authMiddleware, async (req, res) => {
       });
     }
 
+    const progress = await db.getItem(`USER#${userId}`, `PROG#COURSE#${id}`);
+    if (!req.user.isAdmin && !canManageCourse(course, req.user) && !progress) {
+      return res.status(403).json({
+        success: false,
+        error: 'FORBIDDEN',
+        message: '沒有權限查看此活動'
+      });
+    }
+
     // 找到活動
-    const activities = await db.query(`COURSE#${id}`, { skPrefix: 'ACTIVITY#' });
-    const activity = activities.find(a => a.activityId === activityId);
+    const [activities, linkedEntities] = await Promise.all([
+      db.query(`COURSE#${id}`, { skPrefix: 'ACTIVITY#' }),
+      db.queryByIndex('GSI1', `COURSE#${id}`, 'GSI1PK')
+    ]);
+    const activity = activities.find(a => matchesCourseActivityIdentifier(a, activityId));
 
     if (!activity) {
       return res.status(404).json({
@@ -325,18 +351,21 @@ router.get('/:id/activities/:activityId', authMiddleware, async (req, res) => {
     }
 
     // 如果是檔案類型活動，附加檔案資訊
-    if (activity.type === 'file' && activity.fileId) {
-      const file = await db.getItem(`FILE#${activity.fileId}`, 'META');
+    const linkedIndexes = createLinkedEntityIndexes(linkedEntities);
+    const enrichedActivity = enrichCourseActivity(activity, linkedIndexes);
+
+    if (enrichedActivity.type === 'file' && enrichedActivity.fileId) {
+      const file = await db.getItem(`FILE#${enrichedActivity.fileId}`, 'META');
       if (file) {
-        activity.contentType = file.contentType;
-        activity.fileName = file.filename;
-        activity.fileSize = file.size;
+        enrichedActivity.contentType = file.contentType;
+        enrichedActivity.fileName = file.filename;
+        enrichedActivity.fileSize = file.size;
       }
     }
 
     res.json({
       success: true,
-      data: activity
+      data: enrichedActivity
     });
 
   } catch (error) {
@@ -361,7 +390,7 @@ router.put('/:id/activities/:activityId', authMiddleware, async (req, res) => {
 
     // 驗證權限
     const course = await db.getItem(`COURSE#${id}`, 'META');
-    if (!course || (course.instructorId !== userId && !req.user.isAdmin)) {
+    if (!course || !canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -371,7 +400,7 @@ router.put('/:id/activities/:activityId', authMiddleware, async (req, res) => {
 
     // 找到活動
     const activities = await db.query(`COURSE#${id}`, { skPrefix: 'ACTIVITY#' });
-    const activity = activities.find(a => a.activityId === activityId);
+    const activity = activities.find(a => matchesCourseActivityIdentifier(a, activityId));
 
     if (!activity) {
       return res.status(404).json({
@@ -381,11 +410,16 @@ router.put('/:id/activities/:activityId', authMiddleware, async (req, res) => {
       });
     }
 
+    if (updates.name && !updates.title) {
+      updates.title = updates.name;
+    }
+
     // 不允許更新的欄位
     delete updates.activityId;
     delete updates.courseId;
     delete updates.sectionId;
     delete updates.createdAt;
+    delete updates.name;
 
     updates.updatedAt = new Date().toISOString();
 
@@ -417,11 +451,10 @@ router.put('/:id/activities/:activityId', authMiddleware, async (req, res) => {
 router.delete('/:id/activities/:activityId', authMiddleware, async (req, res) => {
   try {
     const { id, activityId } = req.params;
-    const userId = req.user.userId;
 
     // 驗證權限
     const course = await db.getItem(`COURSE#${id}`, 'META');
-    if (!course || (course.instructorId !== userId && !req.user.isAdmin)) {
+    if (!course || !canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -431,7 +464,7 @@ router.delete('/:id/activities/:activityId', authMiddleware, async (req, res) =>
 
     // 找到活動
     const activities = await db.query(`COURSE#${id}`, { skPrefix: 'ACTIVITY#' });
-    const activity = activities.find(a => a.activityId === activityId);
+    const activity = activities.find(a => matchesCourseActivityIdentifier(a, activityId));
 
     if (!activity) {
       return res.status(404).json({

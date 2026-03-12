@@ -43,7 +43,7 @@ const SCORM_INTERACTIONS = {
  * GET /api/scorm
  * 獲取所有 SCORM 包列表
  */
-router.get('/', authMiddleware, async (req, res) => {
+router.get('/', adminMiddleware, async (req, res) => {
   try {
     const { courseId, status, limit = 50 } = req.query;
 
@@ -88,7 +88,7 @@ router.get('/', authMiddleware, async (req, res) => {
  * GET /api/scorm/:packageId
  * 獲取單個 SCORM 包詳情
  */
-router.get('/:packageId', authMiddleware, async (req, res) => {
+router.get('/:packageId', adminMiddleware, async (req, res) => {
   try {
     const { packageId } = req.params;
 
@@ -118,7 +118,7 @@ router.get('/:packageId', authMiddleware, async (req, res) => {
  * POST /api/scorm
  * 創建新的 SCORM 包（管理員/教師）
  */
-router.post('/', authMiddleware, async (req, res) => {
+router.post('/', adminMiddleware, async (req, res) => {
   try {
     const {
       name,
@@ -194,7 +194,7 @@ router.post('/', authMiddleware, async (req, res) => {
  * PUT /api/scorm/:packageId
  * 更新 SCORM 包
  */
-router.put('/:packageId', authMiddleware, async (req, res) => {
+router.put('/:packageId', adminMiddleware, async (req, res) => {
   try {
     const { packageId } = req.params;
     const updates = req.body;
@@ -673,7 +673,7 @@ router.post('/:packageId/finish/:attemptId', authMiddleware, async (req, res) =>
  * GET /api/scorm/:packageId/attempts
  * 獲取用戶的嘗試記錄
  */
-router.get('/:packageId/attempts', authMiddleware, async (req, res) => {
+router.get('/:packageId/attempts', adminMiddleware, async (req, res) => {
   try {
     const { packageId } = req.params;
     const { userId } = req.query;

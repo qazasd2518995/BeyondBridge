@@ -529,6 +529,35 @@ const App = {
   /**
    * 更新用戶介面資訊
    */
+  renderProfileAvatar(container, user, fallbackText) {
+    if (!container) return;
+
+    const label = fallbackText || t('app.user');
+    const initial = (label || t('app.user')).trim().charAt(0) || t('app.user').charAt(0);
+    const avatarUrl = user?.avatarUrl;
+
+    container.replaceChildren();
+    container.classList.toggle('has-image', Boolean(avatarUrl));
+
+    if (avatarUrl) {
+      const image = document.createElement('img');
+      image.className = 'profile-avatar-image';
+      image.alt = label;
+      image.src = avatarUrl;
+      image.addEventListener('error', () => {
+        container.classList.remove('has-image');
+        container.textContent = initial;
+      }, { once: true });
+      container.appendChild(image);
+      return;
+    }
+
+    container.textContent = initial;
+  },
+
+  /**
+   * 更新用戶介面資訊
+   */
   updateUserUI() {
     const user = this.currentUser || API.getCurrentUser();
     if (!user) return;
@@ -554,8 +583,8 @@ const App = {
       userRole.textContent = roleMap[user.role] || user.role || t('role.default');
     }
     if (userAvatar) {
-      const initial = (user.displayNameZh || user.displayName || t('app.user'))[0];
-      userAvatar.textContent = initial;
+      const avatarLabel = user.displayNameZh || user.displayName || t('app.user');
+      this.renderProfileAvatar(userAvatar, user, avatarLabel);
     }
 
     // 更新設定頁面
@@ -599,7 +628,6 @@ const App = {
     if (notifyEmail) notifyEmail.checked = notifications.email === true;
 
     // 更新頂部 banner
-    const initial = (user.displayNameZh || user.displayName || t('app.user'))[0];
     const heroInitial = document.getElementById('settingsProfileInitial');
     const heroName = document.getElementById('settingsProfileName');
     const heroEmail = document.getElementById('settingsProfileEmail');
@@ -607,7 +635,9 @@ const App = {
     const heroJoinDate = document.getElementById('settingsHeroJoinDate');
     const heroLicense = document.getElementById('settingsHeroLicense');
 
-    if (heroInitial) heroInitial.textContent = initial;
+    if (heroInitial) {
+      this.renderProfileAvatar(heroInitial, user, user.displayName || user.displayNameZh || t('app.user'));
+    }
     if (heroName) heroName.textContent = user.displayName || user.displayNameZh || t('app.user');
     if (heroEmail) heroEmail.textContent = user.email || '';
     if (heroTier) {
@@ -3648,10 +3678,9 @@ const App = {
       </section>
     `;
     try {
-      const user = API.getCurrentUser();
       const coursesResult = await API.courses.getMyCourses('instructor');
       const courses = coursesResult.success ? (coursesResult.data || []) : [];
-      const teacherCourses = courses.filter(c => !user || c.instructorId === user.userId || user.isAdmin);
+      const teacherCourses = courses;
       const locale = I18n.getLocale();
       const untitledCourseLabel = locale === 'en' ? 'Untitled Course' : '未命名課程';
 

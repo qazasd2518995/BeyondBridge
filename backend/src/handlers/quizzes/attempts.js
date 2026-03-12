@@ -7,6 +7,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../../utils/db');
 const { authMiddleware } = require('../../utils/auth');
+const { canManageCourse } = require('../../utils/course-access');
 const {
   getQuiz,
   prepareQuestionsForStudent,
@@ -15,6 +16,18 @@ const {
   calculateRiskLevel,
   generateFlags
 } = require('./utils');
+
+async function canManageQuiz(quiz, user) {
+  if (!quiz || !user) return false;
+  if (user.isAdmin) return true;
+  if (quiz.courseId) {
+    const course = await db.getItem(`COURSE#${quiz.courseId}`, 'META');
+    if (course && canManageCourse(course, user)) {
+      return true;
+    }
+  }
+  return quiz.createdBy === user.userId;
+}
 
 // ==================== 作答流程（學生） ====================
 
@@ -526,7 +539,7 @@ router.put('/:id/settings/anti-cheat', authMiddleware, async (req, res) => {
       });
     }
 
-    if (quiz.createdBy !== userId && !req.user.isAdmin) {
+    if (!(await canManageQuiz(quiz, req.user))) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -609,7 +622,7 @@ router.get('/:id/settings/anti-cheat', authMiddleware, async (req, res) => {
     }
 
     // 非建立者只能看到部分設定
-    const isOwner = quiz.createdBy === userId || req.user.isAdmin;
+    const isOwner = await canManageQuiz(quiz, req.user);
 
     if (isOwner) {
       res.json({
@@ -881,7 +894,7 @@ router.get('/:id/attempts/:attemptId/proctoring-report', authMiddleware, async (
       });
     }
 
-    if (quiz.createdBy !== userId && !req.user.isAdmin) {
+    if (!(await canManageQuiz(quiz, req.user))) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -971,7 +984,7 @@ router.get('/:id/proctoring-summary', authMiddleware, async (req, res) => {
       });
     }
 
-    if (quiz.createdBy !== userId && !req.user.isAdmin) {
+    if (!(await canManageQuiz(quiz, req.user))) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',

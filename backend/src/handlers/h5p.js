@@ -46,7 +46,7 @@ const H5P_STATUS = {
  * GET /api/h5p
  * 獲取所有 H5P 內容列表
  */
-router.get('/', authMiddleware, async (req, res) => {
+router.get('/', adminMiddleware, async (req, res) => {
   try {
     const { courseId, contentType, status, limit = 50 } = req.query;
 
@@ -105,7 +105,7 @@ router.get('/', authMiddleware, async (req, res) => {
  * GET /api/h5p/types
  * 獲取可用的 H5P 內容類型
  */
-router.get('/types', authMiddleware, (req, res) => {
+router.get('/types', adminMiddleware, (req, res) => {
   const types = Object.entries(H5P_CONTENT_TYPES).map(([key, value]) => ({
     id: value,
     name: key.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase()),
@@ -122,7 +122,7 @@ router.get('/types', authMiddleware, (req, res) => {
  * GET /api/h5p/:contentId
  * 獲取單個 H5P 內容詳情
  */
-router.get('/:contentId', authMiddleware, async (req, res) => {
+router.get('/:contentId', adminMiddleware, async (req, res) => {
   try {
     const { contentId } = req.params;
 
@@ -152,7 +152,7 @@ router.get('/:contentId', authMiddleware, async (req, res) => {
  * POST /api/h5p
  * 創建新的 H5P 內容
  */
-router.post('/', authMiddleware, async (req, res) => {
+router.post('/', adminMiddleware, async (req, res) => {
   try {
     const {
       title,
@@ -235,7 +235,7 @@ router.post('/', authMiddleware, async (req, res) => {
  * PUT /api/h5p/:contentId
  * 更新 H5P 內容
  */
-router.put('/:contentId', authMiddleware, async (req, res) => {
+router.put('/:contentId', adminMiddleware, async (req, res) => {
   try {
     const { contentId } = req.params;
     const updates = req.body;
@@ -570,7 +570,7 @@ router.get('/:contentId/report', adminMiddleware, async (req, res) => {
  * GET /api/h5p/:contentId/embed
  * 獲取 H5P 嵌入代碼
  */
-router.get('/:contentId/embed', authMiddleware, async (req, res) => {
+router.get('/:contentId/embed', adminMiddleware, async (req, res) => {
   try {
     const { contentId } = req.params;
 
@@ -611,7 +611,7 @@ router.get('/:contentId/embed', authMiddleware, async (req, res) => {
  * DELETE /api/h5p/:contentId
  * 刪除 H5P 內容
  */
-router.delete('/:contentId', authMiddleware, async (req, res) => {
+router.delete('/:contentId', adminMiddleware, async (req, res) => {
   try {
     const { contentId } = req.params;
 
@@ -661,7 +661,7 @@ router.delete('/:contentId', authMiddleware, async (req, res) => {
  * POST /api/h5p/:contentId/duplicate
  * 複製 H5P 內容
  */
-router.post('/:contentId/duplicate', authMiddleware, async (req, res) => {
+router.post('/:contentId/duplicate', adminMiddleware, async (req, res) => {
   try {
     const { contentId } = req.params;
     const { title, courseId } = req.body;
