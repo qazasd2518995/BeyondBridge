@@ -10,6 +10,98 @@ const { authMiddleware } = require('../utils/auth');
 const { canManageCourse } = require('../utils/course-access');
 const { syncCourseActivityLink, deleteCourseActivityLink } = require('../utils/course-activities');
 
+function buildDiscussionPreview(content) {
+  return String(content || '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 160);
+}
+
+function getDiscussionSortTime(discussion) {
+  return discussion?.lastReplyAt || discussion?.createdAt || discussion?.updatedAt || null;
+}
+
+function normalizeDiscussionIndexRow(row) {
+  if (!row) return null;
+  return {
+    discussionId: row.discussionId,
+    forumId: row.forumId,
+    title: row.title || '',
+    subject: row.subject || row.title || '',
+    message: row.message || row.contentPreview || row.content || '',
+    authorId: row.authorId || null,
+    authorName: row.authorName || '未知用戶',
+    authorRole: row.authorRole || null,
+    pinned: !!row.pinned,
+    locked: !!row.locked,
+    createdAt: row.createdAt || null,
+    updatedAt: row.updatedAt || null,
+    replyCount: Number(row.replyCount || 0),
+    lastReply: row.lastReplyAt || null,
+    latestReply: row.lastReplyAt ? {
+      authorName: row.lastReplyByName || row.authorName || '未知用戶',
+      createdAt: row.lastReplyAt
+    } : null
+  };
+}
+
+async function getForumSubscriptionMap(userId) {
+  if (!userId) return new Map();
+  const rows = await db.queryByIndex('GSI1', `USER#${userId}`, 'GSI1PK', {
+    skName: 'GSI1SK',
+    skPrefix: 'FORUM_SUBSCRIPTION#',
+    projection: ['forumId', 'subscribed']
+  });
+  return new Map(rows.filter(row => row?.forumId).map(row => [row.forumId, row]));
+}
+
+function summarizeForumFromIndices(forum, discussionRows) {
+  const normalizedRows = discussionRows.map(normalizeDiscussionIndexRow).filter(Boolean);
+  const hasStoredDiscussionCount = Number.isFinite(Number(forum.stats?.discussionCount));
+  const hasStoredPostCount = Number.isFinite(Number(forum.stats?.postCount));
+  const discussionCount = hasStoredDiscussionCount ? Number(forum.stats?.discussionCount) : normalizedRows.length;
+  const postCount = hasStoredPostCount
+    ? Number(forum.stats?.postCount)
+    : normalizedRows.reduce((sum, row) => sum + Number(row.replyCount || 0), 0);
+
+  const latestDiscussion = normalizedRows
+    .slice()
+    .sort((a, b) => new Date(getDiscussionSortTime(b) || 0) - new Date(getDiscussionSortTime(a) || 0))[0];
+
+  return {
+    discussionCount,
+    postCount,
+    latestDiscussion: latestDiscussion ? {
+      title: latestDiscussion.title,
+      createdAt: getDiscussionSortTime(latestDiscussion),
+      authorName: latestDiscussion.latestReply?.authorName || latestDiscussion.authorName
+    } : null
+  };
+}
+
+async function deleteDiscussionGraph(discussionId) {
+  const discussionItems = await db.query(`DISCUSSION#${discussionId}`);
+  const postRows = discussionItems.filter(item => String(item?.SK || '').startsWith('POST#'));
+  const ratingGroups = await Promise.all(
+    postRows
+      .filter(item => item?.postId)
+      .map(async post => db.query(`POST#${post.postId}`, { skPrefix: 'RATING#' }))
+  );
+
+  const deleteKeys = [
+    ...discussionItems.map(item => ({ PK: item.PK, SK: item.SK })),
+    ...ratingGroups.flat().map(item => ({ PK: item.PK, SK: item.SK }))
+  ];
+
+  if (deleteKeys.length > 0) {
+    await db.batchDelete(deleteKeys);
+  }
+
+  return {
+    postCount: postRows.length
+  };
+}
+
 // ==================== 討論區列表與詳情 ====================
 
 /**
@@ -55,36 +147,34 @@ router.get('/', authMiddleware, async (req, res) => {
       forums = forums.filter(f => allowedCourseIds.has(f.courseId));
     }
 
-    // 取得每個討論區的統計
+    const [forumDiscussionRows, subscriptionMap] = await Promise.all([
+      Promise.all(
+        forums.map(f => db.query(`FORUM#${f.forumId}`, {
+          skPrefix: 'DISCUSSION#',
+          projection: [
+            'discussionId',
+            'forumId',
+            'title',
+            'authorName',
+            'authorRole',
+            'pinned',
+            'replyCount',
+            'lastReplyAt',
+            'lastReplyByName',
+            'contentPreview',
+            'createdAt',
+            'updatedAt'
+          ]
+        }))
+      ),
+      getForumSubscriptionMap(userId)
+    ]);
+
     const forumsWithStats = await Promise.all(
-      forums.map(async (f) => {
-        const [discussions, storedSubscription] = await Promise.all([
-          db.query(`FORUM#${f.forumId}`, { skPrefix: 'DISCUSSION#' }),
-          db.getItem(`FORUM#${f.forumId}`, `SUBSCRIPTION#${userId}`)
-        ]);
-
-        const hasStoredDiscussionCount = Number.isFinite(Number(f.stats?.discussionCount));
-        const hasStoredPostCount = Number.isFinite(Number(f.stats?.postCount));
-        let discussionCount = hasStoredDiscussionCount ? Number(f.stats?.discussionCount) : discussions.length;
-        let postCount = hasStoredPostCount ? Number(f.stats?.postCount) : 0;
-
-        if (!hasStoredPostCount) {
-          for (const d of discussions) {
-            const replies = await db.query(`DISCUSSION#${d.discussionId}`, {
-              skPrefix: 'POST#'
-            });
-            postCount += replies.length;
-          }
-        }
-        if (!hasStoredDiscussionCount) {
-          discussionCount = discussions.length;
-        }
-
-        // 取得最新討論
-        const latestDiscussion = discussions
-          .slice()
-          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
-
+      forums.map(async (f, index) => {
+        const discussions = forumDiscussionRows[index] || [];
+        const summary = summarizeForumFromIndices(f, discussions);
+        const storedSubscription = subscriptionMap.get(f.forumId);
         const defaultSubscribed = f.subscriptionMode === 'forced' || f.subscriptionMode === 'auto';
         const subscribed = storedSubscription
           ? storedSubscription.subscribed !== false
@@ -94,19 +184,15 @@ router.get('/', authMiddleware, async (req, res) => {
         delete f.SK;
         return {
           ...f,
-          discussionCount,
-          postCount,
-          replyCount: postCount,
+          discussionCount: summary.discussionCount,
+          postCount: summary.postCount,
+          replyCount: summary.postCount,
           subscribed,
           stats: {
-            discussionCount,
-            postCount,
-            replyCount: postCount,
-            latestDiscussion: latestDiscussion ? {
-              title: latestDiscussion.title,
-              createdAt: latestDiscussion.createdAt,
-              authorName: latestDiscussion.authorName
-            } : null
+            discussionCount: summary.discussionCount,
+            postCount: summary.postCount,
+            replyCount: summary.postCount,
+            latestDiscussion: summary.latestDiscussion
           }
         };
       })
@@ -148,44 +234,35 @@ router.get('/:id', authMiddleware, async (req, res) => {
     }
     const forum = context.forum;
 
-    // 取得討論列表
+    // 取得討論列表（直接使用論壇索引，避免逐討論查貼文）
     let discussions = await db.query(`FORUM#${id}`, {
-      skPrefix: 'DISCUSSION#'
+      skPrefix: 'DISCUSSION#',
+      projection: [
+        'discussionId',
+        'forumId',
+        'title',
+        'authorId',
+        'authorName',
+        'authorRole',
+        'pinned',
+        'locked',
+        'contentPreview',
+        'replyCount',
+        'lastReplyAt',
+        'lastReplyByName',
+        'createdAt',
+        'updatedAt'
+      ]
     });
-
-    // 取得每個討論的回覆數和最新回覆
-    discussions = await Promise.all(
-      discussions.map(async (d) => {
-        const posts = await db.query(`DISCUSSION#${d.discussionId}`, {
-          skPrefix: 'POST#'
-        });
-
-        const latestPost = posts
-          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
-
-        delete d.PK;
-        delete d.SK;
-        return {
-          ...d,
-          subject: d.subject || d.title || '',
-          message: d.message || d.content || '',
-          replyCount: posts.length,
-          lastReply: latestPost?.createdAt || d.lastReplyAt || null,
-          latestReply: latestPost ? {
-            authorName: latestPost.authorName,
-            createdAt: latestPost.createdAt
-          } : null
-        };
-      })
-    );
+    discussions = discussions.map(normalizeDiscussionIndexRow).filter(Boolean);
 
     // 排序
     if (sort === 'latest') {
       discussions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     } else if (sort === 'active') {
       discussions.sort((a, b) => {
-        const aLatest = a.latestReply?.createdAt || a.createdAt;
-        const bLatest = b.latestReply?.createdAt || b.createdAt;
+        const aLatest = getDiscussionSortTime(a);
+        const bLatest = getDiscussionSortTime(b);
         return new Date(bLatest) - new Date(aLatest);
       });
     } else if (sort === 'popular') {
@@ -456,21 +533,17 @@ router.delete('/:id', authMiddleware, async (req, res) => {
       });
     }
 
-    // 刪除所有討論和回覆
-    const discussions = await db.query(`FORUM#${id}`, { skPrefix: 'DISCUSSION#' });
-    for (const d of discussions) {
-      // 刪除回覆
-      const posts = await db.query(`DISCUSSION#${d.discussionId}`, { skPrefix: 'POST#' });
-      for (const p of posts) {
-        await db.deleteItem(`DISCUSSION#${d.discussionId}`, p.SK);
-      }
-      // 刪除討論
-      await db.deleteItem(`FORUM#${id}`, d.SK);
-      await db.deleteItem(`DISCUSSION#${d.discussionId}`, 'META');
-    }
+    const forumItems = await db.query(`FORUM#${id}`);
+    const discussionIndexRows = forumItems.filter(item => String(item?.SK || '').startsWith('DISCUSSION#'));
+    await Promise.all(
+      discussionIndexRows
+        .filter(row => row?.discussionId)
+        .map(row => deleteDiscussionGraph(row.discussionId))
+    );
 
-    // 刪除討論區
-    await db.deleteItem(`FORUM#${id}`, 'META');
+    if (forumItems.length > 0) {
+      await db.batchDelete(forumItems.map(item => ({ PK: item.PK, SK: item.SK })));
+    }
     await deleteCourseActivityLink(forum.courseId, id);
 
     res.json({
@@ -639,6 +712,10 @@ router.post('/:id/discussions', authMiddleware, async (req, res) => {
       pinned: canPin && pinned,
       locked: false,
       viewCount: 0,
+      replyCount: 0,
+      lastReplyAt: null,
+      lastReplyBy: null,
+      lastReplyByName: null,
 
       createdAt: now,
       updatedAt: now
@@ -652,10 +729,18 @@ router.post('/:id/discussions', authMiddleware, async (req, res) => {
       SK: `DISCUSSION#${discussionId}`,
       entityType: 'FORUM_DISCUSSION',
       discussionId,
+      forumId: id,
+      courseId: forum.courseId,
       title,
+      contentPreview: buildDiscussionPreview(content),
       authorId: userId,
       authorName: user?.displayName || '未知用戶',
+      authorRole: isInstructor ? 'instructor' : 'student',
       pinned: canPin && pinned,
+      locked: false,
+      replyCount: 0,
+      lastReplyAt: null,
+      lastReplyByName: null,
       createdAt: now
     });
 
@@ -696,7 +781,7 @@ router.put('/:id/discussions/:discussionId', authMiddleware, async (req, res) =>
   try {
     const { id, discussionId } = req.params;
     const userId = req.user.userId;
-    const updates = req.body;
+    const updates = { ...req.body };
 
     const discussion = await db.getItem(`DISCUSSION#${discussionId}`, 'META');
     if (!discussion) {
@@ -728,6 +813,10 @@ router.put('/:id/discussions/:discussionId', authMiddleware, async (req, res) =>
     delete updates.authorId;
     delete updates.authorName;
     delete updates.createdAt;
+    if (updates.subject && !updates.title) updates.title = updates.subject;
+    if (updates.message && !updates.content) updates.content = updates.message;
+    delete updates.subject;
+    delete updates.message;
 
     // 只有教師可以置頂/鎖定
     if (!isInstructor && !req.user.isAdmin) {
@@ -740,10 +829,12 @@ router.put('/:id/discussions/:discussionId', authMiddleware, async (req, res) =>
     const updatedDiscussion = await db.updateItem(`DISCUSSION#${discussionId}`, 'META', updates);
 
     // 更新討論區中的索引
-    if (updates.title || updates.pinned !== undefined) {
+    if (updates.title || updates.content !== undefined || updates.pinned !== undefined || updates.locked !== undefined) {
       await db.updateItem(`FORUM#${id}`, `DISCUSSION#${discussionId}`, {
         title: updates.title || discussion.title,
+        contentPreview: updates.content !== undefined ? buildDiscussionPreview(updates.content) : buildDiscussionPreview(discussion.content),
         pinned: updates.pinned !== undefined ? updates.pinned : discussion.pinned,
+        locked: updates.locked !== undefined ? updates.locked : discussion.locked,
         updatedAt: updates.updatedAt
       });
     }
@@ -799,20 +890,13 @@ router.delete('/:id/discussions/:discussionId', authMiddleware, async (req, res)
       });
     }
 
-    // 刪除所有回覆
-    const posts = await db.query(`DISCUSSION#${discussionId}`, { skPrefix: 'POST#' });
-    for (const p of posts) {
-      await db.deleteItem(`DISCUSSION#${discussionId}`, p.SK);
-    }
-
-    // 刪除討論
-    await db.deleteItem(`DISCUSSION#${discussionId}`, 'META');
+    const deletedDiscussion = await deleteDiscussionGraph(discussionId);
     await db.deleteItem(`FORUM#${id}`, `DISCUSSION#${discussionId}`);
 
     // 更新討論區統計
     await db.updateItem(`FORUM#${id}`, 'META', {
       'stats.discussionCount': Math.max(0, (forum.stats?.discussionCount || 1) - 1),
-      'stats.postCount': Math.max(0, (forum.stats?.postCount || posts.length) - posts.length),
+      'stats.postCount': Math.max(0, (forum.stats?.postCount || deletedDiscussion.postCount) - deletedDiscussion.postCount),
       updatedAt: new Date().toISOString()
     });
 
@@ -938,8 +1022,16 @@ router.post('/:id/discussions/:discussionId/posts', authMiddleware, async (req, 
 
     // 更新討論的最後回覆時間
     await db.updateItem(`DISCUSSION#${discussionId}`, 'META', {
+      replyCount: (discussion.replyCount || 0) + 1,
       lastReplyAt: now,
       lastReplyBy: userId,
+      lastReplyByName: user?.displayName || '未知用戶',
+      updatedAt: now
+    });
+
+    await db.updateItem(`FORUM#${id}`, `DISCUSSION#${discussionId}`, {
+      replyCount: (discussion.replyCount || 0) + 1,
+      lastReplyAt: now,
       lastReplyByName: user?.displayName || '未知用戶',
       updatedAt: now
     });
@@ -1040,6 +1132,15 @@ router.delete('/:id/discussions/:discussionId/posts/:postId', authMiddleware, as
   try {
     const { id, discussionId, postId } = req.params;
     const userId = req.user.userId;
+    const discussion = await db.getItem(`DISCUSSION#${discussionId}`, 'META');
+
+    if (!discussion) {
+      return res.status(404).json({
+        success: false,
+        error: 'DISCUSSION_NOT_FOUND',
+        message: '找不到此討論'
+      });
+    }
 
     // 找到回覆
     const posts = await db.query(`DISCUSSION#${discussionId}`, { skPrefix: 'POST#' });
@@ -1069,10 +1170,31 @@ router.delete('/:id/discussions/:discussionId/posts/:postId', authMiddleware, as
 
     await db.deleteItem(`DISCUSSION#${discussionId}`, post.SK);
 
+    const remainingPosts = await db.query(`DISCUSSION#${discussionId}`, { skPrefix: 'POST#' });
+    const latestPost = remainingPosts
+      .slice()
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+    const now = new Date().toISOString();
+
     // 更新討論區統計
     await db.updateItem(`FORUM#${id}`, 'META', {
       'stats.postCount': Math.max(0, (forum.stats?.postCount || 1) - 1),
-      updatedAt: new Date().toISOString()
+      updatedAt: now
+    });
+
+    await db.updateItem(`DISCUSSION#${discussionId}`, 'META', {
+      replyCount: Math.max(0, (discussion.replyCount || 1) - 1),
+      lastReplyAt: latestPost?.createdAt || null,
+      lastReplyBy: latestPost?.authorId || null,
+      lastReplyByName: latestPost?.authorName || null,
+      updatedAt: now
+    });
+
+    await db.updateItem(`FORUM#${id}`, `DISCUSSION#${discussionId}`, {
+      replyCount: Math.max(0, (discussion.replyCount || 1) - 1),
+      lastReplyAt: latestPost?.createdAt || null,
+      lastReplyByName: latestPost?.authorName || null,
+      updatedAt: now
     });
 
     res.json({
@@ -2050,6 +2172,10 @@ router.post('/:id/discussions/:discussionId/lock', authMiddleware, async (req, r
       lockedBy: userId,
       updatedAt: now
     });
+    await db.updateItem(`FORUM#${id}`, `DISCUSSION#${discussionId}`, {
+      locked: true,
+      updatedAt: now
+    });
 
     res.json({
       success: true,
@@ -2111,6 +2237,10 @@ router.delete('/:id/discussions/:discussionId/lock', authMiddleware, async (req,
       lockReason: null,
       lockedAt: null,
       lockedBy: null,
+      updatedAt: now
+    });
+    await db.updateItem(`FORUM#${id}`, `DISCUSSION#${discussionId}`, {
+      locked: false,
       updatedAt: now
     });
 

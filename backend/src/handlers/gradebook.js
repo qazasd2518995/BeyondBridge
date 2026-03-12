@@ -106,6 +106,138 @@ function normalizeManualItem(item = {}) {
   };
 }
 
+async function getCourseAssignments(courseId) {
+  return db.queryByIndex('GSI1', `COURSE#${courseId}`, 'GSI1PK', {
+    skName: 'GSI1SK',
+    skPrefix: 'ASSIGNMENT#'
+  });
+}
+
+async function getCourseQuizzes(courseId) {
+  return db.queryByIndex('GSI1', `COURSE#${courseId}`, 'GSI1PK', {
+    skName: 'GSI1SK',
+    skPrefix: 'QUIZ#'
+  });
+}
+
+async function getCourseGradeItems(courseId) {
+  const [assignments, quizzes, manualItems] = await Promise.all([
+    getCourseAssignments(courseId),
+    getCourseQuizzes(courseId),
+    db.query(`COURSE#${courseId}`, { skPrefix: 'GRADEITEM#' })
+  ]);
+
+  return { assignments, quizzes, manualItems };
+}
+
+function mapRowsByStudent(rows = [], studentKey = 'userId') {
+  const mapped = new Map();
+  rows.forEach(row => {
+    const studentId = row?.[studentKey] || row?.studentId || (
+      typeof row?.SK === 'string' && row.SK.startsWith('STUDENT#')
+        ? row.SK.replace('STUDENT#', '')
+        : null
+    );
+    if (!studentId) return;
+    mapped.set(studentId, row);
+  });
+  return mapped;
+}
+
+function groupAttemptsByStudent(rows = []) {
+  const grouped = new Map();
+  rows.forEach(row => {
+    if (!row?.userId) return;
+    const bucket = grouped.get(row.userId);
+    if (bucket) {
+      bucket.push(row);
+      return;
+    }
+    grouped.set(row.userId, [row]);
+  });
+  return grouped;
+}
+
+function getQuizGradeSummary(quiz, attempts = []) {
+  const completedAttempts = attempts.filter(a => a.status === 'completed');
+  if (completedAttempts.length === 0) {
+    return {
+      completedAttempts: [],
+      bestScore: null,
+      bestPercentage: null,
+      bestAttempt: null,
+      attemptCount: 0
+    };
+  }
+
+  let selectedAttempt = completedAttempts[0];
+  if (quiz.gradeMethod === 'highest') {
+    selectedAttempt = completedAttempts.reduce((max, attempt) => (
+      (attempt.percentage || 0) > (max?.percentage || 0) ? attempt : max
+    ), completedAttempts[0]);
+  } else if (quiz.gradeMethod === 'average') {
+    const bestScore = completedAttempts.reduce((sum, attempt) => sum + Number(attempt.score || 0), 0) / completedAttempts.length;
+    const bestPercentage = completedAttempts.reduce((sum, attempt) => sum + Number(attempt.percentage || 0), 0) / completedAttempts.length;
+    return {
+      completedAttempts,
+      bestScore,
+      bestPercentage,
+      bestAttempt: null,
+      attemptCount: completedAttempts.length
+    };
+  } else if (quiz.gradeMethod === 'last') {
+    selectedAttempt = completedAttempts[completedAttempts.length - 1];
+  }
+
+  return {
+    completedAttempts,
+    bestScore: selectedAttempt?.score ?? null,
+    bestPercentage: selectedAttempt?.percentage ?? null,
+    bestAttempt: selectedAttempt || null,
+    attemptCount: completedAttempts.length
+  };
+}
+
+async function buildCourseGradebookDataset(courseId) {
+  const { assignments, quizzes, manualItems } = await getCourseGradeItems(courseId);
+
+  const [submissionEntries, attemptEntries, manualRecordEntries] = await Promise.all([
+    Promise.all(
+      assignments
+        .filter(item => item?.assignmentId)
+        .map(async assignment => [
+          assignment.assignmentId,
+          mapRowsByStudent(await db.query(`ASSIGNMENT#${assignment.assignmentId}`, { skPrefix: 'SUBMISSION#' }))
+        ])
+    ),
+    Promise.all(
+      quizzes
+        .filter(item => item?.quizId)
+        .map(async quiz => [
+          quiz.quizId,
+          groupAttemptsByStudent(await db.query(`QUIZ#${quiz.quizId}`, { skPrefix: 'ATTEMPT#' }))
+        ])
+    ),
+    Promise.all(
+      manualItems
+        .filter(item => item?.itemId)
+        .map(async item => [
+          item.itemId,
+          mapRowsByStudent(await db.query(`GRADEITEM#${item.itemId}`, { skPrefix: 'STUDENT#' }), 'studentId')
+        ])
+    )
+  ]);
+
+  return {
+    assignments,
+    quizzes,
+    manualItems,
+    submissionsByAssignment: new Map(submissionEntries),
+    attemptsByQuiz: new Map(attemptEntries),
+    manualRecordsByItem: new Map(manualRecordEntries)
+  };
+}
+
 // ==================== 成績類別管理 ====================
 
 /**
@@ -356,21 +488,7 @@ router.get('/courses/:courseId/items', authMiddleware, async (req, res) => {
     }
 
     // 取得所有成績項目
-    const [assignments, quizzes, manualItems] = await Promise.all([
-      db.scan({
-        filter: {
-          expression: 'entityType = :type AND courseId = :courseId',
-          values: { ':type': 'ASSIGNMENT', ':courseId': courseId }
-        }
-      }),
-      db.scan({
-        filter: {
-          expression: 'entityType = :type AND courseId = :courseId',
-          values: { ':type': 'QUIZ', ':courseId': courseId }
-        }
-      }),
-      db.query(`COURSE#${courseId}`, { skPrefix: 'GRADEITEM#' })
-    ]);
+    const { assignments, quizzes, manualItems } = await getCourseGradeItems(courseId);
 
     const items = [
       ...assignments.map(a => ({
@@ -725,33 +843,21 @@ router.get('/my', authMiddleware, async (req, res) => {
     const gradesData = await Promise.all(
       progressList.map(async (progress) => {
         const course = await db.getItem(`COURSE#${progress.courseId}`, 'META');
-
-        // 取得課程的所有評分項目
-        const [assignments, quizzes, manualItems] = await Promise.all([
-          db.scan({
-            filter: {
-              expression: 'entityType = :type AND courseId = :courseId',
-              values: { ':type': 'ASSIGNMENT', ':courseId': progress.courseId }
-            }
-          }),
-          db.scan({
-            filter: {
-              expression: 'entityType = :type AND courseId = :courseId',
-              values: { ':type': 'QUIZ', ':courseId': progress.courseId }
-            }
-          }),
-          db.query(`COURSE#${progress.courseId}`, { skPrefix: 'GRADEITEM#' })
-        ]);
+        const {
+          assignments,
+          quizzes,
+          manualItems,
+          submissionsByAssignment,
+          attemptsByQuiz,
+          manualRecordsByItem
+        } = await buildCourseGradebookDataset(progress.courseId);
 
         // 整理成績項目
         const gradeItems = [];
 
         // 作業成績
         for (const a of assignments) {
-          const submission = await db.getItem(
-            `ASSIGNMENT#${a.assignmentId}`,
-            `SUBMISSION#${userId}`
-          );
+          const submission = submissionsByAssignment.get(a.assignmentId)?.get(userId) || null;
 
           gradeItems.push({
             type: 'assignment',
@@ -770,33 +876,9 @@ router.get('/my', authMiddleware, async (req, res) => {
 
         // 測驗成績
         for (const q of quizzes) {
-          const attempts = await db.query(`QUIZ#${q.quizId}`, {
-            skPrefix: `ATTEMPT#${userId}#`
-          });
-          const completedAttempts = attempts.filter(a => a.status === 'completed');
-
-          let bestScore = null;
-          let bestPercentage = null;
-
-          if (completedAttempts.length > 0) {
-            if (q.gradeMethod === 'highest') {
-              const best = completedAttempts.reduce((max, a) =>
-                a.percentage > (max?.percentage || 0) ? a : max, null);
-              bestScore = best?.score;
-              bestPercentage = best?.percentage;
-            } else if (q.gradeMethod === 'average') {
-              bestScore = completedAttempts.reduce((sum, a) => sum + a.score, 0) / completedAttempts.length;
-              bestPercentage = completedAttempts.reduce((sum, a) => sum + a.percentage, 0) / completedAttempts.length;
-            } else if (q.gradeMethod === 'last') {
-              const last = completedAttempts[completedAttempts.length - 1];
-              bestScore = last?.score;
-              bestPercentage = last?.percentage;
-            } else {
-              const first = completedAttempts[0];
-              bestScore = first?.score;
-              bestPercentage = first?.percentage;
-            }
-          }
+          const quizSummary = getQuizGradeSummary(q, attemptsByQuiz.get(q.quizId)?.get(userId) || []);
+          const bestScore = quizSummary.bestScore;
+          const bestPercentage = quizSummary.bestPercentage;
 
           gradeItems.push({
             type: 'quiz',
@@ -808,18 +890,15 @@ router.get('/my', authMiddleware, async (req, res) => {
             dueDate: q.closeDate,
             grade: bestScore,
             percentage: bestPercentage,
-            graded: completedAttempts.length > 0,
-            attemptCount: completedAttempts.length,
+            graded: quizSummary.attemptCount > 0,
+            attemptCount: quizSummary.attemptCount,
             passed: bestPercentage >= q.passingGrade
           });
         }
 
         // 手動成績
         for (const item of manualItems) {
-          const record = await db.getItem(
-            `GRADEITEM#${item.itemId}`,
-            `STUDENT#${userId}`
-          );
+          const record = manualRecordsByItem.get(item.itemId)?.get(userId) || null;
 
           gradeItems.push({
             type: 'manual',
@@ -936,22 +1015,14 @@ router.get('/courses/:courseId', authMiddleware, async (req, res) => {
       { skPrefix: 'ENROLLED#', skName: 'GSI1SK' }
     );
 
-    // 取得評分項目
-    const [assignments, quizzes, manualItems] = await Promise.all([
-      db.scan({
-        filter: {
-          expression: 'entityType = :type AND courseId = :courseId',
-          values: { ':type': 'ASSIGNMENT', ':courseId': courseId }
-        }
-      }),
-      db.scan({
-        filter: {
-          expression: 'entityType = :type AND courseId = :courseId',
-          values: { ':type': 'QUIZ', ':courseId': courseId }
-        }
-      }),
-      db.query(`COURSE#${courseId}`, { skPrefix: 'GRADEITEM#' })
-    ]);
+    const {
+      assignments,
+      quizzes,
+      manualItems,
+      submissionsByAssignment,
+      attemptsByQuiz,
+      manualRecordsByItem
+    } = await buildCourseGradebookDataset(courseId);
 
     // 建立評分項目列表
     const gradeColumns = [
@@ -989,10 +1060,7 @@ router.get('/courses/:courseId', authMiddleware, async (req, res) => {
 
         // 取得作業成績
         for (const a of assignments) {
-          const submission = await db.getItem(
-            `ASSIGNMENT#${a.assignmentId}`,
-            `SUBMISSION#${e.userId}`
-          );
+          const submission = submissionsByAssignment.get(a.assignmentId)?.get(e.userId) || null;
 
           grades[a.assignmentId] = {
             grade: submission?.grade ?? null,
@@ -1009,20 +1077,14 @@ router.get('/courses/:courseId', authMiddleware, async (req, res) => {
 
         // 取得測驗成績
         for (const q of quizzes) {
-          const attempts = await db.query(`QUIZ#${q.quizId}`, {
-            skPrefix: `ATTEMPT#${e.userId}#`
-          });
-          const completedAttempts = attempts.filter(a => a.status === 'completed');
-
-          let bestScore = null;
-          if (completedAttempts.length > 0) {
-            bestScore = Math.max(...completedAttempts.map(a => a.score));
-          }
+          const attempts = attemptsByQuiz.get(q.quizId)?.get(e.userId) || [];
+          const quizSummary = getQuizGradeSummary(q, attempts);
+          const bestScore = quizSummary.bestScore;
 
           grades[q.quizId] = {
             grade: bestScore,
-            submitted: completedAttempts.length > 0,
-            attemptCount: completedAttempts.length
+            submitted: quizSummary.attemptCount > 0,
+            attemptCount: quizSummary.attemptCount
           };
 
           if (bestScore !== null) {
@@ -1034,10 +1096,7 @@ router.get('/courses/:courseId', authMiddleware, async (req, res) => {
 
         // 取得手動成績
         for (const item of manualItems) {
-          const record = await db.getItem(
-            `GRADEITEM#${item.itemId}`,
-            `STUDENT#${e.userId}`
-          );
+          const record = manualRecordsByItem.get(item.itemId)?.get(e.userId) || null;
 
           grades[item.itemId] = {
             grade: record?.grade ?? null,
@@ -1188,29 +1247,18 @@ router.get('/courses/:courseId/students/:studentId', authMiddleware, async (req,
       });
     }
 
-    // 取得作業成績詳情
-    const [assignments, quizzes, manualItems] = await Promise.all([
-      db.scan({
-        filter: {
-          expression: 'entityType = :type AND courseId = :courseId',
-          values: { ':type': 'ASSIGNMENT', ':courseId': courseId }
-        }
-      }),
-      db.scan({
-        filter: {
-          expression: 'entityType = :type AND courseId = :courseId',
-          values: { ':type': 'QUIZ', ':courseId': courseId }
-        }
-      }),
-      db.query(`COURSE#${courseId}`, { skPrefix: 'GRADEITEM#' })
-    ]);
+    const {
+      assignments,
+      quizzes,
+      manualItems,
+      submissionsByAssignment,
+      attemptsByQuiz,
+      manualRecordsByItem
+    } = await buildCourseGradebookDataset(courseId);
 
     const assignmentGrades = await Promise.all(
       assignments.map(async (a) => {
-        const submission = await db.getItem(
-          `ASSIGNMENT#${a.assignmentId}`,
-          `SUBMISSION#${studentId}`
-        );
+        const submission = submissionsByAssignment.get(a.assignmentId)?.get(studentId) || null;
 
         return {
           type: 'assignment',
@@ -1231,11 +1279,8 @@ router.get('/courses/:courseId/students/:studentId', authMiddleware, async (req,
 
     const quizGrades = await Promise.all(
       quizzes.map(async (q) => {
-        const attempts = await db.query(`QUIZ#${q.quizId}`, {
-          skPrefix: `ATTEMPT#${studentId}#`
-        });
-
-        const completedAttempts = attempts
+        const quizSummary = getQuizGradeSummary(q, attemptsByQuiz.get(q.quizId)?.get(studentId) || []);
+        const completedAttempts = quizSummary.completedAttempts
           .filter(a => a.status === 'completed')
           .map(a => ({
             attemptNumber: a.attemptNumber,
@@ -1244,12 +1289,6 @@ router.get('/courses/:courseId/students/:studentId', authMiddleware, async (req,
             passed: a.passed,
             submittedAt: a.submittedAt
           }));
-
-        let bestAttempt = null;
-        if (completedAttempts.length > 0) {
-          bestAttempt = completedAttempts.reduce((max, a) =>
-            a.percentage > (max?.percentage || 0) ? a : max, null);
-        }
 
         return {
           type: 'quiz',
@@ -1261,17 +1300,22 @@ router.get('/courses/:courseId/students/:studentId', authMiddleware, async (req,
           maxAttempts: q.maxAttempts,
           gradeMethod: q.gradeMethod,
           attempts: completedAttempts,
-          bestAttempt
+          bestAttempt: quizSummary.bestAttempt
+            ? {
+              attemptNumber: quizSummary.bestAttempt.attemptNumber,
+              score: quizSummary.bestAttempt.score,
+              percentage: quizSummary.bestAttempt.percentage,
+              passed: quizSummary.bestAttempt.passed,
+              submittedAt: quizSummary.bestAttempt.submittedAt
+            }
+            : null
         };
       })
     );
 
     const manualGrades = await Promise.all(
       manualItems.map(async (item) => {
-        const record = await db.getItem(
-          `GRADEITEM#${item.itemId}`,
-          `STUDENT#${studentId}`
-        );
+        const record = manualRecordsByItem.get(item.itemId)?.get(studentId) || null;
 
         return {
           type: 'manual',
@@ -1392,21 +1436,14 @@ router.get('/courses/:courseId/export', authMiddleware, async (req, res) => {
       { skPrefix: 'ENROLLED#', skName: 'GSI1SK' }
     );
 
-    const [assignments, quizzes, manualItems] = await Promise.all([
-      db.scan({
-        filter: {
-          expression: 'entityType = :type AND courseId = :courseId',
-          values: { ':type': 'ASSIGNMENT', ':courseId': courseId }
-        }
-      }),
-      db.scan({
-        filter: {
-          expression: 'entityType = :type AND courseId = :courseId',
-          values: { ':type': 'QUIZ', ':courseId': courseId }
-        }
-      }),
-      db.query(`COURSE#${courseId}`, { skPrefix: 'GRADEITEM#' })
-    ]);
+    const {
+      assignments,
+      quizzes,
+      manualItems,
+      submissionsByAssignment,
+      attemptsByQuiz,
+      manualRecordsByItem
+    } = await buildCourseGradebookDataset(courseId);
 
     const exportData = await Promise.all(
       enrollments.map(async (e) => {
@@ -1422,10 +1459,7 @@ router.get('/courses/:courseId/export', authMiddleware, async (req, res) => {
 
         // 作業成績
         for (const a of assignments) {
-          const submission = await db.getItem(
-            `ASSIGNMENT#${a.assignmentId}`,
-            `SUBMISSION#${e.userId}`
-          );
+          const submission = submissionsByAssignment.get(a.assignmentId)?.get(e.userId) || null;
 
           const grade = submission?.grade ?? '';
           row[`作業: ${a.title}`] = grade;
@@ -1438,13 +1472,8 @@ router.get('/courses/:courseId/export', authMiddleware, async (req, res) => {
 
         // 測驗成績
         for (const q of quizzes) {
-          const attempts = await db.query(`QUIZ#${q.quizId}`, {
-            skPrefix: `ATTEMPT#${e.userId}#`
-          });
-          const completed = attempts.filter(a => a.status === 'completed');
-
-          const bestScore = completed.length > 0 ?
-            Math.max(...completed.map(a => a.score)) : '';
+          const quizSummary = getQuizGradeSummary(q, attemptsByQuiz.get(q.quizId)?.get(e.userId) || []);
+          const bestScore = quizSummary.bestScore ?? '';
 
           row[`測驗: ${q.title}`] = bestScore;
 
@@ -1456,10 +1485,7 @@ router.get('/courses/:courseId/export', authMiddleware, async (req, res) => {
 
         // 手動成績項目
         for (const m of manualItems) {
-          const gradeRecord = await db.getItem(
-            `GRADEITEM#${m.itemId}`,
-            `STUDENT#${e.userId}`
-          );
+          const gradeRecord = manualRecordsByItem.get(m.itemId)?.get(e.userId) || null;
 
           row[`${m.title}`] = gradeRecord?.grade ?? '';
 

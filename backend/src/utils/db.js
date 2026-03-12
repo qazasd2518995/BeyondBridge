@@ -351,6 +351,36 @@ async function batchWrite(items) {
 }
 
 /**
+ * 批量刪除項目
+ */
+async function batchDelete(keys) {
+  const batches = [];
+
+  for (let i = 0; i < keys.length; i += 25) {
+    batches.push(keys.slice(i, i + 25));
+  }
+
+  for (const batch of batches) {
+    const command = new BatchWriteCommand({
+      RequestItems: {
+        [TABLE_NAME]: batch.map(key => ({
+          DeleteRequest: {
+            Key: {
+              PK: key.PK,
+              SK: key.SK
+            }
+          }
+        }))
+      }
+    });
+
+    await docClient.send(command);
+  }
+
+  return keys.length;
+}
+
+/**
  * 透過 Email 查詢用戶（使用 GSI4）
  */
 async function getUserByEmail(email) {
@@ -522,6 +552,7 @@ module.exports = {
   queryByIndex,
   scan,
   batchWrite,
+  batchDelete,
   getUserByEmail,
   getUser,
   getAdmin,
