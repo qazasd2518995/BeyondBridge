@@ -4548,7 +4548,7 @@
 .badges-header h2 {
   font-size: 1.5rem;
   font-weight: 600;
-  color: var(--olive-800);
+  color: var(--charcoal);
 }
 
 .badges-tabs {
@@ -4572,12 +4572,12 @@
 
 .badge-tab:hover {
   background: var(--gray-100);
-  color: var(--olive-700);
+  color: var(--olive);
 }
 
 .badge-tab.active {
   background: var(--olive-100);
-  color: var(--olive-700);
+  color: var(--olive-deep);
 }
 
 .badges-grid {
@@ -4587,9 +4587,10 @@
 }
 
 .badge-card {
-  background: white;
+  background: var(--white);
+  border: 1px solid var(--gray-200);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-sm);
   padding: 1.5rem;
   text-align: center;
   transition: transform var(--transition-base), box-shadow var(--transition-base);
@@ -4597,8 +4598,8 @@
 }
 
 .badge-card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-lg);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
 }
 
 .badge-card.locked {
@@ -4614,33 +4615,62 @@
 }
 
 .badge-stat-card {
-  padding: 1rem 1.1rem;
+  position: relative;
+  padding: 1.1rem 1.2rem 1rem;
+  border: 1px solid var(--gray-200);
   border-radius: var(--radius-lg);
-  color: white;
-  box-shadow: var(--shadow-md);
+  background:
+    radial-gradient(circle at top right, var(--badge-stat-glow, rgba(45, 43, 107, 0.08)), transparent 60%),
+    var(--white);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
 }
 
-.badge-stat-card.tone-violet {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+.badge-stat-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 4px;
+  background: var(--badge-stat-accent, linear-gradient(90deg, var(--olive), var(--olive-light)));
 }
 
-.badge-stat-card.tone-rose {
-  background: linear-gradient(135deg, #f093fb, #f5576c);
+.badge-stat-card.tone-olive {
+  --badge-stat-accent: linear-gradient(90deg, var(--olive), var(--olive-light));
+  --badge-stat-glow: rgba(45, 43, 107, 0.12);
+  --badge-stat-value: var(--olive);
+  border-color: rgba(45, 43, 107, 0.16);
 }
 
-.badge-stat-card.tone-sky {
-  background: linear-gradient(135deg, #4facfe, #00f2fe);
+.badge-stat-card.tone-terracotta {
+  --badge-stat-accent: linear-gradient(90deg, var(--terracotta), var(--terracotta-light));
+  --badge-stat-glow: rgba(26, 107, 74, 0.13);
+  --badge-stat-value: var(--terracotta);
+  border-color: rgba(26, 107, 74, 0.16);
+}
+
+.badge-stat-card.tone-blue {
+  --badge-stat-accent: linear-gradient(90deg, var(--blue), #5aa7e8);
+  --badge-stat-glow: rgba(43, 108, 176, 0.13);
+  --badge-stat-value: var(--blue);
+  border-color: rgba(43, 108, 176, 0.16);
 }
 
 .badge-stat-card .value {
-  font-size: 1.8rem;
+  position: relative;
+  z-index: 1;
+  font-size: 1.9rem;
   font-weight: 700;
+  color: var(--badge-stat-value, var(--olive));
+  line-height: 1.1;
 }
 
 .badge-stat-card .label {
-  margin-top: 0.2rem;
-  font-size: 0.85rem;
-  opacity: 0.92;
+  position: relative;
+  z-index: 1;
+  margin-top: 0.32rem;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--gray-500);
 }
 
 .badge-icon {

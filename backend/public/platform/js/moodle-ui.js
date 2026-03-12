@@ -8207,15 +8207,15 @@ const MoodleUI = {
           ${canManage ? `<button onclick="MoodleUI.openCreateBadgeModal()" class="btn-primary">${t('moodleBadges.createBadge')}</button>` : ''}
         </div>
         <div class="badge-stats-grid">
-          <div class="badge-stat-card tone-violet">
+          <div class="badge-stat-card tone-olive">
             <div class="value">${stats.totalBadges || badges.length}</div>
             <div class="label">${t('moodleBadges.totalBadges')}</div>
           </div>
-          <div class="badge-stat-card tone-rose">
+          <div class="badge-stat-card tone-terracotta">
             <div class="value">${stats.activeBadges || 0}</div>
             <div class="label">${t('moodleBadges.activeBadges')}</div>
           </div>
-          <div class="badge-stat-card tone-sky">
+          <div class="badge-stat-card tone-blue">
             <div class="value">${stats.totalIssued || 0}</div>
             <div class="label">${t('moodleBadges.totalIssued')}</div>
           </div>
