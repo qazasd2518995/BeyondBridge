@@ -33,6 +33,23 @@ const docClient = DynamoDBDocumentClient.from(client, {
 
 const TABLE_NAME = process.env.DYNAMODB_TABLE || 'beyondbridge';
 
+function applyProjection(params, projection, existingNames = {}) {
+  if (!Array.isArray(projection) || projection.length === 0) {
+    return existingNames;
+  }
+
+  const expressionAttributeNames = { ...existingNames };
+  params.ProjectionExpression = projection
+    .map((field, index) => {
+      const token = `#proj${index}`;
+      expressionAttributeNames[token] = field;
+      return token;
+    })
+    .join(', ');
+
+  return expressionAttributeNames;
+}
+
 /**
  * 取得單一項目
  */
@@ -141,6 +158,11 @@ async function query(pk, options = {}) {
     }
   }
 
+  const projectionNames = applyProjection(params, options.projection, params.ExpressionAttributeNames);
+  if (Object.keys(projectionNames).length > 0) {
+    params.ExpressionAttributeNames = projectionNames;
+  }
+
   // 限制數量
   if (options.limit) {
     params.Limit = options.limit;
@@ -156,9 +178,27 @@ async function query(pk, options = {}) {
     params.IndexName = options.indexName;
   }
 
-  const command = new QueryCommand(params);
-  const response = await docClient.send(command);
-  return response.Items || [];
+  const items = [];
+  let lastEvaluatedKey;
+
+  do {
+    const pageParams = { ...params };
+    if (lastEvaluatedKey) {
+      pageParams.ExclusiveStartKey = lastEvaluatedKey;
+    }
+    if (options.limit) {
+      const remaining = options.limit - items.length;
+      if (remaining <= 0) break;
+      pageParams.Limit = remaining;
+    }
+
+    const command = new QueryCommand(pageParams);
+    const response = await docClient.send(command);
+    items.push(...(response.Items || []));
+    lastEvaluatedKey = response.LastEvaluatedKey;
+  } while (lastEvaluatedKey && (!options.limit || items.length < options.limit));
+
+  return items;
 }
 
 /**
@@ -182,18 +222,54 @@ async function queryByIndex(indexName, pkValue, pkName = 'GSI1PK', options = {})
     params.ExpressionAttributeValues[':skPrefix'] = options.skPrefix;
   }
 
+  if (options.skBetween && options.skName) {
+    params.KeyConditionExpression += ` AND ${options.skName} BETWEEN :skStart AND :skEnd`;
+    params.ExpressionAttributeValues[':skStart'] = options.skBetween[0];
+    params.ExpressionAttributeValues[':skEnd'] = options.skBetween[1];
+  }
+
   if (options.filter) {
     params.FilterExpression = options.filter.expression;
     Object.assign(params.ExpressionAttributeValues, options.filter.values);
+    if (options.filter.names) {
+      params.ExpressionAttributeNames = options.filter.names;
+    }
+  }
+
+  const projectionNames = applyProjection(params, options.projection, params.ExpressionAttributeNames);
+  if (Object.keys(projectionNames).length > 0) {
+    params.ExpressionAttributeNames = projectionNames;
   }
 
   if (options.limit) {
     params.Limit = options.limit;
   }
 
-  const command = new QueryCommand(params);
-  const response = await docClient.send(command);
-  return response.Items || [];
+  if (options.scanIndexForward !== undefined) {
+    params.ScanIndexForward = options.scanIndexForward;
+  }
+
+  const items = [];
+  let lastEvaluatedKey;
+
+  do {
+    const pageParams = { ...params };
+    if (lastEvaluatedKey) {
+      pageParams.ExclusiveStartKey = lastEvaluatedKey;
+    }
+    if (options.limit) {
+      const remaining = options.limit - items.length;
+      if (remaining <= 0) break;
+      pageParams.Limit = remaining;
+    }
+
+    const command = new QueryCommand(pageParams);
+    const response = await docClient.send(command);
+    items.push(...(response.Items || []));
+    lastEvaluatedKey = response.LastEvaluatedKey;
+  } while (lastEvaluatedKey && (!options.limit || items.length < options.limit));
+
+  return items;
 }
 
 /**
@@ -220,9 +296,32 @@ async function scan(options = {}) {
     params.IndexName = options.indexName;
   }
 
-  const command = new ScanCommand(params);
-  const response = await docClient.send(command);
-  return response.Items || [];
+  const projectionNames = applyProjection(params, options.projection, params.ExpressionAttributeNames);
+  if (Object.keys(projectionNames).length > 0) {
+    params.ExpressionAttributeNames = projectionNames;
+  }
+
+  const items = [];
+  let lastEvaluatedKey;
+
+  do {
+    const pageParams = { ...params };
+    if (lastEvaluatedKey) {
+      pageParams.ExclusiveStartKey = lastEvaluatedKey;
+    }
+    if (options.limit) {
+      const remaining = options.limit - items.length;
+      if (remaining <= 0) break;
+      pageParams.Limit = remaining;
+    }
+
+    const command = new ScanCommand(pageParams);
+    const response = await docClient.send(command);
+    items.push(...(response.Items || []));
+    lastEvaluatedKey = response.LastEvaluatedKey;
+  } while (lastEvaluatedKey && (!options.limit || items.length < options.limit));
+
+  return items;
 }
 
 /**

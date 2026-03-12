@@ -11,6 +11,85 @@ const db = require('../utils/db');
 const auth = require('../utils/auth');
 const cache = require('../utils/cache');
 const ADMIN_ANALYTICS_CACHE_TTL_MS = 2 * 60 * 1000;
+const analyticsInflight = new Map();
+const ANALYTICS_ENTITY_FILTER = (type) => ({
+  expression: 'entityType = :type',
+  values: { ':type': type }
+});
+const ADMIN_ACTIVITY_ACTIONS = [
+  'login',
+  'resource_viewed',
+  'consultation_created',
+  'discussion_created',
+  'discussion_replied',
+  'course_enrolled',
+  'course_progress'
+];
+
+async function withAnalyticsCache(cacheKey, computeFn, ttlMs = ADMIN_ANALYTICS_CACHE_TTL_MS) {
+  const cached = cache.get(cacheKey);
+  if (cached) {
+    return { data: cached, fromCache: true };
+  }
+
+  if (analyticsInflight.has(cacheKey)) {
+    return {
+      data: await analyticsInflight.get(cacheKey),
+      fromCache: true
+    };
+  }
+
+  const pending = (async () => {
+    const data = await computeFn();
+    cache.set(cacheKey, data, ttlMs);
+    return data;
+  })();
+
+  analyticsInflight.set(cacheKey, pending);
+
+  try {
+    return { data: await pending, fromCache: false };
+  } finally {
+    analyticsInflight.delete(cacheKey);
+  }
+}
+
+async function getProjectedUsersForAnalytics() {
+  return db.scan({
+    filter: ANALYTICS_ENTITY_FILTER('USER'),
+    projection: [
+      'userId',
+      'displayName',
+      'email',
+      'role',
+      'status',
+      'createdAt',
+      'lastLoginAt'
+    ]
+  });
+}
+
+async function getActivityRowsForRange(startIso, endIso) {
+  const actionRows = await Promise.all(
+    ADMIN_ACTIVITY_ACTIONS.map(action => (
+      db.queryByIndex('GSI1', `ACTION#${action}`, 'GSI1PK', {
+        skName: 'GSI1SK',
+        skBetween: [startIso, endIso],
+        projection: ['activityId', 'userId', 'action', 'createdAt']
+      })
+    ))
+  );
+
+  const deduped = new Map();
+  actionRows.flat().forEach(item => {
+    if (!item?.userId) return;
+    const key = item.activityId || `${item.userId}:${item.action || 'activity'}:${item.createdAt || ''}`;
+    if (!deduped.has(key)) {
+      deduped.set(key, item);
+    }
+  });
+  return Array.from(deduped.values());
+}
 
 // 所有管理員路由都需要管理員權限
 router.use(auth.adminMiddleware);
@@ -992,223 +1071,235 @@ router.post('/licenses/grant', async (req, res) => {
 router.get('/analytics/overview', async (req, res) => {
   try {
     const CACHE_KEY = 'admin:analytics:overview';
-    const cached = cache.get(CACHE_KEY);
-    if (cached) {
-      return res.json({
-        success: true,
-        data: {
-          ...cached,
-          fromCache: true
+    const { data: responseData, fromCache } = await withAnalyticsCache(CACHE_KEY, async () => {
+      const [users, resources, licenses, chatRooms] = await Promise.all([
+        getProjectedUsersForAnalytics(),
+        db.scan({
+          filter: ANALYTICS_ENTITY_FILTER('RESOURCE'),
+          projection: [
+            'resourceId',
+            'title',
+            'category',
+            'status',
+            'viewCount',
+            'averageRating',
+            'createdAt'
+          ]
+        }),
+        db.scan({
+          filter: ANALYTICS_ENTITY_FILTER('LICENSE'),
+          projection: [
+            'resourceId',
+            'status',
+            'startDate',
+            'approvedAt',
+            'createdAt',
+            'expiryDate',
+            'expiresAt'
+          ]
+        }),
+        db.scan({
+          filter: ANALYTICS_ENTITY_FILTER('CHAT_ROOM'),
+          projection: ['status', 'rating']
+        })
+      ]);
+
+      const now = new Date();
+      const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const thisMonthKey = thisMonthStart.toISOString().slice(0, 7);
+      const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const lastMonthKey = lastMonthStart.toISOString().slice(0, 7);
+      const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+
+      const parseDate = (value) => {
+        if (!value) return null;
+        const d = new Date(value);
+        return Number.isNaN(d.getTime()) ? null : d;
+      };
+
+      const toMonthKey = (value) => {
+        const d = parseDate(value);
+        return d ? d.toISOString().slice(0, 7) : null;
+      };
+
+      const isResourcePublished = (resource) => {
+        if (!resource?.status) return true;
+        return resource.status === 'published';
+      };
+
+      const isActiveLicenseAt = (license, atDate) => {
+        const rawStatus = (license?.status || 'pending').toLowerCase();
+        if (rawStatus !== 'active') return false;
+
+        const atTs = atDate.getTime();
+        const start = parseDate(license.startDate || license.approvedAt || license.createdAt);
+        const expiry = parseDate(license.expiryDate || license.expiresAt);
+
+        if (start && start.getTime() > atTs) return false;
+        if (expiry && expiry.getTime() < atTs) return false;
+        return true;
+      };
+
+      const resolveLicenseStatus = (license) => {
+        const rawStatus = (license?.status || 'pending').toLowerCase();
+        if (rawStatus === 'rejected') return 'rejected';
+        if (rawStatus === 'pending') return 'pending';
+        if (isActiveLicenseAt(license, now)) return 'active';
+        return 'expired';
+      };
+
+      const userCreatedTimes = users.map(u => parseDate(u.createdAt)?.getTime() ?? null);
+      const usersWithoutCreatedAt = userCreatedTimes.filter(ts => ts === null).length;
+
+      const newUsersThisMonth = users.reduce((sum, user) => (
+        sum + (toMonthKey(user.createdAt) === thisMonthKey ? 1 : 0)
+      ), 0);
+      const newUsersLastMonth = users.reduce((sum, user) => (
+        sum + (toMonthKey(user.createdAt) === lastMonthKey ? 1 : 0)
+      ), 0);
+
+      const userGrowthTrend = [];
+      for (let i = 0; i < 6; i++) {
+        const monthStart = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+        const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0, 23, 59, 59, 999);
+        const monthStartTs = monthStart.getTime();
+        const monthEndTs = monthEnd.getTime();
+
+        const newUsers = userCreatedTimes.filter(ts => ts !== null && ts >= monthStartTs && ts <= monthEndTs).length;
+        const totalUsers = usersWithoutCreatedAt +
+          userCreatedTimes.filter(ts => ts !== null && ts <= monthEndTs).length;
+
+        userGrowthTrend.push({
+          label: `${monthStart.getMonth() + 1}月`,
+          total: totalUsers,
+          newUsers
+        });
+      }
+
+      const userRoles = users.reduce((acc, user) => {
+        const role = user.role || 'student';
+        acc[role] = (acc[role] || 0) + 1;
+        return acc;
+      }, {});
+
+      const resourceCategories = resources.reduce((acc, resource) => {
+        const category = resource.category || 'other';
+        acc[category] = (acc[category] || 0) + 1;
+        return acc;
+      }, {});
+
+      const licenseStatus = licenses.reduce((acc, license) => {
+        const status = resolveLicenseStatus(license);
+        acc[status] = (acc[status] || 0) + 1;
+        return acc;
+      }, { active: 0, pending: 0, expired: 0, rejected: 0 });
+
+      const licensedCountByResource = {};
+      const activeLicensedCountByResource = {};
+      licenses.forEach(license => {
+        const resourceId = license.resourceId;
+        if (!resourceId) return;
+
+        const status = resolveLicenseStatus(license);
+        if (status !== 'rejected') {
+          licensedCountByResource[resourceId] = (licensedCountByResource[resourceId] || 0) + 1;
+        }
+        if (status === 'active') {
+          activeLicensedCountByResource[resourceId] = (activeLicensedCountByResource[resourceId] || 0) + 1;
         }
       });
-    }
 
-    const [users, resources, licenses, chatRooms] = await Promise.all([
-      db.scan({ filter: { expression: 'entityType = :type', values: { ':type': 'USER' } } }),
-      db.scan({ filter: { expression: 'entityType = :type', values: { ':type': 'RESOURCE' } } }),
-      db.scan({ filter: { expression: 'entityType = :type', values: { ':type': 'LICENSE' } } }),
-      db.scan({ filter: { expression: 'entityType = :type', values: { ':type': 'CHAT_ROOM' } } })
-    ]);
+      const topResources = resources
+        .map(resource => ({
+          resourceId: resource.resourceId,
+          title: resource.title,
+          category: resource.category || 'other',
+          viewCount: Number(resource.viewCount || 0),
+          views: Number(resource.viewCount || 0),
+          rating: Number(resource.averageRating || 0),
+          licensedCount: licensedCountByResource[resource.resourceId] || 0,
+          activeLicensedCount: activeLicensedCountByResource[resource.resourceId] || 0
+        }))
+        .sort((a, b) => (
+          b.viewCount - a.viewCount ||
+          b.activeLicensedCount - a.activeLicensedCount ||
+          b.licensedCount - a.licensedCount
+        ))
+        .slice(0, 5);
 
-    const now = new Date();
-    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const thisMonthKey = thisMonthStart.toISOString().slice(0, 7);
-    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const lastMonthKey = lastMonthStart.toISOString().slice(0, 7);
-    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+      const totalResources = resources.length;
+      const totalResourcesLastMonth = resources.reduce((sum, resource) => {
+        const createdAt = parseDate(resource.createdAt);
+        return sum + (!createdAt || createdAt <= lastMonthEnd ? 1 : 0);
+      }, 0);
 
-    const parseDate = (value) => {
-      if (!value) return null;
-      const d = new Date(value);
-      return Number.isNaN(d.getTime()) ? null : d;
-    };
+      const publishedResources = resources.reduce((sum, resource) => (
+        sum + (isResourcePublished(resource) ? 1 : 0)
+      ), 0);
+      const publishedResourcesLastMonth = resources.reduce((sum, resource) => {
+        const createdAt = parseDate(resource.createdAt);
+        const existedByLastMonth = !createdAt || createdAt <= lastMonthEnd;
+        return sum + (existedByLastMonth && isResourcePublished(resource) ? 1 : 0);
+      }, 0);
 
-    const toMonthKey = (value) => {
-      const d = parseDate(value);
-      return d ? d.toISOString().slice(0, 7) : null;
-    };
+      const activeLicenses = licenses.filter(license => isActiveLicenseAt(license, now)).length;
+      const activeLicensesLastMonth = licenses.filter(license => isActiveLicenseAt(license, lastMonthEnd)).length;
 
-    const isResourcePublished = (resource) => {
-      if (!resource?.status) return true;
-      return resource.status === 'published';
-    };
+      const ratedResources = resources
+        .map(resource => Number(resource.averageRating || 0))
+        .filter(score => score > 0);
+      const avgRating = ratedResources.length > 0
+        ? ratedResources.reduce((sum, score) => sum + score, 0) / ratedResources.length
+        : 0;
 
-    const isActiveLicenseAt = (license, atDate) => {
-      const rawStatus = (license?.status || 'pending').toLowerCase();
-      if (rawStatus !== 'active') return false;
+      const totalChats = chatRooms.length;
+      const closedChats = chatRooms.filter(room => room.status === 'closed').length;
+      const ratedChats = chatRooms.filter(room => Number(room.rating?.score) > 0);
+      const avgSupportRating = ratedChats.length > 0
+        ? ratedChats.reduce((sum, room) => sum + Number(room.rating.score), 0) / ratedChats.length
+        : 0;
+      const satisfactionRate = ratedChats.length > 0
+        ? Math.round((ratedChats.filter(room => Number(room.rating.score) >= 4).length / ratedChats.length) * 100)
+        : 0;
 
-      const atTs = atDate.getTime();
-      const start = parseDate(license.startDate || license.approvedAt || license.createdAt);
-      const expiry = parseDate(license.expiryDate || license.expiresAt);
-
-      if (start && start.getTime() > atTs) return false;
-      if (expiry && expiry.getTime() < atTs) return false;
-      return true;
-    };
-
-    const resolveLicenseStatus = (license) => {
-      const rawStatus = (license?.status || 'pending').toLowerCase();
-      if (rawStatus === 'rejected') return 'rejected';
-      if (rawStatus === 'pending') return 'pending';
-      if (isActiveLicenseAt(license, now)) return 'active';
-      return 'expired';
-    };
-
-    // 用戶成長統計（最近 6 個月）
-    const userCreatedTimes = users.map(u => parseDate(u.createdAt)?.getTime() ?? null);
-    const usersWithoutCreatedAt = userCreatedTimes.filter(ts => ts === null).length;
-
-    const newUsersThisMonth = users.reduce((sum, user) => (
-      sum + (toMonthKey(user.createdAt) === thisMonthKey ? 1 : 0)
-    ), 0);
-    const newUsersLastMonth = users.reduce((sum, user) => (
-      sum + (toMonthKey(user.createdAt) === lastMonthKey ? 1 : 0)
-    ), 0);
-
-    const userGrowthTrend = [];
-    for (let i = 0; i < 6; i++) {
-      const monthStart = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
-      const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0, 23, 59, 59, 999);
-      const monthStartTs = monthStart.getTime();
-      const monthEndTs = monthEnd.getTime();
-
-      const newUsers = userCreatedTimes.filter(ts => ts !== null && ts >= monthStartTs && ts <= monthEndTs).length;
-      const totalUsers = usersWithoutCreatedAt +
-        userCreatedTimes.filter(ts => ts !== null && ts <= monthEndTs).length;
-
-      userGrowthTrend.push({
-        label: `${monthStart.getMonth() + 1}月`,
-        total: totalUsers,
-        newUsers
-      });
-    }
-
-    // 角色、分類與授權狀態（以前端圖表可直接使用的 key-value map 回傳）
-    const userRoles = users.reduce((acc, user) => {
-      const role = user.role || 'student';
-      acc[role] = (acc[role] || 0) + 1;
-      return acc;
-    }, {});
-
-    const resourceCategories = resources.reduce((acc, resource) => {
-      const category = resource.category || 'other';
-      acc[category] = (acc[category] || 0) + 1;
-      return acc;
-    }, {});
-
-    const licenseStatus = licenses.reduce((acc, license) => {
-      const status = resolveLicenseStatus(license);
-      acc[status] = (acc[status] || 0) + 1;
-      return acc;
-    }, { active: 0, pending: 0, expired: 0, rejected: 0 });
-
-    // 授權分佈（用於熱門資源授權數）
-    const licensedCountByResource = {};
-    const activeLicensedCountByResource = {};
-    licenses.forEach(license => {
-      const resourceId = license.resourceId;
-      if (!resourceId) return;
-
-      const status = resolveLicenseStatus(license);
-      if (status !== 'rejected') {
-        licensedCountByResource[resourceId] = (licensedCountByResource[resourceId] || 0) + 1;
-      }
-      if (status === 'active') {
-        activeLicensedCountByResource[resourceId] = (activeLicensedCountByResource[resourceId] || 0) + 1;
-      }
+      return {
+        metrics: {
+          totalUsers: users.length,
+          newUsersThisMonth,
+          newUsersLastMonth,
+          totalResources,
+          totalResourcesLastMonth,
+          publishedResources,
+          publishedResourcesLastMonth,
+          resourcesLastMonth: publishedResourcesLastMonth,
+          activeLicenses,
+          activeLicensesLastMonth,
+          licensesLastMonth: activeLicensesLastMonth,
+          avgCustomerRating: Math.round(avgRating * 10) / 10
+        },
+        userGrowthTrend,
+        userRoles,
+        userRolesList: Object.entries(userRoles).map(([role, count]) => ({ role, count })),
+        resourceCategories,
+        resourceCategoriesList: Object.entries(resourceCategories).map(([name, count]) => ({ name, count })),
+        licenseStatus,
+        licenseStatusList: Object.entries(licenseStatus).map(([status, count]) => ({ status, count })),
+        topResources,
+        supportStats: {
+          totalChats,
+          closedChats,
+          avgRating: Math.round(avgSupportRating * 10) / 10,
+          satisfactionRate
+        }
+      };
     });
-
-    const topResources = resources
-      .map(resource => ({
-        resourceId: resource.resourceId,
-        title: resource.title,
-        category: resource.category || 'other',
-        viewCount: Number(resource.viewCount || 0),
-        views: Number(resource.viewCount || 0), // backward compatibility
-        rating: Number(resource.averageRating || 0),
-        licensedCount: licensedCountByResource[resource.resourceId] || 0,
-        activeLicensedCount: activeLicensedCountByResource[resource.resourceId] || 0
-      }))
-      .sort((a, b) => (
-        b.viewCount - a.viewCount ||
-        b.activeLicensedCount - a.activeLicensedCount ||
-        b.licensedCount - a.licensedCount
-      ))
-      .slice(0, 5);
-
-    // 指標數據
-    const totalResources = resources.length;
-    const totalResourcesLastMonth = resources.reduce((sum, resource) => {
-      const createdAt = parseDate(resource.createdAt);
-      return sum + (!createdAt || createdAt <= lastMonthEnd ? 1 : 0);
-    }, 0);
-
-    const publishedResources = resources.reduce((sum, resource) => (
-      sum + (isResourcePublished(resource) ? 1 : 0)
-    ), 0);
-    const publishedResourcesLastMonth = resources.reduce((sum, resource) => {
-      const createdAt = parseDate(resource.createdAt);
-      const existedByLastMonth = !createdAt || createdAt <= lastMonthEnd;
-      return sum + (existedByLastMonth && isResourcePublished(resource) ? 1 : 0);
-    }, 0);
-
-    const activeLicenses = licenses.filter(license => isActiveLicenseAt(license, now)).length;
-    const activeLicensesLastMonth = licenses.filter(license => isActiveLicenseAt(license, lastMonthEnd)).length;
-
-    const ratedResources = resources
-      .map(resource => Number(resource.averageRating || 0))
-      .filter(score => score > 0);
-    const avgRating = ratedResources.length > 0
-      ? ratedResources.reduce((sum, score) => sum + score, 0) / ratedResources.length
-      : 0;
-
-    // 客服統計（聊天系統）
-    const totalChats = chatRooms.length;
-    const closedChats = chatRooms.filter(room => room.status === 'closed').length;
-    const ratedChats = chatRooms.filter(room => Number(room.rating?.score) > 0);
-    const avgSupportRating = ratedChats.length > 0
-      ? ratedChats.reduce((sum, room) => sum + Number(room.rating.score), 0) / ratedChats.length
-      : 0;
-    const satisfactionRate = ratedChats.length > 0
-      ? Math.round((ratedChats.filter(room => Number(room.rating.score) >= 4).length / ratedChats.length) * 100)
-      : 0;
-
-    const responseData = {
-      metrics: {
-        totalUsers: users.length,
-        newUsersThisMonth,
-        newUsersLastMonth,
-        totalResources,
-        totalResourcesLastMonth,
-        publishedResources,
-        publishedResourcesLastMonth,
-        resourcesLastMonth: publishedResourcesLastMonth, // backward compatibility
-        activeLicenses,
-        activeLicensesLastMonth,
-        licensesLastMonth: activeLicensesLastMonth, // backward compatibility
-        avgCustomerRating: Math.round(avgRating * 10) / 10
-      },
-      userGrowthTrend,
-      userRoles,
-      userRolesList: Object.entries(userRoles).map(([role, count]) => ({ role, count })),
-      resourceCategories,
-      resourceCategoriesList: Object.entries(resourceCategories).map(([name, count]) => ({ name, count })),
-      licenseStatus,
-      licenseStatusList: Object.entries(licenseStatus).map(([status, count]) => ({ status, count })),
-      topResources,
-      supportStats: {
-        totalChats,
-        closedChats,
-        avgRating: Math.round(avgSupportRating * 10) / 10,
-        satisfactionRate
-      }
-    };
-
-    cache.set(CACHE_KEY, responseData, ADMIN_ANALYTICS_CACHE_TTL_MS);
 
     res.json({
       success: true,
-      data: responseData
+      data: {
+        ...responseData,
+        fromCache
+      }
     });
 
   } catch (error) {
@@ -1666,251 +1757,231 @@ router.get('/analytics/user-activity', async (req, res) => {
   try {
     const { range = '30d', groupBy = 'day' } = req.query;
     const cacheKey = `admin:analytics:user-activity:${range}:${groupBy}`;
-    const cached = cache.get(cacheKey);
-    if (cached) {
-      return res.json({
-        success: true,
-        data: {
-          ...cached,
-          fromCache: true
+    const { data: responseData, fromCache } = await withAnalyticsCache(cacheKey, async () => {
+      const days = USER_ACTIVITY_RANGE_DAYS[range] || 30;
+      const now = new Date();
+      const todayStart = startOfUtcDay(now);
+      const periodStart = startOfUtcDay(now);
+      periodStart.setUTCDate(periodStart.getUTCDate() - (days - 1));
+
+      const lookbackDays = Math.max(days, 30) * 2;
+      const lookbackStart = startOfUtcDay(now);
+      lookbackStart.setUTCDate(lookbackStart.getUTCDate() - (lookbackDays - 1));
+      const lookbackStartIso = lookbackStart.toISOString();
+      const nowIso = now.toISOString();
+
+      const [users, activities] = await Promise.all([
+        getProjectedUsersForAnalytics(),
+        getActivityRowsForRange(lookbackStartIso, nowIso)
+      ]);
+
+      const knownUserIds = new Set(
+        users.map(u => u.userId).filter(Boolean)
+      );
+      const userMap = new Map(
+        users
+          .filter(user => user?.userId)
+          .map(user => [user.userId, user])
+      );
+
+      const eventRows = [];
+      const pushEvent = (userId, at, action = 'activity') => {
+        if (!userId || !knownUserIds.has(userId) || !at) return;
+        const timestamp = new Date(at).getTime();
+        if (Number.isNaN(timestamp)) return;
+        if (timestamp < lookbackStart.getTime() || timestamp > now.getTime()) return;
+        eventRows.push({ userId, timestamp, action });
+      };
+
+      activities.forEach(a => {
+        pushEvent(a.userId, a.createdAt, a.action || 'activity');
+      });
+
+      users.forEach(u => {
+        pushEvent(u.userId, u.lastLoginAt, 'login');
+      });
+
+      eventRows.sort((a, b) => a.timestamp - b.timestamp);
+
+      const getActiveUsersInWindow = (windowDays, offsetDays = 0) => {
+        const windowEnd = endOfUtcDay(new Date(now.getTime() - offsetDays * 24 * 60 * 60 * 1000));
+        const windowStart = startOfUtcDay(windowEnd);
+        windowStart.setUTCDate(windowStart.getUTCDate() - (windowDays - 1));
+        const activeSet = new Set();
+        for (const row of eventRows) {
+          if (row.timestamp >= windowStart.getTime() && row.timestamp <= windowEnd.getTime()) {
+            activeSet.add(row.userId);
+          }
+        }
+        return activeSet;
+      };
+
+      const roleDistribution = {};
+      users.forEach(u => {
+        const role = u.role || 'unknown';
+        roleDistribution[role] = (roleDistribution[role] || 0) + 1;
+      });
+
+      const registrationsByDate = new Map();
+      users.forEach(u => {
+        const key = toDateKey(u.createdAt);
+        if (key) {
+          registrationsByDate.set(key, (registrationsByDate.get(key) || 0) + 1);
         }
       });
-    }
 
-    const days = USER_ACTIVITY_RANGE_DAYS[range] || 30;
-    const now = new Date();
-    const todayStart = startOfUtcDay(now);
-    const periodStart = startOfUtcDay(now);
-    periodStart.setUTCDate(periodStart.getUTCDate() - (days - 1));
+      const periodEvents = eventRows.filter(
+        e => e.timestamp >= periodStart.getTime() && e.timestamp <= now.getTime()
+      );
 
-    const [users, activities, courseProgress] = await Promise.all([
-      db.getAllUsers({ limit: 10000 }),
-      db.scan({
-        filter: {
-          expression: 'entityType = :type',
-          values: { ':type': 'ACTIVITY' }
-        }
-      }),
-      db.scan({
-        filter: {
-          expression: 'entityType = :type',
-          values: { ':type': 'COURSE_PROGRESS' }
-        }
-      })
-    ]);
+      const dailyActiveSets = new Map();
+      const actionDistribution = {};
+      const userActivityCount = new Map();
+      const lastActiveByUser = new Map();
+      const activityHeatmap = Array.from({ length: 7 }, () => Array(24).fill(0));
 
-    const knownUserIds = new Set(
-      users.map(u => u.userId).filter(Boolean)
-    );
-    const userMap = new Map(
-      users
-        .filter(user => user?.userId)
-        .map(user => [user.userId, user])
-    );
+      periodEvents.forEach(e => {
+        const key = toDateKey(e.timestamp);
+        if (!key) return;
 
-    const lookbackDays = Math.max(days, 30) * 2;
-    const lookbackStart = startOfUtcDay(now);
-    lookbackStart.setUTCDate(lookbackStart.getUTCDate() - (lookbackDays - 1));
+        if (!dailyActiveSets.has(key)) dailyActiveSets.set(key, new Set());
+        dailyActiveSets.get(key).add(e.userId);
 
-    const eventRows = [];
-    const pushEvent = (userId, at, action = 'activity') => {
-      if (!userId || !knownUserIds.has(userId) || !at) return;
-      const timestamp = new Date(at).getTime();
-      if (Number.isNaN(timestamp)) return;
-      if (timestamp < lookbackStart.getTime() || timestamp > now.getTime()) return;
-      eventRows.push({ userId, timestamp, action });
-    };
+        actionDistribution[e.action] = (actionDistribution[e.action] || 0) + 1;
+        userActivityCount.set(e.userId, (userActivityCount.get(e.userId) || 0) + 1);
+        lastActiveByUser.set(e.userId, Math.max(lastActiveByUser.get(e.userId) || 0, e.timestamp));
 
-    activities.forEach(a => {
-      pushEvent(a.userId, a.createdAt, a.action || 'activity');
-    });
-
-    courseProgress.forEach(p => {
-      pushEvent(p.userId, p.lastAccessedAt, 'course_access');
-    });
-
-    users.forEach(u => {
-      pushEvent(u.userId, u.lastLoginAt, 'login');
-    });
-
-    eventRows.sort((a, b) => a.timestamp - b.timestamp);
-
-    const getActiveUsersInWindow = (windowDays, offsetDays = 0) => {
-      const windowEnd = endOfUtcDay(new Date(now.getTime() - offsetDays * 24 * 60 * 60 * 1000));
-      const windowStart = startOfUtcDay(windowEnd);
-      windowStart.setUTCDate(windowStart.getUTCDate() - (windowDays - 1));
-      const activeSet = new Set();
-      for (const row of eventRows) {
-        if (row.timestamp >= windowStart.getTime() && row.timestamp <= windowEnd.getTime()) {
-          activeSet.add(row.userId);
-        }
-      }
-      return activeSet;
-    };
-
-    const roleDistribution = {};
-    users.forEach(u => {
-      const role = u.role || 'unknown';
-      roleDistribution[role] = (roleDistribution[role] || 0) + 1;
-    });
-
-    const registrationsByDate = new Map();
-    users.forEach(u => {
-      const key = toDateKey(u.createdAt);
-      if (key) {
-        registrationsByDate.set(key, (registrationsByDate.get(key) || 0) + 1);
-      }
-    });
-
-    const periodEvents = eventRows.filter(
-      e => e.timestamp >= periodStart.getTime() && e.timestamp <= now.getTime()
-    );
-
-    const dailyActiveSets = new Map();
-    const actionDistribution = {};
-    const userActivityCount = new Map();
-    const lastActiveByUser = new Map();
-    const activityHeatmap = Array.from({ length: 7 }, () => Array(24).fill(0));
-
-    periodEvents.forEach(e => {
-      const key = toDateKey(e.timestamp);
-      if (!key) return;
-
-      if (!dailyActiveSets.has(key)) dailyActiveSets.set(key, new Set());
-      dailyActiveSets.get(key).add(e.userId);
-
-      actionDistribution[e.action] = (actionDistribution[e.action] || 0) + 1;
-      userActivityCount.set(e.userId, (userActivityCount.get(e.userId) || 0) + 1);
-      lastActiveByUser.set(e.userId, Math.max(lastActiveByUser.get(e.userId) || 0, e.timestamp));
-
-      const eventDate = new Date(e.timestamp);
-      const day = eventDate.getUTCDay();
-      const hour = eventDate.getUTCHours();
-      activityHeatmap[day][hour] = (activityHeatmap[day][hour] || 0) + 1;
-    });
-
-    const dateKeys = [];
-    for (let i = 0; i < days; i++) {
-      const d = new Date(periodStart);
-      d.setUTCDate(periodStart.getUTCDate() + i);
-      dateKeys.push(d.toISOString().slice(0, 10));
-    }
-
-    const dailyActiveUsersRaw = dateKeys.map(date => ({
-      date,
-      count: dailyActiveSets.get(date)?.size || 0
-    }));
-
-    const registrationTrendRaw = dateKeys.map(date => ({
-      date,
-      count: registrationsByDate.get(date) || 0
-    }));
-
-    const groupByWeek = groupBy === 'week';
-    const aggregateWeekly = (items) => {
-      const weeklyMap = new Map();
-      items.forEach(item => {
-        const weekKey = getWeekStartKey(item.date);
-        if (!weekKey) return;
-        weeklyMap.set(weekKey, (weeklyMap.get(weekKey) || 0) + item.count);
+        const eventDate = new Date(e.timestamp);
+        const day = eventDate.getUTCDay();
+        const hour = eventDate.getUTCHours();
+        activityHeatmap[day][hour] = (activityHeatmap[day][hour] || 0) + 1;
       });
-      return Array.from(weeklyMap.entries())
-        .sort((a, b) => a[0].localeCompare(b[0]))
-        .map(([date, count]) => ({ date, count }));
-    };
 
-    const dailyActiveUsers = groupByWeek
-      ? (() => {
-        const weeklySets = new Map();
-        dateKeys.forEach(date => {
-          const weekKey = getWeekStartKey(date);
+      const dateKeys = [];
+      for (let i = 0; i < days; i++) {
+        const d = new Date(periodStart);
+        d.setUTCDate(periodStart.getUTCDate() + i);
+        dateKeys.push(d.toISOString().slice(0, 10));
+      }
+
+      const dailyActiveUsersRaw = dateKeys.map(date => ({
+        date,
+        count: dailyActiveSets.get(date)?.size || 0
+      }));
+
+      const registrationTrendRaw = dateKeys.map(date => ({
+        date,
+        count: registrationsByDate.get(date) || 0
+      }));
+
+      const groupByWeek = groupBy === 'week';
+      const aggregateWeekly = (items) => {
+        const weeklyMap = new Map();
+        items.forEach(item => {
+          const weekKey = getWeekStartKey(item.date);
           if (!weekKey) return;
-          if (!weeklySets.has(weekKey)) weeklySets.set(weekKey, new Set());
-          const daySet = dailyActiveSets.get(date);
-          if (!daySet) return;
-          daySet.forEach(userId => weeklySets.get(weekKey).add(userId));
+          weeklyMap.set(weekKey, (weeklyMap.get(weekKey) || 0) + item.count);
+        });
+        return Array.from(weeklyMap.entries())
+          .sort((a, b) => a[0].localeCompare(b[0]))
+          .map(([date, count]) => ({ date, count }));
+      };
+
+      const dailyActiveUsers = groupByWeek
+        ? (() => {
+          const weeklySets = new Map();
+          dateKeys.forEach(date => {
+            const weekKey = getWeekStartKey(date);
+            if (!weekKey) return;
+            if (!weeklySets.has(weekKey)) weeklySets.set(weekKey, new Set());
+            const daySet = dailyActiveSets.get(date);
+            if (!daySet) return;
+            daySet.forEach(userId => weeklySets.get(weekKey).add(userId));
+          });
+
+          return Array.from(weeklySets.entries())
+            .sort((a, b) => a[0].localeCompare(b[0]))
+            .map(([date, set]) => ({ date, count: set.size }));
+        })()
+        : dailyActiveUsersRaw;
+
+      const registrationTrend = groupByWeek
+        ? aggregateWeekly(registrationTrendRaw)
+        : registrationTrendRaw;
+
+      const dau = getActiveUsersInWindow(1, 0).size;
+      const wau = getActiveUsersInWindow(7, 0).size;
+      const mau = getActiveUsersInWindow(30, 0).size;
+
+      const dauPrev = getActiveUsersInWindow(1, 1).size;
+      const wauPrev = getActiveUsersInWindow(7, 7).size;
+      const mauPrev = getActiveUsersInWindow(30, 30).size;
+
+      const retentionWindow = Math.min(7, days);
+      const currentWindowUsers = getActiveUsersInWindow(retentionWindow, 0);
+      const previousWindowUsers = getActiveUsersInWindow(retentionWindow, retentionWindow);
+      let retainedCount = 0;
+      previousWindowUsers.forEach(userId => {
+        if (currentWindowUsers.has(userId)) retainedCount++;
+      });
+      const retention = previousWindowUsers.size > 0
+        ? Math.round((retainedCount / previousWindowUsers.size) * 100)
+        : 0;
+
+      const topActiveUsers = Array.from(userActivityCount.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10)
+        .map(([userId, count], index) => {
+          const user = userMap.get(userId);
+          const lastActiveTs = lastActiveByUser.get(userId);
+          return {
+            rank: index + 1,
+            userId,
+            name: user?.displayName || user?.email || userId,
+            role: user?.role || 'unknown',
+            count,
+            lastActive: lastActiveTs ? new Date(lastActiveTs).toISOString() : null
+          };
         });
 
-        return Array.from(weeklySets.entries())
-          .sort((a, b) => a[0].localeCompare(b[0]))
-          .map(([date, set]) => ({ date, count: set.size }));
-      })()
-      : dailyActiveUsersRaw;
-
-    const registrationTrend = groupByWeek
-      ? aggregateWeekly(registrationTrendRaw)
-      : registrationTrendRaw;
-
-    const dau = getActiveUsersInWindow(1, 0).size;
-    const wau = getActiveUsersInWindow(7, 0).size;
-    const mau = getActiveUsersInWindow(30, 0).size;
-
-    const dauPrev = getActiveUsersInWindow(1, 1).size;
-    const wauPrev = getActiveUsersInWindow(7, 7).size;
-    const mauPrev = getActiveUsersInWindow(30, 30).size;
-
-    const retentionWindow = Math.min(7, days);
-    const currentWindowUsers = getActiveUsersInWindow(retentionWindow, 0);
-    const previousWindowUsers = getActiveUsersInWindow(retentionWindow, retentionWindow);
-    let retainedCount = 0;
-    previousWindowUsers.forEach(userId => {
-      if (currentWindowUsers.has(userId)) retainedCount++;
+      return {
+        summary: {
+          totalUsers: users.length,
+          activeUsers: users.filter(u => u.status === 'active').length,
+          periodActiveUsers: getActiveUsersInWindow(days, 0).size,
+          dau,
+          wau,
+          mau,
+          retention,
+          dauTrend: calcPercentTrend(dau, dauPrev),
+          wauTrend: calcPercentTrend(wau, wauPrev),
+          mauTrend: calcPercentTrend(mau, mauPrev),
+          newUsersToday: registrationsByDate.get(todayStart.toISOString().slice(0, 10)) || 0
+        },
+        dailyActiveUsers,
+        roleDistribution,
+        registrationTrend,
+        behaviorDistribution: actionDistribution,
+        topActiveUsers,
+        activityHeatmap: {
+          timezone: 'UTC',
+          matrix: activityHeatmap
+        },
+        period: {
+          days,
+          from: periodStart.toISOString(),
+          to: now.toISOString(),
+          groupBy: groupByWeek ? 'week' : 'day'
+        }
+      };
     });
-    const retention = previousWindowUsers.size > 0
-      ? Math.round((retainedCount / previousWindowUsers.size) * 100)
-      : 0;
-
-    const topActiveUsers = Array.from(userActivityCount.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 10)
-      .map(([userId, count], index) => {
-        const user = userMap.get(userId);
-        const lastActiveTs = lastActiveByUser.get(userId);
-        return {
-          rank: index + 1,
-          userId,
-          name: user?.displayName || user?.email || userId,
-          role: user?.role || 'unknown',
-          count,
-          lastActive: lastActiveTs ? new Date(lastActiveTs).toISOString() : null
-        };
-      });
-    const responseData = {
-      summary: {
-        totalUsers: users.length,
-        activeUsers: users.filter(u => u.status === 'active').length,
-        periodActiveUsers: getActiveUsersInWindow(days, 0).size,
-        dau,
-        wau,
-        mau,
-        retention,
-        dauTrend: calcPercentTrend(dau, dauPrev),
-        wauTrend: calcPercentTrend(wau, wauPrev),
-        mauTrend: calcPercentTrend(mau, mauPrev),
-        newUsersToday: registrationsByDate.get(todayStart.toISOString().slice(0, 10)) || 0
-      },
-      dailyActiveUsers,
-      roleDistribution,
-      registrationTrend,
-      behaviorDistribution: actionDistribution,
-      topActiveUsers,
-      activityHeatmap: {
-        timezone: 'UTC',
-        matrix: activityHeatmap
-      },
-      period: {
-        days,
-        from: periodStart.toISOString(),
-        to: now.toISOString(),
-        groupBy: groupByWeek ? 'week' : 'day'
-      }
-    };
-
-    cache.set(cacheKey, responseData, ADMIN_ANALYTICS_CACHE_TTL_MS);
 
     res.json({
       success: true,
-      data: responseData
+      data: {
+        ...responseData,
+        fromCache
+      }
     });
   } catch (error) {
     console.error('User activity analytics error:', error);

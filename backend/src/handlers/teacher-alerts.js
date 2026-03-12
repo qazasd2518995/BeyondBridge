@@ -105,6 +105,34 @@ async function getCourseEnrollments(courseId) {
   );
 }
 
+async function getCourseLinkedAnalyticsEntities(courseId) {
+  const linkedEntities = await db.queryByIndex('GSI1', `COURSE#${courseId}`, 'GSI1PK');
+  return {
+    assignments: linkedEntities.filter(item => item?.entityType === 'ASSIGNMENT'),
+    quizzes: linkedEntities.filter(item => item?.entityType === 'QUIZ'),
+    forums: linkedEntities.filter(item => item?.entityType === 'FORUM')
+  };
+}
+
+async function getForumDiscussionIndex(forumId) {
+  if (!forumId) return [];
+  const discussions = await db.query(`FORUM#${forumId}`, { skPrefix: 'DISCUSSION#' });
+  return discussions
+    .filter(item => item?.discussionId)
+    .map(item => ({
+      discussionId: item.discussionId,
+      forumId,
+      courseId: item.courseId || null,
+      authorId: item.authorId || null,
+      authorName: item.authorName || null,
+      authorRole: item.authorRole || null,
+      title: item.title || '',
+      pinned: !!item.pinned,
+      createdAt: item.createdAt || null,
+      updatedAt: item.updatedAt || null
+    }));
+}
+
 function getCourseTitle(course) {
   return course?.title || course?.name || '未命名課程';
 }
@@ -172,9 +200,7 @@ async function getTeacherCourseContext(courseId, teacherId, isAdmin = false) {
 
 async function loadTeacherAnalyticsData(courses = []) {
   const validCourses = courses.filter(course => course?.courseId);
-  const courseIds = new Set(validCourses.map(course => course.courseId));
-
-  if (courseIds.size === 0) {
+  if (validCourses.length === 0) {
     return {
       enrollmentsByCourse: new Map(),
       assignmentsByCourse: new Map(),
@@ -190,36 +216,57 @@ async function loadTeacherAnalyticsData(courses = []) {
 
   const [
     enrollmentEntries,
-    allAssignments,
-    allSubmissions,
-    allQuizzes,
-    allAttempts,
-    allForums,
-    allDiscussions,
-    allPosts
+    linkedEntityEntries
   ] = await Promise.all([
     Promise.all(
       validCourses.map(async course => [course.courseId, await getCourseEnrollments(course.courseId)])
     ),
-    db.scan({ filter: { expression: 'entityType = :type', values: { ':type': 'ASSIGNMENT' } } }),
-    db.scan({ filter: { expression: 'entityType = :type', values: { ':type': 'ASSIGNMENT_SUBMISSION' } } }),
-    db.scan({ filter: { expression: 'entityType = :type', values: { ':type': 'QUIZ' } } }),
-    db.scan({ filter: { expression: 'entityType = :type', values: { ':type': 'QUIZ_ATTEMPT' } } }),
-    db.scan({ filter: { expression: 'entityType = :type', values: { ':type': 'FORUM' } } }),
-    db.scan({ filter: { expression: 'entityType = :type', values: { ':type': 'DISCUSSION' } } }),
-    db.scan({ filter: { expression: 'entityType = :type', values: { ':type': 'FORUM_POST' } } })
+    Promise.all(
+      validCourses.map(async course => [course.courseId, await getCourseLinkedAnalyticsEntities(course.courseId)])
+    )
   ]);
 
   const enrollmentsByCourse = new Map(enrollmentEntries);
-  const assignments = allAssignments.filter(item => courseIds.has(item.courseId));
-  const quizzes = allQuizzes.filter(item => courseIds.has(item.courseId));
-  const forums = allForums.filter(item => courseIds.has(item.courseId));
-  const forumIds = new Set(forums.map(item => item.forumId).filter(Boolean));
-  const discussions = allDiscussions.filter(item => courseIds.has(item.courseId) || forumIds.has(item.forumId));
-  const discussionIds = new Set(discussions.map(item => item.discussionId).filter(Boolean));
-  const submissions = allSubmissions.filter(item => courseIds.has(item.courseId));
-  const attempts = allAttempts.filter(item => courseIds.has(item.courseId));
-  const posts = allPosts.filter(item => forumIds.has(item.forumId) || discussionIds.has(item.discussionId));
+  const linkedEntitiesByCourse = new Map(linkedEntityEntries);
+  const assignments = [];
+  const quizzes = [];
+  const forums = [];
+
+  linkedEntitiesByCourse.forEach((entities, courseId) => {
+    (entities?.assignments || []).forEach(item => assignments.push({ ...item, courseId }));
+    (entities?.quizzes || []).forEach(item => quizzes.push({ ...item, courseId }));
+    (entities?.forums || []).forEach(item => forums.push({ ...item, courseId }));
+  });
+
+  const [submissionEntries, attemptEntries, discussionEntries] = await Promise.all([
+    Promise.all(
+      assignments
+        .filter(item => item?.assignmentId)
+        .map(async assignment => [assignment.assignmentId, await db.query(`ASSIGNMENT#${assignment.assignmentId}`, { skPrefix: 'SUBMISSION#' })])
+    ),
+    Promise.all(
+      quizzes
+        .filter(item => item?.quizId)
+        .map(async quiz => [quiz.quizId, await db.query(`QUIZ#${quiz.quizId}`, { skPrefix: 'ATTEMPT#' })])
+    ),
+    Promise.all(
+      forums
+        .filter(item => item?.forumId)
+        .map(async forum => [forum.forumId, await getForumDiscussionIndex(forum.forumId)])
+    )
+  ]);
+
+  const discussions = [];
+  const discussionsByForum = new Map(discussionEntries);
+  discussionsByForum.forEach(items => {
+    (items || []).forEach(item => discussions.push(item));
+  });
+
+  const postEntries = await Promise.all(
+    discussions
+      .filter(item => item?.discussionId)
+      .map(async discussion => [discussion.discussionId, await db.query(`DISCUSSION#${discussion.discussionId}`, { skPrefix: 'POST#' })])
+  );
 
   const studentIds = [
     ...new Set(
@@ -241,12 +288,12 @@ async function loadTeacherAnalyticsData(courses = []) {
   return {
     enrollmentsByCourse,
     assignmentsByCourse: groupBy(assignments, item => item.courseId),
-    submissionsByAssignment: groupBy(submissions, item => item.assignmentId),
+    submissionsByAssignment: new Map(submissionEntries),
     quizzesByCourse: groupBy(quizzes, item => item.courseId),
-    attemptsByQuiz: groupBy(attempts, item => item.quizId),
+    attemptsByQuiz: new Map(attemptEntries),
     forumsByCourse: groupBy(forums, item => item.courseId),
-    discussionsByForum: groupBy(discussions, item => item.forumId),
-    postsByDiscussion: groupBy(posts, item => item.discussionId),
+    discussionsByForum,
+    postsByDiscussion: new Map(postEntries),
     studentMap
   };
 }
