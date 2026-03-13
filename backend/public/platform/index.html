@@ -1772,8 +1772,16 @@
         }
 
         .bridge-class-card-accent {
-            height: 94px;
+            min-height: 150px;
             opacity: 0.96;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 0.95rem;
+            padding: 1.05rem 1.2rem 1.15rem;
+            color: var(--cream);
+            z-index: 1;
         }
 
         .bridge-class-card-accent.tone-math {
@@ -1799,27 +1807,25 @@
         .bridge-class-card-body {
             position: relative;
             z-index: 1;
-            padding: 1.35rem 1.4rem 1.4rem;
-            min-height: 236px;
+            padding: 1.15rem 1.25rem 1.25rem;
+            min-height: 220px;
             display: flex;
             flex-direction: column;
             gap: 0.95rem;
-            margin-top: -36px;
         }
 
-        .bridge-class-card-header {
+        .bridge-class-card-cover-top {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
             gap: 1rem;
         }
 
-        .bridge-class-card-title {
-            font-size: 1.18rem;
-            font-weight: 700;
-            margin-bottom: 0.38rem;
-            color: var(--charcoal);
-            letter-spacing: -0.02em;
+        .bridge-class-card-cover-copy {
+            display: flex;
+            flex-direction: column;
+            gap: 0.45rem;
+            min-width: 0;
         }
 
         .bridge-class-card-subject {
@@ -1834,15 +1840,42 @@
             box-shadow: 0 10px 18px rgba(15, 23, 42, 0.08);
         }
 
+        .bridge-class-card-kicker {
+            margin: 0;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.76);
+        }
+
+        .bridge-class-card-title {
+            font-size: 1.26rem;
+            font-weight: 700;
+            margin: 0;
+            color: inherit;
+            letter-spacing: -0.02em;
+            line-height: 1.3;
+            text-wrap: balance;
+        }
+
+        .bridge-class-card-cover-note {
+            margin: 0;
+            font-size: 0.82rem;
+            color: rgba(255, 255, 255, 0.76);
+            font-weight: 600;
+        }
+
         .bridge-class-enrolled {
-            background: rgba(87, 109, 72, 0.12);
-            color: var(--olive-deep);
+            background: rgba(255, 255, 255, 0.18);
+            color: rgba(255, 255, 255, 0.96);
             padding: 0.42rem 0.76rem;
             border-radius: 999px;
             font-size: 0.72rem;
             font-weight: 700;
             white-space: nowrap;
-            border: 1px solid rgba(87, 109, 72, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            backdrop-filter: blur(6px);
         }
 
         .bridge-class-card-desc {
@@ -1863,6 +1896,14 @@
             padding-top: 1rem;
             margin-top: auto;
             border-top: 1px solid rgba(26, 58, 92, 0.08);
+        }
+
+        .bridge-class-meta-right {
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+            flex-wrap: wrap;
+            justify-content: flex-end;
         }
 
         .bridge-class-stats {
@@ -1888,6 +1929,7 @@
         .bridge-class-teacher {
             display: inline-flex;
             align-items: center;
+            gap: 0.35rem;
             padding: 0.5rem 0.82rem;
             border-radius: 999px;
             background: rgba(45, 43, 107, 0.08);
@@ -1895,6 +1937,15 @@
             font-size: 0.76rem;
             font-weight: 700;
             white-space: nowrap;
+        }
+
+        .bridge-class-open-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            color: var(--olive-deep);
+            font-size: 0.8rem;
+            font-weight: 700;
         }
 
         .bridge-student-class-card {
@@ -5129,6 +5180,12 @@
                 width: 100%;
                 justify-content: stretch;
                 flex-wrap: wrap;
+            }
+
+            .bridge-class-card-meta,
+            .bridge-class-meta-right {
+                flex-direction: column;
+                align-items: stretch;
             }
 
             .bridge-assignment-action,
@@ -12276,15 +12333,18 @@
                 <div class="bridge-class-grid">
                     ${filtered.map(cls => `
                         <div class="bridge-class-card" onclick="openClassDetail('${cls.classId}')">
-                            <div class="bridge-class-card-accent ${getClassColor(cls.subject)}"></div>
-                            <div class="bridge-class-card-body">
-                                <div class="bridge-class-card-header">
-                                    <div>
-                                        <h3 class="bridge-class-card-title">${cls.name}</h3>
-                                        <p class="bridge-class-card-subject">${cls.subject || '一般課程'}</p>
-                                    </div>
+                            <div class="bridge-class-card-accent ${getClassColor(cls.subject)}">
+                                <div class="bridge-class-card-cover-top">
+                                    <span class="bridge-class-card-subject">${cls.subject || '一般課程'}</span>
                                     ${cls.isEnrolled ? '<span class="bridge-class-enrolled">已加入</span>' : ''}
                                 </div>
+                                <div class="bridge-class-card-cover-copy">
+                                    <p class="bridge-class-card-kicker">Bridge team</p>
+                                    <h3 class="bridge-class-card-title">${cls.name}</h3>
+                                    <p class="bridge-class-card-cover-note">${cls.teacherName || '建橋者'}</p>
+                                </div>
+                            </div>
+                            <div class="bridge-class-card-body">
                                 <p class="bridge-class-card-desc">${cls.description || '尚無說明'}</p>
                                 <div class="bridge-class-card-meta">
                                     <div class="bridge-class-stats">
@@ -12297,7 +12357,13 @@
                                             ${cls.assignmentCount || 0} 項作業
                                         </span>
                                     </div>
-                                    <span class="bridge-class-teacher">${cls.teacherName || '建橋者'}</span>
+                                    <div class="bridge-class-meta-right">
+                                        <span class="bridge-class-teacher">
+                                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                            ${cls.teacherName || '建橋者'}
+                                        </span>
+                                        <span class="bridge-class-open-link">查看詳情 →</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>

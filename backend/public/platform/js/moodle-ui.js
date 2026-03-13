@@ -148,10 +148,22 @@ const MoodleUI = {
   getLocalizedCourseCategory(category) {
     const normalized = String(category || '').trim();
     if (!normalized) return t('moodleCourse.defaultCategory');
+    const fallbackLabels = {
+      math: '數學',
+      chinese: '國文',
+      english: '英文',
+      science: '自然科學',
+      social: '社會科學',
+      business: '商業管理',
+      technology: '資訊科技',
+      arts: '藝術人文',
+      language: '語言學習',
+      wellness: '心靈成長'
+    };
     if (typeof window !== 'undefined' && window.categoryLabels) {
-      return window.categoryLabels[String(normalized).toLowerCase()] || normalized;
+      return window.categoryLabels[String(normalized).toLowerCase()] || fallbackLabels[String(normalized).toLowerCase()] || normalized;
     }
-    return normalized;
+    return fallbackLabels[String(normalized).toLowerCase()] || normalized;
   },
 
   getLocalizedQuestionType(type) {
@@ -522,29 +534,60 @@ const MoodleUI = {
       return;
     }
 
-    container.innerHTML = courses.map(course => `
-      <div class="moodle-course-card" onclick="MoodleUI.openCourse('${course.courseId}')">
-        <div class="course-cover" data-cover-gradient="${this.escapeText(this.getCourseGradient(course.category))}">
-          <span class="course-category">${this.escapeText(this.getLocalizedCourseCategory(course.category))}</span>
-          ${course.isEnrolled ? `<span class="enrolled-badge">${t('moodleCourse.enrolled')}</span>` : ''}
-        </div>
-        <div class="course-body">
-          <h3 class="course-name">${course.title || course.name || t('moodleCourse.untitledCourse')}</h3>
-          <p class="course-shortname">${course.shortName || course.shortname || ''}</p>
-          <p class="course-summary">${course.description || course.summary || t('moodleCourse.noDescription')}</p>
-          <div class="course-meta">
-            <span><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M5.5 21a7.5 7.5 0 0115 0"/></svg> ${course.instructorName || course.teacherName || t('moodleCourse.teacher')}</span>
-            <span><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg> ${course.enrollmentCount || course.enrolledCount || 0} ${t('moodleCourse.students')}</span>
-          </div>
-          ${course.isEnrolled && course.progress !== undefined ? `
-            <div class="course-progress-bar">
-              <div class="progress-fill" data-progress-width="${this.clampProgressValue(course.progress)}"></div>
+    container.innerHTML = courses.map((course) => {
+      const courseId = course.courseId || course.id || '';
+      const title = this.escapeText(course.title || course.name || t('moodleCourse.untitledCourse'));
+      const category = this.escapeText(this.getLocalizedCourseCategory(course.category));
+      const courseCode = this.escapeText(course.shortName || course.shortname || course.courseCode || course.code || courseId || '');
+      const summary = this.escapeText(
+        this.truncateText(course.description || course.summary || '', 140)
+        || t('moodleCourse.noDescription')
+      );
+      const teacherName = this.escapeText(course.instructorName || course.teacherName || t('moodleCourse.teacher'));
+      const learnersLabel = `${Number(course.enrollmentCount || course.enrolledCount || 0)} ${t('moodleCourse.students')}`;
+      const progress = this.clampProgressValue(course.progress);
+
+      return `
+        <div class="moodle-course-card" onclick="MoodleUI.openCourse('${courseId}')">
+          <div class="course-cover" data-cover-gradient="${this.escapeText(this.getCourseGradient(course.category))}">
+            <div class="course-cover-top">
+              <span class="course-category">${category}</span>
+              ${course.isEnrolled ? `<span class="enrolled-badge">${t('moodleCourse.enrolled')}</span>` : ''}
             </div>
-            <span class="progress-text">${course.progress}% ${t('moodleCourse.complete')}</span>
-          ` : ''}
+            <div class="course-cover-copy">
+              <h3>${title}</h3>
+              ${courseCode ? `<p>${courseCode}</p>` : ''}
+            </div>
+          </div>
+          <div class="course-body">
+            <h3 class="course-name">${title}</h3>
+            <p class="course-summary">${summary}</p>
+            <div class="course-meta">
+              <span>
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M5.5 21a7.5 7.5 0 0115 0"/></svg>
+                ${teacherName}
+              </span>
+              <span>
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                ${this.escapeText(learnersLabel)}
+              </span>
+              <span class="course-open-link">
+                ${this.escapeText(I18n.getLocale() === 'en' ? 'Open course' : '進入課程')}
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+              </span>
+            </div>
+            ${course.isEnrolled && course.progress !== undefined ? `
+              <div class="course-progress">
+                <div class="course-progress-bar">
+                  <div class="progress-fill" data-progress-width="${progress}"></div>
+                </div>
+                <span class="progress-text">${progress}%</span>
+              </div>
+            ` : ''}
+          </div>
         </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
     this.applyDynamicUiMetrics(container);
   },
 

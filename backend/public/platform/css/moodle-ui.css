@@ -11,114 +11,187 @@
 }
 
 .moodle-course-card {
-  background: var(--white);
-  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 244, 236, 0.96) 100%);
+  border-radius: 24px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-  transition: all 0.3s ease;
+  border: 1px solid rgba(26, 58, 92, 0.12);
+  box-shadow: 0 18px 38px rgba(15, 23, 42, 0.08);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
   cursor: pointer;
 }
 
 .moodle-course-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 30px rgba(0,0,0,0.12);
+  box-shadow: 0 26px 48px rgba(15, 23, 42, 0.14);
+  border-color: rgba(26, 58, 92, 0.18);
 }
 
 .moodle-course-card .course-cover {
-  height: 140px;
+  min-height: 174px;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: space-between;
   position: relative;
-  background: linear-gradient(135deg, var(--olive) 0%, var(--olive-deep) 100%);
-}
-
-.moodle-course-card .course-category {
-  position: absolute;
-  top: 1rem;
-  left: 1rem;
-  padding: 0.25rem 0.75rem;
-  background: rgba(255,255,255,0.2);
-  backdrop-filter: blur(4px);
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 500;
+  gap: 1rem;
+  padding: 1.1rem 1.15rem 1.2rem;
+  text-align: left;
   color: var(--cream);
 }
 
-.moodle-course-card .enrolled-badge {
+.moodle-course-card .course-cover::after {
+  content: "";
   position: absolute;
-  top: 1rem;
-  right: 1rem;
-  padding: 0.25rem 0.75rem;
-  background: var(--success);
-  border-radius: 20px;
-  font-size: 0.7rem;
+  inset: auto -32px -42px auto;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0) 70%);
+}
+
+.moodle-course-card .course-cover-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  position: relative;
+  z-index: 1;
+}
+
+.moodle-course-card .course-cover-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  position: relative;
+  z-index: 1;
+}
+
+.moodle-course-card .course-category {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.38rem 0.78rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.12);
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--charcoal);
+}
+
+.moodle-course-card .enrolled-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.36rem 0.72rem;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(6px);
+  border-radius: 999px;
+  font-size: 0.72rem;
   font-weight: 600;
-  color: var(--white);
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.moodle-course-card .course-cover-copy h3 {
+  font-size: 1.22rem;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 0;
+  color: inherit;
+  text-wrap: balance;
+}
+
+.moodle-course-card .course-cover-copy p {
+  margin: 0;
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.76);
+  font-weight: 600;
 }
 
 .moodle-course-card .course-body {
-  padding: 1.25rem;
+  padding: 1.05rem 1.15rem 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.95rem;
 }
 
 .moodle-course-card .course-name {
-  font-size: 1.1rem;
-  font-weight: 600;
-  margin-bottom: 0.25rem;
+  font-size: 1.02rem;
+  font-weight: 700;
+  line-height: 1.35;
+  margin: 0;
   color: var(--charcoal);
 }
 
 .moodle-course-card .course-shortname {
-  font-size: 0.8rem;
-  color: var(--gray-500);
-  margin-bottom: 0.5rem;
+  display: none;
 }
 
 .moodle-course-card .course-summary {
-  font-size: 0.9rem;
-  color: var(--gray-600);
-  margin-bottom: 1rem;
+  font-size: 0.88rem;
+  color: var(--gray-500);
+  margin: 0;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  line-height: 1.5;
+  line-height: 1.65;
 }
 
 .moodle-course-card .course-meta {
   display: flex;
-  gap: 1rem;
-  font-size: 0.8rem;
-  color: var(--gray-500);
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
 .moodle-course-card .course-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.86rem;
+  color: var(--gray-600);
+  font-weight: 600;
+}
+
+.moodle-course-card .course-meta .course-open-link {
+  color: var(--olive-deep);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.moodle-course-card .course-meta .course-open-link svg {
+  width: 14px;
+  height: 14px;
+}
+
+.moodle-course-card .course-progress {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.75rem;
 }
 
 .moodle-course-card .course-progress-bar {
-  height: 4px;
+  flex: 1;
+  height: 8px;
   background: var(--gray-200);
-  border-radius: 2px;
-  margin-top: 1rem;
+  border-radius: 999px;
   overflow: hidden;
 }
 
 .moodle-course-card .progress-fill {
   height: 100%;
   background: var(--olive);
-  border-radius: 2px;
+  border-radius: 999px;
   transition: width 0.3s ease;
 }
 
 .moodle-course-card .progress-text {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 700;
   color: var(--olive);
-  margin-top: 0.25rem;
-  display: block;
+  white-space: nowrap;
 }
 
 /* ==================== 課程詳情頁 ==================== */
