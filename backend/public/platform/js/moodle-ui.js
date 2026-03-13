@@ -432,7 +432,8 @@ const MoodleUI = {
 
   getCoursePickerEyebrow(course = {}) {
     const locale = I18n.getLocale();
-    return course.subject || course.category || course.track || (locale === 'en' ? 'Published course' : '已發布課程');
+    const raw = course.subject || course.category || course.track || (locale === 'en' ? 'Published course' : '已發布課程');
+    return this.getLocalizedCourseCategory(raw);
   },
 
   getCoursePickerCode(course = {}) {
@@ -450,24 +451,32 @@ const MoodleUI = {
     const code = options.code || this.getCoursePickerCode(course);
     const footerLabel = options.footerLabel || course.instructorName || course.teacherName || (isEnglish ? 'Course team' : '課程團隊');
     const ctaLabel = options.ctaLabel || (isEnglish ? 'Open' : '進入內容');
+    const metaLabel = course.memberCount
+      ? `${course.memberCount} ${isEnglish ? 'learners' : '位學習者'}`
+      : (course.visibility === 'hide' ? (isEnglish ? 'Draft' : '草稿') : (isEnglish ? 'Published' : '已發布'));
+    const showCode = code && String(code).trim() && String(code).trim() !== String(title).trim();
 
     return `
       <div class="activity-picker-card ${this.getSurfaceToneClass(courseId || title)}"
            onclick="${options.action}">
-        <div class="activity-picker-card-accent"></div>
-        <div class="activity-picker-card-body">
+        <div class="activity-picker-card-accent">
           <div class="activity-picker-card-head">
             <span class="activity-picker-card-chip">${this.escapeText(eyebrow)}</span>
-            ${code ? `<span class="activity-picker-card-code">${this.escapeText(code)}</span>` : ''}
+            ${showCode ? `<span class="activity-picker-card-code">${this.escapeText(code)}</span>` : ''}
           </div>
-          <div class="activity-picker-card-copy">
+          <div class="activity-picker-card-hero">
             <h3 class="activity-picker-card-title">${this.escapeText(title)}</h3>
+            <p class="activity-picker-card-kicker">${this.escapeText(footerLabel)}</p>
+          </div>
+        </div>
+        <div class="activity-picker-card-body">
+          <div class="activity-picker-card-copy">
             <p class="activity-picker-card-summary">${this.escapeText(summary)}</p>
           </div>
           <div class="activity-picker-card-footer">
             <span class="activity-picker-card-teacher">
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-              ${this.escapeText(footerLabel)}
+              ${this.escapeText(metaLabel)}
             </span>
             <span class="activity-picker-card-link">
               <span>${this.escapeText(ctaLabel)}</span>

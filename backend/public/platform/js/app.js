@@ -2920,6 +2920,15 @@ const App = {
     return tones[Math.abs(hash) % tones.length];
   },
 
+  getLocalizedCategoryLabel(category) {
+    const normalized = String(category || '').trim();
+    if (!normalized) return t('app.noCategory');
+    if (typeof window !== 'undefined' && window.categoryLabels) {
+      return window.categoryLabels[String(normalized).toLowerCase()] || normalized;
+    }
+    return normalized;
+  },
+
   getLicenseStatusMeta(status) {
     const normalizedStatus = String(status || '').toLowerCase();
     if (normalizedStatus === 'active') {
@@ -3058,11 +3067,19 @@ const App = {
           ${courses.map(c => `
             <div class="course-card" onclick="MoodleUI.openCourse('${c.courseId}')">
               <div class="course-card-cover ${this.getToneClass(c.category || c.courseId || c.title)}">
-                <span class="course-category">${c.category || t('app.noCategory')}</span>
-                <h3>${c.title}</h3>
+                <div class="course-card-cover-top">
+                  <span class="course-category">${this.getLocalizedCategoryLabel(c.category)}</span>
+                </div>
+                <div class="course-card-cover-copy">
+                  <h3>${c.title}</h3>
+                  <p>${c.shortName || c.courseCode || c.courseId || ''}</p>
+                </div>
               </div>
               <div class="course-card-body">
-                <p class="course-instructor">${c.instructorName || ''}</p>
+                <div class="course-card-meta-row">
+                  <p class="course-instructor">${c.instructorName || ''}</p>
+                  <span class="course-open-link">進入課程 →</span>
+                </div>
                 ${c.progress !== undefined ? `
                   <div class="progress-bar-container">
                     <div class="progress-bar" data-progress-width="${this.clampProgressValue(c.progress)}"></div>
