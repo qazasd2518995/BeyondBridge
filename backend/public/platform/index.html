@@ -1745,47 +1745,66 @@
         }
 
         .bridge-class-card {
-            background: var(--white);
-            border-radius: var(--radius-xl);
+            position: relative;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 245, 239, 0.98) 100%);
+            border-radius: 24px;
             overflow: hidden;
-            border: 1px solid var(--gray-100);
-            box-shadow: var(--shadow-sm);
+            border: 1px solid rgba(26, 58, 92, 0.1);
+            box-shadow: 0 18px 34px rgba(15, 23, 42, 0.06);
             cursor: pointer;
             transition: var(--transition-base);
         }
 
         .bridge-class-card:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-md);
-            border-color: var(--sand);
+            transform: translateY(-4px);
+            box-shadow: 0 24px 42px rgba(15, 23, 42, 0.1);
+            border-color: rgba(26, 58, 92, 0.16);
+        }
+
+        .bridge-class-card::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(circle at top right, rgba(255, 255, 255, 0.88), transparent 28%),
+                radial-gradient(circle at 14% 16%, rgba(45, 43, 107, 0.05), transparent 24%);
+            pointer-events: none;
         }
 
         .bridge-class-card-accent {
-            height: 8px;
+            height: 94px;
+            opacity: 0.96;
         }
 
         .bridge-class-card-accent.tone-math {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #40526f 0%, #5a6d91 100%);
         }
 
         .bridge-class-card-accent.tone-language {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            background: linear-gradient(135deg, #5c744e 0%, #8ca26f 100%);
         }
 
         .bridge-class-card-accent.tone-science {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            background: linear-gradient(135deg, #2f6680 0%, #5a92a8 100%);
         }
 
         .bridge-class-card-accent.tone-blue {
-            background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%);
+            background: linear-gradient(135deg, #6b5a79 0%, #977c8d 100%);
         }
 
         .bridge-class-card-accent.tone-default {
-            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            background: linear-gradient(135deg, #456a5f 0%, #6e9987 100%);
         }
 
         .bridge-class-card-body {
-            padding: 1.5rem;
+            position: relative;
+            z-index: 1;
+            padding: 1.35rem 1.4rem 1.4rem;
+            min-height: 236px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.95rem;
+            margin-top: -36px;
         }
 
         .bridge-class-card-header {
@@ -1793,36 +1812,43 @@
             justify-content: space-between;
             align-items: flex-start;
             gap: 1rem;
-            margin-bottom: 1rem;
         }
 
         .bridge-class-card-title {
-            font-size: 1.15rem;
-            font-weight: 600;
-            margin-bottom: 0.25rem;
+            font-size: 1.18rem;
+            font-weight: 700;
+            margin-bottom: 0.38rem;
             color: var(--charcoal);
+            letter-spacing: -0.02em;
         }
 
         .bridge-class-card-subject {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
+            display: inline-flex;
+            align-items: center;
+            padding: 0.42rem 0.78rem;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.94);
+            color: var(--olive-deep);
+            font-size: 0.76rem;
+            font-weight: 700;
+            box-shadow: 0 10px 18px rgba(15, 23, 42, 0.08);
         }
 
         .bridge-class-enrolled {
-            background: var(--olive);
-            color: var(--white);
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 0.7rem;
-            font-weight: 600;
+            background: rgba(87, 109, 72, 0.12);
+            color: var(--olive-deep);
+            padding: 0.42rem 0.76rem;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            font-weight: 700;
             white-space: nowrap;
+            border: 1px solid rgba(87, 109, 72, 0.12);
         }
 
         .bridge-class-card-desc {
             font-size: 0.9rem;
             color: var(--gray-600);
-            margin-bottom: 1rem;
-            line-height: 1.5;
+            line-height: 1.62;
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
@@ -1835,15 +1861,16 @@
             align-items: center;
             gap: 0.75rem;
             padding-top: 1rem;
-            border-top: 1px solid var(--gray-100);
+            margin-top: auto;
+            border-top: 1px solid rgba(26, 58, 92, 0.08);
         }
 
         .bridge-class-stats {
             display: flex;
             align-items: center;
-            gap: 1.25rem;
+            gap: 1rem;
             flex-wrap: wrap;
-            font-size: 0.85rem;
+            font-size: 0.84rem;
             color: var(--text-secondary);
         }
 
@@ -1859,8 +1886,14 @@
         }
 
         .bridge-class-teacher {
-            font-size: 0.8rem;
-            color: var(--gray-400);
+            display: inline-flex;
+            align-items: center;
+            padding: 0.5rem 0.82rem;
+            border-radius: 999px;
+            background: rgba(45, 43, 107, 0.08);
+            color: var(--olive-deep);
+            font-size: 0.76rem;
+            font-weight: 700;
             white-space: nowrap;
         }
 
@@ -4324,13 +4357,13 @@
         }
 
         .resource-card {
-            background: var(--white);
-            border-radius: var(--radius-lg);
-            border: 1px solid var(--sand);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 245, 239, 0.98) 100%);
+            border-radius: 24px;
+            border: 1px solid rgba(26, 58, 92, 0.1);
             overflow: hidden;
             transition: var(--transition-base);
             cursor: pointer;
-            box-shadow: var(--shadow-card);
+            box-shadow: 0 18px 34px rgba(15, 23, 42, 0.06);
             opacity: 0;
             animation: cardReveal 0.5s var(--transition-base) forwards;
             position: relative;
@@ -4347,20 +4380,16 @@
             top: 0;
             left: 0;
             right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, var(--olive), var(--terracotta));
-            opacity: 0;
+            height: 5px;
+            background: linear-gradient(90deg, rgba(87, 109, 72, 0.94), rgba(26, 58, 92, 0.92));
+            opacity: 0.92;
             transition: var(--transition-base);
         }
 
         .resource-card:hover {
-            transform: translateY(-6px);
-            box-shadow: var(--shadow-hover);
-            border-color: var(--olive-light);
-        }
-
-        .resource-card:hover::before {
-            opacity: 1;
+            transform: translateY(-5px);
+            box-shadow: 0 26px 44px rgba(15, 23, 42, 0.1);
+            border-color: rgba(26, 58, 92, 0.16);
         }
 
         /* Staggered animation for cards */
@@ -4375,8 +4404,8 @@
         .resource-card:nth-child(9) { animation-delay: 0.5s; }
 
         .resource-cover {
-            height: 150px;
-            background: linear-gradient(135deg, var(--olive) 0%, var(--olive-deep) 50%, var(--sage) 100%);
+            height: 158px;
+            background: linear-gradient(135deg, #20385a 0%, #2d4d74 52%, #5f8577 100%);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -4390,39 +4419,74 @@
         }
 
         .resource-cover.tone-video {
-            background: linear-gradient(135deg, var(--olive) 0%, var(--olive-deep) 100%);
+            background: linear-gradient(135deg, #20385a 0%, #2f4c74 54%, #6d8d84 100%);
         }
 
         .resource-cover.tone-interactive {
-            background: linear-gradient(135deg, var(--terracotta) 0%, var(--terracotta-light) 100%);
+            background: linear-gradient(135deg, #6f4c3c 0%, #8c654a 52%, #c39269 100%);
         }
 
         .resource-cover.tone-document {
-            background: linear-gradient(135deg, var(--success) 0%, var(--sage) 100%);
+            background: linear-gradient(135deg, #355d53 0%, #467a68 52%, #7da291 100%);
         }
 
         .resource-cover.tone-quiz {
-            background: linear-gradient(135deg, #5C6BC0 0%, #7986CB 100%);
+            background: linear-gradient(135deg, #364875 0%, #4a5f90 52%, #8290b2 100%);
         }
 
         .resource-cover.tone-lti {
-            background: linear-gradient(135deg, #0891b2 0%, #06b6d4 100%);
+            background: linear-gradient(135deg, #295f78 0%, #367c98 52%, #7ab0c0 100%);
+        }
+
+        .resource-cover.tone-language {
+            background: linear-gradient(135deg, #405243 0%, #637957 52%, #9bb287 100%);
+        }
+
+        .resource-cover.tone-wellness {
+            background: linear-gradient(135deg, #46546b 0%, #5f6d8b 52%, #9aa9c2 100%);
+        }
+
+        .resource-cover.tone-course {
+            background: linear-gradient(135deg, #2f4568 0%, #466185 50%, #7d9ba2 100%);
         }
 
         .resource-cover::before {
             content: '';
             position: absolute;
             inset: 0;
-            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            background:
+                radial-gradient(circle at 18% 18%, rgba(255,255,255,0.18), transparent 22%),
+                radial-gradient(circle at 86% 12%, rgba(255,255,255,0.16), transparent 18%),
+                url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            opacity: 0.92;
+        }
+
+        .resource-cover-icon {
+            position: relative;
+            z-index: 1;
+            width: 72px;
+            height: 72px;
+            border-radius: 22px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.14);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            box-shadow: 0 18px 32px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
         }
 
         .resource-cover svg {
-            width: 52px;
-            height: 52px;
+            width: 38px;
+            height: 38px;
             color: var(--cream);
-            opacity: 0.9;
-            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+            opacity: 0.95;
+            filter: drop-shadow(0 6px 12px rgba(0,0,0,0.18));
             transition: var(--transition-base);
+        }
+
+        .resource-card:hover .resource-cover-icon {
+            transform: translateY(-2px);
         }
 
         .resource-card:hover .resource-cover svg {
@@ -4431,35 +4495,39 @@
 
         .resource-type-badge {
             position: absolute;
-            top: 0.75rem;
-            left: 0.75rem;
-            padding: 0.3rem 0.85rem;
-            background: linear-gradient(135deg, var(--terracotta) 0%, var(--terracotta-light) 100%);
-            backdrop-filter: blur(4px);
-            border-radius: 20px;
-            font-size: 0.7rem;
-            font-weight: 600;
-            color: var(--cream);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            box-shadow: 0 2px 8px rgba(26, 107, 74, 0.3);
+            top: 0.9rem;
+            left: 0.9rem;
+            z-index: 1;
+            padding: 0.42rem 0.88rem;
+            background: rgba(255, 255, 255, 0.16);
+            backdrop-filter: blur(10px);
+            border-radius: 999px;
+            font-size: 0.74rem;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.96);
+            letter-spacing: 0.02em;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            box-shadow: 0 10px 18px rgba(15, 23, 42, 0.16);
         }
 
         .resource-content-badge {
             position: absolute;
-            top: 0.75rem;
-            right: 0.75rem;
-            background: rgba(0,0,0,0.6);
-            color: #fff;
-            padding: 0.2rem 0.55rem;
+            top: 0.9rem;
+            right: 0.9rem;
+            z-index: 1;
+            background: rgba(15, 23, 42, 0.24);
+            color: rgba(255,255,255,0.92);
+            padding: 0.3rem 0.65rem;
             border-radius: 999px;
-            font-size: 0.75rem;
-            font-weight: 600;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            border: 1px solid rgba(255,255,255,0.14);
         }
 
         .resource-content {
-            padding: 1.25rem;
-            background: linear-gradient(180deg, var(--white) 0%, var(--cream) 100%);
+            padding: 1.35rem 1.35rem 1.25rem;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(249, 246, 241, 0.98) 100%);
         }
 
         .resource-card.list-view .resource-content {
@@ -4518,10 +4586,18 @@
 
         .resource-footer {
             display: flex;
-            align-items: center;
+            align-items: flex-end;
             justify-content: space-between;
+            gap: 1rem;
             padding-top: 1rem;
-            border-top: 1px solid var(--sand);
+            border-top: 1px solid rgba(26, 58, 92, 0.08);
+        }
+
+        .resource-footer-stack {
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.55rem;
         }
 
         .resource-author {
@@ -4556,6 +4632,7 @@
             gap: 0.85rem;
             font-size: 0.75rem;
             color: var(--gray-500);
+            flex-wrap: wrap;
         }
 
         .resource-stats span {
@@ -4572,6 +4649,26 @@
         .resource-stats svg {
             width: 14px;
             height: 14px;
+        }
+
+        .resource-open-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.58rem 0.92rem;
+            border-radius: 999px;
+            background: rgba(45, 43, 107, 0.08);
+            color: var(--olive-deep);
+            font-size: 0.78rem;
+            font-weight: 700;
+            white-space: nowrap;
+            border: 1px solid rgba(45, 43, 107, 0.08);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+        }
+
+        .resource-card:hover .resource-open-link {
+            background: rgba(45, 43, 107, 0.12);
+            border-color: rgba(45, 43, 107, 0.14);
         }
 
         .settings-avatar-input {
@@ -9412,7 +9509,8 @@
             business: '商業管理',
             technology: '資訊科技',
             arts: '藝術人文',
-            language: '語言學習'
+            language: '語言學習',
+            wellness: '心靈成長'
         };
 
         // 適用年級標籤
@@ -9560,6 +9658,7 @@
         function renderResourceCards(resourceList) {
             const grid = document.getElementById('resourceGrid');
             if (!grid) return;
+            const locale = I18n.getLocale();
 
             grid.classList.toggle('is-list-view', libraryViewMode === 'list');
             updateLibraryResultCount(Array.isArray(resourceList) ? resourceList.length : 0);
@@ -9573,10 +9672,17 @@
             grid.innerHTML = resourceList.map(r => {
                 const isLti = r.ltiToolId || r.requiresEnrollment;
                 const displayType = isLti ? 'lti' : r.type;
-                const typeLabel = typeLabels[displayType] || typeLabels[r.type] || r.type;
+                const categoryKey = String(r.category || '').toLowerCase();
+                const semanticKey = categoryKey || String(displayType || r.type || '').toLowerCase();
+                const typeLabel = categoryLabels[semanticKey]
+                    || typeLabels[displayType]
+                    || typeLabels[r.type]
+                    || (locale === 'en' ? 'Learning resource' : '學習資源');
                 const toneClass = ['video', 'interactive', 'document', 'quiz', 'lti'].includes(displayType)
                     ? `tone-${displayType}`
-                    : 'tone-video';
+                    : (semanticKey === 'language'
+                        ? 'tone-language'
+                        : (semanticKey === 'wellness' ? 'tone-wellness' : 'tone-course'));
                 const icon = typeIcons[displayType] || typeIcons[r.type] || typeIcons.video;
                 const authorName = r.authorName || r.creatorName || r.authorId || r.creatorId || '未知作者';
                 const authorInitial = authorName.charAt(0).toUpperCase();
@@ -9594,11 +9700,11 @@
                 }
 
                 const contentBadge = r.contentType ? {
-                    video: '🎬 影片',
-                    file: '📄 檔案',
-                    webpage: '🌐 網頁',
-                    embed: '📦 嵌入',
-                    upload: '📎 附件'
+                    video: locale === 'en' ? 'Video' : '影音內容',
+                    file: locale === 'en' ? 'File' : '檔案教材',
+                    webpage: locale === 'en' ? 'Web' : '網頁教材',
+                    embed: locale === 'en' ? 'Embed' : '嵌入內容',
+                    upload: locale === 'en' ? 'Upload' : '上傳附件'
                 }[r.contentType] || '' : '';
 
                 return `
@@ -9606,9 +9712,11 @@
                         <div class="resource-cover ${toneClass}">
                             <span class="resource-type-badge">${typeLabel}</span>
                             ${contentBadge ? `<span class="resource-content-badge">${contentBadge}</span>` : ''}
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                ${icon}
-                            </svg>
+                            <div class="resource-cover-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    ${icon}
+                                </svg>
+                            </div>
                         </div>
                         <div class="resource-content">
                             <h3 class="resource-title">${r.title || '未命名教材'}</h3>
@@ -9617,25 +9725,28 @@
                                 ${tags.slice(0, 3).map(t => `<span class="tag">${t}</span>`).join('')}
                             </div>
                             <div class="resource-footer">
-                                <div class="resource-author">
-                                    <div class="resource-author-avatar">${authorInitial}</div>
-                                    <span class="resource-author-name">${authorName}</span>
+                                <div class="resource-footer-stack">
+                                    <div class="resource-author">
+                                        <div class="resource-author-avatar">${authorInitial}</div>
+                                        <span class="resource-author-name">${authorName}</span>
+                                    </div>
+                                    <div class="resource-stats">
+                                        <span>
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                                <circle cx="12" cy="12" r="3"/>
+                                            </svg>
+                                            ${formatViewCount(r.viewCount)}
+                                        </span>
+                                        <span>
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                            </svg>
+                                            ${r.rating ? r.rating.toFixed(1) : '-'}
+                                        </span>
+                                    </div>
                                 </div>
-                                <div class="resource-stats">
-                                    <span>
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                                            <circle cx="12" cy="12" r="3"/>
-                                        </svg>
-                                        ${formatViewCount(r.viewCount)}
-                                    </span>
-                                    <span>
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                                        </svg>
-                                        ${r.rating ? r.rating.toFixed(1) : '-'}
-                                    </span>
-                                </div>
+                                <span class="resource-open-link">${locale === 'en' ? 'View resource' : '查看教材'}</span>
                             </div>
                         </div>
                     </div>

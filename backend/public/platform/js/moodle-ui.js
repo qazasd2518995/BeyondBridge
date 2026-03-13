@@ -416,25 +416,10 @@ const MoodleUI = {
             hint: isEnglish ? 'Join or create a course before using this area.' : '請先加入或建立課程後再查看這個功能。'
           }) : `
             <div class="activity-picker-grid">
-              ${courses.map(c => `
-                <div class="activity-picker-card ${this.getSurfaceToneClass(c.courseId || c.id || c.title || c.name)}"
-                     onclick="${callbackFn}(${this.toInlineActionValue(c.courseId || c.id)})">
-                  <div class="activity-picker-card-accent"></div>
-                  <div class="activity-picker-card-body">
-                    <div class="activity-picker-card-copy">
-                      <h3 class="activity-picker-card-title">${this.escapeText(c.title || c.name || (isEnglish ? 'Untitled course' : '未命名課程'))}</h3>
-                      <p class="activity-picker-card-summary">${this.escapeText(this.truncateText(c.summary || c.description || '', 120) || (isEnglish ? 'No course summary yet.' : '尚未提供課程摘要。'))}</p>
-                    </div>
-                    <div class="activity-picker-card-footer">
-                      <span class="activity-picker-card-teacher">
-                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                        ${this.escapeText(c.instructorName || c.teacherName || (isEnglish ? 'Course team' : '課程團隊'))}
-                      </span>
-                      <span class="activity-picker-card-link">${isEnglish ? 'Open' : '進入內容'}</span>
-                    </div>
-                  </div>
-                </div>
-              `).join('')}
+              ${courses.map(c => this.renderActivityPickerCard(c, {
+                action: `${callbackFn}(${this.toInlineActionValue(c.courseId || c.id)})`,
+                ctaLabel: isEnglish ? 'Open' : '進入內容'
+              })).join('')}
             </div>
           `}
         </div>
@@ -443,6 +428,55 @@ const MoodleUI = {
       console.error('Render course picker error:', error);
       container.innerHTML = `<div class="error">載入課程失敗</div>`;
     }
+  },
+
+  getCoursePickerEyebrow(course = {}) {
+    const locale = I18n.getLocale();
+    return course.subject || course.category || course.track || (locale === 'en' ? 'Published course' : '已發布課程');
+  },
+
+  getCoursePickerCode(course = {}) {
+    return course.shortName || course.courseCode || course.code || course.courseId || course.id || '';
+  },
+
+  renderActivityPickerCard(course = {}, options = {}) {
+    const isEnglish = I18n.getLocale() === 'en';
+    const courseId = course.courseId || course.id || '';
+    const title = course.title || course.name || (isEnglish ? 'Untitled course' : '未命名課程');
+    const summary = options.summary
+      || this.truncateText(course.summary || course.description || '', 120)
+      || (isEnglish ? 'No course summary yet.' : '尚未提供課程摘要。');
+    const eyebrow = options.eyebrow || this.getCoursePickerEyebrow(course);
+    const code = options.code || this.getCoursePickerCode(course);
+    const footerLabel = options.footerLabel || course.instructorName || course.teacherName || (isEnglish ? 'Course team' : '課程團隊');
+    const ctaLabel = options.ctaLabel || (isEnglish ? 'Open' : '進入內容');
+
+    return `
+      <div class="activity-picker-card ${this.getSurfaceToneClass(courseId || title)}"
+           onclick="${options.action}">
+        <div class="activity-picker-card-accent"></div>
+        <div class="activity-picker-card-body">
+          <div class="activity-picker-card-head">
+            <span class="activity-picker-card-chip">${this.escapeText(eyebrow)}</span>
+            ${code ? `<span class="activity-picker-card-code">${this.escapeText(code)}</span>` : ''}
+          </div>
+          <div class="activity-picker-card-copy">
+            <h3 class="activity-picker-card-title">${this.escapeText(title)}</h3>
+            <p class="activity-picker-card-summary">${this.escapeText(summary)}</p>
+          </div>
+          <div class="activity-picker-card-footer">
+            <span class="activity-picker-card-teacher">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              ${this.escapeText(footerLabel)}
+            </span>
+            <span class="activity-picker-card-link">
+              <span>${this.escapeText(ctaLabel)}</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
+            </span>
+          </div>
+        </div>
+      </div>
+    `;
   },
 
   // ==================== 課程頁面 ====================
@@ -5283,25 +5317,12 @@ const MoodleUI = {
                 hint: isEnglish ? 'Assign or create a course to open gradebook management.' : '請先加入或建立課程，再開啟成績簿管理。'
               }) : `
                 <div class="activity-picker-grid">
-                  ${courses.map(c => `
-                    <div class="activity-picker-card ${this.getSurfaceToneClass(c.courseId || c.id || c.title || c.name)}"
-                         onclick="MoodleUI.openGradebookManagement(${this.toInlineActionValue(c.courseId || c.id)})">
-                      <div class="activity-picker-card-accent"></div>
-                      <div class="activity-picker-card-body">
-                        <div class="activity-picker-card-copy">
-                          <h3 class="activity-picker-card-title">${this.escapeText(c.title || c.name || t('moodleGradebook.untitledCourse'))}</h3>
-                          <p class="activity-picker-card-summary">${this.escapeText(this.truncateText(c.summary || c.description || '', 120) || (isEnglish ? 'No course summary yet.' : '尚未提供課程摘要。'))}</p>
-                        </div>
-                        <div class="activity-picker-card-footer">
-                          <span class="activity-picker-card-teacher">
-                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
-                            ${this.escapeText(c.shortName || c.category || (isEnglish ? 'Course details' : '課程資訊'))}
-                          </span>
-                          <span class="activity-picker-card-link">${isEnglish ? 'Open gradebook' : '查看成績簿'}</span>
-                        </div>
-                      </div>
-                    </div>
-                  `).join('')}
+                  ${courses.map(c => this.renderActivityPickerCard(c, {
+                    action: `MoodleUI.openGradebookManagement(${this.toInlineActionValue(c.courseId || c.id)})`,
+                    ctaLabel: isEnglish ? 'Open gradebook' : '查看成績簿',
+                    summary: this.truncateText(c.summary || c.description || '', 120) || (isEnglish ? 'Track grading progress, categories and exports for this course.' : '查看這門課的成績項目、類別與匯出資料。'),
+                    footerLabel: c.instructorName || c.teacherName || (isEnglish ? 'Teaching team' : '教學團隊')
+                  })).join('')}
                 </div>
               `}
             </div>`;
@@ -6215,25 +6236,12 @@ const MoodleUI = {
               </div>
             </div>
             <div class="activity-picker-grid">
-              ${courses.map(course => `
-                <div class="activity-picker-card ${this.getSurfaceToneClass(course.courseId || course.id || course.title || course.name)}"
-                     onclick="MoodleUI.openQuestionBank(${this.toInlineActionValue(course.courseId || course.id)})">
-                  <div class="activity-picker-card-accent"></div>
-                  <div class="activity-picker-card-body">
-                    <div class="activity-picker-card-copy">
-                      <h3 class="activity-picker-card-title">${this.escapeText(course.title || course.name || (isEnglish ? 'Untitled course' : '未命名課程'))}</h3>
-                      <p class="activity-picker-card-summary">${this.escapeText(this.truncateText(course.description || course.summary || '', 120) || (isEnglish ? 'Open this course to manage categories and questions.' : '進入此課程後可管理類別與題目。'))}</p>
-                    </div>
-                    <div class="activity-picker-card-footer">
-                      <span class="activity-picker-card-teacher">
-                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                        ${this.escapeText(course.shortName || course.courseId || '')}
-                      </span>
-                      <span class="activity-picker-card-link">${isEnglish ? 'Open course' : '進入課程題庫'}</span>
-                    </div>
-                  </div>
-                </div>
-              `).join('')}
+              ${courses.map(course => this.renderActivityPickerCard(course, {
+                action: `MoodleUI.openQuestionBank(${this.toInlineActionValue(course.courseId || course.id)})`,
+                ctaLabel: isEnglish ? 'Open course' : '進入課程題庫',
+                summary: this.truncateText(course.description || course.summary || '', 120) || (isEnglish ? 'Open this course to manage categories and questions.' : '進入此課程後可管理類別與題目。'),
+                footerLabel: course.instructorName || course.teacherName || (isEnglish ? 'Question workspace' : '題庫工作區')
+              })).join('')}
             </div>
           </div>
         `;
