@@ -4922,6 +4922,14 @@ const MoodleUI = {
                     ${discussion.locked ? `<span>•</span><span>${t('moodleDiscussion.locked')}</span>` : ''}
                   </div>
                 </div>
+              </div>
+              <h3 class="forum-thread-post-title">${safeSubject}</h3>
+              <div class="forum-thread-post-content">${safeMessage || this.escapeText(I18n.getLocale() === 'en' ? 'No content provided yet.' : '尚未提供內容。')}</div>
+              <div class="forum-thread-post-actions">
+                <div class="forum-thread-post-tags">
+                  <span class="forum-chip">${I18n.getLocale() === 'en' ? 'Original post' : '原始主題'}</span>
+                  ${discussion.pinned ? `<span class="forum-chip">${I18n.getLocale() === 'en' ? 'Pinned' : '置頂中'}</span>` : ''}
+                </div>
                 <div class="category-actions">
                   ${(isDiscussionAuthor || canManageForum) ? `<button type="button" class="btn-sm" onclick="MoodleUI.openNewDiscussionModal(${this.toInlineActionValue(forumId)}, ${this.toInlineActionValue(JSON.stringify({
                     discussionId,
@@ -4933,8 +4941,6 @@ const MoodleUI = {
                   ${canManageForum ? `<button type="button" class="btn-sm" onclick="MoodleUI.toggleDiscussionLocked(${this.toInlineActionValue(forumId)}, ${this.toInlineActionValue(discussionId)}, ${discussion.locked ? 'true' : 'false'})">${discussion.locked ? (I18n.getLocale() === 'en' ? 'Unlock' : '解除鎖定') : (I18n.getLocale() === 'en' ? 'Lock' : '鎖定')}</button>` : ''}
                 </div>
               </div>
-              <h3 class="forum-thread-post-title">${safeSubject}</h3>
-              <div class="forum-thread-post-content">${safeMessage || this.escapeText(I18n.getLocale() === 'en' ? 'No content provided yet.' : '尚未提供內容。')}</div>
             </div>
           </article>
 
@@ -4981,14 +4987,19 @@ const MoodleUI = {
                             </button>
                           </div>
                           <div class="forum-thread-post-content">${safePostMessage || this.escapeText(I18n.getLocale() === 'en' ? 'No content provided yet.' : '尚未提供內容。')}</div>
-                          <div class="category-actions">
-                            <button type="button" class="btn-sm" onclick="MoodleUI.ratePost(${this.toInlineActionValue(forumId)}, ${this.toInlineActionValue(discussionId)}, ${this.toInlineActionValue(post.postId)})">${I18n.getLocale() === 'en' ? 'Rate' : '評分'}</button>
-                            ${Number(post.ratingCount || 0) > 0 ? `<span class="forum-chip">${this.escapeText(`${post.ratingAverage || 0} / 5 (${post.ratingCount})`)}</span>` : ''}
-                            ${(isPostAuthor || canManageForum) ? `<button type="button" class="btn-sm" onclick="MoodleUI.openEditPostModal(${this.toInlineActionValue(forumId)}, ${this.toInlineActionValue(discussionId)}, ${this.toInlineActionValue(JSON.stringify({
-                              postId: post.postId,
-                              message: post.message || post.content || ''
-                            }))})">${t('common.edit')}</button>` : ''}
-                            ${(isPostAuthor || canManageForum) ? `<button type="button" class="btn-sm btn-danger" onclick="MoodleUI.deletePost(${this.toInlineActionValue(forumId)}, ${this.toInlineActionValue(discussionId)}, ${this.toInlineActionValue(post.postId)})">${t('common.delete')}</button>` : ''}
+                          <div class="forum-thread-post-actions">
+                            <div class="forum-thread-post-tags">
+                              ${replyDepth > 0 ? `<span class="forum-chip">${I18n.getLocale() === 'en' ? `Reply level ${Math.min(replyDepth + 1, 4)}` : `第 ${Math.min(replyDepth + 1, 4)} 層回覆`}</span>` : `<span class="forum-chip">${I18n.getLocale() === 'en' ? 'Reply' : '回覆'}</span>`}
+                              ${Number(post.ratingCount || 0) > 0 ? `<span class="forum-chip">${this.escapeText(`${post.ratingAverage || 0} / 5 (${post.ratingCount})`)}</span>` : ''}
+                            </div>
+                            <div class="category-actions">
+                              <button type="button" class="btn-sm" onclick="MoodleUI.ratePost(${this.toInlineActionValue(forumId)}, ${this.toInlineActionValue(discussionId)}, ${this.toInlineActionValue(post.postId)})">${I18n.getLocale() === 'en' ? 'Rate' : '評分'}</button>
+                              ${(isPostAuthor || canManageForum) ? `<button type="button" class="btn-sm" onclick="MoodleUI.openEditPostModal(${this.toInlineActionValue(forumId)}, ${this.toInlineActionValue(discussionId)}, ${this.toInlineActionValue(JSON.stringify({
+                                postId: post.postId,
+                                message: post.message || post.content || ''
+                              }))})">${t('common.edit')}</button>` : ''}
+                              ${(isPostAuthor || canManageForum) ? `<button type="button" class="btn-sm btn-danger" onclick="MoodleUI.deletePost(${this.toInlineActionValue(forumId)}, ${this.toInlineActionValue(discussionId)}, ${this.toInlineActionValue(post.postId)})">${t('common.delete')}</button>` : ''}
+                            </div>
                           </div>
                         </div>
                       </article>
@@ -5453,19 +5464,23 @@ const MoodleUI = {
 
         <!-- 成績統計 -->
         <div class="gradebook-stats">
-          <div class="stat-card">
+          <div class="stat-card tone-olive">
+            <div class="stat-eyebrow">${I18n.getLocale() === 'en' ? 'Learners' : '學員'}</div>
             <div class="stat-value">${students.length}</div>
             <div class="stat-label">${t('moodleGradebook.studentCount')}</div>
           </div>
-          <div class="stat-card">
+          <div class="stat-card tone-violet">
+            <div class="stat-eyebrow">${I18n.getLocale() === 'en' ? 'Items' : '項目'}</div>
             <div class="stat-value">${items.length}</div>
             <div class="stat-label">${t('moodleGradebook.gradeItems')}</div>
           </div>
-          <div class="stat-card">
+          <div class="stat-card tone-sky">
+            <div class="stat-eyebrow">${I18n.getLocale() === 'en' ? 'Average' : '平均'}</div>
             <div class="stat-value">${(gradebook.stats?.averageGrade ?? gradebook.classAverage) != null ? (gradebook.stats?.averageGrade ?? gradebook.classAverage).toFixed(1) : '-'}</div>
             <div class="stat-label">${t('moodleGradebook.classAverage')}</div>
           </div>
-          <div class="stat-card">
+          <div class="stat-card tone-gold">
+            <div class="stat-eyebrow">${I18n.getLocale() === 'en' ? 'Performance' : '表現'}</div>
             <div class="stat-value">${gradebook.stats?.passingRate != null ? gradebook.stats.passingRate + '%' : (gradebook.highestScore || '-')}</div>
             <div class="stat-label">${t('moodleGradebook.highestScore')}</div>
           </div>
@@ -8245,15 +8260,23 @@ const MoodleUI = {
           filtered.map(b => `
             <div class="badge-card ${b.status !== 'active' ? 'locked' : ''}"
                  onclick="MoodleUI.viewBadgeDetail(${this.toInlineActionValue(b.badgeId || b.id)})">
-              <div class="badge-icon ${this.getSurfaceToneClass(b.badgeId || b.id || b.name)}">
-                ${this.renderBadgeIcon(b.icon)}
+              <div class="badge-card-top">
+                <div class="badge-icon ${this.getSurfaceToneClass(b.badgeId || b.id || b.name)}">
+                  ${this.renderBadgeIcon(b.icon)}
+                </div>
+                <span class="badge-status-pill ${b.status === 'active' ? 'is-active' : 'is-draft'}">${this.getBadgeStatusLabel(b.status)}</span>
               </div>
-              <h3 class="badge-name">${this.escapeText(b.name || t('common.unnamed'))}</h3>
-              <p class="badge-description">${this.escapeText(this.truncateText(b.description || t('common.noDescription'), 96))}</p>
-              <span class="badge-status-pill ${b.status === 'active' ? 'is-active' : 'is-draft'}">${this.getBadgeStatusLabel(b.status)}</span>
-              <div class="badge-criteria">
-                <span>${t('moodleBadges.typeLabel')}：${this.escapeText(this.getBadgeTypeLabel(b.type))}</span>
-                <span>${t('moodleBadges.issuedLabel')}：${b.issuedCount || 0}</span>
+              <div class="badge-card-body">
+                <h3 class="badge-name">${this.escapeText(b.name || t('common.unnamed'))}</h3>
+                <p class="badge-description">${this.escapeText(this.truncateText(b.description || t('common.noDescription'), 96))}</p>
+                <div class="badge-criteria">
+                  <span class="badge-summary-pill">${t('moodleBadges.typeLabel')}：${this.escapeText(this.getBadgeTypeLabel(b.type))}</span>
+                  <span class="badge-summary-pill">${t('moodleBadges.issuedLabel')}：${b.issuedCount || 0}</span>
+                </div>
+              </div>
+              <div class="badge-card-footer">
+                <span class="badge-summary-pill">${b.courseId ? (isEnglish ? 'Course badge' : '課程徽章') : (isEnglish ? 'Site badge' : '網站徽章')}</span>
+                <span class="badge-card-open">${isEnglish ? 'View details' : '查看詳情'}</span>
               </div>
             </div>
           `).join('')}

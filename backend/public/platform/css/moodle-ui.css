@@ -3137,52 +3137,109 @@
 }
 
 .category-card {
-  background: var(--white);
-  border-radius: 8px;
-  padding: 1rem;
-  box-shadow: var(--shadow-sm);
-  text-align: center;
+  position: relative;
+  background:
+    radial-gradient(circle at top right, rgba(87, 109, 72, 0.1), transparent 36%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 245, 239, 0.96) 100%);
+  border: 1px solid rgba(26, 58, 92, 0.1);
+  border-radius: 20px;
+  padding: 1rem 1.05rem;
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.05);
+  text-align: left;
 }
 
 .category-card .category-name {
-  font-weight: 600;
-  margin-bottom: 0.25rem;
+  font-weight: 700;
+  margin-bottom: 0.35rem;
+  color: var(--charcoal);
 }
 
 .category-card .category-weight {
-  color: var(--olive);
+  color: var(--olive-deep);
   font-size: 0.9rem;
+  font-weight: 700;
 }
 
 .category-card .category-items {
   font-size: 0.8rem;
   color: var(--gray-500);
+  margin-top: 0.4rem;
 }
 
 .gradebook-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 1rem;
   margin-bottom: 1.5rem;
 }
 
 .gradebook-stats .stat-card {
-  background: var(--white);
-  border-radius: 12px;
-  padding: 1.25rem;
-  text-align: center;
-  box-shadow: var(--shadow-sm);
+  --gradebook-stat-accent: linear-gradient(135deg, rgba(87, 109, 72, 0.92), rgba(56, 73, 46, 0.92));
+  --gradebook-stat-tint: rgba(87, 109, 72, 0.12);
+  position: relative;
+  background:
+    radial-gradient(circle at top right, var(--gradebook-stat-tint), transparent 42%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.985) 0%, rgba(248, 245, 239, 0.96) 100%);
+  border: 1px solid rgba(26, 58, 92, 0.1);
+  border-radius: 22px;
+  padding: 1.05rem 1.1rem 1rem;
+  text-align: left;
+  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.05);
+  overflow: hidden;
+}
+
+.gradebook-stats .stat-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 4px;
+  background: var(--gradebook-stat-accent);
+}
+
+.gradebook-stats .stat-card.tone-olive {
+  --gradebook-stat-accent: linear-gradient(135deg, #617451 0%, #3d5140 100%);
+  --gradebook-stat-tint: rgba(97, 116, 81, 0.12);
+}
+
+.gradebook-stats .stat-card.tone-violet {
+  --gradebook-stat-accent: linear-gradient(135deg, #4a5a92 0%, #2f4268 100%);
+  --gradebook-stat-tint: rgba(74, 90, 146, 0.12);
+}
+
+.gradebook-stats .stat-card.tone-sky {
+  --gradebook-stat-accent: linear-gradient(135deg, #2f6892 0%, #1f5076 100%);
+  --gradebook-stat-tint: rgba(47, 104, 146, 0.12);
+}
+
+.gradebook-stats .stat-card.tone-gold {
+  --gradebook-stat-accent: linear-gradient(135deg, #9c7043 0%, #7b5631 100%);
+  --gradebook-stat-tint: rgba(156, 112, 67, 0.12);
+}
+
+.gradebook-stats .stat-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.38rem 0.72rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--gray-600);
+  font-size: 0.74rem;
+  font-weight: 700;
+  box-shadow: 0 10px 18px rgba(15, 23, 42, 0.06);
+  margin-bottom: 0.85rem;
 }
 
 .gradebook-stats .stat-value {
-  font-size: 1.75rem;
+  font-size: 1.95rem;
   font-weight: 700;
-  color: var(--olive);
+  color: var(--charcoal);
+  line-height: 1.05;
 }
 
 .gradebook-stats .stat-label {
   font-size: 0.85rem;
   color: var(--gray-500);
+  margin-top: 0.35rem;
 }
 
 .gradebook-table-container {
@@ -4681,29 +4738,76 @@
 
 .badges-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(248px, 1fr));
+  gap: 1.35rem;
 }
 
 .badge-card {
-  background: var(--white);
-  border: 1px solid var(--gray-200);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
-  padding: 1.5rem;
-  text-align: center;
-  transition: transform var(--transition-base), box-shadow var(--transition-base);
+  position: relative;
+  background:
+    radial-gradient(circle at top right, rgba(255,255,255,0.9), transparent 26%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.985) 0%, rgba(248, 245, 239, 0.96) 100%);
+  border: 1px solid rgba(26, 58, 92, 0.1);
+  border-radius: 24px;
+  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.05);
+  padding: 1.15rem 1.2rem 1.1rem;
+  transition: transform var(--transition-base), box-shadow var(--transition-base), border-color var(--transition-base);
   cursor: pointer;
+  overflow: hidden;
 }
 
 .badge-card:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-md);
+  transform: translateY(-4px);
+  box-shadow: 0 24px 42px rgba(15, 23, 42, 0.1);
+  border-color: rgba(26, 58, 92, 0.16);
+}
+
+.badge-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 4px;
+  background: linear-gradient(90deg, rgba(87, 109, 72, 0.92), rgba(26, 58, 92, 0.88));
 }
 
 .badge-card.locked {
   opacity: 0.6;
   filter: grayscale(0.5);
+}
+
+.badge-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.9rem;
+}
+
+.badge-card-body {
+  text-align: left;
+}
+
+.badge-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  margin-top: 1rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid rgba(26, 58, 92, 0.08);
+}
+
+.badge-card-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  padding: 0.56rem 0.88rem;
+  border-radius: 999px;
+  background: rgba(45, 43, 107, 0.08);
+  color: var(--olive-deep);
+  font-size: 0.78rem;
+  font-weight: 700;
+  border: 1px solid rgba(45, 43, 107, 0.08);
 }
 
 .badge-stats-grid {
@@ -4773,15 +4877,16 @@
 }
 
 .badge-icon {
-  width: 80px;
-  height: 80px;
-  margin: 0 auto 1rem;
+  width: 78px;
+  height: 78px;
+  margin: 0;
   border-radius: var(--radius-full);
   background: linear-gradient(135deg, var(--olive-100), var(--olive-200));
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
+  box-shadow: 0 16px 28px rgba(15, 23, 42, 0.12);
 }
 
 .badge-icon-glyph {
@@ -4922,16 +5027,17 @@
 }
 
 .badge-name {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--olive-800);
-  margin-bottom: 0.375rem;
+  font-size: 1.04rem;
+  font-weight: 700;
+  color: var(--charcoal);
+  margin-bottom: 0.42rem;
+  line-height: 1.35;
 }
 
 .badge-description {
-  font-size: 0.8125rem;
-  color: var(--gray-500);
-  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
+  color: var(--gray-600);
+  margin-bottom: 0.85rem;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -4939,12 +5045,12 @@
 }
 
 .badge-criteria {
-  font-size: 0.75rem;
-  color: var(--gray-400);
+  font-size: 0.78rem;
+  color: var(--gray-500);
   display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  margin-top: 0.8rem;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.2rem;
 }
 
 .badge-progress {
@@ -4973,7 +5079,7 @@
 }
 
 .badge-summary-pill {
-  background: var(--gray-100);
+  background: rgba(45, 43, 107, 0.08);
   color: var(--gray-600);
 }
 
