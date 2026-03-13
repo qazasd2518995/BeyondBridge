@@ -247,16 +247,31 @@
         container.innerHTML = chatRooms.map(room => {
             const isActive = room.chatId === currentChatId;
             const statusClass = room.status;
+            const statusTextMap = {
+                waiting: '等待接手',
+                active: '進行中',
+                closed: '已結束'
+            };
             const time = formatTime(room.lastMessageAt || room.createdAt);
+            const statusText = statusTextMap[statusClass] || '處理中';
+            const preview = escapeHtml(room.lastMessage || '尚無訊息，點擊繼續對話');
+            const topic = escapeHtml(room.topic || '客服對話');
 
             return `
                 <div class="chat-room-item ${isActive ? 'active' : ''}" onclick="window.ChatModule.openChat('${room.chatId}')">
-                    <div class="room-title">
-                        <span class="status-dot ${statusClass}"></span>
-                        <span>${escapeHtml(room.topic || '客服對話')}</span>
+                    <div class="chat-room-item-top">
+                        <span class="chat-room-status ${statusClass}">
+                            <span class="status-dot"></span>
+                            <span>${statusText}</span>
+                        </span>
+                        <span class="room-time">${time}</span>
                     </div>
-                    <div class="room-preview">${escapeHtml(room.lastMessage || '尚無訊息')}</div>
-                    <div class="room-time">${time}</div>
+                    <div class="room-title">${topic}</div>
+                    <div class="room-preview">${preview}</div>
+                    <div class="chat-room-item-footer">
+                        <span class="chat-room-kind">諮詢服務</span>
+                        <span class="chat-room-cta">繼續處理 →</span>
+                    </div>
                 </div>
             `;
         }).join('');

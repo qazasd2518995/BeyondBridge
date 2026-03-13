@@ -459,21 +459,23 @@
             width: 100%;
             border-collapse: separate;
             border-spacing: 0;
+            overflow: hidden;
         }
 
         .data-table th, .data-table td {
-            padding: 1rem 1.25rem;
+            padding: 1rem 1.1rem;
             text-align: left;
-            border-bottom: 1px solid var(--cream-dark);
+            vertical-align: middle;
+            border-bottom: 1px solid rgba(212, 197, 169, 0.28);
         }
 
         .data-table th {
-            font-weight: 600;
+            font-weight: 700;
             color: var(--olive-deep);
-            font-size: 0.85rem;
+            font-size: 0.78rem;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            background: linear-gradient(135deg, var(--cream) 0%, var(--cream-dark) 100%);
+            background: linear-gradient(135deg, rgba(248, 243, 233, 0.95) 0%, rgba(241, 235, 220, 0.92) 100%);
         }
 
         .data-table th:first-child {
@@ -485,11 +487,11 @@
         }
 
         .data-table tbody tr {
-            transition: var(--transition-fast);
+            transition: background 0.2s ease, transform 0.2s ease;
         }
 
         .data-table tbody tr:hover {
-            background: linear-gradient(90deg, var(--olive-muted) 0%, transparent 100%);
+            background: linear-gradient(90deg, rgba(74, 93, 35, 0.08) 0%, rgba(74, 93, 35, 0.02) 100%);
         }
 
         .data-table tbody tr:last-child td {
@@ -1296,40 +1298,71 @@
             margin-bottom: 1.5rem;
         }
         .metric-card {
-            background: white;
-            border-radius: 12px;
-            padding: 1.25rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            text-align: center;
+            --metric-accent: var(--olive);
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 244, 236, 0.96) 100%);
+            border: 1px solid rgba(212, 197, 169, 0.22);
+            border-radius: 24px;
+            padding: 1.15rem 1.2rem 1.2rem;
+            box-shadow: 0 16px 30px rgba(26, 58, 92, 0.08);
+            text-align: left;
+            min-height: 148px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.7rem;
+        }
+        .metric-card::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--metric-accent) 0%, rgba(255, 255, 255, 0.12) 100%);
+        }
+        .metric-card.tone-olive { --metric-accent: var(--olive); }
+        .metric-card.tone-violet { --metric-accent: #5b5bd6; }
+        .metric-card.tone-sky { --metric-accent: #1f8ef1; }
+        .metric-card.tone-gold { --metric-accent: #c58b2c; }
+        .metric-card.tone-charcoal { --metric-accent: var(--charcoal); }
+        .metric-card .metric-label {
+            font-size: 0.76rem;
+            color: var(--gray-500);
+            margin-bottom: 0;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
         }
         .metric-card .metric-value {
-            font-size: 1.75rem;
+            font-size: 1.95rem;
             font-weight: 700;
             color: var(--olive-deep);
-            margin-bottom: 0.25rem;
+            margin-bottom: 0;
+            line-height: 1;
         }
-        .metric-card .metric-label {
-            font-size: 0.85rem;
-            color: var(--gray-500);
-            margin-bottom: 0.5rem;
-        }
+        .metric-card.tone-violet .metric-value { color: #4c51bf; }
+        .metric-card.tone-sky .metric-value { color: #1d4ed8; }
+        .metric-card.tone-gold .metric-value { color: #b7791f; }
+        .metric-card.tone-charcoal .metric-value { color: var(--charcoal); }
         .metric-card .metric-trend {
-            font-size: 0.75rem;
-            padding: 0.2rem 0.5rem;
-            border-radius: 12px;
-            display: inline-block;
+            font-size: 0.76rem;
+            padding: 0.35rem 0.75rem;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            align-self: flex-start;
+            gap: 0.35rem;
+            font-weight: 700;
         }
         .metric-card .metric-trend.up {
-            background: rgba(40, 167, 69, 0.1);
-            color: #28a745;
+            background: rgba(26, 107, 74, 0.12);
+            color: var(--success);
         }
         .metric-card .metric-trend.down {
-            background: rgba(220, 53, 69, 0.1);
-            color: #dc3545;
+            background: rgba(193, 122, 94, 0.12);
+            color: var(--terracotta);
         }
         .metric-card .metric-trend.neutral {
-            background: rgba(108, 117, 125, 0.1);
-            color: #6c757d;
+            background: rgba(148, 163, 184, 0.14);
+            color: var(--gray-500);
         }
         .analytics-charts {
             display: grid;
@@ -1338,10 +1371,11 @@
             margin-bottom: 1.5rem;
         }
         .chart-card {
-            background: white;
-            border-radius: 12px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 244, 236, 0.94) 100%);
+            border-radius: 24px;
+            border: 1px solid rgba(212, 197, 169, 0.22);
             padding: 1.5rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            box-shadow: 0 16px 30px rgba(26, 58, 92, 0.08);
         }
         .chart-card h3 {
             font-size: 1rem;
@@ -1360,32 +1394,48 @@
         }
         .top-resources-table {
             width: 100%;
-            border-collapse: collapse;
+            border-collapse: separate;
+            border-spacing: 0;
         }
         .top-resources-table th,
         .top-resources-table td {
-            padding: 0.75rem;
+            padding: 0.95rem 1rem;
             text-align: left;
-            border-bottom: 1px solid var(--gray-200);
+            border-bottom: 1px solid rgba(212, 197, 169, 0.28);
         }
         .top-resources-table th {
-            font-weight: 500;
-            color: var(--gray-500);
-            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--olive-deep);
+            font-size: 0.78rem;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            background: linear-gradient(135deg, rgba(248, 243, 233, 0.95) 0%, rgba(241, 235, 220, 0.92) 100%);
         }
         .top-resources-table tr:hover {
-            background: var(--gray-100);
+            background: linear-gradient(90deg, rgba(74, 93, 35, 0.08) 0%, rgba(74, 93, 35, 0.02) 100%);
         }
+        .top-resources-table th:first-child { border-top-left-radius: 16px; }
+        .top-resources-table th:last-child { border-top-right-radius: 16px; }
         .support-stat-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 1rem;
         }
         .support-stat-item {
-            text-align: center;
-            padding: 1rem;
-            background: var(--gray-100);
-            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+            text-align: left;
+            padding: 1rem 1.05rem;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(248, 244, 236, 0.9) 100%);
+            border-radius: 20px;
+            border: 1px solid rgba(212, 197, 169, 0.22);
+        }
+        .support-stat-item::before {
+            content: "";
+            position: absolute;
+            inset: 0 auto 0 0;
+            width: 4px;
+            background: linear-gradient(180deg, var(--olive) 0%, var(--olive-deep) 100%);
         }
         .support-stat-item .stat-value {
             font-size: 1.5rem;
@@ -2890,6 +2940,7 @@
             text-align: center;
             padding: 2rem;
             color: var(--gray-400);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(248, 244, 236, 0.86) 100%);
         }
 
         .admin-table-state.is-error {
@@ -4518,27 +4569,27 @@
 
                 <!-- Key Metrics -->
                 <div class="analytics-metrics">
-                    <div class="metric-card">
+                    <div class="metric-card tone-olive">
                         <div class="metric-value" id="metricTotalUsers">0</div>
                         <div class="metric-label" data-i18n="admin.analytics.totalUsers">總用戶數</div>
                         <span class="metric-trend neutral" id="metricUsersTrend">--</span>
                     </div>
-                    <div class="metric-card">
+                    <div class="metric-card tone-violet">
                         <div class="metric-value" id="metricNewUsers">0</div>
                         <div class="metric-label" data-i18n="admin.analytics.newThisMonth">本月新增</div>
                         <span class="metric-trend neutral" id="metricNewUsersTrend">--</span>
                     </div>
-                    <div class="metric-card">
+                    <div class="metric-card tone-sky">
                         <div class="metric-value" id="metricResources">0</div>
                         <div class="metric-label" data-i18n="admin.analytics.publishedResources">已發布教材</div>
                         <span class="metric-trend neutral" id="metricResourcesTrend">--</span>
                     </div>
-                    <div class="metric-card">
+                    <div class="metric-card tone-gold">
                         <div class="metric-value" id="metricLicenses">0</div>
                         <div class="metric-label" data-i18n="admin.analytics.activeLicenses">活躍授權</div>
                         <span class="metric-trend neutral" id="metricLicensesTrend">--</span>
                     </div>
-                    <div class="metric-card">
+                    <div class="metric-card tone-charcoal">
                         <div class="metric-value" id="metricRating">-</div>
                         <div class="metric-label" data-i18n="admin.analytics.supportSatisfaction">客服滿意度</div>
                         <span class="metric-trend neutral" id="metricRatingTrend">--</span>

@@ -1972,11 +1972,16 @@ const App = {
   /**
    * 載入諮詢列表
    */
-  async loadConsultations() {
+  async loadConsultations(filters = {}) {
     try {
       const result = await API.consultations.list();
       if (result.success) {
-        this.consultationsCache = result.data || [];
+        const items = Array.isArray(result.data) ? result.data : [];
+        if (filters.status && filters.status !== 'all') {
+          this.consultationsCache = items.filter(item => item?.status === filters.status);
+        } else {
+          this.consultationsCache = items;
+        }
         this.updateConsultationsUI();
       }
     } catch (error) {
@@ -2023,17 +2028,24 @@ const App = {
     const status = statusMap[consultation.status] || statusMap['pending'];
     const type = typeMap[consultation.requestType] || consultation.requestType;
     const date = new Date(consultation.createdAt).toLocaleDateString('zh-TW');
+    const title = escapeHtml(consultation.title || t('support.chatTitle'));
 
     return `
       <div class="consultation-item" onclick="App.openConsultation('${consultation.consultationId}')">
         <div class="consultation-header">
-          <h3>${consultation.title}</h3>
+          <h3>${title}</h3>
           <span class="status-badge ${status.class}">${status.text}</span>
         </div>
         <div class="consultation-body">
-          <p><strong>${t('app.type')}</strong>${type}</p>
-          <p><strong>${t('app.applicationDate')}</strong>${date}</p>
-          ${consultation.quote?.amount ? `<p><strong>${t('app.quote')}</strong>NT$ ${consultation.quote.amount.toLocaleString()}</p>` : ''}
+          <div class="consultation-meta">
+            <span class="consultation-meta-pill">${t('app.type')} ${type}</span>
+            <span class="consultation-meta-pill">${t('app.applicationDate')} ${date}</span>
+            ${consultation.quote?.amount ? `<span class="consultation-meta-pill">${t('app.quote')} NT$ ${consultation.quote.amount.toLocaleString()}</span>` : ''}
+          </div>
+          <div class="consultation-footer">
+            <span class="chat-room-kind">諮詢服務</span>
+            <span class="consultation-link">前往對話 →</span>
+          </div>
         </div>
       </div>
     `;
