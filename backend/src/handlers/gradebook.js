@@ -54,6 +54,70 @@ const DEFAULT_GRADE_SCALES = {
   }
 };
 
+const GRADEBOOK_ASSIGNMENT_PROJECTION = [
+  'assignmentId',
+  'title',
+  'maxGrade',
+  'weight',
+  'dueDate'
+];
+
+const GRADEBOOK_QUIZ_PROJECTION = [
+  'quizId',
+  'title',
+  'totalPoints',
+  'weight',
+  'closeDate',
+  'gradeMethod'
+];
+
+const GRADEBOOK_MANUAL_ITEM_PROJECTION = [
+  'itemId',
+  'title',
+  'maxGrade',
+  'weight',
+  'categoryId',
+  'dueDate',
+  'description',
+  'hidden',
+  'locked',
+  'createdBy',
+  'createdAt',
+  'updatedAt'
+];
+
+const GRADEBOOK_SUBMISSION_PROJECTION = [
+  'userId',
+  'grade',
+  'submittedAt',
+  'createdAt',
+  'gradedAt',
+  'feedback',
+  'isLate',
+  'status',
+  'SK'
+];
+
+const GRADEBOOK_ATTEMPT_PROJECTION = [
+  'userId',
+  'status',
+  'percentage',
+  'score',
+  'submittedAt',
+  'updatedAt',
+  'createdAt',
+  'SK'
+];
+
+const GRADEBOOK_MANUAL_RECORD_PROJECTION = [
+  'studentId',
+  'grade',
+  'gradedAt',
+  'feedback',
+  'updatedAt',
+  'SK'
+];
+
 function canManageCourse(course, user) {
   if (!course || !user) return false;
   if (user.isAdmin) return true;
@@ -109,14 +173,16 @@ function normalizeManualItem(item = {}) {
 async function getCourseAssignments(courseId) {
   return db.queryByIndex('GSI1', `COURSE#${courseId}`, 'GSI1PK', {
     skName: 'GSI1SK',
-    skPrefix: 'ASSIGNMENT#'
+    skPrefix: 'ASSIGNMENT#',
+    projection: GRADEBOOK_ASSIGNMENT_PROJECTION
   });
 }
 
 async function getCourseQuizzes(courseId) {
   return db.queryByIndex('GSI1', `COURSE#${courseId}`, 'GSI1PK', {
     skName: 'GSI1SK',
-    skPrefix: 'QUIZ#'
+    skPrefix: 'QUIZ#',
+    projection: GRADEBOOK_QUIZ_PROJECTION
   });
 }
 
@@ -124,7 +190,10 @@ async function getCourseGradeItems(courseId) {
   const [assignments, quizzes, manualItems] = await Promise.all([
     getCourseAssignments(courseId),
     getCourseQuizzes(courseId),
-    db.query(`COURSE#${courseId}`, { skPrefix: 'GRADEITEM#' })
+    db.query(`COURSE#${courseId}`, {
+      skPrefix: 'GRADEITEM#',
+      projection: GRADEBOOK_MANUAL_ITEM_PROJECTION
+    })
   ]);
 
   return { assignments, quizzes, manualItems };
@@ -207,7 +276,10 @@ async function buildCourseGradebookDataset(courseId) {
         .filter(item => item?.assignmentId)
         .map(async assignment => [
           assignment.assignmentId,
-          mapRowsByStudent(await db.query(`ASSIGNMENT#${assignment.assignmentId}`, { skPrefix: 'SUBMISSION#' }))
+          mapRowsByStudent(await db.query(`ASSIGNMENT#${assignment.assignmentId}`, {
+            skPrefix: 'SUBMISSION#',
+            projection: GRADEBOOK_SUBMISSION_PROJECTION
+          }))
         ])
     ),
     Promise.all(
@@ -215,7 +287,10 @@ async function buildCourseGradebookDataset(courseId) {
         .filter(item => item?.quizId)
         .map(async quiz => [
           quiz.quizId,
-          groupAttemptsByStudent(await db.query(`QUIZ#${quiz.quizId}`, { skPrefix: 'ATTEMPT#' }))
+          groupAttemptsByStudent(await db.query(`QUIZ#${quiz.quizId}`, {
+            skPrefix: 'ATTEMPT#',
+            projection: GRADEBOOK_ATTEMPT_PROJECTION
+          }))
         ])
     ),
     Promise.all(
@@ -223,7 +298,10 @@ async function buildCourseGradebookDataset(courseId) {
         .filter(item => item?.itemId)
         .map(async item => [
           item.itemId,
-          mapRowsByStudent(await db.query(`GRADEITEM#${item.itemId}`, { skPrefix: 'STUDENT#' }), 'studentId')
+          mapRowsByStudent(await db.query(`GRADEITEM#${item.itemId}`, {
+            skPrefix: 'STUDENT#',
+            projection: GRADEBOOK_MANUAL_RECORD_PROJECTION
+          }), 'studentId')
         ])
     )
   ]);
@@ -236,6 +314,11 @@ async function buildCourseGradebookDataset(courseId) {
     attemptsByQuiz: new Map(attemptEntries),
     manualRecordsByItem: new Map(manualRecordEntries)
   };
+}
+
+async function getEnrollmentUserMap(enrollments = []) {
+  const users = await db.getUsersByIds(enrollments.map(enrollment => enrollment.userId));
+  return new Map(users.filter(user => user?.userId).map(user => [user.userId, user]));
 }
 
 // ==================== 成績類別管理 ====================
@@ -1049,10 +1132,12 @@ router.get('/courses/:courseId', authMiddleware, async (req, res) => {
       ...manualItems.map(normalizeManualItem)
     ];
 
+    const enrollmentUserMap = await getEnrollmentUserMap(enrollments);
+
     // 取得每個學生的成績
     let students = await Promise.all(
       enrollments.map(async (e) => {
-        const user = await db.getUser(e.userId);
+        const user = enrollmentUserMap.get(e.userId);
         const grades = {};
         let totalEarned = 0;
         let totalPossible = 0;
@@ -1445,9 +1530,11 @@ router.get('/courses/:courseId/export', authMiddleware, async (req, res) => {
       manualRecordsByItem
     } = await buildCourseGradebookDataset(courseId);
 
+    const enrollmentUserMap = await getEnrollmentUserMap(enrollments);
+
     const exportData = await Promise.all(
       enrollments.map(async (e) => {
-        const user = await db.getUser(e.userId);
+        const user = enrollmentUserMap.get(e.userId);
         const row = {
           '學號': e.userId,
           '姓名': user?.displayName || '未知用戶',

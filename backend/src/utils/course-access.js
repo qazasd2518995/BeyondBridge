@@ -58,6 +58,7 @@ function normalizeCourseFormat(value, fallback = 'topics') {
 }
 
 module.exports = {
+  getCourseOwnerIds,
   isTeachingUser,
   canManageCourse,
   normalizeCourseVisibility,

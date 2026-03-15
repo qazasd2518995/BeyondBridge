@@ -11,6 +11,10 @@ const { authMiddleware } = require('../utils/auth');
 const db = require('../utils/db');
 const cache = require('../utils/cache');
 const { canManageCourse } = require('../utils/course-access');
+const {
+  listManagedCourseIds,
+  backfillCourseOwnerLinks
+} = require('../utils/course-owner-links');
 
 const TEACHING_ROLES = new Set([
   'manager',
@@ -35,6 +39,46 @@ function requireTeachingRole(req, res, next) {
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const TEACHER_ANALYTICS_CACHE_TTL_MS = 60 * 1000;
+const TEACHER_COURSE_PROJECTION = [
+  'courseId',
+  'title',
+  'name',
+  'instructorId',
+  'teacherId',
+  'creatorId',
+  'createdBy',
+  'instructors',
+  'category',
+  'visibility',
+  'status',
+  'updatedAt',
+  'createdAt'
+];
+const TEACHER_SUBMISSION_PROJECTION = [
+  'userId',
+  'grade',
+  'submittedAt',
+  'createdAt',
+  'gradedAt',
+  'status',
+  'SK'
+];
+const TEACHER_ATTEMPT_PROJECTION = [
+  'userId',
+  'status',
+  'percentage',
+  'score',
+  'submittedAt',
+  'updatedAt',
+  'createdAt',
+  'SK'
+];
+const TEACHER_POST_PROJECTION = [
+  'postId',
+  'authorId',
+  'authorRole',
+  'createdAt'
+];
 
 function parseTimestamp(value) {
   if (!value) return null;
@@ -84,16 +128,43 @@ function getSeverityOrder(severity) {
 }
 
 async function getTeacherCourses(user) {
+  if (user?.isAdmin) {
+    const courses = await db.scan({
+      filter: {
+        expression: 'entityType = :type',
+        values: {
+          ':type': 'COURSE'
+        }
+      },
+      projection: TEACHER_COURSE_PROJECTION
+    });
+    return courses.filter(course => canManageCourse(course, user));
+  }
+
+  const linkedCourseIds = await listManagedCourseIds(user?.userId);
+  if (linkedCourseIds.length > 0) {
+    const linkedCourses = await Promise.all(
+      linkedCourseIds.map(courseId => db.getItem(`COURSE#${courseId}`, 'META'))
+    );
+    return linkedCourses.filter(course => course && canManageCourse(course, user));
+  }
+
   const courses = await db.scan({
     filter: {
       expression: 'entityType = :type',
       values: {
         ':type': 'COURSE'
       }
-    }
+    },
+    projection: TEACHER_COURSE_PROJECTION
   });
 
-  return courses.filter(course => canManageCourse(course, user));
+  const managedCourses = courses.filter(course => canManageCourse(course, user));
+  if (managedCourses.length > 0) {
+    await backfillCourseOwnerLinks(managedCourses);
+  }
+
+  return managedCourses;
 }
 
 async function getCourseEnrollments(courseId) {
@@ -106,7 +177,18 @@ async function getCourseEnrollments(courseId) {
 }
 
 async function getCourseLinkedAnalyticsEntities(courseId) {
-  const linkedEntities = await db.queryByIndex('GSI1', `COURSE#${courseId}`, 'GSI1PK');
+  const linkedEntities = await db.queryByIndex('GSI1', `COURSE#${courseId}`, 'GSI1PK', {
+    projection: [
+      'entityType',
+      'assignmentId',
+      'quizId',
+      'forumId',
+      'title',
+      'dueDate',
+      'closeDate',
+      'updatedAt'
+    ]
+  });
   return {
     assignments: linkedEntities.filter(item => item?.entityType === 'ASSIGNMENT'),
     quizzes: linkedEntities.filter(item => item?.entityType === 'QUIZ'),
@@ -116,7 +198,22 @@ async function getCourseLinkedAnalyticsEntities(courseId) {
 
 async function getForumDiscussionIndex(forumId) {
   if (!forumId) return [];
-  const discussions = await db.query(`FORUM#${forumId}`, { skPrefix: 'DISCUSSION#' });
+  const discussions = await db.query(`FORUM#${forumId}`, {
+    skPrefix: 'DISCUSSION#',
+    projection: [
+      'discussionId',
+      'forumId',
+      'courseId',
+      'authorId',
+      'authorName',
+      'authorRole',
+      'title',
+      'pinned',
+      'teacherReplyCount',
+      'createdAt',
+      'updatedAt'
+    ]
+  });
   return discussions
     .filter(item => item?.discussionId)
     .map(item => ({
@@ -242,12 +339,18 @@ async function loadTeacherAnalyticsData(courses = []) {
     Promise.all(
       assignments
         .filter(item => item?.assignmentId)
-        .map(async assignment => [assignment.assignmentId, await db.query(`ASSIGNMENT#${assignment.assignmentId}`, { skPrefix: 'SUBMISSION#' })])
+        .map(async assignment => [assignment.assignmentId, await db.query(`ASSIGNMENT#${assignment.assignmentId}`, {
+          skPrefix: 'SUBMISSION#',
+          projection: TEACHER_SUBMISSION_PROJECTION
+        })])
     ),
     Promise.all(
       quizzes
         .filter(item => item?.quizId)
-        .map(async quiz => [quiz.quizId, await db.query(`QUIZ#${quiz.quizId}`, { skPrefix: 'ATTEMPT#' })])
+        .map(async quiz => [quiz.quizId, await db.query(`QUIZ#${quiz.quizId}`, {
+          skPrefix: 'ATTEMPT#',
+          projection: TEACHER_ATTEMPT_PROJECTION
+        })])
     ),
     Promise.all(
       forums
@@ -262,10 +365,16 @@ async function loadTeacherAnalyticsData(courses = []) {
     (items || []).forEach(item => discussions.push(item));
   });
 
-  const postEntries = await Promise.all(
-    discussions
+  const unresolvedDiscussions = discussions
       .filter(item => item?.discussionId)
-      .map(async discussion => [discussion.discussionId, await db.query(`DISCUSSION#${discussion.discussionId}`, { skPrefix: 'POST#' })])
+      .filter(item => item.teacherReplyCount === undefined || item.teacherReplyCount === null);
+
+  const postEntries = await Promise.all(
+    unresolvedDiscussions
+      .map(async discussion => [discussion.discussionId, await db.query(`DISCUSSION#${discussion.discussionId}`, {
+        skPrefix: 'POST#',
+        projection: TEACHER_POST_PROJECTION
+      })])
   );
 
   const studentIds = [
@@ -277,7 +386,7 @@ async function loadTeacherAnalyticsData(courses = []) {
     )
   ];
 
-  const studentProfiles = await Promise.all(studentIds.map(studentId => db.getUser(studentId)));
+  const studentProfiles = await db.getUsersByIds(studentIds);
   const studentMap = new Map();
   studentProfiles.forEach(student => {
     if (student?.userId) {
@@ -629,8 +738,10 @@ async function buildTeacherAnalyticsSnapshot(user, nowTs = Date.now()) {
           continue;
         }
 
+        const teacherReplyCount = Number(discussion.teacherReplyCount);
+        const hasIndexedTeacherReply = Number.isFinite(teacherReplyCount) && teacherReplyCount > 0;
         const posts = analyticsData.postsByDiscussion.get(discussion.discussionId) || [];
-        const hasTeacherReply = posts.some(post => isTeacherAuthoredForumItem(post, teacherActorIds));
+        const hasTeacherReply = hasIndexedTeacherReply || posts.some(post => isTeacherAuthoredForumItem(post, teacherActorIds));
         if (!hasTeacherReply) {
           unrepliedPosts++;
           courseUnrepliedPosts++;

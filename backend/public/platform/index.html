@@ -11913,17 +11913,21 @@
             `;
         }
 
+        function getLinkedCourseId(resource = {}) {
+            return resource.courseId || resource.relatedCourseId || resource.enrollmentCourseId || null;
+        }
+
         function renderResourceModalFooter(resource = {}) {
             const isLtiResource = getResourceDisplayType(resource) === 'lti';
-            const courseId = resource.courseId || resource.relatedCourseId || resource.enrollmentCourseId || 'crs_demo001';
-            const courseAction = JSON.stringify(String(courseId));
+            const courseId = getLinkedCourseId(resource);
+            const courseAction = courseId ? JSON.stringify(String(courseId)) : null;
 
             if (isLtiResource) {
                 return `
-                    <div class="resource-modal-footer-note">此教材會引導使用者前往課程報名或課程詳情頁。</div>
+                    <div class="resource-modal-footer-note">${courseId ? '此教材會引導使用者前往課程報名或課程詳情頁。' : '此教材尚未綁定特定課程，會先帶你前往課程中心查看可報名課程。'}</div>
                     <button class="btn-secondary" onclick="closeModal()">關閉</button>
-                    <button class="btn-primary resource-modal-btn-external" onclick="navigateToCourse(${courseAction})">
-                        前往課程報名
+                    <button class="btn-primary resource-modal-btn-external" onclick="${courseId ? `navigateToCourse(${courseAction})` : 'openCourseCenterFromResourceModal()'}">
+                        ${courseId ? '前往課程報名' : '前往課程中心'}
                     </button>
                 `;
             }
@@ -11957,6 +11961,10 @@
         }
 
         function navigateToCourse(courseId) {
+            if (!courseId) {
+                openCourseCenterFromResourceModal();
+                return;
+            }
             closeModal();
             // 導向課程中心並打開對應課程
             const courseNav = document.querySelector('[data-view="moodleCourses"]');
@@ -11967,6 +11975,17 @@
                         MoodleUI.openCourse(courseId);
                     }
                 }, 300);
+            }
+            showToast('正在前往課程中心...');
+        }
+
+        function openCourseCenterFromResourceModal() {
+            closeModal();
+            const courseNav = document.querySelector('[data-view="moodleCourses"]');
+            if (courseNav) {
+                courseNav.click();
+            } else {
+                showView('moodleCourses');
             }
             showToast('正在前往課程中心...');
         }
@@ -12306,6 +12325,7 @@
                 progress: 100
             }
         };
+        const VIDEO_PROGRESS_STORAGE_KEY = 'platform:video-progress';
 
         let currentVideo = null;
         let videoProgressInterval = null;
@@ -12330,8 +12350,75 @@
             element.style.width = `${progress}%`;
         }
 
+        function getStoredVideoProgressMap() {
+            try {
+                const raw = window.localStorage.getItem(VIDEO_PROGRESS_STORAGE_KEY);
+                if (!raw) return {};
+                const parsed = JSON.parse(raw);
+                return parsed && typeof parsed === 'object' ? parsed : {};
+            } catch (error) {
+                return {};
+            }
+        }
+
+        function getStoredVideoProgress(videoId, fallback = 0) {
+            if (!videoId) return clampProgressValue(fallback);
+            const storedValue = getStoredVideoProgressMap()[videoId];
+            return clampProgressValue(storedValue ?? fallback);
+        }
+
+        function persistVideoProgress(videoId, progress) {
+            if (!videoId) return;
+            const normalizedProgress = clampProgressValue(progress);
+            const progressMap = getStoredVideoProgressMap();
+            progressMap[videoId] = normalizedProgress;
+            try {
+                window.localStorage.setItem(VIDEO_PROGRESS_STORAGE_KEY, JSON.stringify(progressMap));
+            } catch (error) {
+                // ignore storage quota or privacy mode failures
+            }
+            if (videoData[videoId]) {
+                videoData[videoId].progress = normalizedProgress;
+            }
+        }
+
+        function applyVideoProgress(videoId, progress) {
+            const normalizedProgress = clampProgressValue(progress);
+            persistVideoProgress(videoId, normalizedProgress);
+
+            if (currentVideo && currentVideo.id === videoId) {
+                currentVideo.progress = normalizedProgress;
+            }
+
+            const progressBar = document.getElementById('videoProgressBar');
+            const progressText = document.getElementById('videoProgressText');
+
+            if (progressBar) setProgressElementValue(progressBar, normalizedProgress);
+            if (progressText) progressText.textContent = `進度: ${normalizedProgress}%`;
+
+            updateVideoCardProgress(videoId, normalizedProgress);
+        }
+
+        function bindVideoPlaybackTracking(videoId) {
+            const videoElement = document.getElementById('videoElement');
+            if (!videoElement) return;
+
+            const syncProgress = () => {
+                if (!Number.isFinite(videoElement.duration) || videoElement.duration <= 0) return;
+                const progress = Math.round((videoElement.currentTime / videoElement.duration) * 100);
+                applyVideoProgress(videoId, progress);
+            };
+
+            videoElement.addEventListener('timeupdate', syncProgress);
+            videoElement.addEventListener('ended', () => applyVideoProgress(videoId, 100));
+        }
+
+        Object.keys(videoData).forEach((videoId) => {
+            videoData[videoId].progress = getStoredVideoProgress(videoId, videoData[videoId].progress);
+        });
+
         function openVideoPlayer(videoId, videoUrl) {
-            const video = videoData[videoId] || {
+            const sourceVideo = videoData[videoId] || {
                 title: '未知影片',
                 author: '未知作者',
                 duration: '--:--',
@@ -12339,6 +12426,10 @@
                 youtubeId: null,
                 description: '',
                 progress: 0
+            };
+            const video = {
+                ...sourceVideo,
+                progress: getStoredVideoProgress(videoId, sourceVideo.progress)
             };
 
             currentVideo = { id: videoId, ...video };
@@ -12427,7 +12518,7 @@
                             </div>
                             <div class="video-player-progress-block">
                                 <div class="video-player-progress-header">
-                                    <span>學習進度</span>
+                                    <span>目前紀錄</span>
                                     <span id="videoProgressText">進度: ${video.progress}%</span>
                                 </div>
                                 <div class="video-player-progress-track">
@@ -12450,7 +12541,7 @@
                                 </div>
                                 <div class="video-player-stat-line">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 12 2 2 4-4"/><path d="M12 3a9 9 0 1 0 9 9"/></svg>
-                                    <span>目前進度 <strong>${video.progress}%</strong></span>
+                                    <span>目前紀錄 <strong>${video.progress}%</strong></span>
                                 </div>
                             </section>
 
@@ -12476,9 +12567,7 @@
             document.body.appendChild(modal);
             document.body.style.overflow = 'hidden';
             setProgressElementValue(document.getElementById('videoProgressBar'), video.progress);
-
-            // 開始追蹤進度（模擬）
-            startProgressTracking();
+            bindVideoPlaybackTracking(videoId);
 
             // 鍵盤快捷鍵
             modal.addEventListener('keydown', handleVideoKeyboard);
@@ -12497,25 +12586,10 @@
         }
 
         function startProgressTracking() {
-            if (!currentVideo) return;
-
-            // 模擬進度更新（實際上應該從影片播放器 API 取得）
-            videoProgressInterval = setInterval(() => {
-                if (currentVideo && currentVideo.progress < 100) {
-                    currentVideo.progress = Math.min(100, currentVideo.progress + 1);
-
-                    const progressBar = document.getElementById('videoProgressBar');
-                    const progressText = document.getElementById('videoProgressText');
-
-                    if (progressBar) setProgressElementValue(progressBar, currentVideo.progress);
-                    if (progressText) progressText.textContent = `進度: ${currentVideo.progress}%`;
-
-                    // 更新本地資料
-                    if (videoData[currentVideo.id]) {
-                        videoData[currentVideo.id].progress = currentVideo.progress;
-                    }
-                }
-            }, 3000); // 每 3 秒更新一次（模擬）
+            if (videoProgressInterval) {
+                clearInterval(videoProgressInterval);
+                videoProgressInterval = null;
+            }
         }
 
         function stopProgressTracking() {
@@ -12526,23 +12600,8 @@
         }
 
         function markVideoComplete(videoId) {
-            if (videoData[videoId]) {
-                videoData[videoId].progress = 100;
-            }
-            if (currentVideo && currentVideo.id === videoId) {
-                currentVideo.progress = 100;
-            }
-
-            const progressBar = document.getElementById('videoProgressBar');
-            const progressText = document.getElementById('videoProgressText');
-
-            if (progressBar) setProgressElementValue(progressBar, 100);
-            if (progressText) progressText.textContent = '進度: 100%';
-
+            applyVideoProgress(videoId, 100);
             showToast('已標記為完成！');
-
-            // 更新影片卡片的進度條
-            updateVideoCardProgress(videoId, 100);
         }
 
         function updateVideoCardProgress(videoId, progress) {

@@ -13,6 +13,10 @@ const {
   normalizeCourseVisibility,
   normalizeCourseFormat
 } = require('../../utils/course-access');
+const {
+  syncCourseOwnerLinks,
+  deleteCourseOwnerLinks
+} = require('../../utils/course-owner-links');
 
 // ==================== 課程管理（教師/管理員） ====================
 
@@ -128,6 +132,7 @@ router.post('/', authMiddleware, async (req, res) => {
     };
 
     await db.putItem(courseItem);
+    await syncCourseOwnerLinks(courseItem);
 
     // 建立預設章節
     const defaultSection = {
@@ -225,6 +230,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     updates.updatedAt = new Date().toISOString();
 
     const updatedCourse = await db.updateItem(`COURSE#${id}`, 'META', updates);
+    await syncCourseOwnerLinks(updatedCourse, course);
 
     delete updatedCourse.PK;
     delete updatedCourse.SK;
@@ -284,6 +290,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     }
 
     // 2. 刪除課程本身
+    await deleteCourseOwnerLinks(course);
     await db.deleteItem(`COURSE#${id}`, 'META');
 
     res.json({

@@ -12,7 +12,8 @@ const {
   DeleteCommand,
   QueryCommand,
   ScanCommand,
-  BatchWriteCommand
+  BatchWriteCommand,
+  BatchGetCommand
 } = require('@aws-sdk/lib-dynamodb');
 
 // 初始化 DynamoDB 客戶端
@@ -381,6 +382,38 @@ async function batchDelete(keys) {
 }
 
 /**
+ * 批量取得項目
+ */
+async function batchGetItems(keys = []) {
+  const batches = [];
+  const results = [];
+
+  for (let i = 0; i < keys.length; i += 100) {
+    batches.push(keys.slice(i, i + 100));
+  }
+
+  for (const batch of batches) {
+    let requestKeys = batch.map(key => ({ PK: key.PK, SK: key.SK }));
+
+    while (requestKeys.length > 0) {
+      const command = new BatchGetCommand({
+        RequestItems: {
+          [TABLE_NAME]: {
+            Keys: requestKeys
+          }
+        }
+      });
+
+      const response = await docClient.send(command);
+      results.push(...(response.Responses?.[TABLE_NAME] || []));
+      requestKeys = response.UnprocessedKeys?.[TABLE_NAME]?.Keys || [];
+    }
+  }
+
+  return results;
+}
+
+/**
  * 透過 Email 查詢用戶（使用 GSI4）
  */
 async function getUserByEmail(email) {
@@ -395,6 +428,15 @@ async function getUserByEmail(email) {
  */
 async function getUser(userId) {
   return getItem(`USER#${userId}`, 'PROFILE');
+}
+
+async function getUsersByIds(userIds = []) {
+  const ids = [...new Set(userIds.filter(Boolean))];
+  if (ids.length === 0) return [];
+  return batchGetItems(ids.map(userId => ({
+    PK: `USER#${userId}`,
+    SK: 'PROFILE'
+  })));
 }
 
 /**
@@ -553,8 +595,10 @@ module.exports = {
   scan,
   batchWrite,
   batchDelete,
+  batchGetItems,
   getUserByEmail,
   getUser,
+  getUsersByIds,
   getAdmin,
   getAdminByEmail,
   getAllUsers,

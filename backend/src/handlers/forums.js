@@ -9,6 +9,38 @@ const db = require('../utils/db');
 const { authMiddleware } = require('../utils/auth');
 const { canManageCourse } = require('../utils/course-access');
 const { syncCourseActivityLink, deleteCourseActivityLink } = require('../utils/course-activities');
+const {
+  listManagedCourseIds,
+  backfillCourseOwnerLinks
+} = require('../utils/course-owner-links');
+
+const COURSE_PROJECTION = [
+  'courseId',
+  'title',
+  'name',
+  'instructorId',
+  'teacherId',
+  'creatorId',
+  'createdBy',
+  'instructors'
+];
+
+const FORUM_LIST_PROJECTION = [
+  'forumId',
+  'courseId',
+  'sectionId',
+  'title',
+  'description',
+  'type',
+  'forumMode',
+  'subscriptionMode',
+  'ratingEnabled',
+  'visible',
+  'stats',
+  'createdBy',
+  'createdAt',
+  'updatedAt'
+];
 
 function buildDiscussionPreview(content) {
   return String(content || '')
@@ -37,6 +69,7 @@ function normalizeDiscussionIndexRow(row) {
     createdAt: row.createdAt || null,
     updatedAt: row.updatedAt || null,
     replyCount: Number(row.replyCount || 0),
+    teacherReplyCount: Number(row.teacherReplyCount || 0),
     lastReply: row.lastReplyAt || null,
     latestReply: row.lastReplyAt ? {
       authorName: row.lastReplyByName || row.authorName || '未知用戶',
@@ -53,6 +86,47 @@ async function getForumSubscriptionMap(userId) {
     projection: ['forumId', 'subscribed']
   });
   return new Map(rows.filter(row => row?.forumId).map(row => [row.forumId, row]));
+}
+
+async function getManagedCourseIdsForUser(user) {
+  if (!user?.userId || user?.isAdmin) return [];
+
+  const linkedCourseIds = await listManagedCourseIds(user.userId);
+  if (linkedCourseIds.length > 0) {
+    return linkedCourseIds;
+  }
+
+  const courses = await db.scan({
+    filter: {
+      expression: 'entityType = :type',
+      values: {
+        ':type': 'COURSE'
+      }
+    },
+    projection: COURSE_PROJECTION
+  });
+
+  const managedCourses = courses.filter(course => canManageCourse(course, user));
+  if (managedCourses.length > 0) {
+    await backfillCourseOwnerLinks(managedCourses);
+  }
+  return managedCourses.map(course => course.courseId).filter(Boolean);
+}
+
+async function getForumsForCourseIds(courseIds = []) {
+  if (!Array.isArray(courseIds) || courseIds.length === 0) return [];
+
+  const forumRows = await Promise.all(
+    [...new Set(courseIds.filter(Boolean))].map(courseId => (
+      db.queryByIndex('GSI1', `COURSE#${courseId}`, 'GSI1PK', {
+        skName: 'GSI1SK',
+        skPrefix: 'FORUM#',
+        projection: FORUM_LIST_PROJECTION
+      })
+    ))
+  );
+
+  return forumRows.flat().filter(item => item?.forumId);
 }
 
 function summarizeForumFromIndices(forum, discussionRows) {
@@ -110,41 +184,39 @@ async function deleteDiscussionGraph(discussionId) {
  */
 router.get('/', authMiddleware, async (req, res) => {
   try {
-    const userId = req.user.userId;
     const isAdmin = !!req.user.isAdmin;
     const { courseId } = req.query;
 
-    let forums = await db.scan({
-      filter: {
-        expression: 'entityType = :type',
-        values: { ':type': 'FORUM' }
+    let forums = [];
+    if (isAdmin) {
+      forums = await db.scan({
+        filter: {
+          expression: 'entityType = :type',
+          values: { ':type': 'FORUM' }
+        },
+        projection: FORUM_LIST_PROJECTION
+      });
+      if (courseId) {
+        forums = forums.filter(f => f.courseId === courseId);
       }
-    });
-
-    // 課程篩選
-    if (courseId) {
-      forums = forums.filter(f => f.courseId === courseId);
-    }
-
-    if (!isAdmin) {
-      const [progressList, teachingCourses] = await Promise.all([
-        db.getUserCourseProgress(userId),
-        db.scan({
-          filter: {
-            expression: 'entityType = :type AND (instructorId = :userId OR teacherId = :userId OR creatorId = :userId OR createdBy = :userId OR contains(instructors, :userId))',
-            values: {
-              ':type': 'COURSE',
-              ':userId': userId
-            }
-          }
-        })
+    } else {
+      const [progressList, managedCourseIds] = await Promise.all([
+        db.getUserCourseProgress(req.user.userId),
+        getManagedCourseIdsForUser(req.user)
       ]);
 
-      const allowedCourseIds = new Set([
-        ...progressList.map(item => item.courseId).filter(Boolean),
-        ...teachingCourses.map(item => item.courseId).filter(Boolean)
-      ]);
-      forums = forums.filter(f => allowedCourseIds.has(f.courseId));
+      const allowedCourseIds = [
+        ...new Set([
+          ...progressList.map(item => item.courseId).filter(Boolean),
+          ...managedCourseIds.filter(Boolean)
+        ])
+      ];
+
+      const scopedCourseIds = courseId
+        ? (allowedCourseIds.includes(courseId) ? [courseId] : [])
+        : allowedCourseIds;
+
+      forums = await getForumsForCourseIds(scopedCourseIds);
     }
 
     const [forumDiscussionRows, subscriptionMap] = await Promise.all([
@@ -167,11 +239,10 @@ router.get('/', authMiddleware, async (req, res) => {
           ]
         }))
       ),
-      getForumSubscriptionMap(userId)
+      getForumSubscriptionMap(req.user.userId)
     ]);
 
-    const forumsWithStats = await Promise.all(
-      forums.map(async (f, index) => {
+    const forumsWithStats = forums.map((f, index) => {
         const discussions = forumDiscussionRows[index] || [];
         const summary = summarizeForumFromIndices(f, discussions);
         const storedSubscription = subscriptionMap.get(f.forumId);
@@ -195,8 +266,7 @@ router.get('/', authMiddleware, async (req, res) => {
             latestDiscussion: summary.latestDiscussion
           }
         };
-      })
-    );
+      });
 
     res.json({
       success: true,
@@ -739,6 +809,7 @@ router.post('/:id/discussions', authMiddleware, async (req, res) => {
       pinned: canPin && pinned,
       locked: false,
       replyCount: 0,
+      teacherReplyCount: 0,
       lastReplyAt: null,
       lastReplyByName: null,
       createdAt: now
@@ -1023,6 +1094,7 @@ router.post('/:id/discussions/:discussionId/posts', authMiddleware, async (req, 
     // 更新討論的最後回覆時間
     await db.updateItem(`DISCUSSION#${discussionId}`, 'META', {
       replyCount: (discussion.replyCount || 0) + 1,
+      teacherReplyCount: Math.max(0, Number(discussion.teacherReplyCount || 0)) + (isInstructor ? 1 : 0),
       lastReplyAt: now,
       lastReplyBy: userId,
       lastReplyByName: user?.displayName || '未知用戶',
@@ -1031,6 +1103,7 @@ router.post('/:id/discussions/:discussionId/posts', authMiddleware, async (req, 
 
     await db.updateItem(`FORUM#${id}`, `DISCUSSION#${discussionId}`, {
       replyCount: (discussion.replyCount || 0) + 1,
+      teacherReplyCount: Math.max(0, Number(discussion.teacherReplyCount || 0)) + (isInstructor ? 1 : 0),
       lastReplyAt: now,
       lastReplyByName: user?.displayName || '未知用戶',
       updatedAt: now
@@ -1175,6 +1248,9 @@ router.delete('/:id/discussions/:discussionId/posts/:postId', authMiddleware, as
       .slice()
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
     const now = new Date().toISOString();
+    const teacherReplyDelta = post.authorRole === 'instructor' || post.authorRole === 'assistant' || post.authorRole === 'teacher'
+      ? 1
+      : 0;
 
     // 更新討論區統計
     await db.updateItem(`FORUM#${id}`, 'META', {
@@ -1184,6 +1260,7 @@ router.delete('/:id/discussions/:discussionId/posts/:postId', authMiddleware, as
 
     await db.updateItem(`DISCUSSION#${discussionId}`, 'META', {
       replyCount: Math.max(0, (discussion.replyCount || 1) - 1),
+      teacherReplyCount: Math.max(0, Number(discussion.teacherReplyCount || 0) - teacherReplyDelta),
       lastReplyAt: latestPost?.createdAt || null,
       lastReplyBy: latestPost?.authorId || null,
       lastReplyByName: latestPost?.authorName || null,
@@ -1192,6 +1269,7 @@ router.delete('/:id/discussions/:discussionId/posts/:postId', authMiddleware, as
 
     await db.updateItem(`FORUM#${id}`, `DISCUSSION#${discussionId}`, {
       replyCount: Math.max(0, (discussion.replyCount || 1) - 1),
+      teacherReplyCount: Math.max(0, Number(discussion.teacherReplyCount || 0) - teacherReplyDelta),
       lastReplyAt: latestPost?.createdAt || null,
       lastReplyByName: latestPost?.authorName || null,
       updatedAt: now

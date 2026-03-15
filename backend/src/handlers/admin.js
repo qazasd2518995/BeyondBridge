@@ -11,11 +11,40 @@ const db = require('../utils/db');
 const auth = require('../utils/auth');
 const cache = require('../utils/cache');
 const ADMIN_ANALYTICS_CACHE_TTL_MS = 2 * 60 * 1000;
+const ADMIN_ANALYTICS_ENTITY_CACHE_TTL_MS = 60 * 1000;
 const analyticsInflight = new Map();
 const ANALYTICS_ENTITY_FILTER = (type) => ({
   expression: 'entityType = :type',
   values: { ':type': type }
 });
+const USER_ANALYTICS_PROJECTION = [
+  'userId',
+  'displayName',
+  'email',
+  'role',
+  'status',
+  'createdAt',
+  'lastLoginAt'
+];
+const RESOURCE_ANALYTICS_PROJECTION = [
+  'resourceId',
+  'title',
+  'category',
+  'status',
+  'viewCount',
+  'averageRating',
+  'createdAt'
+];
+const LICENSE_ANALYTICS_PROJECTION = [
+  'licenseId',
+  'resourceId',
+  'status',
+  'startDate',
+  'approvedAt',
+  'createdAt',
+  'expiryDate',
+  'expiresAt'
+];
 const ADMIN_ACTIVITY_ACTIONS = [
   'login',
   'resource_viewed',
@@ -55,18 +84,73 @@ async function withAnalyticsCache(cacheKey, computeFn, ttlMs = ADMIN_ANALYTICS_C
 }
 
 async function getProjectedUsersForAnalytics() {
-  return db.scan({
-    filter: ANALYTICS_ENTITY_FILTER('USER'),
-    projection: [
-      'userId',
-      'displayName',
-      'email',
-      'role',
-      'status',
-      'createdAt',
-      'lastLoginAt'
-    ]
-  });
+  const { data } = await withAnalyticsCache('admin:analytics:users', () => (
+    db.scan({
+      filter: ANALYTICS_ENTITY_FILTER('USER'),
+      projection: USER_ANALYTICS_PROJECTION
+    })
+  ), ADMIN_ANALYTICS_ENTITY_CACHE_TTL_MS);
+  return data;
+}
+
+async function getProjectedResourcesForAnalytics() {
+  const { data } = await withAnalyticsCache('admin:analytics:resources', () => (
+    db.scan({
+      filter: ANALYTICS_ENTITY_FILTER('RESOURCE'),
+      projection: RESOURCE_ANALYTICS_PROJECTION
+    })
+  ), ADMIN_ANALYTICS_ENTITY_CACHE_TTL_MS);
+  return data;
+}
+
+async function getProjectedLicensesForAnalytics() {
+  const { data } = await withAnalyticsCache('admin:analytics:licenses', () => (
+    db.scan({
+      filter: ANALYTICS_ENTITY_FILTER('LICENSE'),
+      projection: LICENSE_ANALYTICS_PROJECTION
+    })
+  ), ADMIN_ANALYTICS_ENTITY_CACHE_TTL_MS);
+  return data;
+}
+
+async function getProjectedChatRoomsForAnalytics() {
+  const { data } = await withAnalyticsCache('admin:analytics:chat-rooms', () => (
+    db.scan({
+      filter: ANALYTICS_ENTITY_FILTER('CHAT_ROOM'),
+      projection: ['status', 'rating']
+    })
+  ), ADMIN_ANALYTICS_ENTITY_CACHE_TTL_MS);
+  return data;
+}
+
+async function getProjectedCoursesForDashboard() {
+  const { data } = await withAnalyticsCache('admin:analytics:courses', () => (
+    db.scan({
+      filter: ANALYTICS_ENTITY_FILTER('COURSE'),
+      projection: ['courseId', 'createdAt']
+    })
+  ), ADMIN_ANALYTICS_ENTITY_CACHE_TTL_MS);
+  return data;
+}
+
+async function getProjectedAnnouncementsForDashboard() {
+  const { data } = await withAnalyticsCache('admin:analytics:announcements', () => (
+    db.scan({
+      filter: ANALYTICS_ENTITY_FILTER('ANNOUNCEMENT'),
+      projection: ['id', 'status']
+    })
+  ), ADMIN_ANALYTICS_ENTITY_CACHE_TTL_MS);
+  return data;
+}
+
+async function getProjectedAdminDashboardData() {
+  return Promise.all([
+    getProjectedUsersForAnalytics(),
+    getProjectedResourcesForAnalytics(),
+    getProjectedCoursesForDashboard(),
+    getProjectedLicensesForAnalytics(),
+    getProjectedAnnouncementsForDashboard()
+  ]);
 }
 
 async function getActivityRowsForRange(startIso, endIso) {
@@ -100,77 +184,63 @@ router.use(auth.adminMiddleware);
  */
 router.get('/dashboard', async (req, res) => {
   try {
-    // 嘗試從快取取得（TTL 60 秒）
     const CACHE_KEY = 'admin:dashboard';
-    const cached = cache.get(CACHE_KEY);
-    if (cached) {
-      return res.json({ success: true, data: { ...cached, fromCache: true } });
-    }
+    const { data: dashboardData, fromCache } = await withAnalyticsCache(CACHE_KEY, async () => {
+      const [users, resources, courses, licenses, announcements] = await getProjectedAdminDashboardData();
 
-    // 取得各類統計數據
-    const [users, resources, courses, licenses, announcements] = await Promise.all([
-      db.scan({ filter: { expression: 'entityType = :type', values: { ':type': 'USER' } } }),
-      db.scan({ filter: { expression: 'entityType = :type', values: { ':type': 'RESOURCE' } } }),
-      db.scan({ filter: { expression: 'entityType = :type', values: { ':type': 'COURSE' } } }),
-      db.scan({ filter: { expression: 'entityType = :type', values: { ':type': 'LICENSE' } } }),
-      db.scan({ filter: { expression: 'entityType = :type', values: { ':type': 'ANNOUNCEMENT' } } })
-    ]);
+      const activeUsers = users.filter(u => u.status === 'active').length;
+      const activeLicenses = licenses.filter(l => l.status === 'active').length;
+      const pendingLicenses = licenses.filter(l => l.status === 'pending').length;
+      const publishedResources = resources.filter(r => r.status === 'published').length;
 
-    // 計算統計
-    const activeUsers = users.filter(u => u.status === 'active').length;
-    const activeLicenses = licenses.filter(l => l.status === 'active').length;
-    const pendingLicenses = licenses.filter(l => l.status === 'pending').length;
-    const publishedResources = resources.filter(r => r.status === 'published').length;
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const newUsers = users.filter(u => new Date(u.createdAt) >= thirtyDaysAgo).length;
 
-    // 計算 30 天內新註冊用戶
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const newUsers = users.filter(u => new Date(u.createdAt) >= thirtyDaysAgo).length;
+      const thirtyDaysFromNow = new Date();
+      thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+      const expiringLicenses = licenses.filter(l => {
+        if (!l.expiryDate) return false;
+        const expiry = new Date(l.expiryDate);
+        const today = new Date();
+        return l.status === 'active' && expiry > today && expiry <= thirtyDaysFromNow;
+      }).length;
 
-    // 計算即將到期的授權
-    const thirtyDaysFromNow = new Date();
-    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
-    const expiringLicenses = licenses.filter(l => {
-      if (!l.expiryDate) return false;
-      const expiry = new Date(l.expiryDate);
-      const today = new Date();
-      return l.status === 'active' && expiry > today && expiry <= thirtyDaysFromNow;
-    }).length;
+      const recentUsers = users
+        .slice()
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .slice(0, 5)
+        .map(u => ({
+          userId: u.userId,
+          displayName: u.displayName,
+          email: u.email,
+          createdAt: u.createdAt
+        }));
 
-    // 最近活動（簡化版）
-    const recentUsers = users
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-      .slice(0, 5)
-      .map(u => ({
-        userId: u.userId,
-        displayName: u.displayName,
-        email: u.email,
-        createdAt: u.createdAt
-      }));
-
-    const dashboardData = {
-      stats: {
-        totalUsers: users.length,
-        activeUsers,
-        newUsersThisMonth: newUsers,
-        totalResources: resources.length,
-        publishedResources,
-        totalCourses: courses.length,
-        activeLicenses,
-        pendingLicenses,
-        expiringLicenses,
-        activeAnnouncements: announcements.filter(a => a.status === 'active').length
-      },
-      recentUsers,
-      timestamp: new Date().toISOString()
-    };
-
-    // 快取 60 秒
-    cache.set(CACHE_KEY, dashboardData, 60000);
+      return {
+        stats: {
+          totalUsers: users.length,
+          activeUsers,
+          newUsersThisMonth: newUsers,
+          totalResources: resources.length,
+          publishedResources,
+          totalCourses: courses.length,
+          activeLicenses,
+          pendingLicenses,
+          expiringLicenses,
+          activeAnnouncements: announcements.filter(a => a.status === 'active').length
+        },
+        recentUsers,
+        timestamp: new Date().toISOString()
+      };
+    }, 60000);
 
     res.json({
       success: true,
-      data: dashboardData
+      data: {
+        ...dashboardData,
+        fromCache
+      }
     });
 
   } catch (error) {
@@ -1074,34 +1144,9 @@ router.get('/analytics/overview', async (req, res) => {
     const { data: responseData, fromCache } = await withAnalyticsCache(CACHE_KEY, async () => {
       const [users, resources, licenses, chatRooms] = await Promise.all([
         getProjectedUsersForAnalytics(),
-        db.scan({
-          filter: ANALYTICS_ENTITY_FILTER('RESOURCE'),
-          projection: [
-            'resourceId',
-            'title',
-            'category',
-            'status',
-            'viewCount',
-            'averageRating',
-            'createdAt'
-          ]
-        }),
-        db.scan({
-          filter: ANALYTICS_ENTITY_FILTER('LICENSE'),
-          projection: [
-            'resourceId',
-            'status',
-            'startDate',
-            'approvedAt',
-            'createdAt',
-            'expiryDate',
-            'expiresAt'
-          ]
-        }),
-        db.scan({
-          filter: ANALYTICS_ENTITY_FILTER('CHAT_ROOM'),
-          projection: ['status', 'rating']
-        })
+        getProjectedResourcesForAnalytics(),
+        getProjectedLicensesForAnalytics(),
+        getProjectedChatRoomsForAnalytics()
       ]);
 
       const now = new Date();
@@ -1486,8 +1531,18 @@ router.get('/system/errors', async (req, res) => {
 router.post('/export/users', async (req, res) => {
   try {
     const { format = 'json', fields, filters } = req.body;
+    const defaultFields = ['userId', 'displayName', 'email', 'role', 'status', 'createdAt'];
+    const selectedFields = fields || defaultFields;
+    const projection = [
+      ...new Set([
+        ...selectedFields,
+        'role',
+        'status',
+        'createdAt'
+      ])
+    ];
 
-    let users = await db.getAllUsers({ limit: 10000 });
+    let users = await db.getAllUsers({ projection });
 
     // 套用篩選
     if (filters) {
@@ -1496,10 +1551,6 @@ router.post('/export/users', async (req, res) => {
       if (filters.dateFrom) users = users.filter(u => new Date(u.createdAt) >= new Date(filters.dateFrom));
       if (filters.dateTo) users = users.filter(u => new Date(u.createdAt) <= new Date(filters.dateTo));
     }
-
-    // 選擇欄位
-    const defaultFields = ['userId', 'displayName', 'email', 'role', 'status', 'createdAt'];
-    const selectedFields = fields || defaultFields;
 
     const exportData = users.map(u => {
       const row = {};
