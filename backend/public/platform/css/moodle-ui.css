@@ -704,9 +704,46 @@
 
 /* ==================== 參與者列表 ==================== */
 .participants-list {
-  background: var(--white);
-  border-radius: 12px;
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.participants-table-shell {
+  padding: 0.85rem;
+  border-radius: 22px;
+  border: 1px solid rgba(26, 58, 92, 0.08);
+  background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248,245,239,0.94));
+  box-shadow: 0 18px 32px rgba(15, 23, 42, 0.06);
+}
+
+.participants-table {
+  border-collapse: separate;
+  border-spacing: 0 0.7rem;
+}
+
+.participants-table thead th {
+  background: transparent;
+  border-bottom: none;
+  padding-top: 0.25rem;
+  padding-bottom: 0.45rem;
+}
+
+.participants-table td {
+  background: rgba(255, 255, 255, 0.82);
+  border-top: 1px solid rgba(26, 58, 92, 0.06);
+  border-bottom: 1px solid rgba(26, 58, 92, 0.06);
+  vertical-align: middle;
+}
+
+.participants-table td:first-child {
+  border-left: 1px solid rgba(26, 58, 92, 0.06);
+  border-radius: 18px 0 0 18px;
+}
+
+.participants-table td:last-child {
+  border-right: 1px solid rgba(26, 58, 92, 0.06);
+  border-radius: 0 18px 18px 0;
 }
 
 .user-cell {
@@ -728,6 +765,46 @@
   font-size: 0.9rem;
 }
 
+.participant-name-stack,
+.participant-meta-stack,
+.participant-date-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+  min-width: 0;
+}
+
+.participant-name-stack strong,
+.participant-date-stack strong {
+  font-size: 0.92rem;
+  color: var(--charcoal);
+}
+
+.participant-name-stack span,
+.participant-meta-stack span,
+.participant-date-stack span {
+  font-size: 0.78rem;
+  color: var(--gray-500);
+  overflow-wrap: anywhere;
+}
+
+.participant-role-chip {
+  align-self: flex-start;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(74, 93, 35, 0.1);
+  color: var(--olive-deep);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.participant-progress-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
 .mini-progress {
   width: 80px;
   height: 6px;
@@ -747,7 +824,8 @@
 .progress-text-sm {
   font-size: 0.8rem;
   color: var(--gray-500);
-  margin-left: 0.5rem;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 /* ==================== 成績頁面 ==================== */

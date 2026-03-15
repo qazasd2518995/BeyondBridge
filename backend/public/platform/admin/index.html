@@ -1206,16 +1206,146 @@
         .chat-message.admin .chat-time { text-align: right; }
         .chat-sender { font-size: 0.8rem; color: var(--gray-500); margin-bottom: 0.25rem; font-weight: 500; }
 
-        .queue-item { padding: 0.75rem; border-radius: 8px; cursor: pointer; transition: background 0.2s; border-bottom: 1px solid var(--gray-100); }
-        .queue-item:hover { background: var(--gray-50); }
-        .queue-item.active { background: var(--olive-light); border-left: 3px solid var(--olive); }
-        .queue-item .queue-user { font-weight: 500; font-size: 0.9rem; margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.5rem; }
-        .queue-item .queue-preview { font-size: 0.8rem; color: var(--gray-500); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .queue-item .queue-time { font-size: 0.75rem; color: var(--gray-400); }
-        .queue-item .status-dot { width: 8px; height: 8px; border-radius: 50%; }
-        .queue-item .status-dot.waiting { background: var(--warning); }
-        .queue-item .status-dot.active { background: var(--success); }
-        .queue-item .status-dot.closed { background: var(--gray-400); }
+        .queue-item {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 0.7rem;
+            padding: 0.9rem;
+            margin-bottom: 0.7rem;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+            border: 1px solid rgba(26, 58, 92, 0.08);
+            background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248,245,239,0.94));
+            box-shadow: 0 14px 28px rgba(15, 23, 42, 0.05);
+        }
+        .queue-item:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 18px 30px rgba(15, 23, 42, 0.08);
+            border-color: rgba(26, 58, 92, 0.12);
+        }
+        .queue-item.active {
+            background: linear-gradient(180deg, rgba(240, 244, 236, 0.98), rgba(251, 248, 241, 0.96));
+            border-color: rgba(74, 93, 35, 0.2);
+            box-shadow: 0 20px 32px rgba(74, 93, 35, 0.12);
+        }
+        .queue-item::before {
+            content: '';
+            position: absolute;
+            inset: 0 0 auto 0;
+            height: 4px;
+            border-radius: 20px 20px 0 0;
+            background: linear-gradient(90deg, rgba(74, 93, 35, 0.9), rgba(26, 58, 92, 0.86));
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        .queue-item.active::before {
+            opacity: 1;
+        }
+        .queue-item-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 0.75rem;
+        }
+        .queue-user {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.7rem;
+            min-width: 0;
+        }
+        .queue-avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--olive) 0%, var(--olive-dark) 100%);
+            color: var(--white);
+            font-size: 0.95rem;
+            font-weight: 700;
+            flex-shrink: 0;
+            box-shadow: 0 12px 24px rgba(74, 93, 35, 0.18);
+        }
+        .queue-user-copy {
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+        }
+        .queue-user-row {
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+            flex-wrap: wrap;
+        }
+        .queue-user-name {
+            font-weight: 700;
+            font-size: 0.92rem;
+            color: var(--text-primary);
+            overflow-wrap: anywhere;
+        }
+        .queue-topic {
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            overflow-wrap: anywhere;
+        }
+        .queue-status-badge,
+        .queue-unread-badge,
+        .queue-time-chip {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.32rem 0.68rem;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            font-weight: 700;
+        }
+        .queue-status-badge.waiting {
+            background: rgba(199, 120, 37, 0.12);
+            color: #a35c10;
+        }
+        .queue-status-badge.active {
+            background: rgba(74, 93, 35, 0.12);
+            color: var(--olive-dark);
+        }
+        .queue-status-badge.closed {
+            background: rgba(100, 116, 139, 0.12);
+            color: #475569;
+        }
+        .queue-time-chip {
+            background: rgba(26, 58, 92, 0.06);
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+        .queue-unread-badge {
+            background: rgba(193, 122, 94, 0.14);
+            color: var(--terracotta);
+        }
+        .queue-preview {
+            font-size: 0.84rem;
+            color: var(--text-secondary);
+            line-height: 1.65;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .queue-item-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.65rem;
+            flex-wrap: wrap;
+            padding-top: 0.75rem;
+            border-top: 1px solid rgba(26, 58, 92, 0.08);
+        }
+        .queue-footer-copy {
+            font-size: 0.76rem;
+            color: var(--gray-500);
+        }
 
         .support-tab-list {
             display: flex;
@@ -4428,6 +4558,110 @@
             gap: 1.25rem;
         }
 
+        .admin-export-hero {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 1rem 1.1rem;
+            border-radius: 20px;
+            border: 1px solid rgba(26, 58, 92, 0.08);
+            background:
+                radial-gradient(circle at top right, rgba(87, 109, 72, 0.12), transparent 38%),
+                linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248,245,239,0.94));
+        }
+
+        .admin-export-copy {
+            min-width: 0;
+        }
+
+        .admin-export-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.3rem 0.65rem;
+            border-radius: 999px;
+            background: rgba(26, 58, 92, 0.06);
+            color: var(--text-secondary);
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+        }
+
+        .admin-export-lead {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .admin-export-summary {
+            margin-top: 0.4rem;
+            color: var(--text-secondary);
+            font-size: 0.84rem;
+            line-height: 1.65;
+        }
+
+        .admin-export-type-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.45rem 0.8rem;
+            border-radius: 999px;
+            background: rgba(74, 93, 35, 0.12);
+            color: var(--olive-dark);
+            font-size: 0.74rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .admin-export-option-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.9rem;
+        }
+
+        .admin-export-option-card {
+            padding: 0.95rem 1rem;
+            border-radius: 18px;
+            border: 1px solid rgba(26, 58, 92, 0.08);
+            background: rgba(255,255,255,0.76);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.58);
+        }
+
+        .admin-export-option-kicker {
+            display: block;
+            margin-bottom: 0.45rem;
+            color: var(--text-secondary);
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .admin-export-note-list {
+            display: grid;
+            gap: 0.55rem;
+            margin-top: 0.5rem;
+        }
+
+        .admin-export-note {
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            line-height: 1.6;
+        }
+
+        .admin-export-note svg {
+            width: 16px;
+            height: 16px;
+            color: var(--olive-dark);
+            flex-shrink: 0;
+        }
+
         .admin-resource-section {
             background: #f8fafc;
             padding: 15px;
@@ -4534,6 +4768,9 @@
             .admin-pending-meta,
             .admin-toolbar-group,
             .admin-toolbar-inline,
+            .queue-item-head,
+            .queue-item-footer,
+            .admin-export-hero,
             .admin-support-window-head,
             .admin-support-actions,
             .admin-support-input-row,
@@ -4555,7 +4792,8 @@
             }
 
             .admin-resource-grid.is-two,
-            .admin-resource-grid.is-three {
+            .admin-resource-grid.is-three,
+            .admin-export-option-grid {
                 grid-template-columns: 1fr;
             }
 
@@ -6572,25 +6810,51 @@
                 <form id="exportDataForm" class="admin-resource-form">
                     <input type="hidden" name="type" value="">
 
+                    <div class="admin-export-hero">
+                        <div class="admin-export-copy">
+                            <span class="admin-export-eyebrow">資料匯出</span>
+                            <p id="exportModalLead" class="admin-export-lead">建立一份可分享的資料快照</p>
+                            <p id="exportModalDescription" class="admin-export-summary">匯出將根據目前可用資料產生檔案。</p>
+                        </div>
+                        <span id="exportModalTypeBadge" class="admin-export-type-badge">CSV</span>
+                    </div>
+
                     <div class="admin-resource-section">
                         <h4 class="admin-resource-section-title">匯出設定</h4>
-                        <div class="form-group compact">
-                            <label for="exportFormatSelect">匯出格式</label>
-                            <select id="exportFormatSelect" name="format" class="form-input">
-                                <option value="csv">CSV</option>
-                                <option value="json">JSON</option>
-                                <option value="pdf">PDF</option>
-                            </select>
+                        <div class="admin-export-option-grid">
+                            <div class="admin-export-option-card">
+                                <span class="admin-export-option-kicker">匯出格式</span>
+                                <div class="form-group compact">
+                                    <label for="exportFormatSelect">匯出格式</label>
+                                    <select id="exportFormatSelect" name="format" class="form-input">
+                                        <option value="csv">CSV</option>
+                                        <option value="json">JSON</option>
+                                        <option value="pdf">PDF</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div id="exportDateRangeField" class="admin-export-option-card" hidden>
+                                <span class="admin-export-option-kicker">資料範圍</span>
+                                <div class="form-group compact admin-resource-field">
+                                    <label for="exportRangeSelect">日期範圍</label>
+                                    <select id="exportRangeSelect" name="range" class="form-input">
+                                        <option value="7d">最近 7 天</option>
+                                        <option value="30d">最近 30 天</option>
+                                        <option value="90d">最近 90 天</option>
+                                    </select>
+                                </div>
+                            </div>
                         </div>
-                        <div id="exportDateRangeField" class="form-group compact is-spaced admin-resource-field" hidden>
-                            <label for="exportRangeSelect">日期範圍</label>
-                            <select id="exportRangeSelect" name="range" class="form-input">
-                                <option value="7d">最近 7 天</option>
-                                <option value="30d">最近 30 天</option>
-                                <option value="90d">最近 90 天</option>
-                            </select>
+                        <div class="admin-export-note-list">
+                            <div class="admin-export-note">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 16v-4"/><path d="M12 8h.01"/><circle cx="12" cy="12" r="9"/></svg>
+                                <span>CSV / JSON 適合後續分析，PDF 適合直接分享或留存。</span>
+                            </div>
+                            <div class="admin-export-note">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
+                                <span>匯出完成後會同步記錄在最近匯出紀錄，方便再次下載或重跑。</span>
+                            </div>
                         </div>
-                        <p id="exportModalDescription" class="admin-card-caption">匯出將根據目前可用資料產生檔案。</p>
                     </div>
                 </form>
             </div>
@@ -10016,15 +10280,37 @@
                 const isActive = room.chatId === currentAdminChatId;
                 const waitTime = getWaitTime(room.createdAt);
                 const avatar = room.userName ? room.userName.charAt(0).toUpperCase() : 'U';
+                const topic = room.topic || room.userEmail || room.chatId;
+                const timeLabel = room.status === 'waiting'
+                    ? `${t('admin.support.waiting')} ${waitTime}`
+                    : formatTime(room.lastMessageAt);
+                const statusLabels = {
+                    waiting: document.documentElement.lang === 'en' ? 'Waiting' : '需處理',
+                    active: document.documentElement.lang === 'en' ? 'In progress' : '進行中',
+                    closed: document.documentElement.lang === 'en' ? 'Closed' : '已結束'
+                };
 
                 return `
                     <div class="queue-item ${isActive ? 'active' : ''}" onclick="openAdminChat('${room.chatId}')">
-                        <div class="queue-user">
-                            <span class="status-dot ${room.status}"></span>
-                            <span>${escapeHtml(room.userName || t('admin.support.user'))}</span>
+                        <div class="queue-item-head">
+                            <div class="queue-user">
+                                <div class="queue-avatar">${escapeHtml(avatar)}</div>
+                                <div class="queue-user-copy">
+                                    <div class="queue-user-row">
+                                        <span class="queue-user-name">${escapeHtml(room.userName || t('admin.support.user'))}</span>
+                                        <span class="queue-status-badge ${escapeHtml(room.status || 'waiting')}">${escapeHtml(statusLabels[room.status] || statusLabels.waiting)}</span>
+                                        ${(room.unreadCount || 0) > 0 ? `<span class="queue-unread-badge">${escapeHtml(`${room.unreadCount} ${document.documentElement.lang === 'en' ? 'new' : '則未讀'}`)}</span>` : ''}
+                                    </div>
+                                    <div class="queue-topic">${escapeHtml(topic)}</div>
+                                </div>
+                            </div>
+                            <span class="queue-time-chip">${escapeHtml(timeLabel)}</span>
                         </div>
                         <div class="queue-preview">${escapeHtml(room.lastMessage || room.topic || t('admin.support.noMessages'))}</div>
-                        <div class="queue-time">${room.status === 'waiting' ? t('admin.support.waiting') + ' ' + waitTime : formatTime(room.lastMessageAt)}</div>
+                        <div class="queue-item-footer">
+                            <span class="queue-footer-copy">${room.agentName ? escapeHtml(`${document.documentElement.lang === 'en' ? 'Handled by' : '目前由'} ${room.agentName}`) : escapeHtml(document.documentElement.lang === 'en' ? 'Ready to claim or continue' : '可立即接手或延續處理')}</span>
+                            <span class="queue-footer-copy">${escapeHtml(room.chatId)}</span>
+                        </div>
                     </div>
                 `;
             }).join('');
@@ -11441,21 +11727,28 @@
         function showExportModal(type) {
             const form = document.getElementById('exportDataForm');
             const titleEl = document.getElementById('exportDataModalTitle');
+            const leadEl = document.getElementById('exportModalLead');
             const descriptionEl = document.getElementById('exportModalDescription');
+            const typeBadgeEl = document.getElementById('exportModalTypeBadge');
             const rangeField = document.getElementById('exportDateRangeField');
             const rangeSelect = document.getElementById('exportRangeSelect');
-            if (!form || !titleEl || !descriptionEl || !rangeField || !rangeSelect) return;
+            if (!form || !titleEl || !descriptionEl || !rangeField || !rangeSelect || !leadEl || !typeBadgeEl) return;
 
             const exportMeta = getExportTypeMeta(type);
             const currentRange = document.getElementById('activityDateRange')?.value || '30d';
+            const isEnglish = document.documentElement.lang === 'en' || I18n.currentLanguage === 'en';
 
             form.reset();
             form.querySelector('[name="type"]').value = type;
             form.querySelector('[name="format"]').value = 'csv';
             titleEl.textContent = `${exportMeta.label}匯出`;
+            leadEl.textContent = type === 'analytics'
+                ? (isEnglish ? 'Prepare a reusable activity analytics snapshot' : '建立一份可追蹤的活動分析快照')
+                : (isEnglish ? `Export ${exportMeta.label} for sharing or backup` : `匯出${exportMeta.label}，方便分享、備份或後續分析`);
             descriptionEl.textContent = type === 'analytics'
-                ? '將依據指定日期範圍匯出活動分析資料。'
-                : '將根據目前可用資料產生檔案。';
+                ? (isEnglish ? 'Analytics exports use the selected time window so you can compare short-term and long-term trends.' : '分析匯出會依指定時間範圍整理資料，方便比較短期與長期趨勢。')
+                : (isEnglish ? 'A file will be generated from the latest available records in the system.' : '系統會根據目前最新可用資料建立檔案。');
+            typeBadgeEl.textContent = exportMeta.label;
             rangeField.hidden = type !== 'analytics';
             rangeSelect.value = ['7d', '30d', '90d'].includes(currentRange) ? currentRange : '30d';
 

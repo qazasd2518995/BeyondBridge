@@ -1002,7 +1002,8 @@ const MoodleUI = {
 
     return `
       <div class="participants-list">
-        <table class="data-table">
+        <div class="participants-table-shell">
+        <table class="data-table participants-table">
           <thead>
             <tr>
               <th>${t('moodleParticipant.student')}</th>
@@ -1013,27 +1014,60 @@ const MoodleUI = {
             </tr>
           </thead>
           <tbody>
-            ${participants.map(p => `
-              <tr>
-                <td>
-                  <div class="user-cell">
-                    <div class="user-avatar">${(p.displayName || p.userName || t('moodleParticipant.defaultAvatar'))[0]}</div>
-                    <span>${p.displayName || p.userName || t('moodleParticipant.defaultName')}</span>
-                  </div>
-                </td>
-                <td>${p.email || p.userEmail || '-'}</td>
-                <td>${p.enrolledAt ? new Date(p.enrolledAt).toLocaleDateString(I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW') : '-'}</td>
-                <td>
-                  <div class="mini-progress">
-                    <div class="mini-progress-fill" data-progress-width="${this.clampProgressValue(p.progress || 0)}"></div>
-                  </div>
-                  <span class="progress-text-sm">${p.progress || 0}%</span>
-                </td>
-                <td>${p.lastAccess ? new Date(p.lastAccess).toLocaleDateString('zh-TW') : t('moodleParticipant.never')}</td>
-              </tr>
-            `).join('')}
+            ${participants.map((p) => {
+              const roleKey = String(p.role || 'student').toLowerCase();
+              const roleLabelMap = {
+                student: I18n.getLocale() === 'en' ? 'Learner' : '學習者',
+                learner: I18n.getLocale() === 'en' ? 'Learner' : '學習者',
+                teacher: I18n.getLocale() === 'en' ? 'Instructor' : '教師',
+                instructor: I18n.getLocale() === 'en' ? 'Instructor' : '教師',
+                admin: I18n.getLocale() === 'en' ? 'Administrator' : '管理員'
+              };
+              const roleLabel = roleLabelMap[roleKey] || (I18n.getLocale() === 'en' ? 'Learner' : '學習者');
+
+              return `
+                <tr class="participant-row">
+                  <td>
+                    <div class="user-cell">
+                      <div class="user-avatar">${(p.displayName || p.userName || t('moodleParticipant.defaultAvatar'))[0]}</div>
+                      <div class="participant-name-stack">
+                        <strong>${this.escapeText(p.displayName || p.userName || t('moodleParticipant.defaultName'))}</strong>
+                        <span>${this.escapeText(p.studentId || p.userId || p.email || '-')}</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="participant-meta-stack">
+                      <span>${this.escapeText(p.email || p.userEmail || '-')}</span>
+                      <span class="participant-role-chip">${this.escapeText(roleLabel)}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="participant-date-stack">
+                      <strong>${p.enrolledAt ? this.escapeText(new Date(p.enrolledAt).toLocaleDateString(I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW')) : '-'}</strong>
+                      <span>${I18n.getLocale() === 'en' ? 'Joined course' : '加入課程'}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="participant-progress-cell">
+                      <div class="mini-progress">
+                        <div class="mini-progress-fill" data-progress-width="${this.clampProgressValue(p.progress || 0)}"></div>
+                      </div>
+                      <span class="progress-text-sm">${p.progress || 0}%</span>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="participant-date-stack">
+                      <strong>${p.lastAccess ? this.escapeText(new Date(p.lastAccess).toLocaleDateString(I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW')) : this.escapeText(t('moodleParticipant.never'))}</strong>
+                      <span>${I18n.getLocale() === 'en' ? 'Last seen' : '最近活動'}</span>
+                    </div>
+                  </td>
+                </tr>
+              `;
+            }).join('')}
           </tbody>
         </table>
+        </div>
       </div>
     `;
   },
@@ -5231,10 +5265,20 @@ const MoodleUI = {
         hour: '2-digit',
         minute: '2-digit'
       }) || '');
+      const latestActivitySource = posts[posts.length - 1]?.createdAt || discussion.updatedAt || discussion.createdAt;
+      const safeLatestActivity = this.escapeText(this.formatPlatformDate(latestActivitySource, {
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }) || '');
+      const totalLikes = posts.reduce((sum, post) => sum + Number(post.likes || 0), 0);
+      const activeReplyCount = posts.filter((post) => Number(post.likes || 0) > 0 || Number(post.ratingCount || 0) > 0).length;
 
       container.innerHTML = `
         <section class="forum-thread-shell">
-          <div class="forum-thread-panel">
+          <div class="forum-thread-panel is-hero">
             <div class="forum-thread-top">
               <div class="forum-header-cluster">
                 <button type="button" class="forum-back-btn" onclick="MoodleUI.openForum(${this.toInlineActionValue(forumId)})">
@@ -5242,18 +5286,41 @@ const MoodleUI = {
                   <span>${t('moodleDiscussion.backToForum')}</span>
                 </button>
                 <div class="forum-thread-copy">
-                  <span class="forum-thread-count-pill">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                    <span>${posts.length} ${t('moodleDiscussion.repliesCount')}</span>
-                  </span>
+                  <div class="forum-thread-title-row">
+                    <span class="forum-thread-count-pill">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                      <span>${posts.length} ${t('moodleDiscussion.repliesCount')}</span>
+                    </span>
+                    ${discussion.pinned ? `<span class="forum-chip">${I18n.getLocale() === 'en' ? 'Pinned discussion' : '置頂主題'}</span>` : ''}
+                    ${discussion.locked ? `<span class="forum-chip">${I18n.getLocale() === 'en' ? 'Read-only thread' : '唯讀討論串'}</span>` : ''}
+                  </div>
                   <h2 class="forum-thread-title">${safeSubject}</h2>
                   <p class="forum-thread-subtitle">${I18n.getLocale() === 'en' ? 'The original discussion and all replies are shown below in chronological order.' : '以下顯示原始主題與所有回覆。內容會依時間排序，方便你追蹤討論脈絡。'}</p>
                 </div>
+              </div>
+              <div class="forum-thread-actions">
                 <div class="category-actions">
                   <button type="button" class="btn-sm" onclick="MoodleUI.toggleDiscussionSubscription(${this.toInlineActionValue(forumId)}, ${this.toInlineActionValue(discussionId)}, ${discussion.subscribed ? 'true' : 'false'})">
                     ${discussion.subscribed ? (I18n.getLocale() === 'en' ? 'Unsubscribe' : '取消訂閱') : (I18n.getLocale() === 'en' ? 'Subscribe' : '訂閱討論串')}
                   </button>
                 </div>
+              </div>
+            </div>
+            <div class="forum-thread-stats">
+              <div class="forum-thread-stat-card">
+                <span class="forum-thread-stat-label">${I18n.getLocale() === 'en' ? 'Thread starter' : '發文者'}</span>
+                <span class="forum-thread-stat-value">${safeAuthor}</span>
+                <span class="forum-thread-stat-note">${safeCreatedAt || (I18n.getLocale() === 'en' ? 'Created recently' : '最近建立')}</span>
+              </div>
+              <div class="forum-thread-stat-card">
+                <span class="forum-thread-stat-label">${I18n.getLocale() === 'en' ? 'Latest activity' : '最新互動'}</span>
+                <span class="forum-thread-stat-value">${safeLatestActivity || '-'}</span>
+                <span class="forum-thread-stat-note">${posts.length > 0 ? (I18n.getLocale() === 'en' ? `${posts.length} replies in this thread` : `目前共有 ${posts.length} 則回覆`) : (I18n.getLocale() === 'en' ? 'No replies yet' : '目前尚無回覆')}</span>
+              </div>
+              <div class="forum-thread-stat-card">
+                <span class="forum-thread-stat-label">${I18n.getLocale() === 'en' ? 'Engagement' : '互動程度'}</span>
+                <span class="forum-thread-stat-value">${this.escapeText(String(totalLikes))} ${I18n.getLocale() === 'en' ? 'likes' : '個讚'}</span>
+                <span class="forum-thread-stat-note">${activeReplyCount > 0 ? (I18n.getLocale() === 'en' ? `${activeReplyCount} replies already have reactions` : `${activeReplyCount} 則回覆已有互動`) : (I18n.getLocale() === 'en' ? 'Replies still need attention' : '目前仍等待更多回覆互動')}</span>
               </div>
             </div>
             <div class="forum-thread-meta">
