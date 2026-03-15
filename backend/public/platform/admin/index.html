@@ -608,6 +608,15 @@
             font-size: 0.85rem;
         }
 
+        .user-avatar.admin-user-avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, rgba(45, 43, 107, 0.12), rgba(87, 109, 72, 0.2));
+            color: var(--olive);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
+        }
+
         .user-info {
             display: flex;
             align-items: center;
@@ -616,6 +625,193 @@
 
         .user-name { font-weight: 500; }
         .user-email { font-size: 0.8rem; color: var(--gray-500); }
+        .admin-user-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+            min-width: 0;
+        }
+        .admin-user-name-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .admin-user-tier {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.22rem 0.54rem;
+            border-radius: 999px;
+            background: rgba(26, 58, 92, 0.06);
+            color: var(--text-secondary);
+            font-size: 0.72rem;
+            font-weight: 700;
+        }
+        .admin-user-meta {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            font-size: 0.78rem;
+            color: var(--gray-500);
+        }
+        .admin-user-meta span {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.2rem;
+        }
+        .admin-user-actions {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .admin-license-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            min-width: 0;
+        }
+
+        .admin-license-resource {
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1.45;
+        }
+
+        .admin-license-submeta,
+        .admin-license-expiry-note {
+            font-size: 0.78rem;
+            color: var(--gray-500);
+        }
+
+        .admin-license-user {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .admin-license-avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, rgba(87, 109, 72, 0.16), rgba(45, 43, 107, 0.12));
+            color: var(--olive-deep);
+            font-weight: 700;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.5);
+            flex-shrink: 0;
+        }
+
+        .admin-license-user-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            min-width: 0;
+        }
+
+        .admin-license-user-name {
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .admin-license-user-id {
+            font-size: 0.78rem;
+            color: var(--gray-500);
+            overflow-wrap: anywhere;
+        }
+
+        .admin-license-type {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.35rem 0.72rem;
+            border-radius: 999px;
+            background: rgba(26, 58, 92, 0.06);
+            color: var(--olive-deep);
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .admin-license-expiry {
+            display: flex;
+            flex-direction: column;
+            gap: 0.22rem;
+        }
+
+        .admin-license-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .admin-announcement-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            min-width: 0;
+        }
+
+        .admin-announcement-title {
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1.45;
+        }
+
+        .admin-announcement-meta {
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+            flex-wrap: wrap;
+            font-size: 0.78rem;
+            color: var(--gray-500);
+        }
+
+        .admin-announcement-priority {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.35rem 0.72rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .admin-announcement-priority.normal {
+            background: rgba(26, 58, 92, 0.06);
+            color: var(--text-secondary);
+        }
+
+        .admin-announcement-priority.high {
+            background: rgba(193, 122, 94, 0.12);
+            color: var(--terracotta);
+        }
+
+        .admin-announcement-priority.urgent {
+            background: rgba(245, 101, 101, 0.14);
+            color: var(--danger);
+        }
+
+        .admin-announcement-views {
+            display: flex;
+            flex-direction: column;
+            gap: 0.22rem;
+        }
+
+        .admin-announcement-views strong {
+            color: var(--text-primary);
+        }
+
+        .admin-announcement-actions {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .admin-table-empty {
+            padding: 2rem 1rem !important;
+            text-align: center;
+            color: var(--gray-500);
+            font-size: 0.9rem;
+        }
 
         /* Activity List */
         .activity-list { list-style: none; }
@@ -2562,6 +2758,10 @@
             gap: 1rem;
         }
 
+        .admin-license-summary-grid {
+            margin-bottom: 1rem;
+        }
+
         .dashboard-summary-card {
             padding: 1rem;
             border-radius: 10px;
@@ -3355,28 +3555,127 @@
         }
 
         .system-status-card {
-            background: white;
-            border-radius: var(--radius-lg);
-            padding: 1.25rem;
+            --status-accent: var(--olive);
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 244, 236, 0.96) 100%);
+            border-radius: 24px;
+            padding: 1.2rem 1.2rem 1.25rem;
             display: flex;
-            align-items: center;
+            flex-direction: column;
+            align-items: stretch;
             gap: 1rem;
-            border: 1px solid var(--gray-100);
-            transition: var(--transition-base);
+            border: 1px solid rgba(212, 197, 169, 0.22);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+            box-shadow: 0 16px 30px rgba(26, 58, 92, 0.08);
+        }
+
+        .system-status-card::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--status-accent) 0%, rgba(255, 255, 255, 0.12) 100%);
+        }
+
+        .system-status-card.healthy {
+            --status-accent: var(--success);
+        }
+
+        .system-status-card.warning {
+            --status-accent: var(--warning);
+        }
+
+        .system-status-card.error {
+            --status-accent: var(--danger);
         }
 
         .system-status-card:hover {
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            transform: translateY(-3px);
+            box-shadow: 0 22px 38px rgba(26, 58, 92, 0.12);
+            border-color: rgba(168, 184, 154, 0.38);
+        }
+
+        .system-status-card-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 0.9rem;
+        }
+
+        .system-status-card-copy {
+            min-width: 0;
+        }
+
+        .system-status-kicker {
+            margin: 0 0 0.28rem;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: var(--gray-500);
+        }
+
+        .system-status-card-copy .status-label {
+            font-size: 1rem;
+            color: var(--charcoal);
+            font-weight: 700;
+            margin-bottom: 0.2rem;
+        }
+
+        .system-status-caption {
+            font-size: 0.82rem;
+            color: var(--gray-500);
+            line-height: 1.6;
+        }
+
+        .system-status-foot {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            padding-top: 0.8rem;
+            border-top: 1px solid rgba(15, 23, 42, 0.08);
+        }
+
+        .system-status-chip {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.36rem 0.72rem;
+            border-radius: 999px;
+            background: rgba(148, 163, 184, 0.14);
+            color: var(--gray-500);
+            font-size: 0.74rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .system-status-chip.healthy {
+            background: rgba(26, 107, 74, 0.12);
+            color: var(--success);
+        }
+
+        .system-status-chip.warning {
+            background: rgba(245, 158, 11, 0.14);
+            color: var(--warning);
+        }
+
+        .system-status-chip.error {
+            background: rgba(193, 122, 94, 0.12);
+            color: var(--terracotta);
         }
 
         .status-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: 12px;
+            width: 52px;
+            height: 52px;
+            border-radius: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
         }
 
         .status-icon.healthy {
@@ -3405,8 +3704,9 @@
         }
 
         .status-value {
-            font-size: 1rem;
-            font-weight: 600;
+            font-size: 1.6rem;
+            font-weight: 700;
+            line-height: 1;
         }
 
         .status-value.healthy { color: var(--success); }
@@ -3421,6 +3721,10 @@
 
         .resource-meter {
             margin-bottom: 1.5rem;
+            padding: 1rem 1.05rem;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.72);
+            border: 1px solid rgba(15, 23, 42, 0.06);
         }
 
         .resource-meter:last-child {
@@ -3459,39 +3763,67 @@
         }
 
         .meter-detail {
-            font-size: 0.75rem;
+            font-size: 0.78rem;
             color: var(--text-secondary);
-            margin-top: 0.25rem;
+            margin-top: 0.45rem;
+            line-height: 1.55;
         }
 
         .uptime-info {
-            font-size: 0.875rem;
+            font-size: 0.82rem;
             color: var(--text-secondary);
-            margin-top: 0.5rem;
+            margin-top: 0.65rem;
+            line-height: 1.55;
         }
 
         .error-log-list {
             display: flex;
             flex-direction: column;
-            gap: 0.75rem;
+            gap: 0.85rem;
         }
 
         .error-log-item {
+            position: relative;
             display: flex;
-            gap: 0.75rem;
-            padding: 0.75rem;
-            background: var(--gray-50);
-            border-radius: var(--radius-md);
-            border-left: 3px solid;
+            flex-direction: column;
+            gap: 0.85rem;
+            padding: 1rem 1.05rem 1.05rem;
+            background: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,244,236,0.96) 100%);
+            border-radius: 18px;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            box-shadow: 0 12px 22px rgba(26, 58, 92, 0.06);
         }
 
-        .error-log-item.error { border-left-color: var(--danger); }
-        .error-log-item.warning { border-left-color: var(--warning); }
-        .error-log-item.info { border-left-color: #3b82f6; }
+        .error-log-item::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto 0;
+            height: 3px;
+            background: rgba(148, 163, 184, 0.5);
+        }
+
+        .error-log-item.error::before { background: linear-gradient(90deg, var(--danger), rgba(255,255,255,0.18)); }
+        .error-log-item.warning::before { background: linear-gradient(90deg, var(--warning), rgba(255,255,255,0.18)); }
+        .error-log-item.info::before { background: linear-gradient(90deg, #3b82f6, rgba(255,255,255,0.18)); }
+
+        .error-log-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 0.85rem;
+            flex-wrap: wrap;
+        }
+
+        .error-log-title-row {
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+            min-width: 0;
+        }
 
         .error-log-icon {
-            width: 20px;
-            height: 20px;
+            width: 22px;
+            height: 22px;
             flex-shrink: 0;
         }
 
@@ -3505,14 +3837,50 @@
         }
 
         .error-log-message {
-            font-size: 0.875rem;
+            font-size: 0.92rem;
+            font-weight: 700;
             color: var(--charcoal);
-            margin-bottom: 0.25rem;
+            line-height: 1.55;
         }
 
         .error-log-meta {
-            font-size: 0.75rem;
+            font-size: 0.78rem;
             color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .error-log-severity {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.36rem 0.72rem;
+            border-radius: 999px;
+            background: rgba(148, 163, 184, 0.14);
+            color: var(--gray-500);
+            font-size: 0.74rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .error-log-severity.error {
+            background: rgba(193, 122, 94, 0.12);
+            color: var(--terracotta);
+        }
+
+        .error-log-severity.warning {
+            background: rgba(245, 158, 11, 0.14);
+            color: var(--warning);
+        }
+
+        .error-log-severity.info {
+            background: rgba(59, 130, 246, 0.12);
+            color: #2563eb;
+        }
+
+        .error-log-body {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
         }
 
         .toggle-switch {
@@ -3567,72 +3935,251 @@
         }
 
         .export-card {
-            background: white;
-            border-radius: var(--radius-lg);
-            padding: 1.5rem;
-            text-align: center;
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248,245,239,0.98));
+            border-radius: 24px;
+            padding: 1.35rem;
             cursor: pointer;
             transition: var(--transition-base);
-            border: 2px solid var(--gray-100);
+            border: 1px solid rgba(26, 58, 92, 0.08);
+            box-shadow: 0 18px 32px rgba(15, 23, 42, 0.06);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .export-card::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto 0;
+            height: 4px;
+            background: linear-gradient(90deg, rgba(45, 43, 107, 0.7), rgba(87, 109, 72, 0.42));
         }
 
         .export-card:hover {
-            border-color: var(--olive);
-            background: var(--olive-muted);
+            border-color: rgba(212, 165, 116, 0.34);
+            background: linear-gradient(180deg, rgba(255,255,255,1), rgba(248,245,239,0.98));
             transform: translateY(-4px);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+            box-shadow: 0 24px 42px rgba(15, 23, 42, 0.1);
+        }
+
+        .export-card-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 0.9rem;
+        }
+
+        .export-card-copy {
+            min-width: 0;
+        }
+
+        .export-card-kicker {
+            display: inline-flex;
+            margin-bottom: 0.28rem;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--text-secondary);
         }
 
         .export-icon {
-            width: 64px;
-            height: 64px;
-            border-radius: 16px;
-            background: var(--olive-muted);
+            width: 60px;
+            height: 60px;
+            border-radius: 18px;
+            background: rgba(45, 43, 107, 0.1);
             color: var(--olive);
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto 1rem;
+            flex-shrink: 0;
             transition: var(--transition-base);
         }
 
         .export-card:hover .export-icon {
-            background: var(--olive);
-            color: white;
+            transform: translateY(-2px);
+            background: rgba(45, 43, 107, 0.14);
+        }
+
+        .export-options-grid .export-card:nth-child(2)::before {
+            background: linear-gradient(90deg, rgba(43, 108, 176, 0.7), rgba(75, 123, 181, 0.5));
+        }
+
+        .export-options-grid .export-card:nth-child(3)::before {
+            background: linear-gradient(90deg, rgba(192, 101, 77, 0.72), rgba(212, 165, 116, 0.48));
+        }
+
+        .export-options-grid .export-card:nth-child(4)::before {
+            background: linear-gradient(90deg, rgba(74, 124, 89, 0.72), rgba(43, 108, 176, 0.48));
+        }
+
+        .export-options-grid .export-card:nth-child(2) .export-icon {
+            background: rgba(43, 108, 176, 0.12);
+            color: var(--blue);
+        }
+
+        .export-options-grid .export-card:nth-child(3) .export-icon {
+            background: rgba(192, 101, 77, 0.14);
+            color: var(--terracotta);
+        }
+
+        .export-options-grid .export-card:nth-child(4) .export-icon {
+            background: rgba(74, 124, 89, 0.14);
+            color: var(--success);
         }
 
         .export-card h3 {
             font-size: 1.1rem;
             font-weight: 600;
             color: var(--charcoal);
-            margin-bottom: 0.5rem;
+            margin: 0;
+            text-align: left;
         }
 
         .export-card p {
             font-size: 0.85rem;
             color: var(--text-secondary);
             line-height: 1.5;
-            margin-bottom: 1rem;
+            margin: 0;
+            text-align: left;
         }
 
         .export-formats {
             display: flex;
-            justify-content: center;
+            justify-content: flex-start;
+            flex-wrap: wrap;
             gap: 0.5rem;
         }
 
         .format-badge {
             padding: 0.25rem 0.75rem;
-            background: var(--gray-100);
+            background: rgba(26, 58, 92, 0.05);
             border-radius: 20px;
             font-size: 0.75rem;
-            font-weight: 500;
+            font-weight: 700;
             color: var(--text-secondary);
         }
 
         .export-card:hover .format-badge {
-            background: rgba(168, 184, 154, 0.3);
+            background: rgba(45, 43, 107, 0.08);
             color: var(--olive);
+        }
+
+        .export-card-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+
+        .export-card-note {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .export-card-cta {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.45rem 0.82rem;
+            border-radius: 999px;
+            background: rgba(45, 43, 107, 0.1);
+            color: var(--olive);
+            font-size: 0.76rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .recent-exports-shell {
+            overflow: hidden;
+            border-radius: 24px;
+            border: 1px solid rgba(26, 58, 92, 0.08);
+            box-shadow: 0 18px 32px rgba(15, 23, 42, 0.06);
+            background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248,245,239,0.96));
+        }
+
+        .recent-exports-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 1.35rem 1.5rem 1.1rem;
+            border-bottom: 1px solid rgba(212, 197, 169, 0.26);
+        }
+
+        .recent-exports-copy {
+            min-width: 0;
+        }
+
+        .recent-exports-kicker {
+            display: inline-flex;
+            margin-bottom: 0.28rem;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+        }
+
+        .recent-exports-head h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            color: var(--charcoal);
+        }
+
+        .recent-exports-desc {
+            margin: 0.4rem 0 0;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.55;
+        }
+
+        .recent-exports-pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.45rem 0.82rem;
+            border-radius: 999px;
+            background: rgba(45, 43, 107, 0.08);
+            color: var(--olive);
+            font-size: 0.76rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .recent-exports-table-wrap {
+            padding: 0 1.1rem 1.15rem;
+        }
+
+        .recent-export-row-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 0.28rem;
+        }
+
+        .recent-export-name {
+            font-weight: 700;
+            color: var(--charcoal);
+        }
+
+        .recent-export-note {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+        }
+
+        .admin-table-state-shell {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+            padding: 1.5rem 0.5rem;
+            color: var(--text-secondary);
+        }
+
+        .admin-table-state-shell svg {
+            color: rgba(45, 43, 107, 0.45);
         }
 
         /* ========================================
@@ -3991,7 +4538,9 @@
             .admin-support-actions,
             .admin-support-input-row,
             .admin-audit-filters,
-            .admin-resource-audience {
+            .admin-resource-audience,
+            .error-log-head,
+            .error-log-title-row {
                 flex-direction: column;
                 align-items: stretch;
             }
@@ -4597,6 +5146,24 @@
                     <h2 data-i18n="admin.licenses.title">授權管理</h2>
                     <div class="admin-header-actions">
                         <button class="btn btn-primary" onclick="openGrantLicenseModal()" data-i18n="admin.licenses.addLicense">+ 新增授權</button>
+                    </div>
+                </div>
+                <div class="dashboard-summary-grid admin-license-summary-grid">
+                    <div class="dashboard-summary-card tone-blue">
+                        <div class="dashboard-summary-label">授權總數</div>
+                        <div class="dashboard-summary-value" id="licenseSummaryTotal">0</div>
+                    </div>
+                    <div class="dashboard-summary-card tone-olive">
+                        <div class="dashboard-summary-label">啟用中</div>
+                        <div class="dashboard-summary-value" id="licenseSummaryActive">0</div>
+                    </div>
+                    <div class="dashboard-summary-card tone-terracotta">
+                        <div class="dashboard-summary-label">待審核</div>
+                        <div class="dashboard-summary-value" id="licenseSummaryPending">0</div>
+                    </div>
+                    <div class="dashboard-summary-card tone-sand">
+                        <div class="dashboard-summary-label">即將到期</div>
+                        <div class="dashboard-summary-value" id="licenseSummaryExpiring">0</div>
                     </div>
                 </div>
                 <div class="card">
@@ -5267,56 +5834,84 @@
 
                 <!-- System Status Cards -->
                 <div class="system-status-grid">
-                    <div class="system-status-card" id="statusCardAPI">
-                        <div class="status-icon healthy">
-                            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                                <polyline points="22 4 12 14.01 9 11.01"/>
-                            </svg>
+                    <div class="system-status-card healthy" id="statusCardAPI">
+                        <div class="system-status-card-head">
+                            <div class="system-status-card-copy">
+                                <p class="system-status-kicker">Service</p>
+                                <div class="status-label" data-i18n="admin.systemMonitor.apiService">API 服務</div>
+                                <div class="system-status-caption">HTTP endpoints, routing, and request processing</div>
+                            </div>
+                            <div class="status-icon healthy">
+                                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                    <polyline points="22 4 12 14.01 9 11.01"/>
+                                </svg>
+                            </div>
                         </div>
-                        <div class="status-info">
-                            <div class="status-label" data-i18n="admin.systemMonitor.apiService">API 服務</div>
+                        <div class="system-status-foot">
                             <div class="status-value healthy" id="apiStatus" data-i18n="admin.systemMonitor.healthy">正常運行</div>
+                            <span class="system-status-chip healthy" data-i18n="admin.systemMonitor.healthy">正常運行</span>
                         </div>
                     </div>
-                    <div class="system-status-card" id="statusCardDB">
-                        <div class="status-icon healthy">
-                            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
-                                <ellipse cx="12" cy="5" rx="9" ry="3"/>
-                                <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
-                                <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
-                            </svg>
+                    <div class="system-status-card healthy" id="statusCardDB">
+                        <div class="system-status-card-head">
+                            <div class="system-status-card-copy">
+                                <p class="system-status-kicker">Data</p>
+                                <div class="status-label" data-i18n="admin.systemMonitor.database">資料庫</div>
+                                <div class="system-status-caption">Core records, enrollments, submissions, and logs</div>
+                            </div>
+                            <div class="status-icon healthy">
+                                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                                    <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+                                    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+                                </svg>
+                            </div>
                         </div>
-                        <div class="status-info">
-                            <div class="status-label" data-i18n="admin.systemMonitor.database">資料庫</div>
+                        <div class="system-status-foot">
                             <div class="status-value healthy" id="dbStatus" data-i18n="admin.systemMonitor.connected">正常連接</div>
+                            <span class="system-status-chip healthy" data-i18n="admin.systemMonitor.connected">正常連接</span>
                         </div>
                     </div>
-                    <div class="system-status-card" id="statusCardStorage">
-                        <div class="status-icon healthy">
-                            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-                            </svg>
+                    <div class="system-status-card healthy" id="statusCardStorage">
+                        <div class="system-status-card-head">
+                            <div class="system-status-card-copy">
+                                <p class="system-status-kicker">Storage</p>
+                                <div class="status-label" data-i18n="admin.systemMonitor.storage">儲存空間</div>
+                                <div class="system-status-caption">Files, uploads, generated exports, and learning assets</div>
+                            </div>
+                            <div class="status-icon healthy">
+                                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                                </svg>
+                            </div>
                         </div>
-                        <div class="status-info">
-                            <div class="status-label" data-i18n="admin.systemMonitor.storage">儲存空間</div>
+                        <div class="system-status-foot">
                             <div class="status-value healthy" id="storageStatus" data-i18n="admin.systemMonitor.sufficient">充足</div>
+                            <span class="system-status-chip healthy" data-i18n="admin.systemMonitor.sufficient">充足</span>
                         </div>
                     </div>
-                    <div class="system-status-card" id="statusCardMemory">
-                        <div class="status-icon healthy">
-                            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="4" y="4" width="16" height="16" rx="2" ry="2"/>
-                                <rect x="9" y="9" width="6" height="6"/>
-                                <line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/>
-                                <line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/>
-                                <line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/>
-                                <line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/>
-                            </svg>
+                    <div class="system-status-card healthy" id="statusCardMemory">
+                        <div class="system-status-card-head">
+                            <div class="system-status-card-copy">
+                                <p class="system-status-kicker">Runtime</p>
+                                <div class="status-label" data-i18n="admin.systemMonitor.memoryUsage">記憶體使用</div>
+                                <div class="system-status-caption">Heap usage, runtime stability, and service headroom</div>
+                            </div>
+                            <div class="status-icon healthy">
+                                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="4" y="4" width="16" height="16" rx="2" ry="2"/>
+                                    <rect x="9" y="9" width="6" height="6"/>
+                                    <line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/>
+                                    <line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/>
+                                    <line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/>
+                                    <line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/>
+                                </svg>
+                            </div>
                         </div>
-                        <div class="status-info">
-                            <div class="status-label" data-i18n="admin.systemMonitor.memoryUsage">記憶體使用</div>
+                        <div class="system-status-foot">
                             <div class="status-value" id="memoryStatus">-</div>
+                            <span class="system-status-chip healthy" id="memoryStatusChip">監控中</span>
                         </div>
                     </div>
                 </div>
@@ -5384,95 +5979,144 @@
                 <!-- Export Options -->
                 <div class="export-options-grid">
                     <div class="export-card" onclick="showExportModal('users')">
-                        <div class="export-icon">
-                            <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                                <circle cx="9" cy="7" r="4"/>
-                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                            </svg>
+                        <div class="export-card-head">
+                            <div class="export-card-copy">
+                                <span class="export-card-kicker">Export</span>
+                                <h3 data-i18n="admin.dataExport.userData">用戶數據</h3>
+                                <p data-i18n="admin.dataExport.userDataDesc">匯出所有用戶資料，包含基本資訊、角色、狀態等</p>
+                            </div>
+                            <div class="export-icon">
+                                <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="9" cy="7" r="4"/>
+                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                                </svg>
+                            </div>
                         </div>
-                        <h3 data-i18n="admin.dataExport.userData">用戶數據</h3>
-                        <p data-i18n="admin.dataExport.userDataDesc">匯出所有用戶資料，包含基本資訊、角色、狀態等</p>
                         <div class="export-formats">
                             <span class="format-badge">CSV</span>
                             <span class="format-badge">JSON</span>
                             <span class="format-badge">PDF</span>
+                        </div>
+                        <div class="export-card-footer">
+                            <span class="export-card-note">Profiles · roles · status</span>
+                            <span class="export-card-cta">開始匯出</span>
                         </div>
                     </div>
                     <div class="export-card" onclick="showExportModal('courses')">
-                        <div class="export-icon">
-                            <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-                                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-                            </svg>
+                        <div class="export-card-head">
+                            <div class="export-card-copy">
+                                <span class="export-card-kicker">Export</span>
+                                <h3 data-i18n="admin.dataExport.courseData">課程數據</h3>
+                                <p data-i18n="admin.dataExport.courseDataDesc">匯出課程資訊，包含名稱、講師、學生數、進度等</p>
+                            </div>
+                            <div class="export-icon">
+                                <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                                </svg>
+                            </div>
                         </div>
-                        <h3 data-i18n="admin.dataExport.courseData">課程數據</h3>
-                        <p data-i18n="admin.dataExport.courseDataDesc">匯出課程資訊，包含名稱、講師、學生數、進度等</p>
                         <div class="export-formats">
                             <span class="format-badge">CSV</span>
                             <span class="format-badge">JSON</span>
                             <span class="format-badge">PDF</span>
+                        </div>
+                        <div class="export-card-footer">
+                            <span class="export-card-note">Catalog · enrollments · progress</span>
+                            <span class="export-card-cta">開始匯出</span>
                         </div>
                     </div>
                     <div class="export-card" onclick="showExportModal('licenses')">
-                        <div class="export-icon">
-                            <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                            </svg>
+                        <div class="export-card-head">
+                            <div class="export-card-copy">
+                                <span class="export-card-kicker">Export</span>
+                                <h3 data-i18n="admin.dataExport.licenseData">授權數據</h3>
+                                <p data-i18n="admin.dataExport.licenseDataDesc">匯出授權記錄，包含申請、核准、到期日等資訊</p>
+                            </div>
+                            <div class="export-icon">
+                                <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                                </svg>
+                            </div>
                         </div>
-                        <h3 data-i18n="admin.dataExport.licenseData">授權數據</h3>
-                        <p data-i18n="admin.dataExport.licenseDataDesc">匯出授權記錄，包含申請、核准、到期日等資訊</p>
                         <div class="export-formats">
                             <span class="format-badge">CSV</span>
                             <span class="format-badge">JSON</span>
                             <span class="format-badge">PDF</span>
+                        </div>
+                        <div class="export-card-footer">
+                            <span class="export-card-note">Requests · approvals · expiry</span>
+                            <span class="export-card-cta">開始匯出</span>
                         </div>
                     </div>
                     <div class="export-card" onclick="showExportModal('analytics')">
-                        <div class="export-icon">
-                            <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="18" y1="20" x2="18" y2="10"/>
-                                <line x1="12" y1="20" x2="12" y2="4"/>
-                                <line x1="6" y1="20" x2="6" y2="14"/>
-                            </svg>
+                        <div class="export-card-head">
+                            <div class="export-card-copy">
+                                <span class="export-card-kicker">Export</span>
+                                <h3 data-i18n="admin.dataExport.analyticsReport">分析報表</h3>
+                                <p data-i18n="admin.dataExport.analyticsReportDesc">生成自訂日期範圍的綜合分析報表</p>
+                            </div>
+                            <div class="export-icon">
+                                <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="18" y1="20" x2="18" y2="10"/>
+                                    <line x1="12" y1="20" x2="12" y2="4"/>
+                                    <line x1="6" y1="20" x2="6" y2="14"/>
+                                </svg>
+                            </div>
                         </div>
-                        <h3 data-i18n="admin.dataExport.analyticsReport">分析報表</h3>
-                        <p data-i18n="admin.dataExport.analyticsReportDesc">生成自訂日期範圍的綜合分析報表</p>
                         <div class="export-formats">
                             <span class="format-badge">CSV</span>
                             <span class="format-badge">JSON</span>
                             <span class="format-badge">PDF</span>
+                        </div>
+                        <div class="export-card-footer">
+                            <span class="export-card-note">Trends · dates · engagement</span>
+                            <span class="export-card-cta">開始匯出</span>
                         </div>
                     </div>
                 </div>
 
                 <!-- Recent Exports -->
-                <div class="card admin-section-offset">
-                    <div class="card-header">
-                        <h3 data-i18n="admin.dataExport.recentExports">最近匯出記錄</h3>
+                <section class="recent-exports-shell admin-section-offset">
+                    <div class="recent-exports-head">
+                        <div class="recent-exports-copy">
+                            <span class="recent-exports-kicker">History</span>
+                            <h3 data-i18n="admin.dataExport.recentExports">最近匯出記錄</h3>
+                            <p class="recent-exports-desc">快速檢視最近執行的資料匯出、格式與日期範圍，必要時可直接再次匯出。</p>
+                        </div>
+                        <span class="recent-exports-pill">Recent 20</span>
                     </div>
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th data-i18n="admin.dataExport.type">類型</th>
-                                <th data-i18n="admin.dataExport.format">格式</th>
-                                <th data-i18n="admin.dataExport.dateRange">日期範圍</th>
-                                <th data-i18n="admin.dataExport.exportTime">匯出時間</th>
-                                <th data-i18n="admin.dataExport.status">狀態</th>
-                                <th data-i18n="admin.dataExport.actions">操作</th>
-                            </tr>
-                        </thead>
-                        <tbody id="recentExportsTable">
-                            <tr>
-                                <td colspan="6" class="admin-table-state">
-                                    <span data-i18n="admin.dataExport.noExports">尚無匯出記錄</span>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+                    <div class="recent-exports-table-wrap">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th data-i18n="admin.dataExport.type">類型</th>
+                                    <th data-i18n="admin.dataExport.format">格式</th>
+                                    <th data-i18n="admin.dataExport.dateRange">日期範圍</th>
+                                    <th data-i18n="admin.dataExport.exportTime">匯出時間</th>
+                                    <th data-i18n="admin.dataExport.status">狀態</th>
+                                    <th data-i18n="admin.dataExport.actions">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recentExportsTable">
+                                <tr>
+                                    <td colspan="6" class="admin-table-state">
+                                        <div class="admin-table-state-shell">
+                                            <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.8">
+                                                <path d="M12 8v4l3 3"/>
+                                                <circle cx="12" cy="12" r="9"/>
+                                            </svg>
+                                            <span data-i18n="admin.dataExport.noExports">尚無匯出記錄</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
             </div>
 
             <!-- Automation View - 自動化規則 -->
@@ -8008,21 +8652,31 @@
                             </td>
                             <td>
                                 <div class="user-info">
-                                    <div class="user-avatar">${(u.displayName || 'U')[0]}</div>
-                                    <div>
-                                        <div class="user-name">${u.displayName || 'Unknown'}</div>
+                                    <div class="user-avatar admin-user-avatar">${(u.displayName || 'U')[0]}</div>
+                                    <div class="admin-user-stack">
+                                        <div class="admin-user-name-row">
+                                            <div class="user-name">${u.displayName || 'Unknown'}</div>
+                                            <span class="admin-user-tier">${escapeHtml(String(u.subscriptionTier || 'free'))}</span>
+                                        </div>
                                         <div class="user-email">${u.email}</div>
+                                        <div class="admin-user-meta">
+                                            <span>${formatDate(u.createdAt)}</span>
+                                            <span>•</span>
+                                            <span>${escapeHtml(String(roleName))}</span>
+                                        </div>
                                     </div>
                                 </div>
                             </td>
                             <td><span class="admin-role-label role-${escapeHtml(String(role))}">${escapeHtml(String(roleName))}</span></td>
-                            <td>${u.subscriptionTier || 'free'}</td>
+                            <td><span class="admin-user-tier">${escapeHtml(String(u.subscriptionTier || 'free'))}</span></td>
                             <td><span class="status-badge ${u.status}">${u.status}</span></td>
                             <td>${formatDate(u.createdAt)}</td>
                             <td>
-                                <button class="btn btn-sm btn-secondary" onclick="toggleUserStatus('${u.userId}', '${u.status}')">
-                                    ${u.status === 'active' ? t('admin.users.suspend') : t('admin.users.activate')}
-                                </button>
+                                <div class="admin-user-actions">
+                                    <button class="btn btn-sm btn-secondary" onclick="toggleUserStatus('${u.userId}', '${u.status}')">
+                                        ${u.status === 'active' ? t('admin.users.suspend') : t('admin.users.activate')}
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     `;
@@ -8209,23 +8863,87 @@
                 const result = await API.admin.getLicenses();
                 const tbody = document.getElementById('licensesTableBody');
                 if (result.success && result.data.length > 0) {
-                    tbody.innerHTML = result.data.map(l => `
+                    const isEn = I18n.getLocale() === 'en';
+                    const typeLabels = {
+                        personal: isEn ? 'Personal' : '個人授權',
+                        institutional: isEn ? 'Institutional' : '機構授權',
+                        classroom: isEn ? 'Classroom' : '班級授權',
+                        course: isEn ? 'Course' : '課程授權'
+                    };
+                    const statusLabels = {
+                        active: isEn ? 'Active' : '啟用中',
+                        pending: isEn ? 'Pending' : '待審核',
+                        expired: isEn ? 'Expired' : '已過期',
+                        rejected: isEn ? 'Rejected' : '已拒絕'
+                    };
+                    const now = Date.now();
+                    const expiringWindow = now + (30 * 24 * 60 * 60 * 1000);
+                    const totalEl = document.getElementById('licenseSummaryTotal');
+                    const activeEl = document.getElementById('licenseSummaryActive');
+                    const pendingEl = document.getElementById('licenseSummaryPending');
+                    const expiringEl = document.getElementById('licenseSummaryExpiring');
+                    const totalCount = result.data.length;
+                    const activeCount = result.data.filter(l => String(l.status || '').toLowerCase() === 'active').length;
+                    const pendingCount = result.data.filter(l => String(l.status || '').toLowerCase() === 'pending').length;
+                    const expiringCount = result.data.filter(l => {
+                        const raw = l.expiryDate || l.expiresAt;
+                        if (!raw) return false;
+                        const ts = new Date(raw).getTime();
+                        return Number.isFinite(ts) && ts >= now && ts <= expiringWindow;
+                    }).length;
+                    if (totalEl) totalEl.textContent = String(totalCount);
+                    if (activeEl) activeEl.textContent = String(activeCount);
+                    if (pendingEl) pendingEl.textContent = String(pendingCount);
+                    if (expiringEl) expiringEl.textContent = String(expiringCount);
+                    tbody.innerHTML = result.data.map(l => {
+                        const statusKey = String(l.status || 'pending').toLowerCase();
+                        const typeKey = String(l.licenseType || 'personal').toLowerCase();
+                        return `
                         <tr>
-                            <td>${l.resourceTitle}</td>
-                            <td>${l.userId}</td>
-                            <td>${l.licenseType}</td>
-                            <td><span class="status-badge ${l.status}">${l.status}</span></td>
-                            <td>${l.expiryDate ? formatDate(l.expiryDate) : '-'}</td>
                             <td>
-                                ${l.status === 'pending' ? `
+                                <div class="admin-license-stack">
+                                    <div class="admin-license-resource">${escapeHtml(String(l.resourceTitle || (isEn ? 'Untitled resource' : '未命名資源')))}</div>
+                                    <div class="admin-license-submeta">${escapeHtml(String(l.resourceId || l.licenseId || ''))}</div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="admin-license-user">
+                                    <span class="admin-license-avatar">${escapeHtml(String((l.userName || l.userId || 'U')).trim().charAt(0).toUpperCase() || 'U')}</span>
+                                    <div class="admin-license-user-stack">
+                                        <div class="admin-license-user-name">${escapeHtml(String(l.userName || (isEn ? 'Assigned user' : '授權使用者')))}</div>
+                                        <div class="admin-license-user-id">${escapeHtml(String(l.userId || '-'))}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><span class="admin-license-type">${escapeHtml(typeLabels[typeKey] || String(l.licenseType || '-'))}</span></td>
+                            <td><span class="status-badge ${statusKey}">${escapeHtml(statusLabels[statusKey] || String(l.status || '-'))}</span></td>
+                            <td>
+                                <div class="admin-license-expiry">
+                                    <strong>${l.expiryDate ? formatDate(l.expiryDate) : '-'}</strong>
+                                    <span class="admin-license-expiry-note">${l.seatCount ? escapeHtml(String(l.seatCount)) + (isEn ? ' seats' : ' 個席次') : (isEn ? 'License details' : '授權明細')}</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="admin-license-actions">
+                                ${statusKey === 'pending' ? `
                                     <button class="btn btn-sm btn-primary" onclick="approveLicense('${l.licenseId}', true)">${t('admin.licenses.approve')}</button>
                                     <button class="btn btn-sm btn-secondary" onclick="approveLicense('${l.licenseId}', false)">${t('admin.licenses.reject')}</button>
-                                ` : '-'}
+                                ` : `<span class="admin-license-submeta">${isEn ? 'No pending action' : '目前無待處理操作'}</span>`}
+                                </div>
                             </td>
                         </tr>
-                    `).join('');
+                    `;
+                    }).join('');
                 } else {
-                    tbody.innerHTML = `<tr><td colspan="6">${t('admin.licenses.noRecords')}</td></tr>`;
+                    const totalEl = document.getElementById('licenseSummaryTotal');
+                    const activeEl = document.getElementById('licenseSummaryActive');
+                    const pendingEl = document.getElementById('licenseSummaryPending');
+                    const expiringEl = document.getElementById('licenseSummaryExpiring');
+                    if (totalEl) totalEl.textContent = '0';
+                    if (activeEl) activeEl.textContent = '0';
+                    if (pendingEl) pendingEl.textContent = '0';
+                    if (expiringEl) expiringEl.textContent = '0';
+                    tbody.innerHTML = `<tr><td colspan="6" class="admin-table-empty">${t('admin.licenses.noRecords')}</td></tr>`;
                 }
             } catch (error) {
                 console.error('Load licenses error:', error);
@@ -8238,20 +8956,40 @@
                 const result = await API.admin.getAllAnnouncements();
                 const tbody = document.getElementById('announcementsTableBody');
                 if (result.success && result.data.length > 0) {
+                    const isEn = I18n.getLocale() === 'en';
+                    const priorityLabels = {
+                        normal: isEn ? 'Normal' : '一般',
+                        high: isEn ? 'High' : '重要',
+                        urgent: isEn ? 'Urgent' : '緊急'
+                    };
+                    const statusLabels = {
+                        active: isEn ? 'Active' : '啟用中',
+                        published: isEn ? 'Published' : '已發布',
+                        draft: isEn ? 'Draft' : '草稿',
+                        archived: isEn ? 'Archived' : '封存'
+                    };
                     tbody.innerHTML = result.data.map(a => `
                         <tr>
-                            <td>${a.title}</td>
-                            <td>${a.priority}</td>
-                            <td><span class="status-badge ${a.status}">${a.status}</span></td>
-                            <td>${formatDate(a.publishAt)}</td>
-                            <td>${a.viewCount || 0}</td>
                             <td>
-                                <button class="btn btn-sm btn-secondary" onclick="deleteAnnouncement('${a.announcementId}')">${t('common.delete')}</button>
+                                <div class="admin-announcement-stack">
+                                    <div class="admin-announcement-title">${escapeHtml(String(a.title || (isEn ? 'Untitled announcement' : '未命名公告')))}</div>
+                                    <div class="admin-announcement-meta">
+                                        <span>${escapeHtml(String(a.announcementId || ''))}</span>
+                                        ${a.publishAt ? `<span>•</span><span>${formatDate(a.publishAt)}</span>` : ''}
+                                    </div>
+                                </div>
                             </td>
+                            <td><span class="admin-announcement-priority ${escapeHtml(String(a.priority || 'normal'))}">${escapeHtml(priorityLabels[a.priority] || String(a.priority || '-'))}</span></td>
+                            <td><span class="status-badge ${a.status}">${escapeHtml(statusLabels[a.status] || String(a.status || '-'))}</span></td>
+                            <td>${formatDate(a.publishAt)}</td>
+                            <td><div class="admin-announcement-views"><strong>${Number(a.viewCount || 0)}</strong><span>${isEn ? 'views' : '次瀏覽'}</span></div></td>
+                            <td><div class="admin-announcement-actions">
+                                <button class="btn btn-sm btn-secondary" onclick="deleteAnnouncement('${a.announcementId}')">${t('common.delete')}</button>
+                            </div></td>
                         </tr>
                     `).join('');
                 } else {
-                    tbody.innerHTML = `<tr><td colspan="6">${t('admin.announcements.noAnnouncements')}</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="6" class="admin-table-empty">${t('admin.announcements.noAnnouncements')}</td></tr>`;
                 }
             } catch (error) {
                 console.error('Load announcements error:', error);
@@ -10408,13 +11146,33 @@
                     // 根據使用率設定顏色
                     const memoryBar = document.getElementById('memoryBar');
                     const memoryStatus = document.getElementById('memoryStatus');
+                    const memoryCard = document.getElementById('statusCardMemory');
+                    const memoryChip = document.getElementById('memoryStatusChip');
                     memoryBar.classList.remove('warning', 'danger');
                     memoryStatus.classList.remove('warning');
+                    memoryCard?.classList.remove('healthy', 'warning', 'error');
+                    memoryChip?.classList.remove('healthy', 'warning', 'error');
                     if (memoryPercent > 80) {
                         memoryBar.classList.add('danger');
                         memoryStatus.classList.add('warning');
+                        memoryCard?.classList.add('error');
+                        if (memoryChip) {
+                            memoryChip.classList.add('error');
+                            memoryChip.textContent = t('admin.systemMonitor.abnormal');
+                        }
                     } else if (memoryPercent > 60) {
                         memoryBar.classList.add('warning');
+                        memoryCard?.classList.add('warning');
+                        if (memoryChip) {
+                            memoryChip.classList.add('warning');
+                            memoryChip.textContent = t('admin.systemMonitor.warning');
+                        }
+                    } else {
+                        memoryCard?.classList.add('healthy');
+                        if (memoryChip) {
+                            memoryChip.classList.add('healthy');
+                            memoryChip.textContent = t('admin.systemMonitor.healthy');
+                        }
                     }
 
                     // 更新運行時間
@@ -10442,24 +11200,42 @@
             if (!card || !statusEl) return;
 
             const icon = card.querySelector('.status-icon');
+            const chip = card.querySelector('.system-status-chip');
             const status = (typeof statusInput === 'string') ? statusInput : statusInput?.status;
 
             // 移除所有狀態類別
+            card.classList.remove('healthy', 'warning', 'error');
             icon.classList.remove('healthy', 'warning', 'error');
             statusEl.classList.remove('healthy', 'warning', 'error');
+            chip?.classList.remove('healthy', 'warning', 'error');
 
             if (status === 'healthy') {
+                card.classList.add('healthy');
                 icon.classList.add('healthy');
                 statusEl.classList.add('healthy');
                 statusEl.textContent = t('admin.systemMonitor.running');
+                if (chip) {
+                    chip.classList.add('healthy');
+                    chip.textContent = t('admin.systemMonitor.running');
+                }
             } else if (status === 'warning' || status === 'degraded') {
+                card.classList.add('warning');
                 icon.classList.add('warning');
                 statusEl.classList.add('warning');
                 statusEl.textContent = t('admin.systemMonitor.warning');
+                if (chip) {
+                    chip.classList.add('warning');
+                    chip.textContent = t('admin.systemMonitor.warning');
+                }
             } else {
+                card.classList.add('error');
                 icon.classList.add('error');
                 statusEl.classList.add('error');
                 statusEl.textContent = t('admin.systemMonitor.abnormal');
+                if (chip) {
+                    chip.classList.add('error');
+                    chip.textContent = t('admin.systemMonitor.abnormal');
+                }
             }
         }
 
@@ -10503,15 +11279,20 @@
 
                 errorList.innerHTML = errors.map(err => `
                     <div class="error-log-item ${err.severity}">
-                        <svg class="error-log-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            ${err.severity === 'error'
-                                ? '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>'
-                                : err.severity === 'warning'
-                                ? '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>'
-                                : '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>'}
-                        </svg>
-                        <div class="error-log-content">
-                            <div class="error-log-message">${err.message}</div>
+                        <div class="error-log-head">
+                            <div class="error-log-title-row">
+                                <svg class="error-log-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    ${err.severity === 'error'
+                                        ? '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>'
+                                        : err.severity === 'warning'
+                                        ? '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>'
+                                        : '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>'}
+                                </svg>
+                                <div class="error-log-message">${err.message}</div>
+                            </div>
+                            <span class="error-log-severity ${err.severity}">${err.severity || 'info'}</span>
+                        </div>
+                        <div class="error-log-body">
                             <div class="error-log-meta">${err.category} · ${new Date(err.timestamp).toLocaleString('zh-TW')}</div>
                         </div>
                     </div>
@@ -10609,7 +11390,13 @@
                 tbody.innerHTML = `
                     <tr>
                         <td colspan="6" class="admin-table-state">
-                            <span data-i18n="admin.dataExport.noExports">${t('admin.dataExport.noExports')}</span>
+                            <div class="admin-table-state-shell">
+                                <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.8">
+                                    <path d="M12 8v4l3 3"/>
+                                    <circle cx="12" cy="12" r="9"/>
+                                </svg>
+                                <span data-i18n="admin.dataExport.noExports">${t('admin.dataExport.noExports')}</span>
+                            </div>
                         </td>
                     </tr>
                 `;
@@ -10629,9 +11416,9 @@
                 return `
                     <tr>
                         <td>
-                            <div class="admin-table-stack">
-                                <strong>${escapeHtml(exportMeta.label)}</strong>
-                                <span class="admin-table-subtitle">${escapeHtml(countLabel)}</span>
+                            <div class="recent-export-row-meta">
+                                <span class="recent-export-name">${escapeHtml(exportMeta.label)}</span>
+                                <span class="recent-export-note">${escapeHtml(countLabel)}</span>
                             </div>
                         </td>
                         <td><span class="badge badge-info">${escapeHtml(String(entry.format || '').toUpperCase())}</span></td>

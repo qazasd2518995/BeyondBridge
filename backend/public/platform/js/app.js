@@ -641,13 +641,13 @@ const App = {
     if (heroName) heroName.textContent = user.displayName || user.displayNameZh || t('app.user');
     if (heroEmail) heroEmail.textContent = user.email || '';
     if (heroTier) {
-      heroTier.innerHTML = `<strong>${t('settings.memberLevel')}</strong> ${user.subscriptionTier === 'professional' ? t('settings.tierPro') : user.subscriptionTier === 'basic' ? t('settings.tierBasic') : t('settings.tierFree')}`;
+      heroTier.innerHTML = `<span class="settings-hero-meta-label">${t('settings.memberLevel')}</span><strong class="settings-hero-meta-value">${user.subscriptionTier === 'professional' ? t('settings.tierPro') : user.subscriptionTier === 'basic' ? t('settings.tierBasic') : t('settings.tierFree')}</strong>`;
     }
     if (heroJoinDate) {
-      heroJoinDate.innerHTML = `<strong>${t('settings.joinDate')}</strong> ${user.createdAt ? new Date(user.createdAt).toLocaleDateString(I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW') : '-'}`;
+      heroJoinDate.innerHTML = `<span class="settings-hero-meta-label">${t('settings.joinDate')}</span><strong class="settings-hero-meta-value">${user.createdAt ? new Date(user.createdAt).toLocaleDateString(I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW') : '-'}</strong>`;
     }
     if (heroLicense) {
-      heroLicense.innerHTML = `<strong>${t('settings.licenseQuota')}</strong> ${user.licenseUsed || 0}/${user.licenseQuota || 0}`;
+      heroLicense.innerHTML = `<span class="settings-hero-meta-label">${t('settings.licenseQuota')}</span><strong class="settings-hero-meta-value">${user.licenseUsed || 0}/${user.licenseQuota || 0}</strong>`;
     }
   },
 
@@ -870,6 +870,7 @@ const App = {
             </svg>
           </div>
           <div class="dashboard-row-body">
+            <div class="dashboard-row-kicker">${this.escapeText(typeLabel)}</div>
             <div class="dashboard-row-title">${safeTitle}</div>
             <div class="dashboard-row-meta">
               ${metaItems}
@@ -932,7 +933,9 @@ const App = {
             <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"></path>
           </svg>
         </div>
+        <div class="dashboard-badge-caption">${this.escapeText(I18n.getLocale() === 'en' ? 'Recently earned' : '最近獲得')}</div>
         <div class="dashboard-badge-name">${this.escapeText(badge.name || badge.badgeName || t('app.badge'))}</div>
+        <div class="dashboard-badge-meta">${this.escapeText(badge.courseName || badge.issuerName || (I18n.getLocale() === 'en' ? 'Achievement' : '成就徽章'))}</div>
       </div>
     `).join('')}</div>`;
   },
@@ -1660,6 +1663,19 @@ const App = {
 
     const tags = resource.tags || [];
     const initial = (resource.creatorName || 'U')[0].toUpperCase();
+    const categoryMap = {
+      language: I18n.getLocale() === 'en' ? 'Language' : '語言',
+      wellness: I18n.getLocale() === 'en' ? 'Wellness' : '心靈成長',
+      culture: I18n.getLocale() === 'en' ? 'Culture' : '文化',
+      technology: I18n.getLocale() === 'en' ? 'Technology' : '科技'
+    };
+    const gradeMap = {
+      elementary: I18n.getLocale() === 'en' ? 'Elementary' : '國小',
+      junior: I18n.getLocale() === 'en' ? 'Junior high' : '國中',
+      senior: I18n.getLocale() === 'en' ? 'Senior high' : '高中'
+    };
+    const eyebrow = categoryMap[resource.category] || (typeMap[resource.type] || resource.type);
+    const supportingMeta = [gradeMap[resource.gradeLevel], resource.contentType].filter(Boolean).join(' · ');
 
     return `
       <div class="resource-card" onclick="App.openResourceModal('${resource.resourceId}')">
@@ -1670,20 +1686,27 @@ const App = {
           <span class="resource-type-badge">${typeMap[resource.type] || resource.type}</span>
         </div>
         <div class="resource-content">
+          <div class="resource-eyebrow-row">
+            <span class="resource-eyebrow">${this.escapeText(eyebrow || '')}</span>
+            ${supportingMeta ? `<span class="resource-support-pill">${this.escapeText(supportingMeta)}</span>` : ''}
+          </div>
           <h3 class="resource-title">${resource.title}</h3>
           <p class="resource-desc">${resource.description || ''}</p>
           <div class="resource-tags">
             ${tags.slice(0, 3).map(t => `<span class="tag">${t}</span>`).join('')}
           </div>
           <div class="resource-footer">
-            <div class="resource-author">
-              <div class="resource-author-avatar">${initial}</div>
-              <span class="resource-author-name">${resource.creatorName || t('app.unknownAuthor')}</span>
+            <div class="resource-footer-stack">
+              <div class="resource-author">
+                <div class="resource-author-avatar">${initial}</div>
+                <span class="resource-author-name">${resource.creatorName || t('app.unknownAuthor')}</span>
+              </div>
+              <div class="resource-stats">
+                <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>${this.formatNumber(resource.viewCount)}</span>
+                <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>${resource.averageRating || '-'}</span>
+              </div>
             </div>
-            <div class="resource-stats">
-              <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>${this.formatNumber(resource.viewCount)}</span>
-              <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>${resource.averageRating || '-'}</span>
-            </div>
+            <span class="resource-open-link">${I18n.getLocale() === 'en' ? 'View resource' : '查看教材'}</span>
           </div>
         </div>
       </div>
@@ -2805,35 +2828,62 @@ const App = {
           <div class="quiz-result-score-ring ${resultToneClass}">
             <div class="quiz-result-score-value">${result.score}%</div>
           </div>
-          <div class="quiz-result-title ${resultToneClass}">${this.escapeText(passed ? t('app.congratsPassed') : t('app.keepTrying'))}</div>
-          <div class="quiz-result-copy">${this.escapeText(`${t('app.correctAnswers', {correct: result.correctCount, total: result.totalQuestions})} | ${t('app.timeSpent')} ${timeLabel}`)}</div>
+          <div class="quiz-result-hero-copy">
+            <div class="quiz-result-kicker">${this.escapeText(I18n.getLocale() === 'en' ? 'Quiz review' : '測驗結果')}</div>
+            <div class="quiz-result-title ${resultToneClass}">${this.escapeText(passed ? t('app.congratsPassed') : t('app.keepTrying'))}</div>
+            <div class="quiz-result-copy">${this.escapeText(`${t('app.correctAnswers', {correct: result.correctCount, total: result.totalQuestions})} | ${t('app.timeSpent')} ${timeLabel}`)}</div>
+            <div class="quiz-result-tags">
+              <span class="quiz-result-tag">${this.escapeText(`${result.correctCount}/${result.totalQuestions} ${I18n.getLocale() === 'en' ? 'correct' : '答對'}`)}</span>
+              <span class="quiz-result-tag">${this.escapeText(`${t('app.bestScore')} ${result.bestScore}%`)}</span>
+            </div>
+          </div>
         </div>
 
         <div class="quiz-result-metrics">
           <div class="quiz-result-metric">
+            <div class="quiz-result-metric-kicker">${this.escapeText(I18n.getLocale() === 'en' ? 'Earned' : '本次得分')}</div>
             <div class="quiz-result-metric-value">${result.earnedPoints}</div>
             <div class="quiz-result-metric-label">${this.escapeText(t('app.score'))}</div>
           </div>
           <div class="quiz-result-metric">
+            <div class="quiz-result-metric-kicker">${this.escapeText(I18n.getLocale() === 'en' ? 'Total' : '滿分')}</div>
             <div class="quiz-result-metric-value">${result.totalPoints}</div>
             <div class="quiz-result-metric-label">${this.escapeText(t('app.fullScore'))}</div>
           </div>
           <div class="quiz-result-metric">
+            <div class="quiz-result-metric-kicker">${this.escapeText(I18n.getLocale() === 'en' ? 'Personal best' : '最佳成績')}</div>
             <div class="quiz-result-metric-value">${result.bestScore}%</div>
             <div class="quiz-result-metric-label">${this.escapeText(t('app.bestScore'))}</div>
           </div>
         </div>
 
-        <div class="quiz-result-details">
-          <div class="quiz-result-details-title">${this.escapeText(t('app.answerDetail'))}</div>
+          <div class="quiz-result-details">
+            <div class="quiz-result-details-head">
+              <div class="quiz-result-details-kicker">${this.escapeText(I18n.getLocale() === 'en' ? 'Answer review' : '作答檢視')}</div>
+              <div class="quiz-result-details-title">${this.escapeText(t('app.answerDetail'))}</div>
+            </div>
           ${result.results.map((r, i) => `
             <div class="quiz-result-item ${r.isCorrect ? 'is-correct' : 'is-incorrect'}">
-              <div class="quiz-result-item-title">${i + 1}. ${this.escapeText(r.question)}</div>
-              <div class="quiz-result-answer">
-                ${this.escapeText(t('app.yourAnswer'))}: <strong class="${r.isCorrect ? 'correct' : 'incorrect'}">${this.escapeText(r.userAnswer || t('app.notAnswered'))}</strong>
-                ${!r.isCorrect ? `<br>${this.escapeText(t('app.correctAnswer'))}: <strong class="correct">${this.escapeText(r.correctAnswer)}</strong>` : ''}
-                ${r.explanation ? `<br><em>${this.escapeText(r.explanation)}</em>` : ''}
+              <div class="quiz-result-item-head">
+                <span class="quiz-result-item-index">${i + 1}</span>
+                <div class="quiz-result-item-copy">
+                  <div class="quiz-result-item-title">${this.escapeText(r.question)}</div>
+                  <span class="quiz-result-item-status">${this.escapeText(r.isCorrect ? (I18n.getLocale() === 'en' ? 'Correct' : '答對') : (I18n.getLocale() === 'en' ? 'Needs review' : '需再複習'))}</span>
+                </div>
               </div>
+              <div class="quiz-result-answer-grid">
+                <div class="quiz-result-answer-card ${r.isCorrect ? 'user-answer is-correct' : 'user-answer is-incorrect'}">
+                  <span class="quiz-result-answer-label">${this.escapeText(t('app.yourAnswer'))}</span>
+                  <strong class="${r.isCorrect ? 'correct' : 'incorrect'}">${this.escapeText(r.userAnswer || t('app.notAnswered'))}</strong>
+                </div>
+                ${!r.isCorrect ? `
+                  <div class="quiz-result-answer-card correct-answer">
+                    <span class="quiz-result-answer-label">${this.escapeText(t('app.correctAnswer'))}</span>
+                    <strong class="correct">${this.escapeText(r.correctAnswer)}</strong>
+                  </div>
+                ` : ''}
+              </div>
+              ${r.explanation ? `<div class="quiz-result-explanation"><span class="quiz-result-answer-label">${this.escapeText(I18n.getLocale() === 'en' ? 'Explanation' : '補充說明')}</span><p>${this.escapeText(r.explanation)}</p></div>` : ''}
             </div>
           `).join('')}
         </div>

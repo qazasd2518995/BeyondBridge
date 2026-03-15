@@ -626,42 +626,93 @@ const MoodleUI = {
     const canViewParticipants = this.canViewParticipants(course, user);
     const canViewReports = canTeach;
     const courseFormat = this.normalizeCourseFormat(course.format);
+    const sections = Array.isArray(course.sections) ? course.sections : [];
+    const sectionCount = sections.length;
+    const activityCount = sections.reduce((sum, section) => sum + ((Array.isArray(section.activities) ? section.activities.length : 0)), 0);
+    const courseTitle = course.title || course.name || t('moodleCourse.course');
+    const categoryLabel = this.getLocalizedCourseCategory(course.category);
+    const courseSummary = course.description || course.summary || (I18n.getLocale() === 'en' ? 'Explore lessons, activities, and progress for this course.' : '瀏覽這門課的學習內容、活動安排與學習進度。');
+    const formatLabel = courseFormat === 'topics'
+      ? t('moodleCourse.formatTopics')
+      : courseFormat === 'weeks'
+        ? t('moodleCourse.formatWeeks')
+        : courseFormat === 'social'
+          ? t('moodleCourse.formatSocial')
+          : t('moodleCourse.formatSingle');
+    const studentsLabel = `${course.enrollmentCount || course.enrolledCount || 0} ${t('moodleCourse.studentsCount')}`;
+    const courseCode = course.shortName || course.code || course.courseCode || '';
+    const courseMeta = [
+      `${t('moodleCourse.teacherLabel')}：${course.instructorName || course.teacherName || t('moodleCourse.teacher')}`,
+      studentsLabel,
+      formatLabel,
+      courseCode ? `${I18n.getLocale() === 'en' ? 'Code' : '代碼'}：${courseCode}` : ''
+    ].filter(Boolean);
+    const statCards = [
+      {
+        label: I18n.getLocale() === 'en' ? 'Sections' : '章節數',
+        value: sectionCount
+      },
+      {
+        label: I18n.getLocale() === 'en' ? 'Activities' : '活動數',
+        value: activityCount
+      },
+      {
+        label: I18n.getLocale() === 'en' ? 'Learners' : '學習者',
+        value: course.enrollmentCount || course.enrolledCount || 0
+      }
+    ];
 
     container.innerHTML = `
       <!-- 課程頭部 -->
       <div class="course-header">
-        <button onclick="showView('moodleCourses')" class="back-btn">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
-          ${t('moodleCourse.backToCourseList')}
-        </button>
-        <div class="course-header-content">
-          <div class="course-header-info">
-          <span class="course-category-badge">${this.escapeText(this.getLocalizedCourseCategory(course.category))}</span>
-            <h1>${course.title || course.name || t('moodleCourse.course')}</h1>
-            <p>${course.description || course.summary || ''}</p>
-            <div class="course-header-meta">
-              <span>${t('moodleCourse.teacherLabel')}：${course.instructorName || course.teacherName || t('moodleCourse.teacher')}</span>
-              <span>${course.enrollmentCount || course.enrolledCount || 0} ${t('moodleCourse.studentsCount')}</span>
-              <span>${courseFormat === 'topics' ? t('moodleCourse.formatTopics') : courseFormat === 'weeks' ? t('moodleCourse.formatWeeks') : courseFormat === 'social' ? t('moodleCourse.formatSocial') : t('moodleCourse.formatSingle')}</span>
+        <div class="course-hero">
+          <button onclick="showView('moodleCourses')" class="back-btn">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
+            ${t('moodleCourse.backToCourseList')}
+          </button>
+          <div class="course-hero-top">
+            <div class="course-hero-badges">
+              <span class="course-category-badge">${this.escapeText(categoryLabel)}</span>
+              ${!canTeach && course.isEnrolled ? `<span class="course-enrolled-pill">${t('moodleCourse.enrolled')}</span>` : ''}
+              ${canManage ? `<span class="course-enrolled-pill is-manage">${I18n.getLocale() === 'en' ? 'Manage course' : '管理課程'}</span>` : ''}
+            </div>
+            <span class="course-format-badge">${this.escapeText(formatLabel)}</span>
+          </div>
+          <div class="course-header-content">
+            <div class="course-header-info">
+              <p class="course-header-kicker">${I18n.getLocale() === 'en' ? 'Course overview' : '課程總覽'}</p>
+              <h1>${this.escapeText(courseTitle)}</h1>
+              <p>${this.escapeText(courseSummary)}</p>
+              <div class="course-header-meta">
+                ${courseMeta.map(item => `<span>${this.escapeText(item)}</span>`).join('')}
+              </div>
+            </div>
+            <div class="course-header-actions">
+              ${!course.isEnrolled && !canTeach ? `
+                <button onclick="MoodleUI.enrollCourse('${course.courseId}')" class="btn-primary">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+                  ${t('moodleCourse.enroll')}
+                </button>
+              ` : ''}
+              ${canManage ? `
+                <button onclick="MoodleUI.openCourseSettings('${course.courseId}')" class="btn-secondary">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                  ${t('moodleCourse.courseSettings')}
+                </button>
+                <button onclick="MoodleUI.openAddSection('${course.courseId}')" class="btn-primary">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  ${t('moodleCourse.addSection')}
+                </button>
+              ` : ''}
             </div>
           </div>
-          <div class="course-header-actions">
-            ${!course.isEnrolled && !canTeach ? `
-              <button onclick="MoodleUI.enrollCourse('${course.courseId}')" class="btn-primary">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
-                ${t('moodleCourse.enroll')}
-              </button>
-            ` : ''}
-            ${canManage ? `
-              <button onclick="MoodleUI.openCourseSettings('${course.courseId}')" class="btn-secondary">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-                ${t('moodleCourse.courseSettings')}
-              </button>
-              <button onclick="MoodleUI.openAddSection('${course.courseId}')" class="btn-primary">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                ${t('moodleCourse.addSection')}
-              </button>
-            ` : ''}
+          <div class="course-header-stat-grid">
+            ${statCards.map((card) => `
+              <div class="course-header-stat">
+                <span class="course-header-stat-label">${this.escapeText(card.label)}</span>
+                <span class="course-header-stat-value">${this.escapeText(card.value)}</span>
+              </div>
+            `).join('')}
           </div>
         </div>
       </div>
@@ -676,7 +727,7 @@ const MoodleUI = {
 
       <!-- 課程內容區 -->
       <div id="courseContentPanel" class="course-panel active">
-        ${this.renderCourseSections(course.sections || [], canManage, course.courseId)}
+        ${this.renderCourseSections(sections, canManage, course.courseId)}
       </div>
 
       <!-- 參與者區 -->
@@ -720,10 +771,18 @@ const MoodleUI = {
     return sections.map((section, index) => `
       <div class="course-section ${section.visible === false ? 'hidden-section' : ''}">
         <div class="section-header">
-          <div class="section-info">
-            <h2 class="section-title">${section.name || section.title || `${t('moodleCourse.weekPrefix')} ${index + 1} ${t('moodleCourse.weekSuffix')}`}</h2>
-            ${section.summary ? `<p class="section-summary">${section.summary}</p>` : ''}
+          <div class="section-header-main">
+            <div class="section-kicker-row">
+              <span class="section-kicker">${I18n.getLocale() === 'en' ? `Section ${index + 1}` : `章節 ${index + 1}`}</span>
+              ${section.visible === false ? `<span class="section-state-chip">${I18n.getLocale() === 'en' ? 'Hidden' : '未顯示'}</span>` : ''}
+            </div>
+            <div class="section-info">
+              <h2 class="section-title">${this.escapeText(section.name || section.title || `${t('moodleCourse.weekPrefix')} ${index + 1} ${t('moodleCourse.weekSuffix')}`)}</h2>
+              ${section.summary ? `<p class="section-summary">${this.escapeText(section.summary)}</p>` : ''}
+            </div>
           </div>
+          <div class="section-header-side">
+            <span class="section-meta-badge">${Array.isArray(section.activities) ? section.activities.length : 0} ${I18n.getLocale() === 'en' ? 'activities' : '個活動'}</span>
           ${isTeacher ? `
             <div class="section-actions">
               <button onclick="MoodleUI.openAddActivity('${courseId}', '${section.sectionId}')" class="btn-sm">
@@ -734,7 +793,7 @@ const MoodleUI = {
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
               </button>
             </div>
-          ` : ''}
+          ` : ''}</div>
         </div>
         <div class="section-activities">
           ${this.renderActivities(section.activities || [], isTeacher, courseId, section.sectionId)}
@@ -773,6 +832,17 @@ const MoodleUI = {
       lti: '#ec4899'
     };
 
+    const typeLabels = {
+      page: I18n.getLocale() === 'en' ? 'Page' : '頁面',
+      url: I18n.getLocale() === 'en' ? 'Link' : '連結',
+      file: I18n.getLocale() === 'en' ? 'File' : '檔案',
+      assignment: I18n.getLocale() === 'en' ? 'Assignment' : '作業',
+      quiz: I18n.getLocale() === 'en' ? 'Quiz' : '測驗',
+      forum: I18n.getLocale() === 'en' ? 'Forum' : '討論區',
+      label: I18n.getLocale() === 'en' ? 'Label' : '標籤',
+      lti: 'LTI'
+    };
+
     return activities.map((activity) => {
       const accentColor = activityColors[activity.type] || 'var(--gray-400)';
       const launchActivityId = activity.launchActivityId || activity.activityId;
@@ -781,6 +851,12 @@ const MoodleUI = {
       const openAction = isBrokenLink
         ? `showToast(${this.toInlineActionValue(I18n.getLocale() === 'en' ? 'This activity link needs repair before it can be opened.' : '這個活動連結需要先修復，才能開啟。')})`
         : `MoodleUI.openActivity('${activity.type}', '${launchActivityId}', '${courseId}')`;
+      const typeLabel = typeLabels[activity.type] || activity.type;
+      const activityStateLabel = activity.completed
+        ? t('moodleCourse.completed')
+        : activity.visible === false
+          ? (I18n.getLocale() === 'en' ? 'Hidden' : '未顯示')
+          : (I18n.getLocale() === 'en' ? 'Available' : '可查看');
       return `
       <div class="activity-item ${activity.visible === false ? 'hidden-activity' : ''}" onclick="${openAction}">
         <div class="activity-icon" data-accent-color="${this.escapeText(accentColor)}">
@@ -789,12 +865,16 @@ const MoodleUI = {
           </svg>
         </div>
         <div class="activity-info">
+          <div class="activity-meta-row">
+            <span class="activity-meta-chip">${this.escapeText(typeLabel)}</span>
+            <span class="activity-meta-chip subtle">${this.escapeText(activityStateLabel)}</span>
+            ${activity.dueDate ? `<span class="activity-meta-chip due">${t('moodleCourse.dueDate')} ${new Date(activity.dueDate).toLocaleDateString(I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW')}</span>` : ''}
+            ${activity.isBrokenLink ? `<span class="activity-meta-chip warning">${I18n.getLocale() === 'en' ? 'Needs repair' : '待修復'}</span>` : ''}
+          </div>
           <span class="activity-name">${activity.name || activity.title}</span>
           ${activity.description ? `<span class="activity-desc">${activity.description}</span>` : ''}
-          ${activity.dueDate ? `<span class="activity-due">${t('moodleCourse.dueDate')}：${new Date(activity.dueDate).toLocaleDateString(I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW')}</span>` : ''}
-          ${activity.isBrokenLink ? `<span class="activity-desc">${I18n.getLocale() === 'en' ? 'Legacy activity link pending repair' : '舊版活動連結待修復'}</span>` : ''}
+          <span class="activity-open-chip">${isTeacher ? (I18n.getLocale() === 'en' ? 'Manage activity' : '管理活動') : (I18n.getLocale() === 'en' ? 'Open activity' : '開啟活動')} →</span>
         </div>
-        ${activity.completed ? `<span class="completed-badge">${t('moodleCourse.completed')}</span>` : ''}
         ${isTeacher ? `
           <div class="activity-actions" onclick="event.stopPropagation()">
             <button onclick="MoodleUI.editActivity('${courseId}', '${sectionId}', '${managementActivityId}')" class="btn-icon-sm">
@@ -1084,6 +1164,15 @@ const MoodleUI = {
 
     return `
       <div class="student-grades">
+        <div class="gradebook-shell">
+          <div class="gradebook-shell-head">
+            <div class="gradebook-shell-copy">
+              <span class="gradebook-shell-kicker">${I18n.getLocale() === 'en' ? 'My progress' : '我的成績概覽'}</span>
+              <div class="gradebook-shell-title">${I18n.getLocale() === 'en' ? 'Grade summary' : '成績摘要'}</div>
+              <div class="gradebook-shell-desc">${I18n.getLocale() === 'en' ? 'Review your total score, completed work, and detailed feedback from each graded activity.' : '查看你的總分、完成項目與各項評分回饋。'}</div>
+            </div>
+          </div>
+        </div>
         <div class="grade-summary">
           <div class="summary-card">
             <div class="summary-value">${grades.totalScore || '-'}</div>
@@ -1094,28 +1183,39 @@ const MoodleUI = {
             <div class="summary-label">${t('moodleGrade.completedItems')}</div>
           </div>
         </div>
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>${t('moodleGrade.item')}</th>
-              <th>${t('moodleGrade.type')}</th>
-              <th>${t('moodleGrade.score')}</th>
-              <th>${t('moodleGrade.weight')}</th>
-              <th>${t('moodleGrade.feedback')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${(grades.items || []).map(item => `
-              <tr>
-                <td>${item.name}</td>
-                <td><span class="type-badge ${item.type}">${item.type === 'assignment' ? t('moodleGrade.typeAssignment') : item.type === 'quiz' ? t('moodleGrade.typeQuiz') : t('moodleGrade.typeOther')}</span></td>
-                <td><strong>${item.score !== null ? item.score : '-'}</strong> / ${item.maxScore}</td>
-                <td>${item.weight ? item.weight + '%' : '-'}</td>
-                <td>${item.feedback || '-'}</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
+        <div class="gradebook-shell">
+          <div class="gradebook-shell-head">
+            <div class="gradebook-shell-copy">
+              <span class="gradebook-shell-kicker">${I18n.getLocale() === 'en' ? 'Breakdown' : '詳細項目'}</span>
+              <div class="gradebook-shell-title">${I18n.getLocale() === 'en' ? 'Detailed grades' : '詳細成績'}</div>
+              <div class="gradebook-shell-desc">${I18n.getLocale() === 'en' ? 'Assignments, quizzes, and weighted items are listed below with scores and feedback.' : '下方列出每個作業、測驗與加權項目的得分和回饋。'}</div>
+            </div>
+          </div>
+          <div class="gradebook-table-wrapper">
+            <table class="gradebook-table">
+              <thead>
+                <tr>
+                  <th>${t('moodleGrade.item')}</th>
+                  <th>${t('moodleGrade.type')}</th>
+                  <th>${t('moodleGrade.score')}</th>
+                  <th>${t('moodleGrade.weight')}</th>
+                  <th>${t('moodleGrade.feedback')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${(grades.items || []).map(item => `
+                  <tr>
+                    <td>${item.name}</td>
+                    <td><span class="type-badge ${item.type}">${item.type === 'assignment' ? t('moodleGrade.typeAssignment') : item.type === 'quiz' ? t('moodleGrade.typeQuiz') : t('moodleGrade.typeOther')}</span></td>
+                    <td><strong>${item.score !== null ? item.score : '-'}</strong> / ${item.maxScore}</td>
+                    <td>${item.weight ? item.weight + '%' : '-'}</td>
+                    <td>${item.feedback || '-'}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     `;
   },
@@ -1142,39 +1242,65 @@ const MoodleUI = {
 
     return `
       <div class="teacher-gradebook">
-        <div class="gradebook-actions">
-          <button onclick="MoodleUI.exportGrades('${this.currentCourseId}')" class="btn-secondary">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            ${t('moodleGrade.exportGrades')}
-          </button>
-          <button onclick="MoodleUI.openGradeSettings('${this.currentCourseId}')" class="btn-secondary">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4"/></svg>
-            ${t('moodleGrade.gradeSettings')}
-          </button>
+        <div class="gradebook-shell">
+          <div class="gradebook-shell-head">
+            <div class="gradebook-shell-copy">
+              <span class="gradebook-shell-kicker">${I18n.getLocale() === 'en' ? 'Teaching overview' : '批改工作台'}</span>
+              <div class="gradebook-shell-title">${I18n.getLocale() === 'en' ? 'Course gradebook' : '課程成績簿'}</div>
+              <div class="gradebook-shell-desc">${I18n.getLocale() === 'en' ? 'Export the current roster, adjust grade settings, and review student performance in one place.' : '在同一個工作區匯出成績、調整設定，並檢視所有學生的學習表現。'}</div>
+            </div>
+            <div class="gradebook-actions">
+              <button onclick="MoodleUI.exportGrades('${this.currentCourseId}')" class="btn-secondary">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                ${t('moodleGrade.exportGrades')}
+              </button>
+              <button onclick="MoodleUI.openGradeSettings('${this.currentCourseId}')" class="btn-secondary">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4"/></svg>
+                ${t('moodleGrade.gradeSettings')}
+              </button>
+            </div>
+          </div>
         </div>
-        <div class="gradebook-table-wrapper">
-          <table class="gradebook-table">
-            <thead>
-              <tr>
-                <th class="sticky-col">${t('moodleParticipant.student')}</th>
-                ${items.map(item => `<th>${item.name || item.title}</th>`).join('')}
-                <th>${t('moodleGrade.totalCol')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${students.map(student => `
+        <div class="gradebook-shell">
+          <div class="gradebook-shell-head">
+            <div class="gradebook-shell-copy">
+              <span class="gradebook-shell-kicker">${I18n.getLocale() === 'en' ? 'Performance table' : '成績總表'}</span>
+              <div class="gradebook-shell-title">${I18n.getLocale() === 'en' ? 'Student scores' : '學生分數總覽'}</div>
+              <div class="gradebook-shell-desc">${I18n.getLocale() === 'en' ? 'Scores are organized by student and activity, with totals aligned on the right.' : '依學生與活動整理分數，總分固定顯示在右側。'}</div>
+            </div>
+          </div>
+          <div class="gradebook-table-wrapper">
+            <table class="gradebook-table">
+              <thead>
                 <tr>
-                  <td class="sticky-col">${student.name}</td>
-                  ${(student.grades || []).map(g => `
-                    <td class="grade-cell ${g.score === null ? 'not-graded' : ''}">
-                      ${g.score !== null ? g.score : '-'}
-                    </td>
-                  `).join('')}
-                  <td class="total-cell"><strong>${student.total || '-'}</strong></td>
+                  <th class="sticky-col">${t('moodleParticipant.student')}</th>
+                  ${items.map(item => `<th>${item.name || item.title}</th>`).join('')}
+                  <th>${t('moodleGrade.totalCol')}</th>
                 </tr>
-              `).join('')}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                ${students.map(student => `
+                  <tr>
+                    <td class="sticky-col">
+                      <div class="student-info">
+                        <div class="student-avatar">${this.escapeText(((student.name || 'U').trim().charAt(0) || 'U').toUpperCase())}</div>
+                        <div>
+                          <strong>${this.escapeText(student.name || (I18n.getLocale() === 'en' ? 'Learner' : '學習者'))}</strong>
+                          <small>${this.escapeText(student.userId || student.studentId || '')}</small>
+                        </div>
+                      </div>
+                    </td>
+                    ${(student.grades || []).map(g => `
+                      <td class="grade-cell ${g.score === null ? 'not-graded' : ''}">
+                        ${g.score !== null ? g.score : '-'}
+                      </td>
+                    `).join('')}
+                    <td class="total-cell"><strong>${student.total || '-'}</strong></td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     `;
@@ -2126,11 +2252,17 @@ const MoodleUI = {
     modal.onclick = (e) => { if (e.target === modal) this.closeModal(modalId); };
 
     const maxWidth = options.maxWidth || '600px';
+    const kicker = options.kicker || (I18n.getLocale() === 'en' ? 'Workspace' : '工作區');
+    const description = options.description || '';
 
     modal.innerHTML = `
       <div class="modal-content modal-generic">
         <div class="modal-header">
-          <h3 class="modal-title">${title}</h3>
+          <div class="modal-heading">
+            <p class="modal-kicker">${this.escapeText(kicker)}</p>
+            <h3 class="modal-title">${this.escapeText(title)}</h3>
+            ${description ? `<p class="modal-description">${this.escapeText(description)}</p>` : ''}
+          </div>
           <button class="modal-close" onclick="MoodleUI.closeModal('${modalId}')">&times;</button>
         </div>
         <div class="modal-body modal-scroll-body">
@@ -2752,31 +2884,38 @@ const MoodleUI = {
             <polyline points="14,2 14,8 20,8"/>
           </svg>
         </div>
-        <div class="assignment-info">
-          <h3>${this.escapeText(title)}</h3>
-          ${description ? `<p class="activity-card-description">${this.escapeText(description)}</p>` : ''}
-          ${metaItems.length ? `<div class="activity-card-meta">${metaItems.map(item => `<span>${this.escapeText(item)}</span>`).join('')}</div>` : ''}
-        </div>
-        ${teacherView ? `
-          <div class="activity-card-aside">
-            <div class="activity-card-metrics">
-              <div class="activity-card-metric">
-                <strong>${submissions}</strong>
-                <span>${isEnglish ? 'Submitted' : '已提交'}</span>
-              </div>
-              <div class="activity-card-metric">
-                <strong>${graded}</strong>
-                <span>${isEnglish ? 'Graded' : '已評分'}</span>
-              </div>
+        <div class="activity-card-main">
+          <div class="activity-card-topline">
+            <div class="assignment-info activity-card-copy">
+              <span class="activity-card-kicker">${teacherView ? (isEnglish ? 'Assignment management' : '作業管理') : (isEnglish ? 'Assignment' : '作業')}</span>
+              <h3>${this.escapeText(title)}</h3>
             </div>
             <span class="activity-status-chip ${statusMeta.tone}">${this.escapeText(statusMeta.label)}</span>
           </div>
-        ` : `
-          <div class="assignment-status">
-            <span class="activity-status-chip ${statusMeta.tone}">${this.escapeText(statusMeta.label)}</span>
-            ${gradeText ? `<span class="grade">${this.escapeText(gradeText)}</span>` : ''}
+          ${description ? `<p class="activity-card-description">${this.escapeText(description)}</p>` : ''}
+          ${metaItems.length ? `<div class="activity-card-meta">${metaItems.map(item => `<span>${this.escapeText(item)}</span>`).join('')}</div>` : ''}
+          <div class="activity-card-footer">
+            ${teacherView ? `
+              <div class="activity-card-aside">
+                <div class="activity-card-metrics">
+                  <div class="activity-card-metric">
+                    <strong>${submissions}</strong>
+                    <span>${isEnglish ? 'Submitted' : '已提交'}</span>
+                  </div>
+                  <div class="activity-card-metric">
+                    <strong>${graded}</strong>
+                    <span>${isEnglish ? 'Graded' : '已評分'}</span>
+                  </div>
+                </div>
+              </div>
+            ` : `
+              <div class="assignment-status">
+                ${gradeText ? `<span class="grade">${this.escapeText(gradeText)}</span>` : ''}
+              </div>
+            `}
+            <span class="activity-card-open">${teacherView ? (isEnglish ? 'Review work' : '查看批改') : (isEnglish ? 'Open assignment' : '查看作業')} →</span>
           </div>
-        `}
+        </div>
       </div>
     `;
   },
@@ -2818,7 +2957,6 @@ const MoodleUI = {
     if (q.completed) {
       studentStatusHtml = `
         <div class="quiz-status">
-          <span class="activity-status-chip is-accent">${t('moodleQuiz.completed')}</span>
           <span class="score">${this.escapeText(bestScoreLabel)}</span>
         </div>
       `;
@@ -2831,16 +2969,7 @@ const MoodleUI = {
         </div>
       `;
     } else {
-      const statusLabel = isOpen
-        ? (isEnglish ? 'Attempt limit reached' : '已達作答上限')
-        : hasClosed
-          ? (isEnglish ? 'Closed' : '已關閉')
-          : t('moodleQuiz.notAvailable');
-      studentStatusHtml = `
-        <div class="quiz-status">
-          <span class="activity-status-chip ${isOpen ? 'is-warning' : 'is-neutral'}">${this.escapeText(statusLabel)}</span>
-        </div>
-      `;
+      studentStatusHtml = '<div class="quiz-status"></div>';
     }
 
     const teacherStatusMeta = isOpen
@@ -2848,6 +2977,18 @@ const MoodleUI = {
       : hasClosed
         ? { label: isEnglish ? 'Closed' : '已關閉', tone: 'is-neutral' }
         : { label: isEnglish ? 'Scheduled' : '未開放', tone: 'is-warning' };
+    const studentStatusMeta = q.completed
+      ? { label: t('moodleQuiz.completed'), tone: 'is-accent' }
+      : isOpen && q.canAttempt !== false
+        ? { label: isEnglish ? 'Available now' : '可立即作答', tone: 'is-success' }
+        : {
+            label: isOpen
+              ? (isEnglish ? 'Attempt limit reached' : '已達作答上限')
+              : hasClosed
+                ? (isEnglish ? 'Closed' : '已關閉')
+                : t('moodleQuiz.notAvailable'),
+            tone: isOpen ? 'is-warning' : 'is-neutral'
+          };
     const openAction = teacherView ? 'MoodleUI.openQuizResults' : 'MoodleUI.openQuiz';
 
     return `
@@ -2859,26 +3000,36 @@ const MoodleUI = {
             <line x1="12" y1="17" x2="12.01" y2="17"/>
           </svg>
         </div>
-        <div class="quiz-info">
-          <h3>${this.escapeText(title)}</h3>
+        <div class="activity-card-main">
+          <div class="activity-card-topline">
+            <div class="quiz-info activity-card-copy">
+              <span class="activity-card-kicker">${teacherView ? (isEnglish ? 'Quiz analytics' : '測驗分析') : (isEnglish ? 'Quiz' : '測驗')}</span>
+              <h3>${this.escapeText(title)}</h3>
+            </div>
+            <span class="activity-status-chip ${(teacherView ? teacherStatusMeta : studentStatusMeta).tone}">${this.escapeText((teacherView ? teacherStatusMeta : studentStatusMeta).label)}</span>
+          </div>
           ${description ? `<p class="activity-card-description">${this.escapeText(description)}</p>` : ''}
           ${metaItems.length ? `<div class="activity-card-meta">${metaItems.map(item => `<span>${this.escapeText(item)}</span>`).join('')}</div>` : ''}
-        </div>
-        ${teacherView ? `
-          <div class="activity-card-aside">
-            <div class="activity-card-metrics">
-              <div class="activity-card-metric">
-                <strong>${attempts}</strong>
-                <span>${isEnglish ? 'Attempts' : '作答次數'}</span>
+          <div class="activity-card-footer">
+            ${teacherView ? `
+              <div class="activity-card-aside">
+                <div class="activity-card-metrics">
+                  <div class="activity-card-metric">
+                    <strong>${attempts}</strong>
+                    <span>${isEnglish ? 'Attempts' : '作答次數'}</span>
+                  </div>
+                  <div class="activity-card-metric">
+                    <strong>${this.escapeText(averageScoreLabel)}</strong>
+                    <span>${isEnglish ? 'Avg score' : '平均分'}</span>
+                  </div>
+                </div>
               </div>
-              <div class="activity-card-metric">
-                <strong>${this.escapeText(averageScoreLabel)}</strong>
-                <span>${isEnglish ? 'Avg score' : '平均分'}</span>
-              </div>
-            </div>
-            <span class="activity-status-chip ${teacherStatusMeta.tone}">${this.escapeText(teacherStatusMeta.label)}</span>
+            ` : `
+              ${studentStatusHtml}
+            `}
+            <span class="activity-card-open">${teacherView ? (isEnglish ? 'View analytics' : '查看結果') : (isEnglish ? 'Open quiz' : '查看測驗')} →</span>
           </div>
-        ` : studentStatusHtml}
+        </div>
       </div>
     `;
   },
@@ -3524,12 +3675,17 @@ const MoodleUI = {
     const question = attempt.questions[this.currentQuestionIndex];
     const totalQuestions = attempt.questions.length;
     const progress = ((this.currentQuestionIndex + 1) / totalQuestions) * 100;
+    const isEnglish = I18n.getLocale() === 'en';
 
     container.innerHTML = `
       <div class="quiz-header">
+        <div class="quiz-kicker">${isEnglish ? 'Quiz workspace' : '測驗工作區'}</div>
         <h2>${attempt.quizTitle || t('moodleQuiz.title')}</h2>
         <div class="quiz-progress">
-          <span>${t('moodleQuiz.questionOf')} ${this.currentQuestionIndex + 1} / ${totalQuestions} ${t('moodleQuiz.questionSuffix')}</span>
+          <div class="quiz-progress-copy">
+            <span class="quiz-progress-value">${isEnglish ? `Question ${this.currentQuestionIndex + 1}` : `第 ${this.currentQuestionIndex + 1} 題`}</span>
+            <span class="quiz-progress-label">${t('moodleQuiz.questionOf')} ${this.currentQuestionIndex + 1} / ${totalQuestions} ${t('moodleQuiz.questionSuffix')}</span>
+          </div>
           <div class="quiz-progress-bar">
             <div class="quiz-progress-fill" data-progress-width="${this.clampProgressValue(progress)}"></div>
           </div>
@@ -3545,9 +3701,12 @@ const MoodleUI = {
         </div>
       </div>
       <div class="quiz-body">
-        <div class="question-content">
-          <h3>${question.text}</h3>
-          ${this.renderQuestionOptions(question)}
+        <div class="quiz-question-panel">
+          <div class="question-content">
+            <div class="question-kicker">${isEnglish ? 'Question prompt' : '題目內容'}</div>
+            <h3>${question.text}</h3>
+            ${this.renderQuestionOptions(question)}
+          </div>
         </div>
         <div class="quiz-navigation">
           <button ${this.currentQuestionIndex === 0 ? 'disabled' : ''} onclick="MoodleUI.prevQuestion()" class="btn-secondary">${t('moodleQuiz.prevQuestion')}</button>
@@ -3579,7 +3738,7 @@ const MoodleUI = {
             ${question.options.map((opt, i) => `
               <label class="question-option ${question.answer === i ? 'selected' : ''}" onclick="MoodleUI.selectAnswer(${i})">
                 <input type="radio" name="answer" value="${i}" ${question.answer === i ? 'checked' : ''}>
-                <span>${opt}</span>
+                <span class="question-option-text">${opt}</span>
               </label>
             `).join('')}
           </div>
@@ -3590,7 +3749,7 @@ const MoodleUI = {
             ${question.options.map((opt, i) => `
               <label class="question-option ${(question.answer || []).includes(i) ? 'selected' : ''}">
                 <input type="checkbox" value="${i}" ${(question.answer || []).includes(i) ? 'checked' : ''} onchange="MoodleUI.selectMultipleAnswer(${i})">
-                <span>${opt}</span>
+                <span class="question-option-text">${opt}</span>
               </label>
             `).join('')}
           </div>
@@ -3808,6 +3967,7 @@ const MoodleUI = {
             const forumDescription = this.escapeText(this.truncateText(forum.description || '目前尚未提供討論區說明。', 180));
             const discussionCount = Number(forum.discussionCount ?? forum.stats?.discussionCount ?? 0);
             const postCount = Number(forum.postCount ?? forum.stats?.postCount ?? 0);
+            const safeUpdatedAt = forum.updatedAt ? this.escapeText(this.formatPlatformDate(forum.updatedAt, { year: 'numeric', month: 'numeric', day: 'numeric' })) : '';
             return `
               <article class="forum-card ${typeMeta.className}" onclick="MoodleUI.openForum(${this.toInlineActionValue(forum.forumId)})">
                 <div class="forum-card-icon">
@@ -3822,7 +3982,7 @@ const MoodleUI = {
                       </div>
                       <div class="forum-card-meta">
                         <span>${safeCourseName}</span>
-                        ${forum.updatedAt ? `<span>•</span><span>更新於 ${this.escapeText(this.formatPlatformDate(forum.updatedAt, { year: 'numeric', month: 'numeric', day: 'numeric' }))}</span>` : ''}
+                        ${safeUpdatedAt ? `<span>•</span><span>${I18n.getLocale() === 'en' ? 'Updated' : '更新於'} ${safeUpdatedAt}</span>` : ''}
                       </div>
                     </div>
                   </div>
@@ -3835,6 +3995,13 @@ const MoodleUI = {
                     <span class="forum-card-stat">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 10h.01"/><path d="M12 10h.01"/><path d="M16 10h.01"/><path d="M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 0 1-4-.84L3 20l1.34-3.22A7.318 7.318 0 0 1 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8Z"/></svg>
                       <span>${postCount} 則回覆</span>
+                    </span>
+                  </div>
+                  <div class="forum-card-footer">
+                    <span class="forum-card-support">${discussionCount > 0 ? (I18n.getLocale() === 'en' ? 'Active discussion space' : '活躍討論空間') : (I18n.getLocale() === 'en' ? 'Ready for first topic' : '可立即開始第一篇主題')}</span>
+                    <span class="forum-card-cta">
+                      ${I18n.getLocale() === 'en' ? 'Open forum' : '進入討論區'}
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
                     </span>
                   </div>
                 </div>
@@ -3862,6 +4029,8 @@ const MoodleUI = {
       <div class="forum-list">
         ${forums.map(forum => {
           const typeMeta = this.getForumTypeMeta(forum.type);
+          const discussionCount = Number(forum.discussionCount ?? forum.stats?.discussionCount ?? 0);
+          const postCount = Number(forum.postCount ?? forum.stats?.postCount ?? 0);
           return `
             <article class="forum-card ${typeMeta.className}" onclick="MoodleUI.openForum(${this.toInlineActionValue(forum.forumId)})">
               <div class="forum-card-icon">
@@ -3881,8 +4050,15 @@ const MoodleUI = {
                 </div>
                 <p class="forum-card-description">${this.escapeText(this.truncateText(forum.description || t('moodleLti.noDescription'), 180))}</p>
                 <div class="forum-card-stats">
-                  <span class="forum-card-stat">${Number(forum.discussionCount ?? forum.stats?.discussionCount ?? 0)} ${t('moodleForum.topics')}</span>
-                  <span class="forum-card-stat">${Number(forum.postCount ?? forum.stats?.postCount ?? 0)} ${t('moodleForum.replies')}</span>
+                  <span class="forum-card-stat">${discussionCount} ${t('moodleForum.topics')}</span>
+                  <span class="forum-card-stat">${postCount} ${t('moodleForum.replies')}</span>
+                </div>
+                <div class="forum-card-footer">
+                  <span class="forum-card-support">${discussionCount > 0 ? (I18n.getLocale() === 'en' ? 'Open for replies' : '已開放互動回覆') : (I18n.getLocale() === 'en' ? 'No topic yet' : '尚未建立主題')}</span>
+                  <span class="forum-card-cta">
+                    ${I18n.getLocale() === 'en' ? 'Browse topics' : '查看主題'}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                  </span>
                 </div>
               </div>
             </article>
@@ -3984,6 +4160,7 @@ const MoodleUI = {
                   const safeAuthor = this.escapeText(discussion.authorName || '匿名');
                   const safeDate = this.escapeText(this.formatPlatformDate(discussion.createdAt, { year: 'numeric', month: 'numeric', day: 'numeric' }) || '');
                   const safeLastReply = this.escapeText(this.formatPlatformDate(discussion.lastReply || discussion.lastReplyAt || discussion.latestReply?.createdAt, { year: 'numeric', month: 'numeric', day: 'numeric' }) || '');
+                  const replyCount = Number(discussion.replyCount || 0);
                   return `
                     <article class="forum-topic-card${discussion.pinned ? ' is-pinned' : ''}" onclick="MoodleUI.openDiscussion(${this.toInlineActionValue(forumId)}, ${this.toInlineActionValue(discussionId)})">
                       <div class="forum-thread-avatar">${this.escapeText((discussion.authorName || 'U').trim().charAt(0) || 'U')}</div>
@@ -4003,13 +4180,16 @@ const MoodleUI = {
                           </div>
                         </div>
                         <p class="forum-topic-excerpt">${safeExcerpt}</p>
-                        <div class="forum-topic-stats">
+                        <div class="forum-topic-footer">
+                          <div class="forum-topic-stats">
                           <span class="forum-topic-stat">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                            <span>${Number(discussion.replyCount || 0)} ${t('moodleForum.replies')}</span>
+                            <span>${replyCount} ${t('moodleForum.replies')}</span>
                           </span>
+                          <span class="forum-topic-support">${replyCount > 0 ? (I18n.getLocale() === 'en' ? 'Conversation in progress' : '討論持續進行中') : (I18n.getLocale() === 'en' ? 'Awaiting first reply' : '等待第一則回覆')}</span>
+                          </div>
                           <div class="category-actions">
-                            <button type="button" class="forum-header-btn secondary" onclick="event.stopPropagation(); MoodleUI.openDiscussion(${this.toInlineActionValue(forumId)}, ${this.toInlineActionValue(discussionId)})">
+                            <button type="button" class="forum-topic-cta" onclick="event.stopPropagation(); MoodleUI.openDiscussion(${this.toInlineActionValue(forumId)}, ${this.toInlineActionValue(discussionId)})">
                               ${I18n.getLocale() === 'en' ? 'Open & Reply' : '查看並回覆'}
                             </button>
                             ${(isAuthor || canManageForum) ? `
@@ -4297,9 +4477,10 @@ const MoodleUI = {
     const safeBackAction = this.currentQuizCourseId
       ? `showView('moodleQuizzes'); MoodleUI.loadQuizzes(${this.toInlineActionValue(this.currentQuizCourseId)})`
       : `showView('moodleQuizzes'); MoodleUI.loadQuizzes()`;
+    const statusLabel = quiz.visible === false ? t('common.draft') : t('common.published');
 
     container.innerHTML = `
-      <div class="management-detail-page">
+      <div class="management-detail-page quiz-report-shell">
         ${this.renderManagementDetailHeader({
           backAction: safeBackAction,
           backLabel: t('moodleQuiz.backToList'),
@@ -4314,15 +4495,47 @@ const MoodleUI = {
               }]
             : []
         })}
-        ${this.renderManagementMetricGrid([
-          { label: I18n.getLocale() === 'en' ? 'Attempts' : '作答次數', value: String(attempts.length) },
-          { label: I18n.getLocale() === 'en' ? 'Average score' : '平均分數', value: Number.isFinite(averageScore) ? `${Math.round(averageScore)}%` : '—' },
-          { label: I18n.getLocale() === 'en' ? 'Pass count' : '通過人數', value: String(passedCount), helper: `${passingGrade}% ${I18n.getLocale() === 'en' ? 'passing grade' : '及格門檻'}` },
-          { label: I18n.getLocale() === 'en' ? 'Highest score' : '最高分', value: Number.isFinite(highestScore) ? `${Math.round(highestScore)}%` : '—' }
-        ])}
-        <div class="management-panel-grid">
-          <section class="management-panel">
-            <h3>${t('common.details')}</h3>
+        <section class="quiz-report-hero">
+          <div class="quiz-report-hero-copy">
+            <span class="quiz-report-kicker">${this.escapeText(courseName)}</span>
+            <h2 class="quiz-report-title">${this.escapeText(quiz.title || quizMeta.title || t('moodleQuiz.title'))}</h2>
+            <p class="quiz-report-desc">${this.escapeText(quiz.description || (I18n.getLocale() === 'en' ? 'Review learner attempts, score distribution, and question performance from one consolidated report.' : '在同一份報表中檢視學生作答、分數分布與題目表現。'))}</p>
+            <div class="quiz-report-tags">
+              <span class="quiz-report-tag">${this.escapeText(statusLabel)}</span>
+              <span class="quiz-report-tag">${quiz.questionCount || quizMeta.totalQuestions || 0} ${t('moodleQuiz.questionsUnit')}</span>
+              <span class="quiz-report-tag">${quiz.timeLimit ? `${quiz.timeLimit} ${t('moodleQuiz.minutes')}` : t('moodleQuiz.unlimitedTime')}</span>
+              <span class="quiz-report-tag">${!quiz.maxAttempts ? t('moodleQuiz.unlimited') : `${quiz.maxAttempts} ${t('moodleQuiz.times')}`}</span>
+            </div>
+          </div>
+          <div class="quiz-report-scoreboard">
+            <div class="quiz-report-scorecard">
+              <span class="quiz-report-scorecard-kicker">${I18n.getLocale() === 'en' ? 'Attempts' : '作答次數'}</span>
+              <strong class="quiz-report-scorecard-value">${attempts.length}</strong>
+              <span class="quiz-report-scorecard-note">${I18n.getLocale() === 'en' ? 'total records' : '累積作答紀錄'}</span>
+            </div>
+            <div class="quiz-report-scorecard tone-blue">
+              <span class="quiz-report-scorecard-kicker">${I18n.getLocale() === 'en' ? 'Average score' : '平均分數'}</span>
+              <strong class="quiz-report-scorecard-value">${Number.isFinite(averageScore) ? `${Math.round(averageScore)}%` : '—'}</strong>
+              <span class="quiz-report-scorecard-note">${I18n.getLocale() === 'en' ? 'current average' : '目前整體表現'}</span>
+            </div>
+            <div class="quiz-report-scorecard tone-success">
+              <span class="quiz-report-scorecard-kicker">${I18n.getLocale() === 'en' ? 'Pass count' : '通過人數'}</span>
+              <strong class="quiz-report-scorecard-value">${passedCount}</strong>
+              <span class="quiz-report-scorecard-note">${passingGrade}% ${I18n.getLocale() === 'en' ? 'passing grade' : '及格門檻'}</span>
+            </div>
+            <div class="quiz-report-scorecard tone-terracotta">
+              <span class="quiz-report-scorecard-kicker">${I18n.getLocale() === 'en' ? 'Highest score' : '最高分'}</span>
+              <strong class="quiz-report-scorecard-value">${Number.isFinite(highestScore) ? `${Math.round(highestScore)}%` : '—'}</strong>
+              <span class="quiz-report-scorecard-note">${latestAttemptAt ? (I18n.getLocale() === 'en' ? 'updated recently' : '最近仍有作答') : (I18n.getLocale() === 'en' ? 'waiting for attempts' : '尚待學生作答')}</span>
+            </div>
+          </div>
+        </section>
+        <div class="quiz-report-insight-grid">
+          <section class="quiz-report-panel">
+            <div class="quiz-report-panel-head">
+              <span class="quiz-report-panel-kicker">${t('common.details')}</span>
+              <h3>${I18n.getLocale() === 'en' ? 'Quiz setup' : '測驗設定'}</h3>
+            </div>
             <div class="management-kv-list">
               <div class="management-kv-item">
                 <div class="management-kv-label">${t('moodleQuiz.questionCount')}</div>
@@ -4342,8 +4555,11 @@ const MoodleUI = {
               </div>
             </div>
           </section>
-          <section class="management-panel">
-            <h3>${I18n.getLocale() === 'en' ? 'Teaching summary' : '教學摘要'}</h3>
+          <section class="quiz-report-panel">
+            <div class="quiz-report-panel-head">
+              <span class="quiz-report-panel-kicker">${I18n.getLocale() === 'en' ? 'Teaching insight' : '教學摘要'}</span>
+              <h3>${I18n.getLocale() === 'en' ? 'Teaching summary' : '教學摘要'}</h3>
+            </div>
             <div class="management-kv-list">
               <div class="management-kv-item">
                 <div class="management-kv-label">${I18n.getLocale() === 'en' ? 'Course' : '課程'}</div>
@@ -4351,11 +4567,15 @@ const MoodleUI = {
               </div>
               <div class="management-kv-item">
                 <div class="management-kv-label">${I18n.getLocale() === 'en' ? 'Published' : '狀態'}</div>
-                <div class="management-kv-value">${this.renderManagementStatusBadge(quiz.visible === false ? 'draft' : 'published', quiz.visible === false ? t('common.draft') : t('common.published'))}</div>
+                <div class="management-kv-value">${this.renderManagementStatusBadge(quiz.visible === false ? 'draft' : 'published', statusLabel)}</div>
               </div>
               <div class="management-kv-item">
                 <div class="management-kv-label">${I18n.getLocale() === 'en' ? 'Last activity' : '最近作答'}</div>
                 <div class="management-kv-value">${latestAttemptAt ? this.escapeText(this.formatPlatformDate(latestAttemptAt, { dateStyle: 'medium', timeStyle: 'short' }) || '—') : '—'}</div>
+              </div>
+              <div class="management-kv-item">
+                <div class="management-kv-label">${I18n.getLocale() === 'en' ? 'Report status' : '報表狀態'}</div>
+                <div class="management-kv-value">${attempts.length > 0 ? (I18n.getLocale() === 'en' ? 'Live data available' : '已有可分析資料') : (I18n.getLocale() === 'en' ? 'Waiting for learner activity' : '等待學生作答')}</div>
               </div>
             </div>
           </section>
@@ -5087,7 +5307,7 @@ const MoodleUI = {
             <div class="forum-thread-replies">
               ${posts.length === 0
                 ? this.renderForumState(I18n.getLocale() === 'en' ? 'No replies yet. Be the first one to respond to this discussion.' : '目前還沒有任何回覆。你可以成為第一個回應這個主題的人。')
-                : posts.map(post => {
+                : posts.map((post, postIndex) => {
                     const isPostAuthor = this.isCurrentUser(post.authorId, currentUser);
                     const safePostAuthor = this.escapeText(post.authorName || '匿名');
                     const safePostTime = this.escapeText(this.formatPlatformDate(post.createdAt, {
@@ -5099,10 +5319,20 @@ const MoodleUI = {
                     }) || '');
                     const safePostMessage = this.formatMultilineText(post.message || post.content || '');
                     const replyDepth = Number(post.replyDepth || 0);
+                    const replyStageLabel = replyDepth > 0
+                      ? (I18n.getLocale() === 'en' ? `Nested reply ${Math.min(replyDepth + 1, 4)}` : `第 ${Math.min(replyDepth + 1, 4)} 層回覆`)
+                      : (I18n.getLocale() === 'en' ? 'Direct reply' : '直接回覆');
                     return `
                       <article class="forum-thread-post is-reply${replyDepth > 0 ? ' is-nested-reply' : ''}">
                         <div class="forum-thread-avatar">${this.escapeText((post.authorName || 'U').trim().charAt(0) || 'U')}</div>
                         <div class="forum-thread-post-body">
+                          <div class="forum-thread-post-rail">
+                            <div class="forum-thread-post-kicker-row">
+                              <span class="forum-thread-post-stage">${replyStageLabel}</span>
+                              <span class="forum-thread-post-index">#${postIndex + 1}</span>
+                            </div>
+                            ${Number(post.ratingCount || 0) > 0 ? `<span class="forum-thread-post-index">${this.escapeText(`${post.ratingAverage || 0} / 5 (${post.ratingCount})`)}</span>` : ''}
+                          </div>
                           <div class="forum-thread-post-header">
                             <div>
                               <div class="forum-thread-post-author">${safePostAuthor}</div>
@@ -5119,11 +5349,13 @@ const MoodleUI = {
                               <span>${Number(post.likes || 0)}</span>
                             </button>
                           </div>
-                          <div class="forum-thread-post-content">${safePostMessage || this.escapeText(I18n.getLocale() === 'en' ? 'No content provided yet.' : '尚未提供內容。')}</div>
+                          <div class="forum-thread-post-copy">
+                            <div class="forum-thread-post-content">${safePostMessage || this.escapeText(I18n.getLocale() === 'en' ? 'No content provided yet.' : '尚未提供內容。')}</div>
+                          </div>
                           <div class="forum-thread-post-actions">
                             <div class="forum-thread-post-tags">
-                              ${replyDepth > 0 ? `<span class="forum-chip">${I18n.getLocale() === 'en' ? `Reply level ${Math.min(replyDepth + 1, 4)}` : `第 ${Math.min(replyDepth + 1, 4)} 層回覆`}</span>` : `<span class="forum-chip">${I18n.getLocale() === 'en' ? 'Reply' : '回覆'}</span>`}
-                              ${Number(post.ratingCount || 0) > 0 ? `<span class="forum-chip">${this.escapeText(`${post.ratingAverage || 0} / 5 (${post.ratingCount})`)}</span>` : ''}
+                              <span class="forum-chip">${replyDepth > 0 ? (I18n.getLocale() === 'en' ? 'Nested thread' : '巢狀討論') : (I18n.getLocale() === 'en' ? 'Reply' : '回覆')}</span>
+                              ${post.updatedAt && post.updatedAt !== post.createdAt ? `<span class="forum-chip">${I18n.getLocale() === 'en' ? 'Edited' : '已編輯'}</span>` : ''}
                             </div>
                             <div class="category-actions">
                               <button type="button" class="btn-sm" onclick="MoodleUI.ratePost(${this.toInlineActionValue(forumId)}, ${this.toInlineActionValue(discussionId)}, ${this.toInlineActionValue(post.postId)})">${I18n.getLocale() === 'en' ? 'Rate' : '評分'}</button>
@@ -5143,7 +5375,19 @@ const MoodleUI = {
 
           ${!discussion.locked ? `
             <section class="forum-thread-reply-form">
-              <div class="forum-thread-reply-form-title">${t('moodleDiscussion.replyTitle')}</div>
+              <div class="forum-thread-reply-form-shell">
+                <div class="forum-thread-reply-form-head">
+                  <div>
+                    <div class="forum-thread-reply-form-kicker">${I18n.getLocale() === 'en' ? 'Composer' : '回覆工作區'}</div>
+                    <div class="forum-thread-reply-form-title">${t('moodleDiscussion.replyTitle')}</div>
+                    <p class="forum-thread-reply-form-copy">${I18n.getLocale() === 'en' ? 'Write a reply that gives context, examples, or actionable next steps so the thread stays useful to other learners.' : '盡量補充情境、範例或可執行建議，讓後續讀到這則討論的人也能獲得幫助。'}</p>
+                  </div>
+                  <div class="forum-thread-reply-tools">
+                    <span class="forum-thread-reply-tool">${I18n.getLocale() === 'en' ? 'Clear structure' : '清楚結構'}</span>
+                    <span class="forum-thread-reply-tool">${I18n.getLocale() === 'en' ? 'Actionable advice' : '具體建議'}</span>
+                  </div>
+                </div>
+              </div>
               <textarea id="replyMessage" class="bridge-form-control" rows="5" placeholder="${t('moodleDiscussion.replyPlaceholder')}"></textarea>
               <div class="forum-thread-reply-actions">
                 <div class="forum-thread-reply-note">回覆會立即顯示在這個主題下方，請盡量提供具體、可執行的建議。</div>
@@ -5316,31 +5560,147 @@ const MoodleUI = {
       if (!result.success) return;
 
       const notifications = result.data || [];
+      this.currentNotifications = notifications;
       this.updateNotificationBadge(result.unreadCount || 0);
 
       if (notifications.length === 0) {
-        container.innerHTML = `<div class="empty-list">${t('moodleNotification.noNotifications')}</div>`;
+        container.innerHTML = `
+          <section class="notification-center">
+            <div class="notification-header">
+              <div class="notification-shell-copy">
+                <span class="notification-shell-kicker">${I18n.getLocale() === 'en' ? 'Inbox' : '通知總覽'}</span>
+                <h2>${t('sidebar.notifications') || (I18n.getLocale() === 'en' ? 'Notifications' : '通知中心')}</h2>
+                <p class="notification-shell-desc">${I18n.getLocale() === 'en' ? 'Keep track of course updates, reminders, replies, and system activity in one place.' : '在同一個工作區掌握課程更新、提醒、回覆與系統通知。'}</p>
+              </div>
+              <div class="notification-actions">
+                <button type="button" class="btn-secondary" onclick="MoodleUI.markAllNotificationsRead()">${I18n.getLocale() === 'en' ? 'Mark all read' : '全部已讀'}</button>
+              </div>
+            </div>
+            <div class="notification-list">
+              <div class="empty-list">${t('moodleNotification.noNotifications')}</div>
+            </div>
+          </section>
+        `;
         return;
       }
 
-      container.innerHTML = notifications.map(n => `
-        <div class="notification-item ${n.readAt ? '' : 'unread'}" onclick="MoodleUI.openNotification('${n.notificationId}')">
-          <div class="notification-icon ${n.type}">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
-              ${this.getNotificationIcon(n.type)}
-            </svg>
+      container.innerHTML = `
+        <section class="notification-center">
+          <div class="notification-header">
+            <div class="notification-shell-copy">
+              <span class="notification-shell-kicker">${I18n.getLocale() === 'en' ? 'Inbox' : '通知總覽'}</span>
+              <h2>${t('sidebar.notifications') || (I18n.getLocale() === 'en' ? 'Notifications' : '通知中心')}</h2>
+              <p class="notification-shell-desc">${I18n.getLocale() === 'en' ? 'Review unread activity, course updates, and recent system messages.' : '查看未讀活動、課程更新與最近的系統訊息。'}</p>
+            </div>
+            <div class="notification-actions">
+              <button type="button" class="btn-secondary" onclick="MoodleUI.markAllNotificationsRead()">${I18n.getLocale() === 'en' ? 'Mark all read' : '全部已讀'}</button>
+              <button type="button" class="btn-secondary" onclick="MoodleUI.deleteReadNotifications()">${I18n.getLocale() === 'en' ? 'Clear read' : '清除已讀'}</button>
+            </div>
           </div>
-          <div class="notification-content">
-            <div class="title">${n.title}</div>
-            <div class="message">${n.message}</div>
-            <div class="time">${this.formatTimeAgo(n.createdAt)}</div>
+          <div class="notification-list">
+            ${notifications.map(n => `
+              <div class="notification-item ${n.readAt ? '' : 'unread'}" onclick="MoodleUI.openNotification('${n.notificationId}')">
+                <div class="notification-icon ${n.type}">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                    ${this.getNotificationIcon(n.type)}
+                  </svg>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-card-head">
+                    <div>
+                      <div class="title">${this.escapeText(n.title || (I18n.getLocale() === 'en' ? 'Notification update' : '通知更新'))}</div>
+                      <div class="message">${this.escapeText(n.message || '')}</div>
+                    </div>
+                    <span class="notification-card-chip">${this.escapeText(this.getLocalizedNotificationType(n.type))}</span>
+                  </div>
+                  <div class="time">${this.escapeText(this.formatTimeAgo(n.createdAt))}</div>
+                </div>
+              </div>
+            `).join('')}
           </div>
-        </div>
-      `).join('');
+        </section>
+      `;
     } catch (error) {
       console.error('Load notifications error:', error);
       container.innerHTML = `<div class="error">${t('moodleNotification.loadFailed')}</div>`;
     }
+  },
+
+  getLocalizedNotificationType(type) {
+    const labels = {
+      assignment: I18n.getLocale() === 'en' ? 'Assignment' : '作業',
+      quiz: I18n.getLocale() === 'en' ? 'Quiz' : '測驗',
+      forum: I18n.getLocale() === 'en' ? 'Forum' : '討論',
+      grade: I18n.getLocale() === 'en' ? 'Grade' : '成績',
+      course: I18n.getLocale() === 'en' ? 'Course' : '課程'
+    };
+    return labels[type] || (I18n.getLocale() === 'en' ? 'Update' : '更新');
+  },
+
+  getNotificationDetailSummary(notification = {}) {
+    const summary = [];
+    if (notification.createdAt) {
+      summary.push({
+        label: I18n.getLocale() === 'en' ? 'Received' : '收到時間',
+        value: this.formatPlatformDate(notification.createdAt, { dateStyle: 'medium', timeStyle: 'short' }) || '—'
+      });
+    }
+    if (notification.metadata?.course?.title || notification.metadata?.course?.name) {
+      summary.push({
+        label: I18n.getLocale() === 'en' ? 'Course' : '課程',
+        value: notification.metadata.course.title || notification.metadata.course.name
+      });
+    } else if (notification.metadata?.courseName) {
+      summary.push({
+        label: I18n.getLocale() === 'en' ? 'Course' : '課程',
+        value: notification.metadata.courseName
+      });
+    }
+    if (notification.metadata?.assignment?.title || notification.metadata?.quiz?.title || notification.metadata?.badge?.name || notification.metadata?.path?.name) {
+      summary.push({
+        label: I18n.getLocale() === 'en' ? 'Related item' : '相關項目',
+        value:
+          notification.metadata.assignment?.title ||
+          notification.metadata.quiz?.title ||
+          notification.metadata.badge?.name ||
+          notification.metadata.path?.name
+      });
+    }
+    return summary;
+  },
+
+  buildNotificationDetailBody(notification = {}) {
+    const summary = this.getNotificationDetailSummary(notification);
+    return `
+      <div class="notification-detail-shell">
+        <div class="notification-detail-hero">
+          <div class="notification-detail-icon ${notification.type || 'course'}">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+              ${this.getNotificationIcon(notification.type)}
+            </svg>
+          </div>
+          <div class="notification-detail-copy">
+            <div class="notification-detail-kicker">${this.escapeText(this.getLocalizedNotificationType(notification.type))}</div>
+            <h3 class="notification-detail-title">${this.escapeText(notification.title || (I18n.getLocale() === 'en' ? 'Notification update' : '通知更新'))}</h3>
+            <p class="notification-detail-message">${this.escapeText(notification.message || '')}</p>
+          </div>
+        </div>
+        ${summary.length ? `
+          <div class="notification-detail-summary">
+            ${summary.map(item => `
+              <div class="notification-detail-summary-item">
+                <span class="notification-detail-summary-label">${this.escapeText(item.label)}</span>
+                <strong class="notification-detail-summary-value">${this.escapeText(item.value)}</strong>
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
+        <div class="notification-detail-actions">
+          ${notification.link ? `<button type="button" class="btn-primary" onclick="window.open('${this.escapeText(notification.link)}', '_blank', 'noopener'); MoodleUI.closeModal('notificationDetailModal')">${I18n.getLocale() === 'en' ? 'Open related content' : '開啟相關內容'}</button>` : ''}
+          <button type="button" class="btn-secondary" onclick="MoodleUI.deleteNotification('${this.escapeText(notification.notificationId)}')">${I18n.getLocale() === 'en' ? 'Delete notification' : '刪除此通知'}</button>
+        </div>
+      </div>
+    `;
   },
 
   /**
@@ -5391,8 +5751,56 @@ const MoodleUI = {
    * 開啟通知
    */
   async openNotification(notificationId) {
-    await API.notifications.markAsRead(notificationId);
-    this.loadNotifications();
+    try {
+      const notification = Array.isArray(this.currentNotifications)
+        ? this.currentNotifications.find(item => item.notificationId === notificationId)
+        : null;
+
+      await API.notifications.markAsRead(notificationId);
+
+      if (notification) {
+        notification.readAt = notification.readAt || new Date().toISOString();
+      }
+
+      const unreadCount = Array.isArray(this.currentNotifications)
+        ? this.currentNotifications.filter(item => !item.readAt).length
+        : 0;
+      this.updateNotificationBadge(unreadCount);
+      this.loadNotifications();
+
+      if (!notification) return;
+
+      this.createModal(
+        'notificationDetailModal',
+        notification.title || (I18n.getLocale() === 'en' ? 'Notification update' : '通知更新'),
+        this.buildNotificationDetailBody(notification),
+        {
+          kicker: this.getLocalizedNotificationType(notification.type),
+          description: I18n.getLocale() === 'en'
+            ? 'Review the context of this notification and jump to the related content if needed.'
+            : '查看這則通知的完整內容，並在需要時前往相關內容。',
+          maxWidth: '620px'
+        }
+      );
+    } catch (error) {
+      console.error('Open notification error:', error);
+      showToast(t('moodleNotification.actionFailed'));
+    }
+  },
+
+  async deleteNotification(notificationId) {
+    try {
+      await API.notifications.delete(notificationId);
+      showToast(I18n.getLocale() === 'en' ? 'Notification deleted' : '通知已刪除');
+      this.closeModal('notificationDetailModal');
+      this.currentNotifications = Array.isArray(this.currentNotifications)
+        ? this.currentNotifications.filter(item => item.notificationId !== notificationId)
+        : [];
+      this.loadNotifications();
+    } catch (error) {
+      console.error('Delete notification error:', error);
+      showToast(t('moodleNotification.actionFailed'));
+    }
   },
 
   /**
@@ -5689,8 +6097,11 @@ const MoodleUI = {
                   <tr data-student-id="${student.userId}">
                     <td class="sticky-col student-col">
                       <div class="student-info">
-                        <div class="student-avatar">${(student.name || 'U')[0]}</div>
-                        <div class="student-name">${student.name}</div>
+                        <div class="student-avatar">${this.escapeText(((student.name || 'U').trim().charAt(0) || 'U').toUpperCase())}</div>
+                        <div>
+                          <strong>${this.escapeText(student.name || (I18n.getLocale() === 'en' ? 'Learner' : '學習者'))}</strong>
+                          <small>${this.escapeText(student.email || student.userId || '')}</small>
+                        </div>
                       </div>
                     </td>
                     ${(student.grades || []).map((g, idx) => {
@@ -6492,9 +6903,14 @@ const MoodleUI = {
         <div class="qb-layout">
           <!-- 左側類別篩選 -->
           <div class="qb-sidebar">
-            <div class="qb-categories">
-              <h3>${t('moodleQuestionBank.categoriesTitle')}</h3>
-              <button onclick="MoodleUI.openCategoryManageModal()" class="btn-sm">${t('moodleQuestionBank.manageCategories')}</button>
+            <div class="qb-categories qb-sidebar-card">
+              <div class="qb-sidebar-head">
+                <div>
+                  <div class="qb-sidebar-kicker">${isEnglish ? 'Structure' : '題庫結構'}</div>
+                  <h3>${t('moodleQuestionBank.categoriesTitle')}</h3>
+                </div>
+                <button onclick="MoodleUI.openCategoryManageModal()" class="btn-sm">${t('moodleQuestionBank.manageCategories')}</button>
+              </div>
               <ul class="category-tree">
                 <li class="category-item ${!this.currentQuestionBankFilters.categoryId ? 'active' : ''}"
                     onclick="MoodleUI.filterQuestionsByCategory('')">
@@ -6511,8 +6927,13 @@ const MoodleUI = {
               </ul>
             </div>
 
-            <div class="qb-type-filter">
-              <h3>${t('moodleQuestionBank.typeFilter')}</h3>
+            <div class="qb-type-filter qb-sidebar-card">
+              <div class="qb-sidebar-head">
+                <div>
+                  <div class="qb-sidebar-kicker">${isEnglish ? 'Filters' : '篩選條件'}</div>
+                  <h3>${t('moodleQuestionBank.typeFilter')}</h3>
+                </div>
+              </div>
               <div class="type-checkboxes">
                 ${Object.entries(questionTypes).map(([type, label]) => `
                   <label class="checkbox-item">
@@ -6528,11 +6949,23 @@ const MoodleUI = {
 
           <!-- 主內容區 -->
           <div class="qb-main">
+            <div class="qb-search-shell">
+              <div class="qb-search-head">
+                <div class="qb-search-copy">
+                  <div class="qb-sidebar-kicker">${isEnglish ? 'Question search' : '題目搜尋'}</div>
+                  <h3>${isEnglish ? 'Search and narrow the question set' : '搜尋並縮小題目範圍'}</h3>
+                </div>
+                <div class="qb-filter-summary">
+                  ${this.currentQuestionBankFilters.categoryId ? `<span class="qb-filter-pill">${this.escapeText((categories.find(cat => cat.categoryId === this.currentQuestionBankFilters.categoryId) || {}).name || (isEnglish ? 'Category' : '分類'))}</span>` : ''}
+                  ${(this.currentQuestionBankFilters.types || []).map(type => `<span class="qb-filter-pill">${this.escapeText(questionTypes[type] || type)}</span>`).join('')}
+                </div>
+              </div>
             <div class="qb-search">
               <input type="text" id="questionSearch" placeholder="${t('moodleQuestionBank.searchPlaceholder')}"
                      value="${this.currentQuestionBankFilters.search || ''}"
                      onkeyup="if(event.key==='Enter') MoodleUI.searchQuestions()">
               <button onclick="MoodleUI.searchQuestions()" class="btn-search">${t('moodleQuestionBank.searchBtn')}</button>
+            </div>
             </div>
 
             <div class="qb-list">
@@ -10407,16 +10840,25 @@ const MoodleUI = {
       });
     } catch (e) { /* ignore */ }
 
-    const modal = document.createElement('div');
-    modal.id = 'createQuizModal';
-    modal.className = 'modal-overlay active';
-    modal.innerHTML = `
-      <div class="modal-content modal-lg">
-        <div class="modal-header">
-          <h3>${t('moodleQuizCreate.title')}</h3>
-          <button onclick="MoodleUI.closeModal('createQuizModal')" class="modal-close">&times;</button>
-        </div>
-        <div class="modal-body">
+    const setupTitle = I18n.getLocale() === 'en' ? 'Quiz setup' : '測驗設定';
+    const setupCopy = I18n.getLocale() === 'en'
+      ? 'Define the quiz name, course, and learner-facing summary before publishing.'
+      : '先設定測驗名稱、所屬課程與學習者會看到的摘要資訊。';
+    const policyTitle = I18n.getLocale() === 'en' ? 'Attempts and schedule' : '作答規則與開放時間';
+    const policyCopy = I18n.getLocale() === 'en'
+      ? 'Configure duration, retry policy, and availability window in one place.'
+      : '在同一個區塊設定時間限制、重試次數與開放區間。';
+
+    this.createModal('createQuizModal', t('moodleQuizCreate.title'), `
+      <div class="quiz-create-shell">
+        <section class="quiz-create-card quiz-create-card-primary">
+          <div class="quiz-create-card-head">
+            <div>
+              <div class="quiz-create-card-kicker">${I18n.getLocale() === 'en' ? 'Assessment' : '測驗工作區'}</div>
+              <div class="quiz-create-card-title">${setupTitle}</div>
+              <p class="quiz-create-card-note">${setupCopy}</p>
+            </div>
+          </div>
           <div class="form-group">
             <label>${t('moodleQuizCreate.titleLabel')} *</label>
             <input type="text" id="newQuizTitle" placeholder="${t('moodleQuizCreate.titlePlaceholder')}">
@@ -10427,9 +10869,19 @@ const MoodleUI = {
           </div>
           <div class="form-group">
             <label>${t('common.description')}</label>
-            <textarea id="newQuizDescription" rows="3" placeholder="${t('moodleQuizCreate.descPlaceholder')}"></textarea>
+            <textarea id="newQuizDescription" rows="4" placeholder="${t('moodleQuizCreate.descPlaceholder')}"></textarea>
           </div>
-          <div class="form-row">
+        </section>
+
+        <section class="quiz-create-card">
+          <div class="quiz-create-card-head">
+            <div>
+              <div class="quiz-create-card-kicker">${I18n.getLocale() === 'en' ? 'Policy' : '測驗規則'}</div>
+              <div class="quiz-create-card-title">${policyTitle}</div>
+              <p class="quiz-create-card-note">${policyCopy}</p>
+            </div>
+          </div>
+          <div class="quiz-create-grid">
             <div class="form-group">
               <label>${t('moodleQuizCreate.timeLimitLabel')}</label>
               <input type="number" id="newQuizTimeLimit" value="60" min="0">
@@ -10438,8 +10890,6 @@ const MoodleUI = {
               <label>${t('moodleQuizCreate.maxAttemptsLabel')}</label>
               <input type="number" id="newQuizMaxAttempts" value="1" min="1">
             </div>
-          </div>
-          <div class="form-row">
             <div class="form-group">
               <label>${t('moodleQuizCreate.openDate')}</label>
               <input type="datetime-local" id="newQuizOpenDate">
@@ -10449,15 +10899,20 @@ const MoodleUI = {
               <input type="datetime-local" id="newQuizCloseDate">
             </div>
           </div>
-        </div>
-        <div class="modal-footer">
-          <button onclick="MoodleUI.closeModal('createQuizModal')" class="btn-secondary">${t('common.cancel')}</button>
-          <button onclick="MoodleUI.saveNewQuiz()" class="btn-primary">${t('moodleQuizCreate.createBtn')}</button>
+        </section>
+
+        <div class="form-actions quiz-create-actions">
+          <button type="button" onclick="MoodleUI.closeModal('createQuizModal')" class="btn-secondary">${t('common.cancel')}</button>
+          <button type="button" onclick="MoodleUI.saveNewQuiz()" class="btn-primary">${t('moodleQuizCreate.createBtn')}</button>
         </div>
       </div>
-    `;
-    document.body.appendChild(modal);
-    modal.onclick = (e) => { if (e.target === modal) this.closeModal('createQuizModal'); };
+    `, {
+      maxWidth: '760px',
+      kicker: I18n.getLocale() === 'en' ? 'Assessment workspace' : '評量工作區',
+      description: I18n.getLocale() === 'en'
+        ? 'Create a quiz with a cleaner setup flow and clear scheduling controls.'
+        : '用更清楚的建立流程設定測驗內容與開放時間。'
+    });
   },
 
   async saveNewQuiz() {

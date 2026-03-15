@@ -795,14 +795,25 @@
         }
 
         .dashboard-row-card {
+            position: relative;
+            overflow: hidden;
             display: flex;
             align-items: center;
             gap: 1rem;
-            padding: 1rem;
-            border: 1px solid var(--gray-100);
-            border-radius: var(--radius-lg);
-            background: linear-gradient(180deg, var(--surface-light) 0%, var(--white) 100%);
-            transition: var(--transition-base);
+            padding: 1.08rem 1.1rem;
+            border: 1px solid rgba(26, 58, 92, 0.08);
+            border-radius: 20px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,245,239,0.98) 100%);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+            box-shadow: 0 14px 24px rgba(15, 23, 42, 0.05);
+        }
+
+        .dashboard-row-card::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto 0;
+            height: 3px;
+            background: linear-gradient(90deg, rgba(45, 43, 107, 0.65), rgba(87, 109, 72, 0.45));
         }
 
         .dashboard-row-card.interactive {
@@ -810,9 +821,9 @@
         }
 
         .dashboard-row-card.interactive:hover {
-            transform: translateY(-2px);
-            border-color: rgba(212, 165, 116, 0.42);
-            box-shadow: var(--shadow-sm);
+            transform: translateY(-3px);
+            border-color: rgba(212, 165, 116, 0.34);
+            box-shadow: 0 22px 34px rgba(15, 23, 42, 0.09);
         }
 
         .dashboard-row-icon {
@@ -859,7 +870,7 @@
         }
 
         .dashboard-row-title {
-            font-size: 0.92rem;
+            font-size: 0.96rem;
             font-weight: 700;
             color: var(--text-primary);
             overflow: hidden;
@@ -867,18 +878,30 @@
             white-space: nowrap;
         }
 
+        .dashboard-row-kicker {
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: var(--gray-500);
+        }
+
         .dashboard-row-meta {
             display: flex;
             flex-wrap: wrap;
             gap: 0.45rem;
             font-size: 0.78rem;
-            color: var(--text-secondary);
         }
 
         .dashboard-row-meta-item {
             display: inline-flex;
             align-items: center;
             gap: 0.35rem;
+            padding: 0.34rem 0.66rem;
+            border-radius: 999px;
+            background: rgba(26, 58, 92, 0.05);
+            color: var(--text-secondary);
+            font-weight: 600;
         }
 
         .dashboard-row-side {
@@ -953,28 +976,38 @@
 
         .dashboard-badge-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-            gap: 0.9rem;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 0.95rem;
         }
 
         .dashboard-badge-card {
+            position: relative;
+            overflow: hidden;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 0.6rem;
-            padding: 1rem 0.75rem;
-            border-radius: var(--radius-lg);
-            border: 1px solid var(--gray-100);
-            background: linear-gradient(180deg, var(--surface-light) 0%, var(--white) 100%);
-            text-align: center;
-            min-height: 120px;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 0.85rem;
+            padding: 1rem 1rem 1.05rem;
+            border-radius: 20px;
+            border: 1px solid rgba(26, 58, 92, 0.08);
+            background: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,245,239,0.98) 100%);
+            min-height: 148px;
+            box-shadow: 0 14px 24px rgba(15, 23, 42, 0.05);
+        }
+
+        .dashboard-badge-card::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto 0;
+            height: 3px;
+            background: linear-gradient(90deg, rgba(45, 43, 107, 0.7), rgba(87, 109, 72, 0.5));
         }
 
         .dashboard-badge-icon {
             width: 3.25rem;
             height: 3.25rem;
-            border-radius: 50%;
+            border-radius: 18px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -1016,10 +1049,29 @@
         }
 
         .dashboard-badge-name {
-            font-size: 0.78rem;
+            font-size: 0.9rem;
             font-weight: 700;
             color: var(--text-primary);
             line-height: 1.45;
+        }
+
+        .dashboard-badge-caption {
+            font-size: 0.76rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: var(--gray-500);
+        }
+
+        .dashboard-badge-meta {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.35rem 0.66rem;
+            border-radius: 999px;
+            background: rgba(45, 43, 107, 0.08);
+            color: var(--olive-deep);
+            font-size: 0.74rem;
+            font-weight: 700;
         }
 
         .dashboard-avatar {
@@ -1293,27 +1345,101 @@
         }
 
         .weekly-stat-item {
-            background: linear-gradient(180deg, var(--surface-light) 0%, var(--white) 100%);
-            border: 1px solid var(--sand);
-            border-radius: var(--radius-md);
-            padding: 1rem;
-            text-align: center;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 0.9rem;
+            min-height: 172px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,245,239,0.98) 100%);
+            border: 1px solid rgba(26, 58, 92, 0.08);
+            border-radius: 22px;
+            padding: 1.15rem 1.05rem 1.1rem;
+            text-align: left;
+            box-shadow: 0 18px 32px rgba(15, 23, 42, 0.06);
+        }
+
+        .weekly-stat-item::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto 0;
+            height: 3px;
+            background: linear-gradient(90deg, rgba(45, 43, 107, 0.65), rgba(87, 109, 72, 0.45));
+        }
+
+        .weekly-stat-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 0.9rem;
+        }
+
+        .weekly-stat-copy {
+            min-width: 0;
+        }
+
+        .weekly-stat-kicker {
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            margin-bottom: 0.22rem;
         }
 
         .weekly-stat-value {
-            font-size: 1.5rem;
+            font-size: 1.9rem;
             font-weight: 700;
             color: var(--olive);
+            line-height: 1;
         }
 
         .weekly-stat-value.tone-terracotta { color: var(--terracotta); }
         .weekly-stat-value.tone-blue { color: var(--blue); }
         .weekly-stat-value.tone-success { color: var(--success); }
 
+        .weekly-stat-icon {
+            width: 2.85rem;
+            height: 2.85rem;
+            border-radius: 1rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            background: rgba(45, 43, 107, 0.1);
+            color: var(--olive);
+        }
+
+        .weekly-stat-icon svg {
+            width: 1.15rem;
+            height: 1.15rem;
+        }
+
+        .weekly-stat-icon.tone-terracotta {
+            background: rgba(26, 107, 74, 0.14);
+            color: var(--terracotta);
+        }
+
+        .weekly-stat-icon.tone-blue {
+            background: rgba(43, 108, 176, 0.14);
+            color: var(--blue);
+        }
+
+        .weekly-stat-icon.tone-success {
+            background: rgba(74, 124, 89, 0.14);
+            color: var(--success);
+        }
+
         .weekly-stat-label {
-            font-size: 0.75rem;
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .weekly-stat-note {
+            font-size: 0.8rem;
+            line-height: 1.55;
             color: var(--text-secondary);
-            margin-top: 0.25rem;
         }
 
         .pending-tasks-grid {
@@ -1949,94 +2075,183 @@
         }
 
         .bridge-student-class-card {
-            background: var(--white);
-            border-radius: var(--radius-lg);
-            padding: 1.5rem;
-            border: 1px solid var(--gray-100);
+            position: relative;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 245, 239, 0.98) 100%);
+            border-radius: 24px;
+            overflow: hidden;
+            border: 1px solid rgba(26, 58, 92, 0.1);
+            box-shadow: 0 18px 34px rgba(15, 23, 42, 0.06);
             cursor: pointer;
             transition: var(--transition-base);
         }
 
         .bridge-student-class-card:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-sm);
-            border-color: var(--sand);
+            transform: translateY(-4px);
+            box-shadow: 0 24px 42px rgba(15, 23, 42, 0.1);
+            border-color: rgba(26, 58, 92, 0.16);
         }
 
-        .bridge-student-class-main {
+        .bridge-student-class-card::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(circle at top right, rgba(255, 255, 255, 0.88), transparent 28%),
+                radial-gradient(circle at 14% 16%, rgba(45, 43, 107, 0.05), transparent 24%);
+            pointer-events: none;
+        }
+
+        .bridge-student-class-accent {
+            min-height: 146px;
+            opacity: 0.96;
+            position: relative;
             display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 0.95rem;
+            padding: 1.05rem 1.2rem 1.15rem;
+            color: var(--cream);
+            z-index: 1;
+        }
+
+        .bridge-student-class-body {
+            position: relative;
+            z-index: 1;
+            padding: 1.15rem 1.25rem 1.25rem;
+            min-height: 214px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.95rem;
+        }
+
+        .bridge-student-class-cover-top {
+            display: flex;
+            justify-content: space-between;
             align-items: flex-start;
             gap: 1rem;
         }
 
-        .bridge-student-class-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: 12px;
-            background: linear-gradient(135deg, var(--olive) 0%, var(--olive-light) 100%);
+        .bridge-student-class-cover-copy {
             display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--cream);
-            flex-shrink: 0;
-        }
-
-        .bridge-student-class-icon svg {
-            width: 24px;
-            height: 24px;
-        }
-
-        .bridge-student-class-content {
-            flex: 1;
+            flex-direction: column;
+            gap: 0.45rem;
             min-width: 0;
         }
 
-        .bridge-student-class-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            margin-bottom: 0.25rem;
-            color: var(--charcoal);
+        .bridge-student-class-subject {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.42rem 0.78rem;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.94);
+            color: var(--olive-deep);
+            font-size: 0.76rem;
+            font-weight: 700;
+            box-shadow: 0 10px 18px rgba(15, 23, 42, 0.08);
         }
 
-        .bridge-student-class-subject {
+        .bridge-student-class-kicker {
+            margin: 0;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.76);
+        }
+
+        .bridge-student-class-title {
+            font-size: 1.22rem;
+            font-weight: 700;
+            margin: 0;
+            color: inherit;
+            letter-spacing: -0.02em;
+            line-height: 1.3;
+            text-wrap: balance;
+        }
+
+        .bridge-student-class-cover-note {
+            margin: 0;
+            font-size: 0.82rem;
+            color: rgba(255, 255, 255, 0.76);
+        }
+
+        .bridge-student-class-joined-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.45rem 0.8rem;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.16);
+            color: var(--cream);
+            font-size: 0.74rem;
+            font-weight: 700;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(8px);
+            white-space: nowrap;
+        }
+
+        .bridge-student-class-desc {
+            margin: 0;
             color: var(--text-secondary);
-            font-size: 0.85rem;
-            margin-bottom: 0.5rem;
+            line-height: 1.68;
+            font-size: 0.92rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .bridge-student-class-meta {
+            margin-top: auto;
+            padding-top: 0.95rem;
+            border-top: 1px solid rgba(15, 23, 42, 0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 0.9rem;
+            flex-wrap: wrap;
+        }
+
+        .bridge-student-class-stats {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+            font-size: 0.84rem;
+            color: var(--text-secondary);
+        }
+
+        .bridge-student-class-stat {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .bridge-student-class-stat svg {
+            width: 16px;
+            height: 16px;
         }
 
         .bridge-student-class-teacher {
-            color: var(--gray-400);
-            font-size: 0.8rem;
             display: inline-flex;
             align-items: center;
-            gap: 0.25rem;
-        }
-
-        .bridge-student-class-teacher svg {
-            width: 14px;
-            height: 14px;
-        }
-
-        .bridge-student-class-footer {
-            margin-top: 1rem;
-            padding-top: 1rem;
-            border-top: 1px solid var(--gray-100);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .bridge-student-class-joined {
-            font-size: 0.8rem;
-            color: var(--gray-400);
+            gap: 0.35rem;
+            padding: 0.5rem 0.82rem;
+            border-radius: 999px;
+            background: rgba(45, 43, 107, 0.08);
+            color: var(--olive-deep);
+            font-size: 0.76rem;
+            font-weight: 700;
+            white-space: nowrap;
         }
 
         .bridge-student-class-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            color: var(--olive-deep);
             font-size: 0.8rem;
-            color: var(--olive);
-            font-weight: 600;
-            white-space: nowrap;
+            font-weight: 700;
         }
 
         .bridge-modal-overlay {
@@ -4163,6 +4378,15 @@
             flex-wrap: wrap;
         }
 
+        .forum-card-title-row,
+        .forum-topic-title-row {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            flex-wrap: wrap;
+            margin-bottom: 0.45rem;
+        }
+
         .forum-card-title,
         .forum-topic-title,
         .forum-thread-post-title {
@@ -4246,6 +4470,60 @@
             font-weight: 700;
         }
 
+        .forum-card-footer,
+        .forum-topic-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.85rem;
+            flex-wrap: wrap;
+            padding-top: 0.95rem;
+            border-top: 1px solid rgba(26, 58, 92, 0.08);
+        }
+
+        .forum-card-support,
+        .forum-topic-support {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.36rem 0.72rem;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.7);
+            border: 1px solid rgba(26, 58, 92, 0.08);
+            color: var(--gray-500);
+            font-size: 0.76rem;
+            font-weight: 700;
+        }
+
+        .forum-card-cta,
+        .forum-topic-cta {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.55rem 0.92rem;
+            border-radius: 999px;
+            background: rgba(26, 58, 92, 0.06);
+            color: var(--olive-deep);
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        button.forum-topic-cta {
+            border: none;
+            cursor: pointer;
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+
+        button.forum-topic-cta:hover {
+            background: rgba(26, 58, 92, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .forum-card-cta svg,
+        .forum-topic-cta svg {
+            width: 14px;
+            height: 14px;
+        }
+
         .forum-topic-card.is-pinned {
             border-color: rgba(74, 93, 35, 0.24);
             background:
@@ -4299,6 +4577,58 @@
             justify-content: space-between;
             gap: 0.75rem;
             flex-wrap: wrap;
+        }
+
+        .forum-thread-post-rail {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .forum-thread-post-kicker-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .forum-thread-post-stage,
+        .forum-thread-post-index {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.34rem 0.7rem;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+        }
+
+        .forum-thread-post-stage {
+            background: rgba(74, 93, 35, 0.12);
+            color: var(--olive-deep);
+        }
+
+        .forum-thread-post-index {
+            background: rgba(45, 43, 107, 0.08);
+            color: var(--gray-600);
+        }
+
+        .forum-thread-post-copy {
+            padding: 1rem 1.05rem;
+            border-radius: 20px;
+            border: 1px solid rgba(26, 58, 92, 0.08);
+            background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(248,245,239,0.84));
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.52);
+        }
+
+        .forum-thread-post.is-reply .forum-thread-post-copy {
+            background: linear-gradient(180deg, rgba(255,255,255,0.94), rgba(244, 247, 250, 0.9));
+        }
+
+        .forum-thread-post.is-nested-reply .forum-thread-post-copy {
+            background: linear-gradient(180deg, rgba(255,255,255,0.94), rgba(241, 245, 248, 0.92));
         }
 
         .forum-thread-post-actions {
@@ -4367,14 +4697,68 @@
             box-shadow: var(--shadow-sm);
         }
 
+        .forum-thread-reply-form-shell {
+            display: flex;
+            flex-direction: column;
+            gap: 0.9rem;
+        }
+
+        .forum-thread-reply-form-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .forum-thread-reply-form-kicker {
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--gray-500);
+            margin-bottom: 0.25rem;
+        }
+
         .forum-thread-reply-form-title {
             font-size: 0.98rem;
             font-weight: 700;
             color: var(--charcoal);
         }
 
+        .forum-thread-reply-form-copy {
+            margin: 0.2rem 0 0;
+            color: var(--gray-500);
+            font-size: 0.84rem;
+            line-height: 1.65;
+            max-width: 620px;
+        }
+
         .forum-thread-reply-form textarea {
             min-height: 140px;
+            padding: 1rem 1.05rem;
+            border-radius: 18px;
+            border: 1px solid rgba(26, 58, 92, 0.1);
+            background: rgba(255,255,255,0.9);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.5);
+        }
+
+        .forum-thread-reply-tools {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .forum-thread-reply-tool {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.35rem 0.7rem;
+            border-radius: 999px;
+            background: rgba(26, 58, 92, 0.06);
+            color: var(--gray-500);
+            font-size: 0.74rem;
+            font-weight: 700;
         }
 
         .forum-thread-reply-actions {
@@ -4906,6 +5290,35 @@
             background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(249, 246, 241, 0.98) 100%);
         }
 
+        .resource-eyebrow-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            margin-bottom: 0.6rem;
+        }
+
+        .resource-eyebrow,
+        .resource-support-pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.3rem 0.68rem;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            font-weight: 700;
+        }
+
+        .resource-eyebrow {
+            background: rgba(45, 43, 107, 0.08);
+            color: var(--olive);
+        }
+
+        .resource-support-pill {
+            background: rgba(26, 58, 92, 0.05);
+            color: var(--text-secondary);
+        }
+
         .resource-card.list-view .resource-content {
             display: flex;
             flex-direction: column;
@@ -5015,6 +5428,9 @@
             display: flex;
             align-items: center;
             gap: 0.3rem;
+            padding: 0.3rem 0.56rem;
+            border-radius: 999px;
+            background: rgba(26, 58, 92, 0.05);
             transition: var(--transition-fast);
         }
 
@@ -5183,7 +5599,8 @@
             }
 
             .bridge-class-card-meta,
-            .bridge-class-meta-right {
+            .bridge-class-meta-right,
+            .bridge-student-class-meta {
                 flex-direction: column;
                 align-items: stretch;
             }
@@ -5289,6 +5706,9 @@
             .forum-topic-card,
             .forum-thread-post,
             .forum-thread-post-topline,
+            .forum-card-footer,
+            .forum-topic-footer,
+            .forum-thread-post-rail,
             .forum-thread-replies-head,
             .forum-thread-reply-actions {
                 flex-direction: column;
@@ -5890,20 +6310,56 @@
                             <div class="card-body">
                                 <div class="weekly-stats">
                                     <div class="weekly-stat-item">
-                                        <div class="weekly-stat-value" id="weeklyCompletedItems">0</div>
+                                        <div class="weekly-stat-head">
+                                            <div class="weekly-stat-copy">
+                                                <div class="weekly-stat-kicker">Momentum</div>
+                                                <div class="weekly-stat-value" id="weeklyCompletedItems">0</div>
+                                            </div>
+                                            <div class="weekly-stat-icon">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>
+                                            </div>
+                                        </div>
                                         <div class="weekly-stat-label" data-i18n="dashboard.weeklyCompleted">本週完成項目</div>
+                                        <div class="weekly-stat-note">聚焦你這週完成的學習任務與進度推進。</div>
                                     </div>
                                     <div class="weekly-stat-item">
-                                        <div class="weekly-stat-value tone-terracotta" id="weeklyStudyMinutes">0</div>
+                                        <div class="weekly-stat-head">
+                                            <div class="weekly-stat-copy">
+                                                <div class="weekly-stat-kicker">Focus Time</div>
+                                                <div class="weekly-stat-value tone-terracotta" id="weeklyStudyMinutes">0</div>
+                                            </div>
+                                            <div class="weekly-stat-icon tone-terracotta">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
+                                            </div>
+                                        </div>
                                         <div class="weekly-stat-label" data-i18n="dashboard.studyMinutes">學習分鐘數</div>
+                                        <div class="weekly-stat-note">反映本週投入的有效學習時間與節奏穩定度。</div>
                                     </div>
                                     <div class="weekly-stat-item">
-                                        <div class="weekly-stat-value tone-blue" id="weeklyLoginDays">0</div>
+                                        <div class="weekly-stat-head">
+                                            <div class="weekly-stat-copy">
+                                                <div class="weekly-stat-kicker">Consistency</div>
+                                                <div class="weekly-stat-value tone-blue" id="weeklyLoginDays">0</div>
+                                            </div>
+                                            <div class="weekly-stat-icon tone-blue">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20"/><path d="M2 12h20"/><path d="m4.93 4.93 14.14 14.14"/><path d="m19.07 4.93-14.14 14.14"/></svg>
+                                            </div>
+                                        </div>
                                         <div class="weekly-stat-label" data-i18n="dashboard.loginStreak">連續登入天數</div>
+                                        <div class="weekly-stat-note">持續進站學習，讓知識吸收與練習不中斷。</div>
                                     </div>
                                     <div class="weekly-stat-item">
-                                        <div class="weekly-stat-value tone-success" id="weeklyQuizScore">-</div>
+                                        <div class="weekly-stat-head">
+                                            <div class="weekly-stat-copy">
+                                                <div class="weekly-stat-kicker">Mastery</div>
+                                                <div class="weekly-stat-value tone-success" id="weeklyQuizScore">-</div>
+                                            </div>
+                                            <div class="weekly-stat-icon tone-success">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m7 14 3-3 3 2 4-5"/></svg>
+                                            </div>
+                                        </div>
                                         <div class="weekly-stat-label" data-i18n="dashboard.avgQuizScore">平均測驗分數</div>
+                                        <div class="weekly-stat-note">用作答成果快速掌握這週的理解程度與表現。</div>
                                     </div>
                                 </div>
                             </div>
@@ -6480,9 +6936,18 @@
                             <h2 id="settingsProfileName" class="settings-hero-name">林建橋者</h2>
                             <p id="settingsProfileEmail" class="settings-hero-email">teacher.lin@school.edu.tw</p>
                             <div class="settings-hero-meta">
-                                <span id="settingsHeroTier"><strong data-i18n="settings.memberLevel">會員等級:</strong> <span data-i18n="settings.memberPro">專業版</span></span>
-                                <span id="settingsHeroJoinDate"><strong data-i18n="settings.joinDate">加入日期:</strong> 2024/01/15</span>
-                                <span id="settingsHeroLicense"><strong data-i18n="settings.licenseQuota">授權額度:</strong> 50/100</span>
+                                <span id="settingsHeroTier" class="settings-hero-meta-card">
+                                    <span class="settings-hero-meta-label" data-i18n="settings.memberLevel">會員等級</span>
+                                    <strong class="settings-hero-meta-value" data-i18n="settings.memberPro">專業版</strong>
+                                </span>
+                                <span id="settingsHeroJoinDate" class="settings-hero-meta-card">
+                                    <span class="settings-hero-meta-label" data-i18n="settings.joinDate">加入日期</span>
+                                    <strong class="settings-hero-meta-value">2024/01/15</strong>
+                                </span>
+                                <span id="settingsHeroLicense" class="settings-hero-meta-card">
+                                    <span class="settings-hero-meta-label" data-i18n="settings.licenseQuota">授權額度</span>
+                                    <strong class="settings-hero-meta-value">50/100</strong>
+                                </span>
                             </div>
                         </div>
                         <button class="btn-primary settings-avatar-btn" onclick="openAvatarPicker()" data-i18n="settings.changeAvatar">變更頭像</button>
@@ -6491,84 +6956,132 @@
                 </div>
                 <div class="settings-grid">
                     <div class="card settings-panel">
-                        <div class="card-header"><h2 class="card-title" data-i18n="settings.profileTitle">建橋者資料</h2></div>
-                        <div class="card-body">
-                            <div class="form-group">
-                                <label data-i18n="settings.name">姓名</label>
-                                <input type="text" class="form-input" id="settingsName" value="">
+                        <div class="card-header settings-panel-head">
+                            <div>
+                                <div class="settings-panel-kicker">Profile</div>
+                                <h2 class="card-title" data-i18n="settings.profileTitle">建橋者資料</h2>
+                                <p class="settings-panel-desc">更新你的基本資訊，讓橋隊、課程與平台資料保持一致。</p>
                             </div>
-                            <div class="form-group">
-                                <label data-i18n="settings.email">電子郵件</label>
-                                <input type="email" class="form-input" id="settingsEmail" value="" disabled>
+                        </div>
+                        <div class="card-body settings-panel-body">
+                            <div class="settings-field-grid">
+                                <div class="settings-field-card">
+                                    <span class="settings-field-kicker" data-i18n="settings.name">姓名</span>
+                                    <input type="text" class="form-input" id="settingsName" value="">
+                                </div>
+                                <div class="settings-field-card is-muted">
+                                    <span class="settings-field-kicker" data-i18n="settings.email">電子郵件</span>
+                                    <input type="email" class="form-input" id="settingsEmail" value="" disabled>
+                                    <small class="settings-field-note">此欄位與登入帳號綁定，若需調整請聯絡平台管理員。</small>
+                                </div>
                             </div>
-                            <div class="form-group">
-                                <label data-i18n="settings.organization">學校/機構</label>
+                            <div class="settings-field-card">
+                                <span class="settings-field-kicker" data-i18n="settings.organization">學校/機構</span>
                                 <input type="text" class="form-input" id="settingsOrganization" value="">
                             </div>
-                            <div class="form-group">
-                                <label data-i18n="settings.role">角色</label>
+                            <div class="settings-field-card is-muted">
+                                <span class="settings-field-kicker" data-i18n="settings.role">角色</span>
                                 <select class="form-input" id="settingsRole" disabled>
                                     <option value="educator" data-i18n="settings.roleEducator">建橋者</option>
                                     <option value="trainer" data-i18n="settings.roleTrainer">橋樑工匠</option>
                                     <option value="creator" data-i18n="settings.roleCreator">知識建築師</option>
                                     <option value="student" data-i18n="settings.roleStudent">探橋者</option>
                                 </select>
+                                <small class="settings-field-note">角色會影響你可見的課程、橋隊與管理工具。</small>
                             </div>
-                            <button class="btn-primary settings-card-action" data-i18n="settings.saveChanges" onclick="saveProfile()">儲存變更</button>
+                            <div class="settings-action-row">
+                                <div class="settings-action-note">更新後會同步套用到橋隊、課程與通知資料。</div>
+                                <button class="btn-primary settings-card-action" data-i18n="settings.saveChanges" onclick="saveProfile()">儲存變更</button>
+                            </div>
                         </div>
                     </div>
                     <div class="card settings-panel">
-                        <div class="card-header"><h2 class="card-title" data-i18n="settings.notificationsTitle">通知設定</h2></div>
-                        <div class="card-body">
-                            <div class="toggle-group">
-                                <label><span data-i18n="settings.notifyNewMaterial">新建材上架通知</span><input type="checkbox" id="notifyNewMaterial" checked><span class="toggle"></span></label>
+                        <div class="card-header settings-panel-head">
+                            <div>
+                                <div class="settings-panel-kicker">Notifications</div>
+                                <h2 class="card-title" data-i18n="settings.notificationsTitle">通知設定</h2>
+                                <p class="settings-panel-desc">決定哪些提醒會出現在平台內與電子郵件中。</p>
                             </div>
-                            <div class="toggle-group">
-                                <label><span data-i18n="settings.notifyProgress">課程進度提醒</span><input type="checkbox" id="notifyProgress" checked><span class="toggle"></span></label>
+                        </div>
+                        <div class="card-body settings-panel-body">
+                            <div class="settings-toggle-list">
+                                <div class="toggle-group">
+                                    <label><span class="settings-toggle-copy"><strong data-i18n="settings.notifyNewMaterial">新建材上架通知</strong><small>最新教材、資源更新與推薦主題。</small></span><input type="checkbox" id="notifyNewMaterial" checked><span class="toggle"></span></label>
+                                </div>
+                                <div class="toggle-group">
+                                    <label><span class="settings-toggle-copy"><strong data-i18n="settings.notifyProgress">課程進度提醒</strong><small>課程截止、作業與學習進度提醒。</small></span><input type="checkbox" id="notifyProgress" checked><span class="toggle"></span></label>
+                                </div>
+                                <div class="toggle-group">
+                                    <label><span class="settings-toggle-copy"><strong data-i18n="settings.notifyExpiry">授權到期提醒</strong><small>授權到期、續約與使用配額提醒。</small></span><input type="checkbox" id="notifyExpiry" checked><span class="toggle"></span></label>
+                                </div>
+                                <div class="toggle-group">
+                                    <label><span class="settings-toggle-copy"><strong data-i18n="settings.notifyEmail">電子郵件通知</strong><small>同步寄送重要通知到電子郵件信箱。</small></span><input type="checkbox" id="notifyEmail"><span class="toggle"></span></label>
+                                </div>
                             </div>
-                            <div class="toggle-group">
-                                <label><span data-i18n="settings.notifyExpiry">授權到期提醒</span><input type="checkbox" id="notifyExpiry" checked><span class="toggle"></span></label>
+                            <div class="settings-action-row">
+                                <div class="settings-action-note">重要訊息會優先保留在平台內通知中心。</div>
+                                <button class="btn-primary settings-card-action" data-i18n="settings.saveNotifications" onclick="saveNotificationSettings()">儲存通知設定</button>
                             </div>
-                            <div class="toggle-group">
-                                <label><span data-i18n="settings.notifyEmail">電子郵件通知</span><input type="checkbox" id="notifyEmail"><span class="toggle"></span></label>
-                            </div>
-                            <button class="btn-primary settings-card-action" data-i18n="settings.saveNotifications" onclick="saveNotificationSettings()">儲存通知設定</button>
                         </div>
                     </div>
                     <div class="card settings-panel">
-                        <div class="card-header"><h2 class="card-title" data-i18n="settings.securityTitle">安全設定</h2></div>
-                        <div class="card-body">
-                            <div class="form-group">
-                                <label data-i18n="settings.currentPassword">目前密碼</label>
-                                <input type="password" class="form-input" id="currentPassword" data-i18n-placeholder="settings.currentPasswordPlaceholder" placeholder="輸入目前密碼">
+                        <div class="card-header settings-panel-head">
+                            <div>
+                                <div class="settings-panel-kicker">Security</div>
+                                <h2 class="card-title" data-i18n="settings.securityTitle">安全設定</h2>
+                                <p class="settings-panel-desc">定期更新密碼，維持你的帳號與學習資料安全。</p>
                             </div>
-                            <div class="form-group">
-                                <label data-i18n="settings.newPassword">新密碼</label>
-                                <input type="password" class="form-input" id="newPassword" data-i18n-placeholder="settings.newPasswordPlaceholder" placeholder="輸入新密碼">
+                        </div>
+                        <div class="card-body settings-panel-body">
+                            <div class="settings-password-grid">
+                                <div class="settings-field-card settings-password-card">
+                                    <span class="settings-field-kicker" data-i18n="settings.currentPassword">目前密碼</span>
+                                    <input type="password" class="form-input" id="currentPassword" data-i18n-placeholder="settings.currentPasswordPlaceholder" placeholder="輸入目前密碼">
+                                    <small class="settings-field-note">先確認目前使用中的登入密碼，才能更新為新的組合。</small>
+                                </div>
+                                <div class="settings-field-card settings-password-card">
+                                    <span class="settings-field-kicker" data-i18n="settings.newPassword">新密碼</span>
+                                    <input type="password" class="form-input" id="newPassword" data-i18n-placeholder="settings.newPasswordPlaceholder" placeholder="輸入新密碼">
+                                    <small class="settings-field-note">建議至少 8 碼，並混合英文大小寫、數字或符號。</small>
+                                </div>
+                                <div class="settings-field-card settings-password-card">
+                                    <span class="settings-field-kicker" data-i18n="settings.confirmPassword">確認新密碼</span>
+                                    <input type="password" class="form-input" id="confirmPassword" data-i18n-placeholder="settings.confirmPasswordPlaceholder" placeholder="再次輸入新密碼">
+                                    <small class="settings-field-note">再次輸入相同密碼，避免更新後無法登入。</small>
+                                </div>
                             </div>
-                            <div class="form-group">
-                                <label data-i18n="settings.confirmPassword">確認新密碼</label>
-                                <input type="password" class="form-input" id="confirmPassword" data-i18n-placeholder="settings.confirmPasswordPlaceholder" placeholder="再次輸入新密碼">
+                            <div class="settings-password-hint">更新密碼後，建議重新確認你的裝置與瀏覽器是否仍維持安全登入狀態。</div>
+                            <div class="settings-action-row">
+                                <div class="settings-action-note">密碼更新後會立即套用到目前帳號的所有登入階段。</div>
+                                <button class="btn-primary settings-card-action" data-i18n="settings.updatePassword" onclick="changePassword()">更新密碼</button>
                             </div>
-                            <button class="btn-primary settings-card-action" data-i18n="settings.updatePassword" onclick="changePassword()">更新密碼</button>
                         </div>
                     </div>
                     <div class="card settings-panel">
-                        <div class="card-header"><h2 class="card-title" data-i18n="settings.displayTitle">顯示偏好</h2></div>
-                        <div class="card-body">
-                            <div class="toggle-group">
-                                <label><span data-i18n="settings.darkMode">深色模式</span><input type="checkbox"><span class="toggle"></span></label>
+                        <div class="card-header settings-panel-head">
+                            <div>
+                                <div class="settings-panel-kicker">Preferences</div>
+                                <h2 class="card-title" data-i18n="settings.displayTitle">顯示偏好</h2>
+                                <p class="settings-panel-desc">依照你的學習節奏調整平台視覺與介面偏好。</p>
                             </div>
-                            <div class="toggle-group">
-                                <label><span data-i18n="settings.compactUI">精簡介面</span><input type="checkbox"><span class="toggle"></span></label>
+                        </div>
+                        <div class="card-body settings-panel-body">
+                            <div class="settings-toggle-list settings-preference-list">
+                                <div class="toggle-group">
+                                    <label><span class="settings-toggle-copy"><strong data-i18n="settings.darkMode">深色模式</strong><small>切換較低亮度的畫面風格。</small></span><input type="checkbox"><span class="toggle"></span></label>
+                                </div>
+                                <div class="toggle-group">
+                                    <label><span class="settings-toggle-copy"><strong data-i18n="settings.compactUI">精簡介面</strong><small>在儀表板與列表中顯示更緊湊的排版。</small></span><input type="checkbox"><span class="toggle"></span></label>
+                                </div>
                             </div>
-                            <div class="form-group settings-language-group">
-                                <label data-i18n="settings.language">語言</label>
+                            <div class="settings-field-card settings-language-card">
+                                <span class="settings-field-kicker" data-i18n="settings.language">語言</span>
                                 <select class="form-input">
                                     <option data-i18n="settings.langZhTW">繁體中文</option>
                                     <option data-i18n="settings.langEn">English</option>
                                     <option data-i18n="settings.langJa">日本語</option>
                                 </select>
+                                <small class="settings-field-note">切換語言後，系統通知與大部分介面會同步更新。</small>
                             </div>
                         </div>
                     </div>
@@ -6827,31 +7340,47 @@
     <!-- Notification Panel -->
     <div id="notificationPanel" class="notification-panel">
         <div class="notification-header">
-            <h3>通知</h3>
-            <button onclick="toggleNotifications()">&times;</button>
+            <div class="notification-header-copy">
+                <span class="notification-header-kicker">Inbox</span>
+                <h3>通知中心</h3>
+                <div class="notification-header-meta">掌握最新教材、授權與回覆更新</div>
+            </div>
+            <div class="notification-header-actions">
+                <button type="button" class="notification-header-action" onclick="markAllNotificationsReadFromPanel()">全部已讀</button>
+                <button onclick="toggleNotifications()">&times;</button>
+            </div>
         </div>
         <div class="notification-list">
             <div class="notification-item unread">
                 <div class="notification-icon new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg></div>
                 <div class="notification-content">
-                    <p>新建材上架：<strong>AI 輔助築橋設計</strong></p>
-                    <span>10 分鐘前</span>
+                    <div class="notification-chip">教材</div>
+                    <div class="title">新建材上架</div>
+                    <div class="message">AI 輔助築橋設計已可加入授權與學習清單。</div>
+                    <div class="time">10 分鐘前</div>
                 </div>
             </div>
             <div class="notification-item unread">
                 <div class="notification-icon complete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg></div>
                 <div class="notification-content">
-                    <p>您的授權申請已通過</p>
-                    <span>1 小時前</span>
+                    <div class="notification-chip">授權</div>
+                    <div class="title">授權申請已通過</div>
+                    <div class="message">你已可開始使用申請中的教材與相關學習資源。</div>
+                    <div class="time">1 小時前</div>
                 </div>
             </div>
             <div class="notification-item">
                 <div class="notification-icon update"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>
                 <div class="notification-content">
-                    <p>Benjamin 回覆了您的問題</p>
-                    <span>昨天</span>
+                    <div class="notification-chip">回覆</div>
+                    <div class="title">問題已獲回覆</div>
+                    <div class="message">Benjamin 已在諮詢對話中補充新的建議內容。</div>
+                    <div class="time">昨天</div>
                 </div>
             </div>
+        </div>
+        <div class="notification-panel-footer">
+            <button type="button" class="notification-panel-link" onclick="openAllNotificationsFromPanel()">查看全部通知</button>
         </div>
     </div>
 
@@ -7630,8 +8159,11 @@
         }
 
         .quiz-result-hero {
-            text-align: center;
-            padding: 0.6rem 0 0.2rem;
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr);
+            gap: 1.25rem;
+            align-items: center;
+            padding: 0.35rem 0 0.25rem;
         }
 
         .quiz-result-score-ring {
@@ -7667,6 +8199,19 @@
             margin-bottom: 0.45rem;
         }
 
+        .quiz-result-kicker {
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--gray-500);
+            margin-bottom: 0.28rem;
+        }
+
+        .quiz-result-hero-copy {
+            text-align: left;
+        }
+
         .quiz-result-title.is-passed {
             color: var(--success);
         }
@@ -7678,6 +8223,24 @@
         .quiz-result-copy {
             color: var(--gray-500);
             line-height: 1.7;
+        }
+
+        .quiz-result-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.7rem;
+        }
+
+        .quiz-result-tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.34rem 0.68rem;
+            border-radius: 999px;
+            background: rgba(26, 58, 92, 0.05);
+            color: var(--olive);
+            font-size: 0.76rem;
+            font-weight: 700;
         }
 
         .quiz-result-metrics {
@@ -7692,6 +8255,15 @@
             background: rgba(255, 255, 255, 0.78);
             border: 1px solid rgba(212, 197, 169, 0.34);
             text-align: center;
+        }
+
+        .quiz-result-metric-kicker {
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--gray-500);
+            margin-bottom: 0.4rem;
         }
 
         .quiz-result-metric-value {
@@ -7710,6 +8282,20 @@
             display: flex;
             flex-direction: column;
             gap: 0.75rem;
+        }
+
+        .quiz-result-details-head {
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+        }
+
+        .quiz-result-details-kicker {
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--gray-500);
         }
 
         .quiz-result-details-title {
@@ -7783,6 +8369,19 @@
             .quiz-result-metrics {
                 grid-template-columns: 1fr;
             }
+
+            .quiz-result-hero {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+
+            .quiz-result-hero-copy {
+                text-align: center;
+            }
+
+            .quiz-result-tags {
+                justify-content: center;
+            }
         }
 
         .dialog-message {
@@ -7827,39 +8426,215 @@
         .notification-panel {
             display: none;
             position: fixed;
-            top: 70px;
-            right: 2rem;
-            width: 360px;
-            background: var(--white);
-            border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+            top: 74px;
+            right: 1.75rem;
+            width: min(420px, calc(100vw - 2rem));
+            background: linear-gradient(180deg, rgba(255,255,255,0.97), rgba(248,245,239,0.97));
+            border: 1px solid rgba(26, 58, 92, 0.08);
+            border-radius: 24px;
+            box-shadow: 0 26px 60px rgba(15, 23, 42, 0.18);
             z-index: 150;
+            overflow: hidden;
         }
         .notification-panel.active { display: block; }
+        .notification-panel::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto 0;
+            height: 4px;
+            background: linear-gradient(90deg, rgba(45, 43, 107, 0.72), rgba(87, 109, 72, 0.48));
+        }
         .notification-header {
-            padding: 1rem 1.5rem;
-            border-bottom: 1px solid var(--gray-200);
+            padding: 1.15rem 1.25rem 0.9rem;
+            border-bottom: 1px solid rgba(26, 58, 92, 0.08);
             display: flex;
             justify-content: space-between;
-            align-items: center;
-        }
-        .notification-header h3 { font-size: 1rem; }
-        .notification-header button { background: none; border: none; font-size: 1.25rem; cursor: pointer; }
-        .notification-list { max-height: 400px; overflow-y: auto; }
-        .notification-item {
-            display: flex;
+            align-items: flex-start;
             gap: 1rem;
-            padding: 1rem 1.5rem;
-            border-bottom: 1px solid var(--gray-100);
-            cursor: pointer;
-            transition: background 0.2s;
         }
-        .notification-item:hover { background: var(--gray-50); }
-        .notification-item.unread { background: rgba(45, 43, 107, 0.05); }
-        .notification-item .notification-icon { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-        .notification-item .notification-icon svg { width: 16px; height: 16px; }
-        .notification-item .notification-content p { font-size: 0.9rem; margin-bottom: 0.25rem; }
-        .notification-item .notification-content span { font-size: 0.75rem; color: var(--gray-500); }
+        .notification-header h3 { font-size: 1.02rem; color: var(--text-primary); }
+        .notification-header-copy { display: flex; flex-direction: column; gap: 0.2rem; }
+        .notification-header-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .notification-header-kicker {
+            font-size: 0.72rem;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            font-weight: 700;
+        }
+        .notification-header-meta {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+        .notification-header button {
+            width: 2.25rem;
+            height: 2.25rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            border-radius: 999px;
+            background: rgba(26, 58, 92, 0.05);
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+        .notification-header button:hover {
+            background: rgba(26, 58, 92, 0.1);
+            color: var(--text-primary);
+        }
+        .notification-header-action {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.38rem 0.72rem;
+            width: auto !important;
+            height: auto !important;
+            border-radius: 999px;
+            border: 1px solid rgba(26, 58, 92, 0.08);
+            background: rgba(255,255,255,0.8);
+            color: var(--olive);
+            font-size: 0.74rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .notification-list {
+            max-height: 440px;
+            overflow-y: auto;
+            padding: 0.85rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.7rem;
+        }
+        .notification-panel .notification-item {
+            position: relative;
+            display: flex;
+            gap: 0.9rem;
+            padding: 0.95rem;
+            border: 1px solid rgba(26, 58, 92, 0.08);
+            border-radius: 18px;
+            background: rgba(255,255,255,0.92);
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+        .notification-panel .notification-item:hover {
+            transform: translateY(-2px);
+            border-color: rgba(212, 165, 116, 0.28);
+            box-shadow: 0 14px 24px rgba(15, 23, 42, 0.08);
+            background: rgba(255,255,255,0.98);
+        }
+        .notification-panel .notification-item.unread {
+            background: linear-gradient(180deg, rgba(245, 247, 255, 0.96), rgba(255, 255, 255, 0.96));
+        }
+        .notification-panel .notification-item.unread::before {
+            content: "";
+            position: absolute;
+            inset: 0 auto 0 0;
+            width: 4px;
+            border-radius: 999px;
+            background: linear-gradient(180deg, var(--olive), var(--terracotta));
+        }
+        .notification-panel .notification-icon {
+            width: 2.65rem;
+            height: 2.65rem;
+            border-radius: 0.95rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            background: rgba(45, 43, 107, 0.1);
+            color: var(--olive);
+        }
+        .notification-panel .notification-icon svg { width: 1.05rem; height: 1.05rem; }
+        .notification-panel .notification-icon.new {
+            background: rgba(43, 108, 176, 0.14);
+            color: var(--blue);
+        }
+        .notification-panel .notification-icon.complete {
+            background: rgba(74, 124, 89, 0.14);
+            color: var(--success);
+        }
+        .notification-panel .notification-icon.update {
+            background: rgba(212, 165, 116, 0.18);
+            color: var(--olive-deep);
+        }
+        .notification-panel .notification-icon.assignment {
+            background: rgba(192, 101, 77, 0.14);
+            color: var(--terracotta);
+        }
+        .notification-panel .notification-icon.quiz {
+            background: rgba(99, 102, 241, 0.14);
+            color: #6366f1;
+        }
+        .notification-panel .notification-icon.forum {
+            background: rgba(212, 165, 116, 0.18);
+            color: var(--olive-deep);
+        }
+        .notification-panel .notification-icon.grade {
+            background: rgba(74, 124, 89, 0.14);
+            color: var(--success);
+        }
+        .notification-panel .notification-icon.course {
+            background: rgba(45, 43, 107, 0.12);
+            color: var(--olive);
+        }
+        .notification-panel .notification-content { min-width: 0; flex: 1; }
+        .notification-panel .notification-content .title {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.2rem;
+        }
+        .notification-panel .notification-chip {
+            display: inline-flex;
+            align-items: center;
+            margin-bottom: 0.35rem;
+            padding: 0.24rem 0.56rem;
+            border-radius: 999px;
+            background: rgba(45, 43, 107, 0.08);
+            color: var(--olive);
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+        .notification-panel .notification-content .message {
+            font-size: 0.86rem;
+            line-height: 1.55;
+            color: var(--text-secondary);
+        }
+        .notification-panel .notification-content .time {
+            display: inline-flex;
+            margin-top: 0.45rem;
+            padding: 0.22rem 0.58rem;
+            border-radius: 999px;
+            background: rgba(26, 58, 92, 0.05);
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+        .notification-panel-footer {
+            padding: 0.9rem 1rem 1rem;
+            border-top: 1px solid rgba(26, 58, 92, 0.08);
+            display: flex;
+            justify-content: space-between;
+            gap: 0.75rem;
+        }
+        .notification-panel-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            padding: 0.55rem 0.9rem;
+            border-radius: 999px;
+            background: rgba(45, 43, 107, 0.08);
+            color: var(--olive);
+            font-size: 0.76rem;
+            font-weight: 700;
+            flex: 1;
+            cursor: pointer;
+        }
 
         /* Course Modal */
         .course-modal { max-width: 900px; }
@@ -8610,13 +9385,35 @@
 
         .settings-hero-meta {
             display: flex;
-            gap: 1.5rem;
+            gap: 0.9rem;
             flex-wrap: wrap;
-            font-size: 0.85rem;
         }
 
-        .settings-hero-meta strong {
-            color: rgba(255,255,255,0.88);
+        .settings-hero-meta-card {
+            display: flex;
+            flex-direction: column;
+            gap: 0.28rem;
+            min-width: 148px;
+            padding: 0.82rem 0.95rem;
+            border-radius: 18px;
+            border: 1px solid rgba(255,255,255,0.14);
+            background: rgba(255,255,255,0.1);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+            backdrop-filter: blur(12px);
+        }
+
+        .settings-hero-meta-label {
+            font-size: 0.71rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.62);
+        }
+
+        .settings-hero-meta-value {
+            color: rgba(255,255,255,0.94);
+            font-size: 1rem;
+            font-weight: 700;
         }
 
         .settings-avatar-btn {
@@ -8635,17 +9432,158 @@
             gap: 1.5rem;
         }
 
+        .settings-panel {
+            border: 1px solid rgba(26, 58, 92, 0.08);
+            box-shadow: 0 18px 32px rgba(15, 23, 42, 0.06);
+        }
+
+        .settings-panel-head {
+            align-items: flex-start;
+        }
+
+        .settings-panel-kicker {
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--gray-500);
+            margin-bottom: 0.2rem;
+        }
+
+        .settings-panel-desc {
+            margin: 0.32rem 0 0;
+            color: var(--text-secondary);
+            line-height: 1.55;
+            font-size: 0.88rem;
+        }
+
         .settings-panel .card-body {
             display: flex;
             flex-direction: column;
+            gap: 1rem;
+        }
+
+        .settings-panel-body {
+            gap: 1rem;
+        }
+
+        .settings-field-grid,
+        .settings-password-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 1rem;
+        }
+
+        .settings-password-grid .settings-field-card:first-child {
+            grid-column: 1 / -1;
+        }
+
+        .settings-password-card {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .settings-password-card::before {
+            content: "";
+            position: absolute;
+            inset: 0 auto 0 0;
+            width: 4px;
+            border-radius: 4px;
+            background: linear-gradient(180deg, rgba(74, 93, 35, 0.72), rgba(45, 43, 107, 0.72));
+        }
+
+        .settings-password-hint {
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.7rem 0.8rem;
+            border-radius: 14px;
+            background: rgba(26, 58, 92, 0.05);
+            color: var(--gray-500);
+            font-size: 0.8rem;
+            line-height: 1.55;
+        }
+
+        .settings-field-card {
+            padding: 1rem;
+            border-radius: 18px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248,245,239,0.92));
+            border: 1px solid rgba(212, 197, 169, 0.28);
+            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.04);
+            display: flex;
+            flex-direction: column;
+            gap: 0.55rem;
+        }
+
+        .settings-field-card.is-muted {
+            background: linear-gradient(180deg, rgba(248,245,239,0.95), rgba(244,240,233,0.92));
+        }
+
+        .settings-field-kicker {
+            display: inline-flex;
+            margin-bottom: 0.65rem;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--gray-500);
+        }
+
+        .settings-field-note {
+            font-size: 0.79rem;
+            line-height: 1.55;
+            color: var(--gray-500);
+        }
+
+        .settings-toggle-list {
+            display: flex;
+            flex-direction: column;
+            border-radius: 18px;
+            border: 1px solid rgba(212, 197, 169, 0.28);
+            background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248,245,239,0.9));
+            overflow: hidden;
+        }
+
+        .settings-toggle-copy {
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+            min-width: 0;
+        }
+
+        .settings-toggle-copy strong {
+            font-size: 0.95rem;
+            color: var(--charcoal);
+        }
+
+        .settings-toggle-copy small {
+            font-size: 0.8rem;
+            line-height: 1.5;
+            color: var(--text-secondary);
         }
 
         .settings-card-action {
             align-self: flex-start;
         }
 
-        .settings-language-group {
-            margin-top: 1rem;
+        .settings-action-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+            padding-top: 0.25rem;
+        }
+
+        .settings-action-note {
+            max-width: 420px;
+            font-size: 0.8rem;
+            line-height: 1.55;
+            color: var(--gray-500);
+        }
+
+        .settings-language-card {
+            margin-top: 0.15rem;
         }
 
         .form-group { margin-bottom: 1.5rem; }
@@ -8659,11 +9597,12 @@
             transition: all 0.2s;
         }
         .form-input:focus { outline: none; border-color: var(--olive); box-shadow: 0 0 0 3px rgba(45, 43, 107, 0.1); }
-        .toggle-group { padding: 1rem 0; border-bottom: 1px solid var(--gray-100); }
+        .toggle-group { padding: 1rem; border-bottom: 1px solid var(--gray-100); background: rgba(255,255,255,0.42); }
         .toggle-group label {
             display: flex;
             align-items: center;
             justify-content: space-between;
+            gap: 1rem;
             cursor: pointer;
         }
         .toggle-group input { display: none; }
@@ -8799,11 +9738,21 @@
                 align-items: flex-start;
             }
             .settings-hero-meta {
-                flex-direction: column;
-                gap: 0.5rem;
+                width: 100%;
+            }
+            .settings-hero-meta-card {
+                width: 100%;
             }
             .settings-avatar-btn {
                 width: 100%;
+            }
+            .settings-field-grid,
+            .settings-password-grid {
+                grid-template-columns: 1fr;
+            }
+            .settings-action-row {
+                flex-direction: column;
+                align-items: stretch;
             }
         }
 
@@ -10947,20 +11896,78 @@
                     const list = panel.querySelector('.notification-list');
                     if (list && result.success) {
                         const notifications = result.data || [];
+                        const getNotificationIcon = (type) => {
+                            const icons = {
+                                assignment: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/>',
+                                quiz: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+                                forum: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+                                grade: '<line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>',
+                                course: '<polygon points="12,2 2,7 12,12 22,7"/><polyline points="2,17 12,22 22,17"/>'
+                            };
+                            return icons[type] || icons.course;
+                        };
+                        const getNotificationTypeLabel = (type) => {
+                            const labels = {
+                                assignment: I18n.getLocale() === 'en' ? 'Assignment' : '作業',
+                                quiz: I18n.getLocale() === 'en' ? 'Quiz' : '測驗',
+                                forum: I18n.getLocale() === 'en' ? 'Forum' : '討論區',
+                                grade: I18n.getLocale() === 'en' ? 'Grade' : '成績',
+                                course: I18n.getLocale() === 'en' ? 'Course' : '課程'
+                            };
+                            return labels[type] || (I18n.getLocale() === 'en' ? 'Update' : '更新');
+                        };
                         if (notifications.length === 0) {
                             list.innerHTML = `<div class="notification-empty"><p class="notification-empty-copy">${escapeHtml(I18n.getLocale() === 'en' ? 'No notifications' : '沒有通知')}</p></div>`;
                         } else {
                             list.innerHTML = notifications.slice(0, 10).map(n => `
-                                <div class="notification-item ${n.read ? '' : 'unread'}" onclick="API.notifications.markAsRead('${n.notificationId || n.id}'); this.classList.remove('unread');">
+                                <div class="notification-item ${n.readAt || n.read ? '' : 'unread'}" onclick="openNotificationFromPanel('${n.notificationId || n.id}')">
+                                    <div class="notification-icon ${(n.type || 'course')}">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${getNotificationIcon(n.type)}</svg>
+                                    </div>
                                     <div class="notification-content">
-                                        <p>${n.message || n.title || ''}</p>
-                                        <span>${n.createdAt ? new Date(n.createdAt).toLocaleString('zh-TW') : ''}</span>
+                                        <div class="notification-chip">${escapeHtml(getNotificationTypeLabel(n.type))}</div>
+                                        <div class="title">${escapeHtml(n.title || (I18n.getLocale() === 'en' ? 'Notification update' : '通知更新'))}</div>
+                                        <div class="message">${escapeHtml(n.message || '')}</div>
+                                        <div class="time">${n.createdAt ? new Date(n.createdAt).toLocaleString(I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW') : ''}</div>
                                     </div>
                                 </div>
                             `).join('');
                         }
                     }
                 } catch (e) { /* silent */ }
+            }
+        }
+
+        async function openNotificationFromPanel(notificationId) {
+            document.getElementById('notificationPanel')?.classList.remove('active');
+            if (typeof MoodleUI !== 'undefined' && typeof MoodleUI.openNotification === 'function') {
+                await MoodleUI.openNotification(notificationId);
+                return;
+            }
+            if (typeof API !== 'undefined' && API.notifications?.markAsRead) {
+                try { await API.notifications.markAsRead(notificationId); } catch (e) {}
+            }
+        }
+
+        async function markAllNotificationsReadFromPanel() {
+            if (typeof MoodleUI !== 'undefined' && typeof MoodleUI.markAllNotificationsRead === 'function') {
+                await MoodleUI.markAllNotificationsRead();
+                document.getElementById('notificationPanel')?.classList.remove('active');
+                return;
+            }
+            if (typeof API !== 'undefined' && API.notifications?.markAllAsRead) {
+                try {
+                    await API.notifications.markAllAsRead();
+                    document.getElementById('notificationPanel')?.classList.remove('active');
+                } catch (e) {}
+            }
+        }
+
+        function openAllNotificationsFromPanel() {
+            document.getElementById('notificationPanel')?.classList.remove('active');
+            showView('moodleNotifications');
+            if (typeof MoodleUI !== 'undefined' && typeof MoodleUI.loadNotifications === 'function') {
+                MoodleUI.loadNotifications();
             }
         }
 
@@ -13066,31 +14073,43 @@
                     <div class="bridge-class-grid">
                         ${classes.map(cls => `
                             <div onclick="openStudentClassDetail('${cls.classId}')" class="bridge-student-class-card">
-                                <div class="bridge-student-class-main">
-                                    <div class="bridge-student-class-icon">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
-                                            <circle cx="9" cy="7" r="4"/>
-                                            <path d="M23 21v-2a4 4 0 00-3-3.87"/>
-                                            <path d="M16 3.13a4 4 0 010 7.75"/>
-                                        </svg>
+                                <div class="bridge-student-class-accent ${getClassColor(cls.subject)}">
+                                    <div class="bridge-student-class-cover-top">
+                                        <span class="bridge-student-class-subject">${escapeHtml(cls.subject || '一般課程')}</span>
+                                        <span class="bridge-student-class-joined-pill">已加入</span>
                                     </div>
-                                    <div class="bridge-student-class-content">
-                                        <h3 class="bridge-student-class-title">${cls.name}</h3>
-                                        <p class="bridge-student-class-subject">${cls.subject || '一般課程'}</p>
-                                        <p class="bridge-student-class-teacher">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                                            ${cls.teacherName || '建橋者'}
-                                        </p>
+                                    <div class="bridge-student-class-cover-copy">
+                                        <p class="bridge-student-class-kicker">Learning team</p>
+                                        <h3 class="bridge-student-class-title">${escapeHtml(cls.name || '未命名橋隊')}</h3>
+                                        <p class="bridge-student-class-cover-note">${escapeHtml(cls.teacherName || '建橋者')} · ${cls.joinedAt ? escapeHtml(formatBridgeDate(cls.joinedAt)) : '尚未記錄加入時間'}</p>
                                     </div>
                                 </div>
-                                <div class="bridge-student-class-footer">
-                                    <span class="bridge-student-class-joined">
-                                        加入時間：${cls.joinedAt ? new Date(cls.joinedAt).toLocaleDateString('zh-TW') : '-'}
-                                    </span>
-                                    <span class="bridge-student-class-link">
-                                        查看詳情 →
-                                    </span>
+                                <div class="bridge-student-class-body">
+                                    <p class="bridge-student-class-desc">${escapeHtml(cls.description || `${cls.name || '這個橋隊'}正在等你開始探索與完成學習任務。`)}</p>
+                                    <div class="bridge-student-class-meta">
+                                        <div class="bridge-student-class-stats">
+                                            <span class="bridge-student-class-stat">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                                                    <circle cx="9" cy="7" r="4"/>
+                                                    <path d="M23 21v-2a4 4 0 00-3-3.87"/>
+                                                    <path d="M16 3.13a4 4 0 010 7.75"/>
+                                                </svg>
+                                                ${(Number(cls.memberCount) || (Array.isArray(cls.members) ? cls.members.length : 0) || 0)} 位探索者
+                                            </span>
+                                            <span class="bridge-student-class-stat">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                                                    <polyline points="14,2 14,8 20,8"/>
+                                                </svg>
+                                                ${(Array.isArray(cls.assignments) ? cls.assignments.length : 0)} 項任務
+                                            </span>
+                                        </div>
+                                        <div class="bridge-class-meta-right">
+                                            <span class="bridge-student-class-teacher">${escapeHtml(cls.teacherName || '建橋者')}</span>
+                                            <span class="bridge-student-class-link">查看詳情 →</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         `).join('')}
