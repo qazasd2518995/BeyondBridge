@@ -63,6 +63,7 @@ async function inspectCourse(course) {
   const courseId = course.courseId;
   const expectedOwnerIds = getExpectedOwnerIds(course);
   const indexedRows = await db.queryByIndex('GSI1', `COURSE#${courseId}`, 'GSI1PK', {
+    skName: 'GSI1SK',
     skPrefix: 'OWNER#',
     projection: ['PK', 'SK', 'entityType', 'userId', 'GSI1SK']
   });
