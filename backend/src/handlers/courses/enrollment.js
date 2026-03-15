@@ -7,6 +7,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../../utils/db');
 const { authMiddleware } = require('../../utils/auth');
+const { invalidateGradebookSnapshots } = require('../../utils/gradebook-snapshots');
 
 function canManageCourse(course, user) {
   if (!course || !user) return false;
@@ -122,6 +123,8 @@ router.post('/:id/enroll', authMiddleware, async (req, res) => {
       courseTitle: course.title
     });
 
+    await invalidateGradebookSnapshots(id);
+
     res.status(201).json({
       success: true,
       message: '報名成功',
@@ -171,6 +174,8 @@ router.delete('/:id/enroll', authMiddleware, async (req, res) => {
         enrollmentCount: Math.max(0, (course.enrollmentCount || 1) - 1)
       });
     }
+
+    await invalidateGradebookSnapshots(id);
 
     res.json({
       success: true,

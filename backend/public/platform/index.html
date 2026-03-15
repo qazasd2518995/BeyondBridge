@@ -12329,6 +12329,8 @@
 
         let currentVideo = null;
         let videoProgressInterval = null;
+        let youtubeIframeApiPromise = null;
+        let youtubePlayer = null;
 
         function clampProgressValue(value) {
             if (window.PlatformUIRuntime?.clampProgressValue) {
@@ -12399,9 +12401,66 @@
             updateVideoCardProgress(videoId, normalizedProgress);
         }
 
+        function loadYouTubeIframeApi() {
+            if (window.YT?.Player) {
+                return Promise.resolve(window.YT);
+            }
+            if (youtubeIframeApiPromise) {
+                return youtubeIframeApiPromise;
+            }
+
+            youtubeIframeApiPromise = new Promise((resolve, reject) => {
+                const existingScript = document.querySelector('script[data-youtube-iframe-api="1"]');
+                const previousReady = window.onYouTubeIframeAPIReady;
+
+                window.onYouTubeIframeAPIReady = function() {
+                    if (typeof previousReady === 'function') {
+                        previousReady();
+                    }
+                    resolve(window.YT);
+                };
+
+                if (existingScript) {
+                    return;
+                }
+
+                const script = document.createElement('script');
+                script.src = 'https://www.youtube.com/iframe_api';
+                script.async = true;
+                script.dataset.youtubeIframeApi = '1';
+                script.onerror = () => reject(new Error('Failed to load YouTube iframe API'));
+                document.head.appendChild(script);
+            });
+
+            return youtubeIframeApiPromise;
+        }
+
+        function syncYouTubeProgress(videoId) {
+            if (!youtubePlayer || typeof youtubePlayer.getDuration !== 'function' || typeof youtubePlayer.getCurrentTime !== 'function') {
+                return;
+            }
+            const duration = Number(youtubePlayer.getDuration());
+            const currentTime = Number(youtubePlayer.getCurrentTime());
+            if (!Number.isFinite(duration) || duration <= 0 || !Number.isFinite(currentTime) || currentTime < 0) {
+                return;
+            }
+            const progress = Math.round((currentTime / duration) * 100);
+            applyVideoProgress(videoId, progress);
+        }
+
         function bindVideoPlaybackTracking(videoId) {
             const videoElement = document.getElementById('videoElement');
             if (!videoElement) return;
+            const initialProgress = getStoredVideoProgress(videoId, currentVideo?.progress ?? 0);
+
+            const seekToStoredProgress = () => {
+                if (!Number.isFinite(videoElement.duration) || videoElement.duration <= 0) return;
+                if (initialProgress <= 0 || initialProgress >= 95) return;
+                const targetTime = (initialProgress / 100) * videoElement.duration;
+                if (Number.isFinite(targetTime) && Math.abs(videoElement.currentTime - targetTime) > 1) {
+                    videoElement.currentTime = targetTime;
+                }
+            };
 
             const syncProgress = () => {
                 if (!Number.isFinite(videoElement.duration) || videoElement.duration <= 0) return;
@@ -12409,8 +12468,53 @@
                 applyVideoProgress(videoId, progress);
             };
 
+            if (videoElement.readyState >= 1) {
+                seekToStoredProgress();
+            } else {
+                videoElement.addEventListener('loadedmetadata', seekToStoredProgress, { once: true });
+            }
             videoElement.addEventListener('timeupdate', syncProgress);
             videoElement.addEventListener('ended', () => applyVideoProgress(videoId, 100));
+        }
+
+        async function bindYouTubePlaybackTracking(videoId) {
+            try {
+                await loadYouTubeIframeApi();
+                const iframeElement = document.getElementById('videoFrame');
+                if (!iframeElement || !window.YT?.Player) return;
+
+                const initialProgress = getStoredVideoProgress(videoId, currentVideo?.progress ?? 0);
+
+                youtubePlayer = new window.YT.Player('videoFrame', {
+                    events: {
+                        onReady: (event) => {
+                            const duration = Number(event.target.getDuration?.());
+                            if (Number.isFinite(duration) && duration > 0 && initialProgress > 0 && initialProgress < 95) {
+                                event.target.seekTo((initialProgress / 100) * duration, true);
+                            }
+                            syncYouTubeProgress(videoId);
+                        },
+                        onStateChange: (event) => {
+                            if (!window.YT?.PlayerState) return;
+                            if (event.data === window.YT.PlayerState.PLAYING) {
+                                startProgressTracking(() => syncYouTubeProgress(videoId), 1500);
+                            } else if (
+                                event.data === window.YT.PlayerState.PAUSED ||
+                                event.data === window.YT.PlayerState.BUFFERING ||
+                                event.data === window.YT.PlayerState.CUED
+                            ) {
+                                syncYouTubeProgress(videoId);
+                                stopProgressTracking();
+                            } else if (event.data === window.YT.PlayerState.ENDED) {
+                                stopProgressTracking();
+                                applyVideoProgress(videoId, 100);
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Bind YouTube progress error:', error);
+            }
         }
 
         Object.keys(videoData).forEach((videoId) => {
@@ -12453,7 +12557,7 @@
                     <iframe
                         id="videoFrame"
                         class="video-player-embed"
-                        src="https://www.youtube.com/embed/${video.youtubeId}?autoplay=1&enablejsapi=1&start=${Math.floor(video.progress * 27.3)}"
+                        src="https://www.youtube.com/embed/${video.youtubeId}?autoplay=1&enablejsapi=1&rel=0&modestbranding=1"
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                         allowfullscreen>
                     </iframe>
@@ -12567,7 +12671,11 @@
             document.body.appendChild(modal);
             document.body.style.overflow = 'hidden';
             setProgressElementValue(document.getElementById('videoProgressBar'), video.progress);
-            bindVideoPlaybackTracking(videoId);
+            if (video.youtubeId) {
+                bindYouTubePlaybackTracking(videoId);
+            } else {
+                bindVideoPlaybackTracking(videoId);
+            }
 
             // 鍵盤快捷鍵
             modal.addEventListener('keydown', handleVideoKeyboard);
@@ -12577,6 +12685,7 @@
 
         function closeVideoPlayer() {
             stopProgressTracking();
+            destroyYouTubePlayer();
             const modal = document.getElementById('videoPlayerModal');
             if (modal) {
                 modal.remove();
@@ -12585,11 +12694,10 @@
             currentVideo = null;
         }
 
-        function startProgressTracking() {
-            if (videoProgressInterval) {
-                clearInterval(videoProgressInterval);
-                videoProgressInterval = null;
-            }
+        function startProgressTracking(syncProgress, intervalMs = 1500) {
+            stopProgressTracking();
+            if (typeof syncProgress !== 'function') return;
+            videoProgressInterval = window.setInterval(syncProgress, intervalMs);
         }
 
         function stopProgressTracking() {
@@ -12597,6 +12705,17 @@
                 clearInterval(videoProgressInterval);
                 videoProgressInterval = null;
             }
+        }
+
+        function destroyYouTubePlayer() {
+            if (youtubePlayer && typeof youtubePlayer.destroy === 'function') {
+                try {
+                    youtubePlayer.destroy();
+                } catch (error) {
+                    // ignore iframe teardown failures
+                }
+            }
+            youtubePlayer = null;
         }
 
         function markVideoComplete(videoId) {

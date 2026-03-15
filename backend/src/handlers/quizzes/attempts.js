@@ -8,6 +8,7 @@ const router = express.Router();
 const db = require('../../utils/db');
 const { authMiddleware } = require('../../utils/auth');
 const { canManageCourse } = require('../../utils/course-access');
+const { invalidateGradebookSnapshots } = require('../../utils/gradebook-snapshots');
 const {
   getQuiz,
   prepareQuestionsForStudent,
@@ -363,6 +364,8 @@ router.post('/:id/attempts/:attemptId/submit', authMiddleware, async (req, res) 
         });
       }
     }
+
+    await invalidateGradebookSnapshots(quiz.courseId);
 
     // 準備回傳結果
     let result = {

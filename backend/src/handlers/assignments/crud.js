@@ -12,6 +12,7 @@ const router = express.Router();
 const db = require('../../utils/db');
 const { authMiddleware } = require('../../utils/auth');
 const { canManageCourse } = require('../../utils/course-access');
+const { invalidateGradebookSnapshots } = require('../../utils/gradebook-snapshots');
 const { syncCourseActivityLink, deleteCourseActivityLink } = require('../../utils/course-activities');
 
 // ==================== 作業列表與詳情 ====================
@@ -456,6 +457,8 @@ router.post('/', authMiddleware, async (req, res) => {
       await db.putItem(activityItem);
     }
 
+    await invalidateGradebookSnapshots(courseId);
+
     delete assignmentItem.PK;
     delete assignmentItem.SK;
 
@@ -527,6 +530,8 @@ router.put('/:id', authMiddleware, async (req, res) => {
       dueDate: updatedAssignment.dueDate || assignment.dueDate
     });
 
+    await invalidateGradebookSnapshots(assignment.courseId);
+
     delete updatedAssignment.PK;
     delete updatedAssignment.SK;
 
@@ -583,6 +588,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     // 刪除作業
     await db.deleteItem(`ASSIGNMENT#${id}`, 'META');
     await deleteCourseActivityLink(assignment.courseId, id);
+    await invalidateGradebookSnapshots(assignment.courseId);
 
     res.json({
       success: true,

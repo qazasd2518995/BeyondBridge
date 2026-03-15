@@ -15,6 +15,11 @@ const router = express.Router();
 const db = require('../utils/db');
 const { authMiddleware } = require('../utils/auth');
 const { v4: uuidv4 } = require('uuid');
+const {
+  getGradebookSnapshot,
+  putGradebookSnapshot,
+  invalidateGradebookSnapshots
+} = require('../utils/gradebook-snapshots');
 
 // ==================== 預設成績等第量表 ====================
 
@@ -321,6 +326,282 @@ async function getEnrollmentUserMap(enrollments = []) {
   return new Map(users.filter(user => user?.userId).map(user => [user.userId, user]));
 }
 
+function buildGradeColumns(assignments = [], quizzes = [], manualItems = []) {
+  return [
+    ...assignments.map(a => ({
+      id: a.assignmentId,
+      itemId: a.assignmentId,
+      type: 'assignment',
+      title: a.title,
+      maxGrade: a.maxGrade,
+      maxScore: a.maxGrade,
+      weight: a.weight,
+      dueDate: a.dueDate
+    })),
+    ...quizzes.map(q => ({
+      id: q.quizId,
+      itemId: q.quizId,
+      type: 'quiz',
+      title: q.title,
+      maxGrade: q.totalPoints,
+      maxScore: q.totalPoints,
+      weight: q.weight,
+      dueDate: q.closeDate
+    })),
+    ...manualItems.map(normalizeManualItem)
+  ];
+}
+
+function applyStudentFiltersAndSorting(students = [], { search, sortBy = 'name', sortOrder = 'asc' } = {}) {
+  let result = Array.isArray(students) ? [...students] : [];
+
+  if (search) {
+    const searchLower = String(search).toLowerCase();
+    result = result.filter(student =>
+      student.name?.toLowerCase().includes(searchLower) ||
+      student.email?.toLowerCase().includes(searchLower)
+    );
+  }
+
+  result.sort((a, b) => {
+    let aVal;
+    let bVal;
+
+    if (sortBy === 'name') {
+      aVal = a.name || '';
+      bVal = b.name || '';
+    } else if (sortBy === 'grade') {
+      aVal = a.summary?.overallPercentage || 0;
+      bVal = b.summary?.overallPercentage || 0;
+    } else if (sortBy === 'progress') {
+      aVal = a.summary?.gradedCount || 0;
+      bVal = b.summary?.gradedCount || 0;
+    } else {
+      aVal = a?.[sortBy] || '';
+      bVal = b?.[sortBy] || '';
+    }
+
+    if (sortOrder === 'asc') {
+      return aVal > bVal ? 1 : -1;
+    }
+    return aVal < bVal ? 1 : -1;
+  });
+
+  return result;
+}
+
+function buildCourseStats(students = []) {
+  const studentsWithGrades = students.filter(s => s.summary?.overallPercentage !== null && s.summary?.overallPercentage !== undefined);
+  return {
+    totalStudents: students.length,
+    studentsWithGrades: studentsWithGrades.length,
+    averageGrade: studentsWithGrades.length > 0
+      ? Math.round((studentsWithGrades.reduce((sum, s) => sum + s.summary.overallPercentage, 0) / studentsWithGrades.length) * 100) / 100
+      : null,
+    passingCount: studentsWithGrades.filter(s => s.summary?.passing).length,
+    passingRate: studentsWithGrades.length > 0
+      ? Math.round((studentsWithGrades.filter(s => s.summary?.passing).length / studentsWithGrades.length) * 100)
+      : null
+  };
+}
+
+function shouldForceLiveGradebook(req) {
+  const raw = String(req.query.fresh ?? req.query.forceLive ?? '').trim().toLowerCase();
+  return ['1', 'true', 'yes', 'live'].includes(raw);
+}
+
+async function buildTeacherCourseGradebookSnapshot(courseId, course) {
+  const enrollments = await db.queryByIndex(
+    'GSI1',
+    `COURSE#${courseId}`,
+    'GSI1PK',
+    { skPrefix: 'ENROLLED#', skName: 'GSI1SK' }
+  );
+
+  const {
+    assignments,
+    quizzes,
+    manualItems,
+    submissionsByAssignment,
+    attemptsByQuiz,
+    manualRecordsByItem
+  } = await buildCourseGradebookDataset(courseId);
+
+  const gradeColumns = buildGradeColumns(assignments, quizzes, manualItems);
+  const enrollmentUserMap = await getEnrollmentUserMap(enrollments);
+
+  const students = await Promise.all(
+    enrollments.map(async (e) => {
+      const user = enrollmentUserMap.get(e.userId);
+      const grades = {};
+      let totalEarned = 0;
+      let totalPossible = 0;
+      let gradedCount = 0;
+
+      for (const a of assignments) {
+        const submission = submissionsByAssignment.get(a.assignmentId)?.get(e.userId) || null;
+        grades[a.assignmentId] = {
+          grade: submission?.grade ?? null,
+          submitted: !!submission,
+          gradedAt: submission?.gradedAt
+        };
+
+        if (submission?.grade !== undefined && submission?.grade !== null) {
+          totalEarned += submission.grade;
+          totalPossible += a.maxGrade;
+          gradedCount++;
+        }
+      }
+
+      for (const q of quizzes) {
+        const attempts = attemptsByQuiz.get(q.quizId)?.get(e.userId) || [];
+        const quizSummary = getQuizGradeSummary(q, attempts);
+        const bestScore = quizSummary.bestScore;
+
+        grades[q.quizId] = {
+          grade: bestScore,
+          submitted: quizSummary.attemptCount > 0,
+          attemptCount: quizSummary.attemptCount
+        };
+
+        if (bestScore !== null) {
+          totalEarned += bestScore;
+          totalPossible += q.totalPoints;
+          gradedCount++;
+        }
+      }
+
+      for (const item of manualItems) {
+        const record = manualRecordsByItem.get(item.itemId)?.get(e.userId) || null;
+        grades[item.itemId] = {
+          grade: record?.grade ?? null,
+          submitted: record?.grade !== undefined && record?.grade !== null,
+          gradedAt: record?.gradedAt || null,
+          feedback: record?.feedback || ''
+        };
+
+        if (record?.grade !== undefined && record?.grade !== null) {
+          totalEarned += record.grade;
+          totalPossible += item.maxGrade;
+          gradedCount++;
+        }
+      }
+
+      const overallPercentage = totalPossible > 0
+        ? Math.round((totalEarned / totalPossible) * 10000) / 100
+        : null;
+
+      return {
+        userId: e.userId,
+        name: user?.displayName || '未知用戶',
+        email: user?.email,
+        enrolledAt: e.enrolledAt,
+        lastAccess: e.lastAccessedAt,
+        grades,
+        summary: {
+          totalEarned,
+          totalPossible,
+          gradedCount,
+          totalItems: gradeColumns.length,
+          overallPercentage,
+          passing: overallPercentage >= (course.settings?.gradeToPass || 60)
+        }
+      };
+    })
+  );
+
+  return {
+    course: {
+      courseId,
+      title: course.title,
+      passingGrade: course.settings?.gradeToPass || 60
+    },
+    columns: gradeColumns,
+    students,
+    stats: buildCourseStats(students),
+    timestamp: new Date().toISOString()
+  };
+}
+
+async function getTeacherCourseGradebookData(req, courseId, course) {
+  const forceLive = shouldForceLiveGradebook(req);
+  if (!forceLive) {
+    const snapshot = await getGradebookSnapshot(courseId);
+    if (snapshot?.data) {
+      const students = applyStudentFiltersAndSorting(snapshot.data.students, req.query);
+      return {
+        data: {
+          ...snapshot.data,
+          students,
+          stats: buildCourseStats(students)
+        },
+        fromSnapshot: true,
+        snapshotTimestamp: snapshot.rebuiltAt || null
+      };
+    }
+  }
+
+  const snapshotData = await buildTeacherCourseGradebookSnapshot(courseId, course);
+  const snapshotItem = await putGradebookSnapshot(courseId, snapshotData);
+
+  return {
+    data: {
+      ...snapshotData,
+      students: applyStudentFiltersAndSorting(snapshotData.students, req.query),
+      stats: buildCourseStats(applyStudentFiltersAndSorting(snapshotData.students, req.query))
+    },
+    fromSnapshot: false,
+    snapshotTimestamp: snapshotItem.rebuiltAt || null
+  };
+}
+
+function buildGradebookExportRows({
+  course,
+  columns = [],
+  students = [],
+  includeLetterGrade = true,
+  gradeScale = 'letter_5'
+}) {
+  return students.map((student) => {
+    const row = {
+      '學號': student.userId,
+      '姓名': student.name || '未知用戶',
+      'Email': student.email || ''
+    };
+
+    for (const column of columns) {
+      const gradeValue = student.grades?.[column.itemId]?.grade;
+      const label = column.type === 'assignment'
+        ? `作業: ${column.title}`
+        : column.type === 'quiz'
+          ? `測驗: ${column.title}`
+          : `${column.title}`;
+      row[label] = gradeValue ?? '';
+    }
+
+    const totalEarned = student.summary?.totalEarned ?? 0;
+    const totalPossible = student.summary?.totalPossible ?? 0;
+    const overallPercentage = student.summary?.overallPercentage ?? null;
+    const passingGrade = course.settings?.gradeToPass || 60;
+
+    row['總得分'] = totalEarned;
+    row['滿分'] = totalPossible;
+    row['百分比'] = overallPercentage !== null ? `${overallPercentage}%` : '';
+
+    if (includeLetterGrade && overallPercentage !== null) {
+      const letterGrade = percentToLetter(overallPercentage, gradeScale);
+      row['等第'] = letterGrade?.letter || '';
+      row['GPA'] = letterGrade?.gpa ?? '';
+    }
+
+    row['及格'] = overallPercentage !== null
+      ? (overallPercentage >= passingGrade ? '是' : '否')
+      : '';
+
+    return row;
+  });
+}
+
 // ==================== 成績類別管理 ====================
 
 /**
@@ -431,6 +712,7 @@ router.post('/courses/:courseId/categories', authMiddleware, async (req, res) =>
     };
 
     await db.putItem(category);
+    await invalidateGradebookSnapshots(courseId);
 
     res.status(201).json({
       success: true,
@@ -487,6 +769,7 @@ router.put('/courses/:courseId/categories/:categoryId', authMiddleware, async (r
     };
 
     await db.updateItem(`COURSE#${courseId}`, `GRADECAT#${categoryId}`, updates);
+    await invalidateGradebookSnapshots(courseId);
 
     res.json({
       success: true,
@@ -523,6 +806,7 @@ router.delete('/courses/:courseId/categories/:categoryId', authMiddleware, async
     }
 
     await db.deleteItem(`COURSE#${courseId}`, `GRADECAT#${categoryId}`);
+    await invalidateGradebookSnapshots(courseId);
 
     res.json({
       success: true,
@@ -671,6 +955,7 @@ router.post('/courses/:courseId/items', authMiddleware, async (req, res) => {
     };
 
     await db.putItem(item);
+    await invalidateGradebookSnapshots(courseId);
 
     res.status(201).json({
       success: true,
@@ -748,6 +1033,7 @@ router.put('/courses/:courseId/items/:itemId', authMiddleware, async (req, res) 
 
     await db.updateItem(`COURSE#${courseId}`, `GRADEITEM#${itemId}`, updates);
     const updated = await db.getItem(`COURSE#${courseId}`, `GRADEITEM#${itemId}`);
+    await invalidateGradebookSnapshots(courseId);
 
     res.json({
       success: true,
@@ -794,6 +1080,7 @@ router.delete('/courses/:courseId/items/:itemId', authMiddleware, async (req, re
       db.deleteItem(`COURSE#${courseId}`, `GRADEITEM#${itemId}`),
       ...grades.map(grade => db.deleteItem(`GRADEITEM#${itemId}`, grade.SK))
     ]);
+    await invalidateGradebookSnapshots(courseId);
 
     res.json({
       success: true,
@@ -869,6 +1156,7 @@ router.put('/courses/:courseId/items/:itemId/grades', authMiddleware, async (req
       await db.putItem(gradeRecord);
       results.push({ studentId: g.studentId, success: true });
     }
+    await invalidateGradebookSnapshots(courseId);
 
     res.json({
       success: true,
@@ -1068,8 +1356,6 @@ router.get('/my', authMiddleware, async (req, res) => {
 router.get('/courses/:courseId', authMiddleware, async (req, res) => {
   try {
     const { courseId } = req.params;
-    const userId = req.user.userId;
-    const { search, sortBy = 'name', sortOrder = 'asc' } = req.query;
 
     // 取得課程
     const course = await db.getItem(`COURSE#${courseId}`, 'META');
@@ -1089,194 +1375,14 @@ router.get('/courses/:courseId', authMiddleware, async (req, res) => {
         message: '沒有權限查看此課程成績'
       });
     }
-
-    // 取得所有已報名的學生
-    const enrollments = await db.queryByIndex(
-      'GSI1',
-      `COURSE#${courseId}`,
-      'GSI1PK',
-      { skPrefix: 'ENROLLED#', skName: 'GSI1SK' }
-    );
-
-    const {
-      assignments,
-      quizzes,
-      manualItems,
-      submissionsByAssignment,
-      attemptsByQuiz,
-      manualRecordsByItem
-    } = await buildCourseGradebookDataset(courseId);
-
-    // 建立評分項目列表
-    const gradeColumns = [
-      ...assignments.map(a => ({
-        id: a.assignmentId,
-        itemId: a.assignmentId,
-        type: 'assignment',
-        title: a.title,
-        maxGrade: a.maxGrade,
-        maxScore: a.maxGrade,
-        weight: a.weight,
-        dueDate: a.dueDate
-      })),
-      ...quizzes.map(q => ({
-        id: q.quizId,
-        itemId: q.quizId,
-        type: 'quiz',
-        title: q.title,
-        maxGrade: q.totalPoints,
-        maxScore: q.totalPoints,
-        weight: q.weight,
-        dueDate: q.closeDate
-      })),
-      ...manualItems.map(normalizeManualItem)
-    ];
-
-    const enrollmentUserMap = await getEnrollmentUserMap(enrollments);
-
-    // 取得每個學生的成績
-    let students = await Promise.all(
-      enrollments.map(async (e) => {
-        const user = enrollmentUserMap.get(e.userId);
-        const grades = {};
-        let totalEarned = 0;
-        let totalPossible = 0;
-        let gradedCount = 0;
-
-        // 取得作業成績
-        for (const a of assignments) {
-          const submission = submissionsByAssignment.get(a.assignmentId)?.get(e.userId) || null;
-
-          grades[a.assignmentId] = {
-            grade: submission?.grade ?? null,
-            submitted: !!submission,
-            gradedAt: submission?.gradedAt
-          };
-
-          if (submission?.grade !== undefined && submission?.grade !== null) {
-            totalEarned += submission.grade;
-            totalPossible += a.maxGrade;
-            gradedCount++;
-          }
-        }
-
-        // 取得測驗成績
-        for (const q of quizzes) {
-          const attempts = attemptsByQuiz.get(q.quizId)?.get(e.userId) || [];
-          const quizSummary = getQuizGradeSummary(q, attempts);
-          const bestScore = quizSummary.bestScore;
-
-          grades[q.quizId] = {
-            grade: bestScore,
-            submitted: quizSummary.attemptCount > 0,
-            attemptCount: quizSummary.attemptCount
-          };
-
-          if (bestScore !== null) {
-            totalEarned += bestScore;
-            totalPossible += q.totalPoints;
-            gradedCount++;
-          }
-        }
-
-        // 取得手動成績
-        for (const item of manualItems) {
-          const record = manualRecordsByItem.get(item.itemId)?.get(e.userId) || null;
-
-          grades[item.itemId] = {
-            grade: record?.grade ?? null,
-            submitted: record?.grade !== undefined && record?.grade !== null,
-            gradedAt: record?.gradedAt || null,
-            feedback: record?.feedback || ''
-          };
-
-          if (record?.grade !== undefined && record?.grade !== null) {
-            totalEarned += record.grade;
-            totalPossible += item.maxGrade;
-            gradedCount++;
-          }
-        }
-
-        const overallPercentage = totalPossible > 0 ?
-          Math.round((totalEarned / totalPossible) * 10000) / 100 : null;
-
-        return {
-          userId: e.userId,
-          name: user?.displayName || '未知用戶',
-          email: user?.email,
-          enrolledAt: e.enrolledAt,
-          lastAccess: e.lastAccessedAt,
-          grades,
-          summary: {
-            totalEarned,
-            totalPossible,
-            gradedCount,
-            totalItems: gradeColumns.length,
-            overallPercentage,
-            passing: overallPercentage >= (course.settings?.gradeToPass || 60)
-          }
-        };
-      })
-    );
-
-    // 搜尋篩選
-    if (search) {
-      const searchLower = search.toLowerCase();
-      students = students.filter(s =>
-        s.name?.toLowerCase().includes(searchLower) ||
-        s.email?.toLowerCase().includes(searchLower)
-      );
-    }
-
-    // 排序
-    students.sort((a, b) => {
-      let aVal, bVal;
-
-      if (sortBy === 'name') {
-        aVal = a.name || '';
-        bVal = b.name || '';
-      } else if (sortBy === 'grade') {
-        aVal = a.summary.overallPercentage || 0;
-        bVal = b.summary.overallPercentage || 0;
-      } else if (sortBy === 'progress') {
-        aVal = a.summary.gradedCount;
-        bVal = b.summary.gradedCount;
-      } else {
-        aVal = a[sortBy] || '';
-        bVal = b[sortBy] || '';
-      }
-
-      if (sortOrder === 'asc') {
-        return aVal > bVal ? 1 : -1;
-      }
-      return aVal < bVal ? 1 : -1;
-    });
-
-    // 計算課程統計
-    const studentsWithGrades = students.filter(s => s.summary.overallPercentage !== null);
-    const courseStats = {
-      totalStudents: students.length,
-      studentsWithGrades: studentsWithGrades.length,
-      averageGrade: studentsWithGrades.length > 0 ?
-        Math.round(studentsWithGrades.reduce((sum, s) =>
-          sum + s.summary.overallPercentage, 0) / studentsWithGrades.length * 100) / 100 : null,
-      passingCount: studentsWithGrades.filter(s => s.summary.passing).length,
-      passingRate: studentsWithGrades.length > 0 ?
-        Math.round((studentsWithGrades.filter(s => s.summary.passing).length /
-          studentsWithGrades.length) * 100) : null
-    };
+    const { data, fromSnapshot, snapshotTimestamp } = await getTeacherCourseGradebookData(req, courseId, course);
 
     res.json({
       success: true,
       data: {
-        course: {
-          courseId,
-          title: course.title,
-          passingGrade: course.settings?.gradeToPass || 60
-        },
-        columns: gradeColumns,
-        students,
-        stats: courseStats
+        ...data,
+        fromSnapshot,
+        snapshotTimestamp
       }
     });
 
@@ -1496,7 +1602,6 @@ router.get('/courses/:courseId/students/:studentId', authMiddleware, async (req,
 router.get('/courses/:courseId/export', authMiddleware, async (req, res) => {
   try {
     const { courseId } = req.params;
-    const userId = req.user.userId;
     const {
       format = 'json',
       includeLetterGrade = 'true',
@@ -1513,98 +1618,14 @@ router.get('/courses/:courseId/export', authMiddleware, async (req, res) => {
       });
     }
 
-    // 取得所有學生和成績
-    const enrollments = await db.queryByIndex(
-      'GSI1',
-      `COURSE#${courseId}`,
-      'GSI1PK',
-      { skPrefix: 'ENROLLED#', skName: 'GSI1SK' }
-    );
-
-    const {
-      assignments,
-      quizzes,
-      manualItems,
-      submissionsByAssignment,
-      attemptsByQuiz,
-      manualRecordsByItem
-    } = await buildCourseGradebookDataset(courseId);
-
-    const enrollmentUserMap = await getEnrollmentUserMap(enrollments);
-
-    const exportData = await Promise.all(
-      enrollments.map(async (e) => {
-        const user = enrollmentUserMap.get(e.userId);
-        const row = {
-          '學號': e.userId,
-          '姓名': user?.displayName || '未知用戶',
-          'Email': user?.email || ''
-        };
-
-        let totalEarned = 0;
-        let totalPossible = 0;
-
-        // 作業成績
-        for (const a of assignments) {
-          const submission = submissionsByAssignment.get(a.assignmentId)?.get(e.userId) || null;
-
-          const grade = submission?.grade ?? '';
-          row[`作業: ${a.title}`] = grade;
-
-          if (submission?.grade !== undefined && submission?.grade !== null) {
-            totalEarned += submission.grade;
-            totalPossible += a.maxGrade;
-          }
-        }
-
-        // 測驗成績
-        for (const q of quizzes) {
-          const quizSummary = getQuizGradeSummary(q, attemptsByQuiz.get(q.quizId)?.get(e.userId) || []);
-          const bestScore = quizSummary.bestScore ?? '';
-
-          row[`測驗: ${q.title}`] = bestScore;
-
-          if (bestScore !== '') {
-            totalEarned += bestScore;
-            totalPossible += q.totalPoints;
-          }
-        }
-
-        // 手動成績項目
-        for (const m of manualItems) {
-          const gradeRecord = manualRecordsByItem.get(m.itemId)?.get(e.userId) || null;
-
-          row[`${m.title}`] = gradeRecord?.grade ?? '';
-
-          if (gradeRecord?.grade !== undefined && gradeRecord?.grade !== null) {
-            totalEarned += gradeRecord.grade;
-            totalPossible += m.maxGrade;
-          }
-        }
-
-        row['總得分'] = totalEarned;
-        row['滿分'] = totalPossible;
-
-        const overallPercentage = totalPossible > 0 ?
-          Math.round((totalEarned / totalPossible) * 10000) / 100 : null;
-
-        row['百分比'] = overallPercentage !== null ? `${overallPercentage}%` : '';
-
-        // 加入等第
-        if (includeLetterGrade === 'true' && overallPercentage !== null) {
-          const letterGrade = percentToLetter(overallPercentage, gradeScale);
-          row['等第'] = letterGrade?.letter || '';
-          row['GPA'] = letterGrade?.gpa ?? '';
-        }
-
-        // 及格狀態
-        const passingGrade = course.settings?.gradeToPass || 60;
-        row['及格'] = overallPercentage !== null ?
-          (overallPercentage >= passingGrade ? '是' : '否') : '';
-
-        return row;
-      })
-    );
+    const { data, fromSnapshot, snapshotTimestamp } = await getTeacherCourseGradebookData(req, courseId, course);
+    const exportData = buildGradebookExportRows({
+      course,
+      columns: data.columns,
+      students: data.students,
+      includeLetterGrade: includeLetterGrade === 'true',
+      gradeScale
+    });
 
     if (format === 'csv') {
       // 轉換為 CSV (含 UTF-8 BOM 以支援 Excel 開啟中文)
@@ -1652,7 +1673,9 @@ router.get('/courses/:courseId/export', authMiddleware, async (req, res) => {
           },
           exportedAt: new Date().toISOString(),
           studentCount: exportData.length,
-          grades: exportData
+          grades: exportData,
+          fromSnapshot,
+          snapshotTimestamp
         }
       });
     }
@@ -1760,6 +1783,7 @@ router.put('/courses/:courseId/settings', authMiddleware, async (req, res) => {
       settings,
       updatedAt: new Date().toISOString()
     });
+    await invalidateGradebookSnapshots(courseId);
 
     res.json({
       success: true,
@@ -1778,3 +1802,4 @@ router.put('/courses/:courseId/settings', authMiddleware, async (req, res) => {
 });
 
 module.exports = router;
+module.exports.buildTeacherCourseGradebookSnapshot = buildTeacherCourseGradebookSnapshot;

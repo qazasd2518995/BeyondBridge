@@ -16,6 +16,7 @@ const router = express.Router();
 const db = require('../../utils/db');
 const { authMiddleware } = require('../../utils/auth');
 const { canManageCourse } = require('../../utils/course-access');
+const { invalidateGradebookSnapshots } = require('../../utils/gradebook-snapshots');
 const archiver = require('archiver');
 
 // ==================== 作業批改（教師） ====================
@@ -296,6 +297,8 @@ router.post('/:id/submissions/:studentId/grade', authMiddleware, async (req, res
         updatedAt: now
       });
     }
+
+    await invalidateGradebookSnapshots(assignment.courseId);
 
     delete updatedSubmission.PK;
     delete updatedSubmission.SK;

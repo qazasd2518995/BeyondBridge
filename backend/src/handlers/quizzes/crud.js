@@ -8,6 +8,7 @@ const router = express.Router();
 const db = require('../../utils/db');
 const { authMiddleware } = require('../../utils/auth');
 const { canManageCourse } = require('../../utils/course-access');
+const { invalidateGradebookSnapshots } = require('../../utils/gradebook-snapshots');
 const { syncCourseActivityLink, deleteCourseActivityLink } = require('../../utils/course-activities');
 
 // ==================== 測驗列表與詳情 ====================
@@ -336,6 +337,8 @@ router.post('/', authMiddleware, async (req, res) => {
       await db.putItem(activityItem);
     }
 
+    await invalidateGradebookSnapshots(courseId);
+
     delete quizItem.PK;
     delete quizItem.SK;
 
@@ -412,6 +415,8 @@ router.put('/:id', authMiddleware, async (req, res) => {
       visible: updatedQuiz.visible !== false
     });
 
+    await invalidateGradebookSnapshots(quiz.courseId);
+
     delete updatedQuiz.PK;
     delete updatedQuiz.SK;
 
@@ -468,6 +473,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     // 刪除測驗
     await db.deleteItem(`QUIZ#${id}`, 'META');
     await deleteCourseActivityLink(quiz.courseId, id);
+    await invalidateGradebookSnapshots(quiz.courseId);
 
     res.json({
       success: true,
@@ -546,6 +552,7 @@ router.post('/:id/questions', authMiddleware, async (req, res) => {
       totalPoints,
       updatedAt: new Date().toISOString()
     });
+    await invalidateGradebookSnapshots(quiz.courseId);
 
     res.status(201).json({
       success: true,
@@ -606,6 +613,7 @@ router.put('/:id/questions/:questionId', authMiddleware, async (req, res) => {
       totalPoints,
       updatedAt: new Date().toISOString()
     });
+    await invalidateGradebookSnapshots(quiz.courseId);
 
     res.json({
       success: true,
@@ -664,6 +672,7 @@ router.delete('/:id/questions/:questionId', authMiddleware, async (req, res) => 
       totalPoints,
       updatedAt: new Date().toISOString()
     });
+    await invalidateGradebookSnapshots(quiz.courseId);
 
     res.json({
       success: true,
