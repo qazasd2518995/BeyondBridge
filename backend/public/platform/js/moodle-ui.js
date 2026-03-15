@@ -5899,6 +5899,249 @@ const MoodleUI = {
   // ==================== 增強版成績簿管理 ====================
 
   currentGradebookCourseId: null,
+  currentTeacherAnalyticsCourseId: null,
+
+  getAnalyticsRiskMeta(level = '') {
+    const normalized = String(level || '').toLowerCase();
+    const isEnglish = I18n.getLocale() === 'en';
+    const metaMap = {
+      high: { label: isEnglish ? 'High risk' : '高風險', toneClass: 'is-danger' },
+      medium: { label: isEnglish ? 'Needs attention' : '需留意', toneClass: 'is-warning' },
+      low: { label: isEnglish ? 'Watch list' : '觀察名單', toneClass: 'is-neutral' }
+    };
+    return metaMap[normalized] || { label: isEnglish ? 'Stable' : '穩定', toneClass: 'is-success' };
+  },
+
+  renderAnalyticsRiskBadge(level = '') {
+    const meta = this.getAnalyticsRiskMeta(level);
+    return `<span class="management-status-badge ${meta.toneClass}">${this.escapeText(meta.label)}</span>`;
+  },
+
+  /**
+   * 開啟教師學習分析頁面
+   */
+  async openTeacherAnalytics(courseId) {
+    if (!courseId) {
+      courseId = this.currentCourseId || this.currentTeacherAnalyticsCourseId;
+      if (!courseId) {
+        const container = document.getElementById('teacherAnalyticsContent');
+        if (!container) return;
+        if (!this.ensureViewVisible('teacherAnalytics')) return;
+        await this.renderCoursePicker(
+          t('nav.analytics'),
+          '<svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19h16"/><path d="M7 16V8"/><path d="M12 16V5"/><path d="M17 16v-3"/></svg>',
+          'MoodleUI.openTeacherAnalytics',
+          'teacherAnalyticsContent'
+        );
+        return;
+      }
+    }
+
+    this.currentTeacherAnalyticsCourseId = courseId;
+    const container = document.getElementById('teacherAnalyticsContent');
+    if (!container) return;
+    if (!this.ensureViewVisible('teacherAnalytics')) return;
+
+    container.innerHTML = `<div class="loading">${t('common.loading')}</div>`;
+
+    try {
+      const [progressResult, atRiskResult] = await Promise.all([
+        API.teachers.getStudentProgress(courseId),
+        API.teachers.getAtRiskStudents(courseId).catch(() => ({ success: false, data: null }))
+      ]);
+
+      if (!progressResult.success) {
+        container.innerHTML = `<div class="error">${this.escapeText(progressResult.message || t('common.loadFailed'))}</div>`;
+        return;
+      }
+
+      container.innerHTML = this.renderTeacherAnalyticsPage(
+        progressResult.data || {},
+        atRiskResult.success ? (atRiskResult.data || {}) : {},
+        courseId
+      );
+      this.applyDynamicUiMetrics(container);
+    } catch (error) {
+      console.error('Open teacher analytics error:', error);
+      container.innerHTML = `<div class="error">${I18n.getLocale() === 'en' ? 'Failed to load learning analytics.' : '學習分析載入失敗。'}</div>`;
+    }
+  },
+
+  renderTeacherAnalyticsPage(progressData = {}, atRiskData = {}, courseId) {
+    const isEnglish = I18n.getLocale() === 'en';
+    const students = Array.isArray(progressData.students) ? progressData.students : [];
+    const atRiskStudents = Array.isArray(atRiskData.students) ? atRiskData.students : [];
+    const courseTitle = progressData.courseTitle || atRiskData.courseTitle || (isEnglish ? 'Course analytics' : '課程學習分析');
+    const avgProgress = Number(progressData.avgProgress || 0);
+    const engagedCount = students.filter(student => Number(student.progress || 0) >= 80).length;
+    const inactiveCount = students.filter(student => Number(student.inactiveDays || 0) >= 7).length;
+    const riskSummary = atRiskData.summary || {};
+    const topAlertCount = (riskSummary.high || 0) + (riskSummary.medium || 0);
+
+    return `
+      <div class="management-detail-page teacher-analytics-page">
+        ${this.renderManagementDetailHeader({
+          backAction: 'MoodleUI.openTeacherAnalytics()',
+          backLabel: isEnglish ? 'Back to course list' : '返回課程列表',
+          kicker: isEnglish ? 'Learning analytics' : '學習分析',
+          title: courseTitle,
+          subtitle: isEnglish
+            ? 'Track learner progress, identify students who need attention, and move directly to the gradebook when you need to act.'
+            : '集中查看整體進度、需要關注的學生，以及可直接採取行動的學習風險訊號。',
+          actions: [
+            {
+              label: isEnglish ? 'Open gradebook' : '開啟成績簿',
+              onclick: `MoodleUI.openGradebookManagement(${this.toInlineActionValue(courseId)})`,
+              className: 'btn-primary btn-sm'
+            }
+          ]
+        })}
+
+        ${this.renderManagementMetricGrid([
+          {
+            value: students.length,
+            label: isEnglish ? 'Learners' : '學員總數',
+            helper: isEnglish ? 'roster size' : '目前課程名單',
+            tone: 'tone-info'
+          },
+          {
+            value: `${Math.round(avgProgress)}%`,
+            label: isEnglish ? 'Average progress' : '平均進度',
+            helper: isEnglish ? 'course-wide completion' : '課程整體完成度',
+            tone: 'tone-warning'
+          },
+          {
+            value: atRiskStudents.length,
+            label: isEnglish ? 'At-risk learners' : '高風險學生',
+            helper: isEnglish ? 'need follow-up' : '建議優先追蹤',
+            tone: atRiskStudents.length > 0 ? 'tone-danger' : 'tone-info'
+          },
+          {
+            value: engagedCount,
+            label: isEnglish ? 'On-track learners' : '進度穩定',
+            helper: isEnglish ? '80%+ progress' : '進度達 80% 以上',
+            tone: 'tone-info'
+          }
+        ])}
+
+        <div class="management-panel-grid teacher-analytics-spotlight-grid">
+          <section class="management-panel teacher-analytics-panel">
+            <h3>${isEnglish ? 'Course snapshot' : '課程快照'}</h3>
+            <div class="management-kv-list">
+              <div class="management-kv-item">
+                <span class="management-kv-label">${isEnglish ? 'Latest average' : '目前平均'}</span>
+                <span class="management-kv-value">${this.escapeText(`${Math.round(avgProgress)}%`)}</span>
+              </div>
+              <div class="management-kv-item">
+                <span class="management-kv-label">${isEnglish ? 'Inactive 7+ days' : '7 天未上線'}</span>
+                <span class="management-kv-value">${this.escapeText(String(inactiveCount))}</span>
+              </div>
+              <div class="management-kv-item">
+                <span class="management-kv-label">${isEnglish ? 'Open alerts' : '待處理警示'}</span>
+                <span class="management-kv-value">${this.escapeText(String(topAlertCount))}</span>
+              </div>
+            </div>
+          </section>
+          <section class="management-panel teacher-analytics-panel">
+            <h3>${isEnglish ? 'Risk breakdown' : '風險分布'}</h3>
+            <div class="teacher-analytics-risk-summary">
+              <span class="management-status-badge is-danger">${this.escapeText(`${riskSummary.high || 0} ${isEnglish ? 'high' : '高風險'}`)}</span>
+              <span class="management-status-badge is-warning">${this.escapeText(`${riskSummary.medium || 0} ${isEnglish ? 'medium' : '需留意'}`)}</span>
+              <span class="management-status-badge is-neutral">${this.escapeText(`${riskSummary.low || 0} ${isEnglish ? 'low' : '觀察名單'}`)}</span>
+            </div>
+            <div class="teacher-analytics-panel-note">${isEnglish ? 'Risk levels combine progress gaps, inactivity, missing assignments, and recent quiz decline.' : '風險判斷綜合了進度落後、長時間未上線、缺交作業與測驗表現下降。'}</div>
+          </section>
+        </div>
+
+        <div class="management-table-shell">
+          <div class="management-table-heading">
+            <h3>${isEnglish ? 'Learner progress' : '學生進度總覽'}</h3>
+            <span class="management-status-badge is-accent">${this.escapeText(`${students.length} ${isEnglish ? 'learners' : '位學員'}`)}</span>
+          </div>
+          ${students.length === 0 ? `
+            <div class="management-empty-preview">${isEnglish ? 'No learner progress is available for this course yet.' : '這門課目前還沒有可顯示的學生進度資料。'}</div>
+          ` : `
+            <table class="management-table">
+              <thead>
+                <tr>
+                  <th>${isEnglish ? 'Learner' : '學員'}</th>
+                  <th>${isEnglish ? 'Progress' : '進度'}</th>
+                  <th>${isEnglish ? 'Risk level' : '風險等級'}</th>
+                  <th>${isEnglish ? 'Missing work' : '缺交作業'}</th>
+                  <th>${isEnglish ? 'Last active' : '最近活動'}</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${students.map((student) => `
+                  <tr>
+                    <td>
+                      <div class="management-inline-stack">
+                        <strong>${this.escapeText(student.studentName || student.studentId || (isEnglish ? 'Learner' : '學員'))}</strong>
+                        <span>${this.escapeText(student.studentEmail || student.studentId || '—')}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="teacher-analytics-progress-cell">
+                        <div class="teacher-analytics-progress-bar">
+                          <div class="teacher-analytics-progress-fill" data-progress-width="${this.clampProgressValue(student.progress || 0)}"></div>
+                        </div>
+                        <span>${this.escapeText(`${Math.round(Number(student.progress || 0))}%`)}</span>
+                      </div>
+                    </td>
+                    <td>${this.renderAnalyticsRiskBadge(student.riskLevel)}</td>
+                    <td>${this.escapeText(String(student.missingAssignments || 0))}</td>
+                    <td>${student.lastAccessedAt ? this.escapeText(this.formatPlatformDate(student.lastAccessedAt, { year: 'numeric', month: 'numeric', day: 'numeric' }) || '—') : this.escapeText(isEnglish ? 'Never' : '尚無紀錄')}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          `}
+        </div>
+
+        <div class="management-table-shell">
+          <div class="management-table-heading">
+            <h3>${isEnglish ? 'Students needing attention' : '需要關注的學生'}</h3>
+            <span class="management-status-badge ${atRiskStudents.length > 0 ? 'is-danger' : 'is-success'}">${this.escapeText(`${atRiskStudents.length} ${isEnglish ? 'students' : '位學生'}`)}</span>
+          </div>
+          ${atRiskStudents.length === 0 ? `
+            <div class="management-empty-preview">${isEnglish ? 'No at-risk learners detected right now.' : '目前沒有偵測到需要立即關注的高風險學生。'}</div>
+          ` : `
+            <table class="management-table">
+              <thead>
+                <tr>
+                  <th>${isEnglish ? 'Learner' : '學員'}</th>
+                  <th>${isEnglish ? 'Risk level' : '風險等級'}</th>
+                  <th>${isEnglish ? 'Alerts' : '警示內容'}</th>
+                  <th>${isEnglish ? 'Progress' : '進度'}</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${atRiskStudents.map((student) => `
+                  <tr>
+                    <td>
+                      <div class="management-inline-stack">
+                        <strong>${this.escapeText(student.studentName || student.studentId || (isEnglish ? 'Learner' : '學員'))}</strong>
+                        <span>${this.escapeText(student.studentEmail || student.studentId || '—')}</span>
+                      </div>
+                    </td>
+                    <td>${this.renderAnalyticsRiskBadge(student.riskLevel)}</td>
+                    <td>
+                      <div class="teacher-analytics-alert-list">
+                        ${(Array.isArray(student.alerts) ? student.alerts : []).map((alert) => `
+                          <span class="teacher-analytics-alert-chip ${alert.severity === 'high' ? 'is-danger' : 'is-warning'}">${this.escapeText(alert.message || alert.type || '—')}</span>
+                        `).join('')}
+                      </div>
+                    </td>
+                    <td>${this.escapeText(`${Math.round(Number(student.progress || 0))}%`)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          `}
+        </div>
+      </div>
+    `;
+  },
 
   /**
    * 開啟完整成績簿管理頁面（教師專用）

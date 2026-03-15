@@ -7344,6 +7344,11 @@
                 <div id="gradebookManagementContent"></div>
             </div>
 
+            <!-- 學習分析視圖（教師專用） -->
+            <div class="dashboard" id="teacherAnalyticsView" hidden>
+                <div id="teacherAnalyticsContent"></div>
+            </div>
+
             <!-- 題庫管理視圖 -->
             <div class="dashboard" id="questionBankView" hidden>
                 <div id="questionBankContent"></div>
@@ -11486,7 +11491,7 @@
                 'rolesManagement', 'courseCategories', 'auditLogs', 'scormManager', 'ltiManager', 'h5pManager'
             ]);
             const teacherOnlyViews = new Set([
-                'teacherDashboard', 'classes', 'gradebookManagement', 'questionBank', 'rubrics', 'groupsManager', 'courseCompletionSettings'
+                'teacherDashboard', 'classes', 'gradebookManagement', 'teacherAnalytics', 'questionBank', 'rubrics', 'groupsManager', 'courseCompletionSettings'
             ]);
             const studentOnlyViews = new Set(['studentClasses']);
 
@@ -11551,6 +11556,7 @@
                 'moodleNotifications': 'moodleNotificationsView',
                 'moodleFiles': 'moodleFilesView',
                 'gradebookManagement': 'gradebookManagementView',
+                'teacherAnalytics': 'teacherAnalyticsView',
                 'questionBank': 'questionBankView',
                 'rolesManagement': 'rolesManagementView',
                 'courseCategories': 'courseCategoriesView',

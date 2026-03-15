@@ -217,7 +217,7 @@ const App = {
           </svg>
           ${t('nav.badges')}
         </a>
-        <a href="#" class="nav-item" data-view="gradebookManagement" onclick="showView('gradebookManagement'); MoodleUI.openGradebookManagement();">
+        <a href="#" class="nav-item" data-view="teacherAnalytics" onclick="showView('teacherAnalytics'); MoodleUI.openTeacherAnalytics();">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="20" x2="18" y2="10"/>
             <line x1="12" y1="20" x2="12" y2="4"/>
