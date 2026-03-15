@@ -8882,6 +8882,7 @@
             align-items: center;
             justify-content: space-between;
             gap: 0.75rem;
+            flex-wrap: wrap;
         }
         .course-card-cover-copy {
             display: flex;
@@ -8917,6 +8918,18 @@
             font-weight: 700;
             color: var(--charcoal);
         }
+        .course-code-pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.34rem 0.72rem;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.14);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            color: rgba(255, 255, 255, 0.92);
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+        }
         .course-play-btn {
             width: 60px;
             height: 60px;
@@ -8939,12 +8952,28 @@
         }
         .course-card-body h3 { font-size: 1rem; margin-bottom: 0.5rem; color: var(--charcoal); }
         .course-card-body p { font-size: 0.85rem; color: var(--gray-500); margin: 0; }
+        .course-card-summary {
+            font-size: 0.88rem !important;
+            line-height: 1.65;
+            color: var(--gray-600) !important;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            min-height: 2.9rem;
+        }
         .course-card-meta-row {
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 0.75rem;
             flex-wrap: wrap;
+        }
+        .course-card-meta-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 0.22rem;
+            min-width: 0;
         }
         .course-instructor {
             display: inline-flex;
@@ -8954,6 +8983,11 @@
             font-size: 0.86rem;
             font-weight: 600;
         }
+        .course-support-meta {
+            font-size: 0.76rem;
+            color: var(--gray-500);
+            font-weight: 600;
+        }
         .course-open-link {
             display: inline-flex;
             align-items: center;
@@ -8961,6 +8995,9 @@
             color: var(--olive-deep);
             font-size: 0.8rem;
             font-weight: 700;
+            padding: 0.42rem 0.78rem;
+            border-radius: 999px;
+            background: rgba(26, 58, 92, 0.06);
         }
         .course-card .course-progress { display: flex; align-items: center; gap: 0.75rem; }
         .course-card .course-progress span { font-size: 0.8rem; font-weight: 600; color: var(--olive); }

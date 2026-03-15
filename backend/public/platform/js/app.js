@@ -2973,10 +2973,19 @@ const App = {
   getLocalizedCategoryLabel(category) {
     const normalized = String(category || '').trim();
     if (!normalized) return t('app.noCategory');
+    const fallbackLabels = {
+      language: I18n.getLocale() === 'en' ? 'Language' : '語言',
+      wellness: I18n.getLocale() === 'en' ? 'Wellness' : '身心成長',
+      culture: I18n.getLocale() === 'en' ? 'Culture' : '文化',
+      stem: 'STEM',
+      arts: I18n.getLocale() === 'en' ? 'Arts' : '藝術',
+      business: I18n.getLocale() === 'en' ? 'Business' : '商業',
+      technology: I18n.getLocale() === 'en' ? 'Technology' : '科技'
+    };
     if (typeof window !== 'undefined' && window.categoryLabels) {
-      return window.categoryLabels[String(normalized).toLowerCase()] || normalized;
+      return window.categoryLabels[String(normalized).toLowerCase()] || fallbackLabels[String(normalized).toLowerCase()] || normalized;
     }
-    return normalized;
+    return fallbackLabels[String(normalized).toLowerCase()] || normalized;
   },
 
   getLicenseStatusMeta(status) {
@@ -3114,21 +3123,32 @@ const App = {
       }
       container.innerHTML = `
         <div class="courses-grid">
-          ${courses.map(c => `
+          ${courses.map(c => {
+            const categoryLabel = this.getLocalizedCategoryLabel(c.category);
+            const codeLabel = c.courseCode || c.courseId || '';
+            const supportCode = c.shortName && c.shortName !== codeLabel ? c.shortName : '';
+            const summary = this.escapeText(this.truncateText(c.description || c.summary || (I18n.getLocale() === 'en' ? 'Continue learning in this course workspace.' : '在這個課程工作區中持續學習與互動。'), 110));
+            const instructor = this.escapeText(c.instructorName || (I18n.getLocale() === 'en' ? 'Course instructor' : '課程教師'));
+            return `
             <div class="course-card" onclick="MoodleUI.openCourse('${c.courseId}')">
               <div class="course-card-cover ${this.getToneClass(c.category || c.courseId || c.title)}">
                 <div class="course-card-cover-top">
-                  <span class="course-category">${this.getLocalizedCategoryLabel(c.category)}</span>
+                  <span class="course-category">${categoryLabel}</span>
+                  ${codeLabel ? `<span class="course-code-pill">${this.escapeText(codeLabel)}</span>` : ''}
                 </div>
                 <div class="course-card-cover-copy">
                   <h3>${c.title}</h3>
-                  <p>${c.shortName || c.courseCode || c.courseId || ''}</p>
+                  <p>${supportCode ? this.escapeText(supportCode) : instructor}</p>
                 </div>
               </div>
               <div class="course-card-body">
+                <p class="course-card-summary">${summary}</p>
                 <div class="course-card-meta-row">
-                  <p class="course-instructor">${c.instructorName || ''}</p>
-                  <span class="course-open-link">進入課程 →</span>
+                  <div class="course-card-meta-stack">
+                    <p class="course-instructor">${instructor}</p>
+                    ${codeLabel ? `<span class="course-support-meta">${this.escapeText(codeLabel)}</span>` : ''}
+                  </div>
+                  <span class="course-open-link">${I18n.getLocale() === 'en' ? 'Open course' : '進入課程'} →</span>
                 </div>
                 ${c.progress !== undefined ? `
                   <div class="progress-bar-container">
@@ -3138,7 +3158,8 @@ const App = {
                 ` : ''}
               </div>
             </div>
-          `).join('')}
+          `;
+          }).join('')}
         </div>
       `;
       this.applyProgressData(container);
