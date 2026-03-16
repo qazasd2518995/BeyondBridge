@@ -5570,6 +5570,7 @@ const MoodleUI = {
   async openDayEvents(year, month, day) {
     const selectedDate = new Date(year, month, day);
     const dateLabel = `${year}/${month + 1}/${day}`;
+    const isEnglish = I18n.getLocale() === 'en';
 
     let monthEvents = Array.isArray(this.currentCalendarEvents) ? this.currentCalendarEvents : [];
     if (monthEvents.length === 0) {
@@ -5597,8 +5598,40 @@ const MoodleUI = {
       return;
     }
 
+    const weekdayLabel = selectedDate.toLocaleDateString(
+      isEnglish ? 'en-US' : 'zh-TW',
+      { weekday: 'long' }
+    );
+    const dayLabel = selectedDate.toLocaleDateString(
+      isEnglish ? 'en-US' : 'zh-TW',
+      isEnglish
+        ? { month: 'short', day: 'numeric' }
+        : { month: 'numeric', day: 'numeric' }
+    );
+    const typeCounts = dayEvents.reduce((acc, event) => {
+      const type = event.type || 'course';
+      acc[type] = (acc[type] || 0) + 1;
+      return acc;
+    }, {});
+    const dominantType = Object.entries(typeCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || '';
+    const summaryLine = isEnglish
+      ? `${dayEvents.length} scheduled item${dayEvents.length > 1 ? 's' : ''}${dominantType ? ` · mostly ${this.getCalendarEventTypeLabel(dominantType).toLowerCase()}` : ''}`
+      : `共 ${dayEvents.length} 項安排${dominantType ? `，以${this.getCalendarEventTypeLabel(dominantType)}為主` : ''}`;
+
     const bodyHtml = `
-      <div class="calendar-day-event-list">
+      <div class="calendar-day-modal-shell">
+        <section class="calendar-day-modal-hero">
+          <div class="calendar-day-modal-date-card">
+            <span class="calendar-day-modal-date-top">${this.escapeText(weekdayLabel)}</span>
+            <strong class="calendar-day-modal-date-value">${this.escapeText(dayLabel)}</strong>
+          </div>
+          <div class="calendar-day-modal-copy">
+            <div class="calendar-day-modal-kicker">${isEnglish ? 'Daily agenda' : '當日排程'}</div>
+            <h4 class="calendar-day-modal-title">${this.escapeText(dateLabel)}</h4>
+            <p class="calendar-day-modal-desc">${this.escapeText(summaryLine)}</p>
+          </div>
+        </section>
+        <div class="calendar-day-event-list">
         ${dayEvents.map(event => {
           const eventDateValue = this.getCalendarEventDate(event);
           const eventDate = eventDateValue ? new Date(eventDateValue) : null;
@@ -5608,11 +5641,14 @@ const MoodleUI = {
           const encodedCourseId = encodeURIComponent(event.courseId || '');
           return `
             <button type="button"
-              class="calendar-day-event-item"
+              class="calendar-day-event-item tone-${this.escapeText(eventType || 'course')}"
               onclick="MoodleUI.handleCalendarEventClick('${encodedType}', '${encodedCourseId}')">
+              <div class="calendar-day-event-badge-row">
+                <span class="calendar-day-event-badge type-${this.escapeText(eventType || 'course')}">${this.getCalendarEventTypeLabel(eventType)}</span>
+                <span class="calendar-day-event-open">${isEnglish ? 'Open' : '查看'}</span>
+              </div>
               <div class="calendar-day-event-main">
                 <div class="calendar-day-event-copy">
-                  <div class="calendar-day-event-type">${this.getCalendarEventTypeLabel(eventType)}</div>
                   <div class="calendar-day-event-title">${this.escapeText(event.title || '未命名事件')}</div>
                   ${event.courseName ? `<div class="calendar-day-event-course">${this.escapeText(event.courseName)}</div>` : ''}
                 </div>
@@ -5623,6 +5659,7 @@ const MoodleUI = {
             </button>
           `;
         }).join('')}
+        </div>
       </div>
     `;
 
@@ -5630,7 +5667,13 @@ const MoodleUI = {
       'calendarDayEventsModal',
       `${dateLabel} ${t('moodleCalendar.eventsOf')}`,
       bodyHtml,
-      { maxWidth: '560px' }
+      {
+        maxWidth: '720px',
+        kicker: isEnglish ? 'Calendar workspace' : '行事曆工作區',
+        description: isEnglish
+          ? 'Review the day agenda and jump directly into the related course activity.'
+          : '檢視當日排程，並直接跳轉到對應的課程活動。'
+      }
     );
   },
 
