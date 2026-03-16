@@ -2579,6 +2579,68 @@
             resize: vertical;
         }
 
+        select.bridge-form-control,
+        select.form-input,
+        select.filter-select,
+        select.moodle-toolbar-field {
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            padding-right: 3.1rem;
+            border-radius: 18px;
+            border-color: rgba(26, 58, 92, 0.14);
+            background-color: rgba(255,255,255,0.98);
+            background-image:
+                linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248, 244, 236, 0.9) 100%),
+                url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M4 6.5L8 10.5L12 6.5' stroke='%231a3a5c' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat, no-repeat;
+            background-position: 0 0, calc(100% - 1rem) 50%;
+            background-size: 100% 100%, 14px 14px;
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.86),
+                0 12px 24px rgba(15, 23, 42, 0.06);
+            cursor: pointer;
+        }
+
+        select.bridge-form-control:hover,
+        select.form-input:hover,
+        select.filter-select:hover,
+        select.moodle-toolbar-field:hover {
+            border-color: rgba(74, 93, 35, 0.3);
+            background-image:
+                linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(247, 243, 235, 0.96) 100%),
+                url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M4 6.5L8 10.5L12 6.5' stroke='%234a5d23' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+        }
+
+        select.bridge-form-control:focus,
+        select.bridge-form-control:focus-visible,
+        select.form-input:focus,
+        select.form-input:focus-visible,
+        select.filter-select:focus,
+        select.filter-select:focus-visible,
+        select.moodle-toolbar-field:focus,
+        select.moodle-toolbar-field:focus-visible {
+            outline: none;
+            border-color: var(--olive);
+            background-image:
+                linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(249, 246, 240, 0.98) 100%),
+                url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M4 6.5L8 10.5L12 6.5' stroke='%234a5d23' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.88),
+                0 0 0 4px rgba(168, 184, 154, 0.14),
+                0 16px 30px rgba(15, 23, 42, 0.08);
+        }
+
+        select.bridge-form-control:disabled,
+        select.form-input:disabled,
+        select.filter-select:disabled,
+        select.moodle-toolbar-field:disabled {
+            cursor: not-allowed;
+            color: var(--gray-400);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.72);
+            opacity: 0.78;
+        }
+
         .bridge-form-grid {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -5362,14 +5424,15 @@
         }
 
         .filter-select {
-            padding: 0.5rem 1rem;
-            border: 1px solid var(--gray-200);
-            border-radius: 6px;
-            background: var(--white);
+            padding: 0.78rem 1rem;
+            border: 1px solid rgba(26, 58, 92, 0.12);
+            border-radius: 16px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248, 244, 236, 0.88) 100%);
             font-size: 0.9rem;
             color: var(--charcoal);
             cursor: pointer;
             min-width: 140px;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
         }
 
         .filter-select:focus {
@@ -9963,7 +10026,7 @@
             font-size: 0.95rem;
             transition: background-color 0.2s, border-color 0.2s, color 0.2s, opacity 0.2s, transform 0.2s, box-shadow 0.2s;
         }
-        .form-input:focus { outline: none; border-color: var(--olive); box-shadow: 0 0 0 3px rgba(45, 43, 107, 0.1); }
+        .form-input:focus:not(select) { outline: none; border-color: var(--olive); box-shadow: 0 0 0 3px rgba(45, 43, 107, 0.1); }
         .toggle-group { padding: 1rem; border-bottom: 1px solid var(--gray-100); background: rgba(255,255,255,0.42); }
         .toggle-group label {
             display: flex;
