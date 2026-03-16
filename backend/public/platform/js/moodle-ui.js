@@ -7686,7 +7686,7 @@ const MoodleUI = {
           <div class="modal-content">
             <div class="modal-header">
               <h3>${t('moodleCompletion.selectCourse')}</h3>
-              <button onclick="MoodleUI.closeModal('courseSelectForCompletionModal')" class="modal-close">&times;</button>
+              <button type="button" onclick="MoodleUI.closeModal('courseSelectForCompletionModal')" class="modal-close">&times;</button>
             </div>
             <div class="modal-body">
               <div class="form-group">
@@ -7695,8 +7695,8 @@ const MoodleUI = {
               </div>
             </div>
             <div class="modal-footer">
-              <button onclick="MoodleUI.closeModal('courseSelectForCompletionModal')" class="btn-secondary">${t('common.cancel')}</button>
-              <button onclick="MoodleUI.closeModal('courseSelectForCompletionModal');MoodleUI.openCourseCompletionSettings(document.getElementById('completionCourseSelect').value)" class="btn-primary">確認</button>
+              <button type="button" onclick="MoodleUI.closeModal('courseSelectForCompletionModal')" class="btn-secondary">${t('common.cancel')}</button>
+              <button type="button" onclick="MoodleUI.confirmCourseCompletionCourseSelection()" class="btn-primary">${t('common.confirm')}</button>
             </div>
           </div>
         `;
@@ -7763,6 +7763,17 @@ const MoodleUI = {
       console.error('Open completion settings error:', error);
       showToast(t('moodleGradeSettings.loadFailed'));
     }
+  },
+
+  confirmCourseCompletionCourseSelection() {
+    const select = document.getElementById('completionCourseSelect');
+    const courseId = select?.value;
+    if (!courseId) {
+      showToast(t('moodleGradebook.noCourses'));
+      return;
+    }
+    this.closeModal('courseSelectForCompletionModal');
+    this.openCourseCompletionSettings(courseId);
   },
 
   /**
