@@ -3028,18 +3028,24 @@
 }
 
 /* ==================== 行事曆樣式 ==================== */
+#moodleCalendarView .calendar-shell,
 #moodleCalendarView .calendar-container {
   background: var(--white);
   border-radius: 12px;
   overflow: hidden;
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--gray-100);
 }
 
+#moodleCalendarView .calendar-toolbar-shell,
 #moodleCalendarView .calendar-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 1.5rem;
   border-bottom: 1px solid var(--gray-100);
+  background: var(--white);
 }
 
 #moodleCalendarView .calendar-nav {
@@ -3058,9 +3064,15 @@
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 0;
+  width: 100%;
+  min-width: 0;
   text-align: initial;
   grid-auto-rows: minmax(122px, auto);
   align-items: stretch;
+}
+
+#moodleCalendarView .calendar-grid > * {
+  min-width: 0;
 }
 
 #moodleCalendarView .calendar-weekday {
@@ -3076,16 +3088,19 @@
 #moodleCalendarView .calendar-day {
   display: block;
   min-height: 100px;
+  min-width: 0;
   width: 100%;
   padding: 0.5rem;
   border: 1px solid var(--gray-100);
   position: relative;
   background: transparent;
   appearance: none;
+  aspect-ratio: auto;
   text-align: left;
   color: inherit;
   font: inherit;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 #moodleCalendarView .calendar-day.other-month {
@@ -3126,6 +3141,7 @@
 #moodleCalendarView .calendar-event {
   display: block;
   font-size: 0.75rem;
+  max-width: 100%;
   padding: 0.2rem 0.5rem;
   border-radius: 4px;
   margin-bottom: 0.25rem;
