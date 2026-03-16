@@ -2998,6 +2998,25 @@ const App = {
     return fallbackLabels[String(normalized).toLowerCase()] || normalized;
   },
 
+  isInternalCourseIdentifier(value) {
+    const normalized = String(value || '').trim();
+    if (!normalized) return false;
+    return /^(course|crs|cls)_[a-z0-9]{6,}$/i.test(normalized) || /^COURSE#/i.test(normalized);
+  },
+
+  getDisplayCourseCode(course = {}) {
+    const title = String(course.title || course.name || '').trim().toLowerCase();
+    const candidates = [course.courseCode, course.code, course.shortName, course.shortname];
+    for (const candidate of candidates) {
+      const normalized = String(candidate || '').trim();
+      if (!normalized) continue;
+      if (this.isInternalCourseIdentifier(normalized)) continue;
+      if (normalized.toLowerCase() === title) continue;
+      return normalized;
+    }
+    return '';
+  },
+
   getLicenseStatusMeta(status) {
     const normalizedStatus = String(status || '').toLowerCase();
     if (normalizedStatus === 'active') {
@@ -3135,8 +3154,10 @@ const App = {
         <div class="courses-grid">
           ${courses.map(c => {
             const categoryLabel = this.getLocalizedCategoryLabel(c.category);
-            const codeLabel = c.courseCode || c.courseId || '';
-            const supportCode = c.shortName && c.shortName !== codeLabel ? c.shortName : '';
+            const codeLabel = this.getDisplayCourseCode(c);
+            const supportCode = [c.shortName, c.shortname]
+              .map((value) => String(value || '').trim())
+              .find((value) => value && value !== codeLabel && value.toLowerCase() !== String(c.title || '').trim().toLowerCase() && !this.isInternalCourseIdentifier(value)) || '';
             const summary = this.escapeText(this.truncateText(c.description || c.summary || (I18n.getLocale() === 'en' ? 'Continue learning in this course workspace.' : '在這個課程工作區中持續學習與互動。'), 110));
             const instructor = this.escapeText(c.instructorName || (I18n.getLocale() === 'en' ? 'Course instructor' : '課程教師'));
             return `

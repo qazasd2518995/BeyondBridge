@@ -448,8 +448,23 @@ const MoodleUI = {
     return this.getLocalizedCourseCategory(raw);
   },
 
+  isInternalCourseIdentifier(value) {
+    const normalized = String(value || '').trim();
+    if (!normalized) return false;
+    return /^(course|crs|cls)_[a-z0-9]{6,}$/i.test(normalized) || /^COURSE#/i.test(normalized);
+  },
+
   getCoursePickerCode(course = {}) {
-    return course.shortName || course.courseCode || course.code || course.courseId || course.id || '';
+    const title = String(course.title || course.name || '').trim().toLowerCase();
+    const candidates = [course.courseCode, course.code, course.shortName, course.shortname];
+    for (const candidate of candidates) {
+      const normalized = String(candidate || '').trim();
+      if (!normalized) continue;
+      if (this.isInternalCourseIdentifier(normalized)) continue;
+      if (normalized.toLowerCase() === title) continue;
+      return normalized;
+    }
+    return '';
   },
 
   renderActivityPickerCard(course = {}, options = {}) {
@@ -538,7 +553,7 @@ const MoodleUI = {
       const courseId = course.courseId || course.id || '';
       const title = this.escapeText(course.title || course.name || t('moodleCourse.untitledCourse'));
       const category = this.escapeText(this.getLocalizedCourseCategory(course.category));
-      const courseCode = this.escapeText(course.shortName || course.shortname || course.courseCode || course.code || courseId || '');
+      const courseCode = this.escapeText(this.getCoursePickerCode(course));
       const summary = this.escapeText(
         this.truncateText(course.description || course.summary || '', 140)
         || t('moodleCourse.noDescription')

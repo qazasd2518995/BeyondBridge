@@ -3028,13 +3028,13 @@
 }
 
 /* ==================== 行事曆樣式 ==================== */
-.calendar-container {
+#moodleCalendarView .calendar-container {
   background: var(--white);
   border-radius: 12px;
   overflow: hidden;
 }
 
-.calendar-header {
+#moodleCalendarView .calendar-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -3042,24 +3042,28 @@
   border-bottom: 1px solid var(--gray-100);
 }
 
-.calendar-nav {
+#moodleCalendarView .calendar-nav {
   display: flex;
   align-items: center;
   gap: 1rem;
 }
 
-.calendar-nav h2 {
+#moodleCalendarView .calendar-nav h2 {
   font-size: 1.25rem;
   min-width: 180px;
   text-align: center;
 }
 
-.calendar-grid {
+#moodleCalendarView .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
+  gap: 0;
+  text-align: initial;
+  grid-auto-rows: minmax(122px, auto);
+  align-items: stretch;
 }
 
-.calendar-weekday {
+#moodleCalendarView .calendar-weekday {
   padding: 1rem;
   text-align: center;
   font-weight: 600;
@@ -3069,7 +3073,8 @@
   background: var(--gray-50);
 }
 
-.calendar-day {
+#moodleCalendarView .calendar-day {
+  display: block;
   min-height: 100px;
   width: 100%;
   padding: 0.5rem;
@@ -3080,32 +3085,34 @@
   text-align: left;
   color: inherit;
   font: inherit;
+  box-sizing: border-box;
 }
 
-.calendar-day.other-month {
+#moodleCalendarView .calendar-day.other-month {
   background: var(--gray-50);
   color: var(--gray-400);
 }
 
-button.calendar-day {
+#moodleCalendarView button.calendar-day {
   cursor: pointer;
 }
 
-button.calendar-day:focus-visible {
+#moodleCalendarView button.calendar-day:focus-visible {
   outline: 2px solid rgba(74, 93, 35, 0.22);
   outline-offset: 2px;
 }
 
-.calendar-day.today {
+#moodleCalendarView .calendar-day.today {
   background: var(--olive)10;
 }
 
-.calendar-day .day-number {
+#moodleCalendarView .calendar-day .day-number {
+  display: inline-flex;
   font-weight: 500;
   margin-bottom: 0.5rem;
 }
 
-.calendar-day.today .day-number {
+#moodleCalendarView .calendar-day.today .day-number {
   width: 28px;
   height: 28px;
   background: var(--olive);
@@ -3116,7 +3123,7 @@ button.calendar-day:focus-visible {
   justify-content: center;
 }
 
-.calendar-event {
+#moodleCalendarView .calendar-event {
   display: block;
   font-size: 0.75rem;
   padding: 0.2rem 0.5rem;
@@ -3128,33 +3135,33 @@ button.calendar-day:focus-visible {
   cursor: pointer;
 }
 
-.calendar-event.assignment {
+#moodleCalendarView .calendar-event.assignment {
   background: var(--terracotta)20;
   color: var(--terracotta);
 }
 
-.calendar-event.quiz {
+#moodleCalendarView .calendar-event.quiz {
   background: #8b5cf620;
   color: #8b5cf6;
 }
 
-.calendar-event.course {
+#moodleCalendarView .calendar-event.course {
   background: var(--olive)20;
   color: var(--olive);
 }
 
-.calendar-event.personal {
+#moodleCalendarView .calendar-event.personal {
   background: #0ea5e920;
   color: #0ea5e9;
 }
 
-.calendar-day-event-list {
+#moodleCalendarView .calendar-day-event-list {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
 }
 
-.calendar-day-event-item {
+#moodleCalendarView .calendar-day-event-item {
   width: 100%;
   border: 1px solid var(--gray-200);
   border-radius: 12px;
@@ -3165,42 +3172,42 @@ button.calendar-day:focus-visible {
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
-.calendar-day-event-item:hover {
+#moodleCalendarView .calendar-day-event-item:hover {
   transform: translateY(-2px);
   border-color: rgba(87, 109, 72, 0.22);
   box-shadow: 0 10px 20px rgba(15, 23, 42, 0.06);
 }
 
-.calendar-day-event-main {
+#moodleCalendarView .calendar-day-event-main {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
 }
 
-.calendar-day-event-copy {
+#moodleCalendarView .calendar-day-event-copy {
   min-width: 0;
 }
 
-.calendar-day-event-type {
+#moodleCalendarView .calendar-day-event-type {
   font-size: 0.75rem;
   color: var(--gray-500);
   margin-bottom: 0.2rem;
 }
 
-.calendar-day-event-title {
+#moodleCalendarView .calendar-day-event-title {
   font-size: 0.95rem;
   font-weight: 600;
   color: var(--charcoal);
 }
 
-.calendar-day-event-course {
+#moodleCalendarView .calendar-day-event-course {
   font-size: 0.78rem;
   color: var(--gray-500);
   margin-top: 0.15rem;
 }
 
-.calendar-day-event-time {
+#moodleCalendarView .calendar-day-event-time {
   font-size: 0.78rem;
   color: var(--gray-500);
   white-space: nowrap;
@@ -4727,14 +4734,14 @@ button.calendar-day:focus-visible {
   color: var(--gray-600);
 }
 
-#upcomingEventsList {
+#moodleCalendarView #upcomingEventsList {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
 }
 
 /* ==================== 新增事件按鈕 ==================== */
-.calendar-more {
+#moodleCalendarView .calendar-more {
   display: block;
   font-size: 0.7rem;
   color: var(--gray-500);
