@@ -548,7 +548,7 @@ const MoodleUI = {
       const progress = this.clampProgressValue(course.progress);
 
       return `
-        <div class="moodle-course-card" onclick="MoodleUI.openCourse('${courseId}')">
+        <button type="button" class="moodle-course-card" onclick="MoodleUI.openCourse('${courseId}')">
           <div class="course-cover" data-cover-gradient="${this.escapeText(this.getCourseGradient(course.category))}">
             <div class="course-cover-top">
               <span class="course-category">${category}</span>
@@ -585,7 +585,7 @@ const MoodleUI = {
               </div>
             ` : ''}
           </div>
-        </div>
+        </button>
       `;
     }).join('');
     this.applyDynamicUiMetrics(container);
@@ -858,23 +858,25 @@ const MoodleUI = {
           ? (I18n.getLocale() === 'en' ? 'Hidden' : '未顯示')
           : (I18n.getLocale() === 'en' ? 'Available' : '可查看');
       return `
-      <div class="activity-item ${activity.visible === false ? 'hidden-activity' : ''}" onclick="${openAction}">
-        <div class="activity-icon" data-accent-color="${this.escapeText(accentColor)}">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
-            ${activityIcons[activity.type] || activityIcons.page}
-          </svg>
-        </div>
-        <div class="activity-info">
-          <div class="activity-meta-row">
-            <span class="activity-meta-chip">${this.escapeText(typeLabel)}</span>
-            <span class="activity-meta-chip subtle">${this.escapeText(activityStateLabel)}</span>
-            ${activity.dueDate ? `<span class="activity-meta-chip due">${t('moodleCourse.dueDate')} ${new Date(activity.dueDate).toLocaleDateString(I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW')}</span>` : ''}
-            ${activity.isBrokenLink ? `<span class="activity-meta-chip warning">${I18n.getLocale() === 'en' ? 'Needs repair' : '待修復'}</span>` : ''}
+      <div class="activity-item ${activity.visible === false ? 'hidden-activity' : ''}">
+        <button type="button" class="activity-item-main" onclick="${openAction}">
+          <div class="activity-icon" data-accent-color="${this.escapeText(accentColor)}">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+              ${activityIcons[activity.type] || activityIcons.page}
+            </svg>
           </div>
-          <span class="activity-name">${activity.name || activity.title}</span>
-          ${activity.description ? `<span class="activity-desc">${activity.description}</span>` : ''}
-          <span class="activity-open-chip">${isTeacher ? (I18n.getLocale() === 'en' ? 'Manage activity' : '管理活動') : (I18n.getLocale() === 'en' ? 'Open activity' : '開啟活動')} →</span>
-        </div>
+          <div class="activity-info">
+            <div class="activity-meta-row">
+              <span class="activity-meta-chip">${this.escapeText(typeLabel)}</span>
+              <span class="activity-meta-chip subtle">${this.escapeText(activityStateLabel)}</span>
+              ${activity.dueDate ? `<span class="activity-meta-chip due">${t('moodleCourse.dueDate')} ${new Date(activity.dueDate).toLocaleDateString(I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW')}</span>` : ''}
+              ${activity.isBrokenLink ? `<span class="activity-meta-chip warning">${I18n.getLocale() === 'en' ? 'Needs repair' : '待修復'}</span>` : ''}
+            </div>
+            <span class="activity-name">${activity.name || activity.title}</span>
+            ${activity.description ? `<span class="activity-desc">${activity.description}</span>` : ''}
+            <span class="activity-open-chip">${isTeacher ? (I18n.getLocale() === 'en' ? 'Manage activity' : '管理活動') : (I18n.getLocale() === 'en' ? 'Open activity' : '開啟活動')} →</span>
+          </div>
+        </button>
         ${isTeacher ? `
           <div class="activity-actions" onclick="event.stopPropagation()">
             <button onclick="MoodleUI.editActivity('${courseId}', '${sectionId}', '${managementActivityId}')" class="btn-icon-sm">
@@ -1928,55 +1930,55 @@ const MoodleUI = {
         </div>
         <div class="modal-body">
           <div class="activity-types-grid">
-            <div class="activity-type-card" onclick="MoodleUI.selectActivityType('page', this)">
+            <button type="button" class="activity-type-card" onclick="MoodleUI.selectActivityType('page', this)">
               <div class="type-icon tone-olive">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
               </div>
               <span>${t('moodleAddActivity.typePage')}</span>
               <p>${t('moodleAddActivity.typePageDesc')}</p>
-            </div>
-            <div class="activity-type-card" onclick="MoodleUI.selectActivityType('url', this)">
+            </button>
+            <button type="button" class="activity-type-card" onclick="MoodleUI.selectActivityType('url', this)">
               <div class="type-icon tone-indigo">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
               </div>
               <span>${t('moodleAddActivity.typeUrl')}</span>
               <p>${t('moodleAddActivity.typeUrlDesc')}</p>
-            </div>
-            <div class="activity-type-card" onclick="MoodleUI.selectActivityType('file', this)">
+            </button>
+            <button type="button" class="activity-type-card" onclick="MoodleUI.selectActivityType('file', this)">
               <div class="type-icon tone-emerald">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
               </div>
               <span>${t('moodleAddActivity.typeFile')}</span>
               <p>${t('moodleAddActivity.typeFileDesc')}</p>
-            </div>
-            <div class="activity-type-card" onclick="MoodleUI.selectActivityType('assignment', this)">
+            </button>
+            <button type="button" class="activity-type-card" onclick="MoodleUI.selectActivityType('assignment', this)">
               <div class="type-icon tone-terracotta">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
               </div>
               <span>${t('moodleAddActivity.typeAssignment')}</span>
               <p>${t('moodleAddActivity.typeAssignmentDesc')}</p>
-            </div>
-            <div class="activity-type-card" onclick="MoodleUI.selectActivityType('quiz', this)">
+            </button>
+            <button type="button" class="activity-type-card" onclick="MoodleUI.selectActivityType('quiz', this)">
               <div class="type-icon tone-violet">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
               </div>
               <span>${t('moodleAddActivity.typeQuiz')}</span>
               <p>${t('moodleAddActivity.typeQuizDesc')}</p>
-            </div>
-            <div class="activity-type-card" onclick="MoodleUI.selectActivityType('forum', this)">
+            </button>
+            <button type="button" class="activity-type-card" onclick="MoodleUI.selectActivityType('forum', this)">
               <div class="type-icon tone-amber">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
               </div>
               <span>${t('moodleAddActivity.typeForum')}</span>
               <p>${t('moodleAddActivity.typeForumDesc')}</p>
-            </div>
-            <div class="activity-type-card" onclick="MoodleUI.selectActivityType('lti', this)">
+            </button>
+            <button type="button" class="activity-type-card" onclick="MoodleUI.selectActivityType('lti', this)">
               <div class="type-icon tone-pink">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 12h8"/><path d="M12 8v8"/><circle cx="12" cy="12" r="3"/></svg>
               </div>
               <span>${t('moodleAddActivity.typeLti')}</span>
               <p>${t('moodleAddActivity.typeLtiDesc')}</p>
-            </div>
+            </button>
           </div>
 
           <div id="activityFormArea" class="activity-form-shell" hidden>
@@ -2911,7 +2913,7 @@ const MoodleUI = {
       : '';
 
     return `
-      <div class="assignment-card${teacherView ? ' is-teacher-card' : ''}" onclick="MoodleUI.openAssignment(${this.toInlineActionValue(a.assignmentId)})">
+      <button type="button" class="assignment-card${teacherView ? ' is-teacher-card' : ''}" onclick="MoodleUI.openAssignment(${this.toInlineActionValue(a.assignmentId)})">
         <div class="assignment-icon">
           <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
@@ -2950,7 +2952,7 @@ const MoodleUI = {
             <span class="activity-card-open">${teacherView ? (isEnglish ? 'Review work' : '查看批改') : (isEnglish ? 'Open assignment' : '查看作業')} →</span>
           </div>
         </div>
-      </div>
+      </button>
     `;
   },
 
@@ -3026,43 +3028,45 @@ const MoodleUI = {
     const openAction = teacherView ? 'MoodleUI.openQuizResults' : 'MoodleUI.openQuiz';
 
     return `
-      <div class="quiz-card${teacherView ? ' is-teacher-card' : ''}" onclick="${openAction}(${this.toInlineActionValue(q.quizId)})">
-        <div class="quiz-icon">
-          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/>
-            <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/>
-            <line x1="12" y1="17" x2="12.01" y2="17"/>
-          </svg>
-        </div>
-        <div class="activity-card-main">
-          <div class="activity-card-topline">
-            <div class="quiz-info activity-card-copy">
-              <span class="activity-card-kicker">${teacherView ? (isEnglish ? 'Quiz analytics' : '測驗分析') : (isEnglish ? 'Quiz' : '測驗')}</span>
-              <h3>${this.escapeText(title)}</h3>
-            </div>
-            <span class="activity-status-chip ${(teacherView ? teacherStatusMeta : studentStatusMeta).tone}">${this.escapeText((teacherView ? teacherStatusMeta : studentStatusMeta).label)}</span>
+      <div class="quiz-card${teacherView ? ' is-teacher-card' : ''}">
+        <button type="button" class="quiz-card-main" onclick="${openAction}(${this.toInlineActionValue(q.quizId)})">
+          <div class="quiz-icon">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
           </div>
-          ${description ? `<p class="activity-card-description">${this.escapeText(description)}</p>` : ''}
-          ${metaItems.length ? `<div class="activity-card-meta">${metaItems.map(item => `<span>${this.escapeText(item)}</span>`).join('')}</div>` : ''}
-          <div class="activity-card-footer">
-            ${teacherView ? `
-              <div class="activity-card-aside">
-                <div class="activity-card-metrics">
-                  <div class="activity-card-metric">
-                    <strong>${attempts}</strong>
-                    <span>${isEnglish ? 'Attempts' : '作答次數'}</span>
-                  </div>
-                  <div class="activity-card-metric">
-                    <strong>${this.escapeText(averageScoreLabel)}</strong>
-                    <span>${isEnglish ? 'Avg score' : '平均分'}</span>
-                  </div>
+          <div class="activity-card-main">
+            <div class="activity-card-topline">
+              <div class="quiz-info activity-card-copy">
+                <span class="activity-card-kicker">${teacherView ? (isEnglish ? 'Quiz analytics' : '測驗分析') : (isEnglish ? 'Quiz' : '測驗')}</span>
+                <h3>${this.escapeText(title)}</h3>
+              </div>
+              <span class="activity-status-chip ${(teacherView ? teacherStatusMeta : studentStatusMeta).tone}">${this.escapeText((teacherView ? teacherStatusMeta : studentStatusMeta).label)}</span>
+            </div>
+            ${description ? `<p class="activity-card-description">${this.escapeText(description)}</p>` : ''}
+            ${metaItems.length ? `<div class="activity-card-meta">${metaItems.map(item => `<span>${this.escapeText(item)}</span>`).join('')}</div>` : ''}
+          </div>
+        </button>
+        <div class="activity-card-footer">
+          ${teacherView ? `
+            <div class="activity-card-aside">
+              <div class="activity-card-metrics">
+                <div class="activity-card-metric">
+                  <strong>${attempts}</strong>
+                  <span>${isEnglish ? 'Attempts' : '作答次數'}</span>
+                </div>
+                <div class="activity-card-metric">
+                  <strong>${this.escapeText(averageScoreLabel)}</strong>
+                  <span>${isEnglish ? 'Avg score' : '平均分'}</span>
                 </div>
               </div>
-            ` : `
-              ${studentStatusHtml}
-            `}
-            <span class="activity-card-open">${teacherView ? (isEnglish ? 'View analytics' : '查看結果') : (isEnglish ? 'Open quiz' : '查看測驗')} →</span>
-          </div>
+            </div>
+          ` : `
+            ${studentStatusHtml}
+          `}
+          <button type="button" class="activity-card-open-btn" onclick="${openAction}(${this.toInlineActionValue(q.quizId)})">${teacherView ? (isEnglish ? 'View analytics' : '查看結果') : (isEnglish ? 'Open quiz' : '查看測驗')} →</button>
         </div>
       </div>
     `;
@@ -3383,14 +3387,14 @@ const MoodleUI = {
           ${assignment.submissionType !== 'text' ? `
             <div class="assignment-form-field">
               <label>${t('moodleAssignment.uploadLabel')}</label>
-              <div class="file-upload-area" onclick="document.getElementById('submissionFile').click()">
+              <button type="button" class="file-upload-area" onclick="document.getElementById('submissionFile').click()">
                 <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
                   <polyline points="17 8 12 3 7 8"/>
                   <line x1="12" y1="3" x2="12" y2="15"/>
                 </svg>
-                <p>${t('moodleAssignment.uploadHint')}</p>
-              </div>
+                <span class="file-upload-copy">${t('moodleAssignment.uploadHint')}</span>
+              </button>
               <input type="file" id="submissionFile" class="hidden-file-input" onchange="MoodleUI.handleFileSelect(this)">
               <div id="selectedFiles"></div>
             </div>
@@ -4003,7 +4007,7 @@ const MoodleUI = {
             const postCount = Number(forum.postCount ?? forum.stats?.postCount ?? 0);
             const safeUpdatedAt = forum.updatedAt ? this.escapeText(this.formatPlatformDate(forum.updatedAt, { year: 'numeric', month: 'numeric', day: 'numeric' })) : '';
             return `
-              <article class="forum-card ${typeMeta.className}" onclick="MoodleUI.openForum(${this.toInlineActionValue(forum.forumId)})">
+              <button type="button" class="forum-card ${typeMeta.className}" onclick="MoodleUI.openForum(${this.toInlineActionValue(forum.forumId)})">
                 <div class="forum-card-icon">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                 </div>
@@ -4039,7 +4043,7 @@ const MoodleUI = {
                     </span>
                   </div>
                 </div>
-              </article>
+              </button>
             `;
           }).join('')}
         </div>
@@ -4066,7 +4070,7 @@ const MoodleUI = {
           const discussionCount = Number(forum.discussionCount ?? forum.stats?.discussionCount ?? 0);
           const postCount = Number(forum.postCount ?? forum.stats?.postCount ?? 0);
           return `
-            <article class="forum-card ${typeMeta.className}" onclick="MoodleUI.openForum(${this.toInlineActionValue(forum.forumId)})">
+            <button type="button" class="forum-card ${typeMeta.className}" onclick="MoodleUI.openForum(${this.toInlineActionValue(forum.forumId)})">
               <div class="forum-card-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
               </div>
@@ -4095,7 +4099,7 @@ const MoodleUI = {
                   </span>
                 </div>
               </div>
-            </article>
+            </button>
           `;
         }).join('')}
       </div>
@@ -4189,56 +4193,58 @@ const MoodleUI = {
               : discussions.map(discussion => {
                   const discussionId = discussion.discussionId || discussion.id;
                   const isAuthor = this.isCurrentUser(discussion.authorId, currentUser);
-                  const safeSubject = this.escapeText(discussion.subject || discussion.title || '未命名主題');
-                  const safeExcerpt = this.escapeText(this.truncateText(discussion.message || discussion.content || '', 200) || (I18n.getLocale() === 'en' ? 'No summary has been provided for this discussion yet.' : '這則主題尚未提供內容摘要。'));
-                  const safeAuthor = this.escapeText(discussion.authorName || '匿名');
+                  const safeSubject = this.escapeText(discussion.subject || discussion.title || t('discussion.untitled'));
+                  const safeExcerpt = this.escapeText(this.truncateText(discussion.message || discussion.content || '', 200) || t('discussion.noExcerpt'));
+                  const safeAuthor = this.escapeText(discussion.authorName || t('discussion.anonymous'));
                   const safeDate = this.escapeText(this.formatPlatformDate(discussion.createdAt, { year: 'numeric', month: 'numeric', day: 'numeric' }) || '');
                   const safeLastReply = this.escapeText(this.formatPlatformDate(discussion.lastReply || discussion.lastReplyAt || discussion.latestReply?.createdAt, { year: 'numeric', month: 'numeric', day: 'numeric' }) || '');
                   const replyCount = Number(discussion.replyCount || 0);
                   return `
-                    <article class="forum-topic-card${discussion.pinned ? ' is-pinned' : ''}" onclick="MoodleUI.openDiscussion(${this.toInlineActionValue(forumId)}, ${this.toInlineActionValue(discussionId)})">
-                      <div class="forum-thread-avatar">${this.escapeText((discussion.authorName || 'U').trim().charAt(0) || 'U')}</div>
-                      <div class="forum-topic-content">
-                        <div class="forum-topic-topline">
-                          <div>
-                            <div class="forum-topic-title-row">
-                              ${discussion.pinned ? `<span class="forum-topic-badge">${t('moodleForum.pinned')}</span>` : ''}
-                              ${discussion.locked ? `<span class="forum-topic-badge">${I18n.getLocale() === 'en' ? 'Locked' : '已鎖定'}</span>` : ''}
-                              <h3 class="forum-topic-title">${safeSubject}</h3>
-                            </div>
-                            <div class="forum-topic-meta">
-                              <span>${safeAuthor}</span>
-                              ${safeDate ? `<span>•</span><span>${safeDate}</span>` : ''}
-                              ${(discussion.lastReply || discussion.lastReplyAt || discussion.latestReply?.createdAt) ? `<span>•</span><span>${t('moodleForum.lastReply')} ${safeLastReply}</span>` : ''}
+                    <article class="forum-topic-card${discussion.pinned ? ' is-pinned' : ''}">
+                      <button type="button" class="forum-topic-main" onclick="MoodleUI.openDiscussion(${this.toInlineActionValue(forumId)}, ${this.toInlineActionValue(discussionId)})">
+                        <div class="forum-thread-avatar">${this.escapeText((discussion.authorName || 'U').trim().charAt(0) || 'U')}</div>
+                        <div class="forum-topic-content">
+                          <div class="forum-topic-topline">
+                            <div>
+                              <div class="forum-topic-title-row">
+                                ${discussion.pinned ? `<span class="forum-topic-badge">${t('moodleForum.pinned')}</span>` : ''}
+                                ${discussion.locked ? `<span class="forum-topic-badge">${I18n.getLocale() === 'en' ? 'Locked' : '已鎖定'}</span>` : ''}
+                                <h3 class="forum-topic-title">${safeSubject}</h3>
+                              </div>
+                              <div class="forum-topic-meta">
+                                <span>${safeAuthor}</span>
+                                ${safeDate ? `<span>•</span><span>${safeDate}</span>` : ''}
+                                ${(discussion.lastReply || discussion.lastReplyAt || discussion.latestReply?.createdAt) ? `<span>•</span><span>${t('moodleForum.lastReply')} ${safeLastReply}</span>` : ''}
+                              </div>
                             </div>
                           </div>
+                          <p class="forum-topic-excerpt">${safeExcerpt}</p>
                         </div>
-                        <p class="forum-topic-excerpt">${safeExcerpt}</p>
-                        <div class="forum-topic-footer">
-                          <div class="forum-topic-stats">
+                      </button>
+                      <div class="forum-topic-footer">
+                        <div class="forum-topic-stats">
                           <span class="forum-topic-stat">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                             <span>${replyCount} ${t('moodleForum.replies')}</span>
                           </span>
                           <span class="forum-topic-support">${replyCount > 0 ? (I18n.getLocale() === 'en' ? 'Conversation in progress' : '討論持續進行中') : (I18n.getLocale() === 'en' ? 'Awaiting first reply' : '等待第一則回覆')}</span>
-                          </div>
-                          <div class="category-actions">
-                            <button type="button" class="forum-topic-cta" onclick="event.stopPropagation(); MoodleUI.openDiscussion(${this.toInlineActionValue(forumId)}, ${this.toInlineActionValue(discussionId)})">
-                              ${I18n.getLocale() === 'en' ? 'Open & Reply' : '查看並回覆'}
-                            </button>
-                            ${(isAuthor || canManageForum) ? `
-                              <button type="button" class="btn-sm" onclick="event.stopPropagation(); MoodleUI.openNewDiscussionModal(${this.toInlineActionValue(forumId)}, ${this.toInlineActionValue(JSON.stringify({
-                                discussionId,
-                                subject: discussion.subject || discussion.title || '',
-                                message: discussion.message || discussion.content || ''
-                              }))})">${t('common.edit')}</button>
-                              <button type="button" class="btn-sm btn-danger" onclick="event.stopPropagation(); MoodleUI.deleteDiscussion(${this.toInlineActionValue(forumId)}, ${this.toInlineActionValue(discussionId)})">${t('common.delete')}</button>
-                            ` : ''}
-                            ${canManageForum ? `
-                              <button type="button" class="btn-sm" onclick="event.stopPropagation(); MoodleUI.toggleDiscussionPinned(${this.toInlineActionValue(forumId)}, ${this.toInlineActionValue(discussionId)}, ${discussion.pinned ? 'true' : 'false'})">${discussion.pinned ? (I18n.getLocale() === 'en' ? 'Unpin' : '取消置頂') : (I18n.getLocale() === 'en' ? 'Pin' : '置頂')}</button>
-                              <button type="button" class="btn-sm" onclick="event.stopPropagation(); MoodleUI.toggleDiscussionLocked(${this.toInlineActionValue(forumId)}, ${this.toInlineActionValue(discussionId)}, ${discussion.locked ? 'true' : 'false'})">${discussion.locked ? (I18n.getLocale() === 'en' ? 'Unlock' : '解除鎖定') : (I18n.getLocale() === 'en' ? 'Lock' : '鎖定')}</button>
-                            ` : ''}
-                          </div>
+                        </div>
+                        <div class="category-actions">
+                          <button type="button" class="forum-topic-cta" onclick="MoodleUI.openDiscussion(${this.toInlineActionValue(forumId)}, ${this.toInlineActionValue(discussionId)})">
+                            ${I18n.getLocale() === 'en' ? 'Open & Reply' : '查看並回覆'}
+                          </button>
+                          ${(isAuthor || canManageForum) ? `
+                            <button type="button" class="btn-sm" onclick="MoodleUI.openNewDiscussionModal(${this.toInlineActionValue(forumId)}, ${this.toInlineActionValue(JSON.stringify({
+                              discussionId,
+                              subject: discussion.subject || discussion.title || '',
+                              message: discussion.message || discussion.content || ''
+                            }))})">${t('common.edit')}</button>
+                            <button type="button" class="btn-sm btn-danger" onclick="MoodleUI.deleteDiscussion(${this.toInlineActionValue(forumId)}, ${this.toInlineActionValue(discussionId)})">${t('common.delete')}</button>
+                          ` : ''}
+                          ${canManageForum ? `
+                            <button type="button" class="btn-sm" onclick="MoodleUI.toggleDiscussionPinned(${this.toInlineActionValue(forumId)}, ${this.toInlineActionValue(discussionId)}, ${discussion.pinned ? 'true' : 'false'})">${discussion.pinned ? (I18n.getLocale() === 'en' ? 'Unpin' : '取消置頂') : (I18n.getLocale() === 'en' ? 'Pin' : '置頂')}</button>
+                            <button type="button" class="btn-sm" onclick="MoodleUI.toggleDiscussionLocked(${this.toInlineActionValue(forumId)}, ${this.toInlineActionValue(discussionId)}, ${discussion.locked ? 'true' : 'false'})">${discussion.locked ? (I18n.getLocale() === 'en' ? 'Unlock' : '解除鎖定') : (I18n.getLocale() === 'en' ? 'Lock' : '鎖定')}</button>
+                          ` : ''}
                         </div>
                       </div>
                     </article>
@@ -4317,13 +4323,13 @@ const MoodleUI = {
       const dayEvents = this.getEventsForLocalDate(events, dayDate);
 
       html += `
-        <div class="calendar-day ${isToday ? 'today' : ''}" onclick="MoodleUI.openDayEvents(${year}, ${month}, ${day})">
+        <button type="button" class="calendar-day ${isToday ? 'today' : ''}" onclick="MoodleUI.openDayEvents(${year}, ${month}, ${day})">
           <span class="day-number">${day}</span>
           ${dayEvents.slice(0, 3).map(e => `
-            <div class="calendar-event ${e.type}">${e.title}</div>
+            <span class="calendar-event ${e.type}">${e.title}</span>
           `).join('')}
-          ${dayEvents.length > 3 ? `<div class="calendar-more">+${dayEvents.length - 3} ${t('moodleCalendar.more')}</div>` : ''}
-        </div>
+          ${dayEvents.length > 3 ? `<span class="calendar-more">+${dayEvents.length - 3} ${t('moodleCalendar.more')}</span>` : ''}
+        </button>
       `;
     }
 
@@ -5255,8 +5261,8 @@ const MoodleUI = {
       const currentUser = API.getCurrentUser();
       const canManageForum = await this.canManageCourseById(discussion.courseId || this.currentForumCourseId, currentUser);
       const isDiscussionAuthor = this.isCurrentUser(discussion.authorId, currentUser);
-      const safeAuthor = this.escapeText(discussion.authorName || '匿名');
-      const safeSubject = this.escapeText(discussion.subject || discussion.title || '未命名主題');
+      const safeAuthor = this.escapeText(discussion.authorName || t('discussion.anonymous'));
+      const safeSubject = this.escapeText(discussion.subject || discussion.title || t('discussion.untitled'));
       const safeMessage = this.formatMultilineText(discussion.message || discussion.content || '');
       const safeCreatedAt = this.escapeText(this.formatPlatformDate(discussion.createdAt, {
         year: 'numeric',
@@ -5310,16 +5316,16 @@ const MoodleUI = {
               <div class="forum-thread-stat-card">
                 <span class="forum-thread-stat-label">${I18n.getLocale() === 'en' ? 'Thread starter' : '發文者'}</span>
                 <span class="forum-thread-stat-value">${safeAuthor}</span>
-                <span class="forum-thread-stat-note">${safeCreatedAt || (I18n.getLocale() === 'en' ? 'Created recently' : '最近建立')}</span>
+                <span class="forum-thread-stat-note">${safeCreatedAt || t('discussion.createdRecently')}</span>
               </div>
               <div class="forum-thread-stat-card">
-                <span class="forum-thread-stat-label">${I18n.getLocale() === 'en' ? 'Latest activity' : '最新互動'}</span>
+                <span class="forum-thread-stat-label">${t('discussion.latestActivity')}</span>
                 <span class="forum-thread-stat-value">${safeLatestActivity || '-'}</span>
-                <span class="forum-thread-stat-note">${posts.length > 0 ? (I18n.getLocale() === 'en' ? `${posts.length} replies in this thread` : `目前共有 ${posts.length} 則回覆`) : (I18n.getLocale() === 'en' ? 'No replies yet' : '目前尚無回覆')}</span>
+                <span class="forum-thread-stat-note">${posts.length > 0 ? t('discussion.repliesInThread', { count: posts.length }) : t('discussion.noRepliesShort')}</span>
               </div>
               <div class="forum-thread-stat-card">
-                <span class="forum-thread-stat-label">${I18n.getLocale() === 'en' ? 'Engagement' : '互動程度'}</span>
-                <span class="forum-thread-stat-value">${this.escapeText(String(totalLikes))} ${I18n.getLocale() === 'en' ? 'likes' : '個讚'}</span>
+                <span class="forum-thread-stat-label">${t('discussion.engagement')}</span>
+                <span class="forum-thread-stat-value">${t('discussion.likesLabel', { count: totalLikes })}</span>
                 <span class="forum-thread-stat-note">${activeReplyCount > 0 ? (I18n.getLocale() === 'en' ? `${activeReplyCount} replies already have reactions` : `${activeReplyCount} 則回覆已有互動`) : (I18n.getLocale() === 'en' ? 'Replies still need attention' : '目前仍等待更多回覆互動')}</span>
               </div>
             </div>
@@ -5368,15 +5374,15 @@ const MoodleUI = {
             <div class="forum-thread-replies-head">
               <div class="forum-thread-replies-title">${posts.length} ${t('moodleDiscussion.repliesCount')}</div>
               <div class="forum-count-row">
-                <span class="forum-chip">${posts.filter(post => post.liked).length} 已按讚回覆</span>
+                <span class="forum-chip">${t('discussion.reactedReplies', { count: posts.filter(post => post.liked).length })}</span>
               </div>
             </div>
             <div class="forum-thread-replies">
               ${posts.length === 0
-                ? this.renderForumState(I18n.getLocale() === 'en' ? 'No replies yet. Be the first one to respond to this discussion.' : '目前還沒有任何回覆。你可以成為第一個回應這個主題的人。')
+                ? this.renderForumState(t('discussion.noRepliesYet'))
                 : posts.map((post, postIndex) => {
                     const isPostAuthor = this.isCurrentUser(post.authorId, currentUser);
-                    const safePostAuthor = this.escapeText(post.authorName || '匿名');
+                    const safePostAuthor = this.escapeText(post.authorName || t('discussion.anonymous'));
                     const safePostTime = this.escapeText(this.formatPlatformDate(post.createdAt, {
                       year: 'numeric',
                       month: 'numeric',
@@ -5666,7 +5672,7 @@ const MoodleUI = {
           </div>
           <div class="notification-list">
             ${notifications.map(n => `
-              <div class="notification-item ${n.readAt ? '' : 'unread'}" onclick="MoodleUI.openNotification('${n.notificationId}')">
+              <button type="button" class="notification-item ${n.readAt ? '' : 'unread'}" onclick="MoodleUI.openNotification('${n.notificationId}')">
                 <div class="notification-icon ${n.type}">
                   <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
                     ${this.getNotificationIcon(n.type)}
@@ -5682,7 +5688,7 @@ const MoodleUI = {
                   </div>
                   <div class="time">${this.escapeText(this.formatTimeAgo(n.createdAt))}</div>
                 </div>
-              </div>
+              </button>
             `).join('')}
           </div>
         </section>
@@ -5796,7 +5802,15 @@ const MoodleUI = {
     if (diff < 3600) return `${Math.floor(diff / 60)} ${t('moodleNotification.minutesAgo')}`;
     if (diff < 86400) return `${Math.floor(diff / 3600)} ${t('moodleNotification.hoursAgo')}`;
     if (diff < 604800) return `${Math.floor(diff / 86400)} ${t('moodleNotification.daysAgo')}`;
-    return date.toLocaleDateString('zh-TW');
+    return this.formatLocaleDate(date);
+  },
+
+  formatLocaleDate(dateValue, options) {
+    if (!dateValue) return '-';
+    const date = dateValue instanceof Date ? dateValue : new Date(dateValue);
+    if (Number.isNaN(date.getTime())) return '-';
+    const locale = I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW';
+    return date.toLocaleDateString(locale, options);
   },
 
   /**
@@ -6037,19 +6051,19 @@ const MoodleUI = {
                 <span class="management-kv-value">${this.escapeText(String(inactiveCount))}</span>
               </div>
               <div class="management-kv-item">
-                <span class="management-kv-label">${isEnglish ? 'Open alerts' : '待處理警示'}</span>
+                <span class="management-kv-label">${t('teacherAnalytics.openAlerts')}</span>
                 <span class="management-kv-value">${this.escapeText(String(topAlertCount))}</span>
               </div>
             </div>
           </section>
           <section class="management-panel teacher-analytics-panel">
-            <h3>${isEnglish ? 'Risk breakdown' : '風險分布'}</h3>
+            <h3>${t('teacherAnalytics.riskBreakdown')}</h3>
             <div class="teacher-analytics-risk-summary">
-              <span class="management-status-badge is-danger">${this.escapeText(`${riskSummary.high || 0} ${isEnglish ? 'high' : '高風險'}`)}</span>
-              <span class="management-status-badge is-warning">${this.escapeText(`${riskSummary.medium || 0} ${isEnglish ? 'medium' : '需留意'}`)}</span>
-              <span class="management-status-badge is-neutral">${this.escapeText(`${riskSummary.low || 0} ${isEnglish ? 'low' : '觀察名單'}`)}</span>
+              <span class="management-status-badge is-danger">${this.escapeText(t('teacherAnalytics.riskHigh', { count: riskSummary.high || 0 }))}</span>
+              <span class="management-status-badge is-warning">${this.escapeText(t('teacherAnalytics.riskMedium', { count: riskSummary.medium || 0 }))}</span>
+              <span class="management-status-badge is-neutral">${this.escapeText(t('teacherAnalytics.riskLow', { count: riskSummary.low || 0 }))}</span>
             </div>
-            <div class="teacher-analytics-panel-note">${isEnglish ? 'Risk levels combine progress gaps, inactivity, missing assignments, and recent quiz decline.' : '風險判斷綜合了進度落後、長時間未上線、缺交作業與測驗表現下降。'}</div>
+            <div class="teacher-analytics-panel-note">${t('teacherAnalytics.riskNote')}</div>
           </section>
         </div>
 
@@ -8030,7 +8044,7 @@ const MoodleUI = {
       };
 
       rolesList.innerHTML = result.data.map(role => `
-        <div class="role-item ${role.isSystem ? 'system-role' : ''}"
+        <button type="button" class="role-item ${role.isSystem ? 'system-role' : ''}"
              onclick="MoodleUI.selectRole('${role.id || role.roleId}')"
              data-role-id="${role.id || role.roleId}">
           <span class="role-icon">${roleIcons[role.shortName] || '🔐'}</span>
@@ -8039,7 +8053,7 @@ const MoodleUI = {
             <span class="role-type">${role.isSystem ? t('moodleRoles.systemRole') : t('moodleRoles.customRole')}</span>
           </div>
           <span class="role-user-count">${role.userCount || 0} ${t('moodleRoles.usersCount')}</span>
-        </div>
+        </button>
       `).join('');
     } catch (error) {
       console.error('Load roles error:', error);
@@ -8068,9 +8082,7 @@ const MoodleUI = {
       const role = result.data;
       const capResult = await API.roles.getCapabilities();
       const allCapabilities = (capResult.success && Array.isArray(capResult.data)) ? capResult.data : [];
-      const createdAtText = role.createdAt
-        ? new Date(role.createdAt).toLocaleDateString('zh-TW')
-        : '-';
+      const createdAtText = this.formatLocaleDate(role.createdAt);
 
       document.getElementById('roleDetailPanel').innerHTML = `
         <div class="role-detail-content">
@@ -8369,23 +8381,40 @@ const MoodleUI = {
 
     return `
       <ul class="category-tree-list" data-tree-indent="${level}">
-        ${children.map(cat => `
-          <li class="category-tree-item">
-            <div class="category-node" onclick="MoodleUI.selectCategory('${cat.id}')" data-category-id="${cat.id}">
-              <span class="expand-icon" onclick="event.stopPropagation(); MoodleUI.toggleCategoryExpand(this)">
-                ${categories.some(c => c.parentId === cat.id) ? '▶' : '•'}
-              </span>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
-                <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>
-              </svg>
-              <span class="category-name">${cat.name}</span>
-              <span class="course-count">(${cat.courseCount || 0})</span>
-            </div>
-            <div class="category-children" hidden>
-              ${this.renderCategoryTree(categories, cat.id, level + 1)}
-            </div>
-          </li>
-        `).join('')}
+        ${children.map(cat => {
+          const hasChildren = categories.some(c => c.parentId === cat.id);
+          const childId = `category-children-${cat.id}`;
+          return `
+            <li class="category-tree-item">
+              <div class="category-node" data-category-id="${cat.id}">
+                ${hasChildren ? `
+                  <button
+                    type="button"
+                    class="expand-icon"
+                    onclick="MoodleUI.toggleCategoryExpand(this)"
+                    aria-controls="${childId}"
+                    aria-expanded="false"
+                    aria-label="${t('moodleCategories.expandChildren')}"
+                  >
+                    <span aria-hidden="true">▶</span>
+                  </button>
+                ` : `
+                  <span class="expand-icon is-placeholder" aria-hidden="true">•</span>
+                `}
+                <button type="button" class="category-node-main" onclick="MoodleUI.selectCategory('${cat.id}')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" aria-hidden="true">
+                    <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>
+                  </svg>
+                  <span class="category-name">${cat.name}</span>
+                  <span class="course-count">(${cat.courseCount || 0})</span>
+                </button>
+              </div>
+              <div class="category-children" id="${childId}" hidden>
+                ${this.renderCategoryTree(categories, cat.id, level + 1)}
+              </div>
+            </li>
+          `;
+        }).join('')}
       </ul>
     `;
   },
@@ -8399,7 +8428,9 @@ const MoodleUI = {
     if (children && children.innerHTML.trim()) {
       const isExpanded = !children.hidden;
       children.hidden = isExpanded;
-      icon.textContent = isExpanded ? '▶' : '▼';
+      icon.setAttribute('aria-expanded', String(!isExpanded));
+      icon.setAttribute('aria-label', isExpanded ? t('moodleCategories.expandChildren') : t('moodleCategories.collapseChildren'));
+      icon.innerHTML = `<span aria-hidden="true">${isExpanded ? '▶' : '▼'}</span>`;
     }
   },
 
@@ -8442,7 +8473,7 @@ const MoodleUI = {
             </div>
             <div class="info-row">
               <span class="label">${t('common.createdAt')}</span>
-              <span class="value">${new Date(category.createdAt).toLocaleDateString('zh-TW')}</span>
+              <span class="value">${this.formatLocaleDate(category.createdAt)}</span>
             </div>
           </div>
 
@@ -8755,7 +8786,7 @@ const MoodleUI = {
           title: t('moodleRubrics.noRubrics')
         }) :
           filtered.map(r => `
-            <div class="rubric-card" onclick="MoodleUI.viewRubricDetail(${this.toInlineActionValue(r.rubricId || r.id)})">
+            <button type="button" class="rubric-card" onclick="MoodleUI.viewRubricDetail(${this.toInlineActionValue(r.rubricId || r.id)})">
               <div class="rubric-card-header">
                 <div class="rubric-info">
                   <h3>${this.escapeText(r.name || t('common.unnamed'))}</h3>
@@ -8773,7 +8804,7 @@ const MoodleUI = {
                   ${(r.criteria || []).length > 3 ? `<li>+ ${(r.criteria || []).length - 3} ${t('moodleRubrics.criteria')}</li>` : ''}
                 </ul>
               </div>
-            </div>
+            </button>
           `).join('')}
       </div>
       </div>`;
@@ -10061,7 +10092,7 @@ const MoodleUI = {
                 hint: t('moodleH5p.createTitle')
               })
             : filtered.map(content => `
-              <article class="h5p-card" onclick="MoodleUI.viewH5pDetail(${this.toInlineActionValue(content.contentId || content.id)})">
+              <button type="button" class="h5p-card" onclick="MoodleUI.viewH5pDetail(${this.toInlineActionValue(content.contentId || content.id)})">
                 <div class="card-thumbnail">
                   ${this.renderH5pTypeIcon(content.contentType)}
                   <div class="type-name">${this.escapeText(content.contentType || 'H5P')}</div>
@@ -10079,7 +10110,7 @@ const MoodleUI = {
                     <button type="button" class="btn-report" onclick="event.stopPropagation();MoodleUI.duplicateH5pContent(${this.toInlineActionValue(content.contentId || content.id)})">${t('common.duplicate')}</button>
                   </div>
                 </div>
-              </article>
+              </button>
             `).join('')}
         </div>
       </div>`;
@@ -10323,7 +10354,7 @@ const MoodleUI = {
                 hint: t('moodleLtiMgmt.registerTitle')
               })
             : tools.map(tool => `
-              <article class="lti-tool-card" onclick="MoodleUI.viewLtiToolDetail(${this.toInlineActionValue(tool.toolId || tool.id)})">
+              <button type="button" class="lti-tool-card" onclick="MoodleUI.viewLtiToolDetail(${this.toInlineActionValue(tool.toolId || tool.id)})">
                 <div class="card-header">
                   <div>
                     <h3>${this.escapeText(tool.name || t('common.unnamed'))}</h3>
@@ -10342,7 +10373,7 @@ const MoodleUI = {
                     <button type="button" class="btn-manage" onclick="event.stopPropagation();MoodleUI.viewLtiToolDetail(${this.toInlineActionValue(tool.toolId || tool.id)})">${t('common.view')}</button>
                   </div>
                 </div>
-              </article>
+              </button>
             `).join('')}
         </div>
       </div>`;
@@ -10669,7 +10700,7 @@ const MoodleUI = {
                 hint: t('moodleScorm.createTitle')
               })
             : filtered.map(pkg => `
-              <article class="scorm-card" onclick="MoodleUI.viewScormDetail(${this.toInlineActionValue(pkg.packageId || pkg.id)})">
+              <button type="button" class="scorm-card" onclick="MoodleUI.viewScormDetail(${this.toInlineActionValue(pkg.packageId || pkg.id)})">
                 <div class="card-header">
                   <h3>${this.escapeText(pkg.title || pkg.name || t('common.unnamed'))}</h3>
                   <span class="version-badge">SCORM ${this.escapeText(pkg.version || pkg.scormVersion || '1.2')}</span>
@@ -10686,7 +10717,7 @@ const MoodleUI = {
                     <button type="button" class="btn-report" onclick="event.stopPropagation();MoodleUI.viewScormDetail(${this.toInlineActionValue(pkg.packageId || pkg.id)})">${t('common.view')}</button>
                   </div>
                 </div>
-              </article>
+              </button>
             `).join('')}
         </div>
       </div>`;

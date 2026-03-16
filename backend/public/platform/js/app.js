@@ -19,6 +19,13 @@ const App = {
     return this.currentUser || API.getCurrentUser();
   },
 
+  syncCurrentUserState(user) {
+    if (!user) return null;
+    this.currentUser = user;
+    API.setCurrentUser(user);
+    return user;
+  },
+
   isAdminUser(user = this.getCurrentUser()) {
     return !!(user && (user.isAdmin || user.role === 'admin'));
   },
@@ -65,8 +72,7 @@ const App = {
         // 驗證 token 有效性
         const result = await API.auth.me();
         if (result.success) {
-          this.currentUser = result.data;
-          API.setCurrentUser(result.data);
+          this.syncCurrentUserState(result.data);
           this.showApp();
           await this.loadDashboardData();
           // 觸發登入事件，通知聊天系統初始化
@@ -644,7 +650,7 @@ const App = {
       heroTier.innerHTML = `<span class="settings-hero-meta-label">${t('settings.memberLevel')}</span><strong class="settings-hero-meta-value">${user.subscriptionTier === 'professional' ? t('settings.tierPro') : user.subscriptionTier === 'basic' ? t('settings.tierBasic') : t('settings.tierFree')}</strong>`;
     }
     if (heroJoinDate) {
-      heroJoinDate.innerHTML = `<span class="settings-hero-meta-label">${t('settings.joinDate')}</span><strong class="settings-hero-meta-value">${user.createdAt ? new Date(user.createdAt).toLocaleDateString(I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW') : '-'}</strong>`;
+      heroJoinDate.innerHTML = `<span class="settings-hero-meta-label">${t('settings.joinDate')}</span><strong class="settings-hero-meta-value">${this.formatLocaleDate(user.createdAt)}</strong>`;
     }
     if (heroLicense) {
       heroLicense.innerHTML = `<span class="settings-hero-meta-label">${t('settings.licenseQuota')}</span><strong class="settings-hero-meta-value">${user.licenseUsed || 0}/${user.licenseQuota || 0}</strong>`;
@@ -664,9 +670,7 @@ const App = {
 
       const result = await API.users.update(user.userId, { preferences });
       if (result.success) {
-        const updatedUser = { ...user, preferences };
-        API.setCurrentUser(updatedUser);
-        this.currentUser = updatedUser;
+        const updatedUser = this.syncCurrentUserState({ ...user, preferences });
         showToast(t('toast.notificationUpdated'));
         return true;
       } else {
@@ -863,7 +867,7 @@ const App = {
       ].filter(Boolean).join('');
 
       return `
-        <div class="dashboard-row-card interactive" onclick="showView('${viewName}'); if (typeof MoodleUI !== 'undefined' && MoodleUI.${loadCall}) { MoodleUI.${loadCall}(); }">
+        <button type="button" class="dashboard-row-card interactive" onclick="showView('${viewName}'); if (typeof MoodleUI !== 'undefined' && MoodleUI.${loadCall}) { MoodleUI.${loadCall}(); }">
           <div class="dashboard-row-icon ${toneClass}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               ${icon}
@@ -880,7 +884,7 @@ const App = {
             <div class="dashboard-row-emphasis ${toneClass}">${this.escapeText(dayLabel)}</div>
             <div class="dashboard-row-note">${this.escapeText(dueDateLabel)}</div>
           </div>
-        </div>
+        </button>
       `;
     }).join('');
   },
@@ -1077,7 +1081,7 @@ const App = {
         `<span class="dashboard-row-meta-item">${this.escapeText(t('app.avgProgress'))} ${this.escapeText(String(avgProgress))}%</span>`
       ].join('');
       return `
-        <div class="dashboard-row-card interactive" onclick="if (typeof MoodleUI !== 'undefined' && MoodleUI.openCourse) { MoodleUI.openCourse(${this.inlineActionValue(course.courseId)}); }">
+        <button type="button" class="dashboard-row-card interactive" onclick="if (typeof MoodleUI !== 'undefined' && MoodleUI.openCourse) { MoodleUI.openCourse(${this.inlineActionValue(course.courseId)}); }">
           <div class="dashboard-row-icon ${toneClass}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polygon points="12,2 2,7 12,12 22,7"></polygon>
@@ -1092,7 +1096,7 @@ const App = {
           <div class="dashboard-row-side">
             ${pendingGrading > 0 ? `<span class="dashboard-row-badge tone-terracotta">${this.escapeText(String(pendingGrading))} ${this.escapeText(t('app.pendingGrading'))}</span>` : `<span class="dashboard-row-badge tone-olive">${this.escapeText(t('teacher.pendingGrading'))}: 0</span>`}
           </div>
-        </div>
+        </button>
       `;
     }).join('')}</div>`;
   },
@@ -1344,7 +1348,7 @@ const App = {
     const toneClass = this.getToneClass(course.courseId || course.category || course.title);
 
     return `
-      <div class="course-item" onclick="App.openCourse('${course.courseId}')">
+      <button type="button" class="course-item" onclick="App.openCourse('${course.courseId}')">
         <div class="course-thumbnail ${toneClass}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polygon points="12,2 2,7 12,12 22,7"/>
@@ -1362,7 +1366,7 @@ const App = {
             <span class="progress-text">${course.progress || 0}%</span>
           </div>
         </div>
-      </div>
+      </button>
     `;
   },
 
@@ -1678,7 +1682,7 @@ const App = {
     const supportingMeta = [gradeMap[resource.gradeLevel], resource.contentType].filter(Boolean).join(' · ');
 
     return `
-      <div class="resource-card" onclick="App.openResourceModal('${resource.resourceId}')">
+      <button type="button" class="resource-card" onclick="App.openResourceModal('${resource.resourceId}')">
         <div class="resource-cover">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             ${typeIcons[resource.type] || typeIcons['document']}
@@ -1709,7 +1713,7 @@ const App = {
             <span class="resource-open-link">${I18n.getLocale() === 'en' ? 'View resource' : '查看教材'}</span>
           </div>
         </div>
-      </div>
+      </button>
     `;
   },
 
@@ -1888,7 +1892,7 @@ const App = {
     const initial = (post.userDisplayName || 'U')[0];
 
     return `
-      <div class="discussion-item" onclick="App.openDiscussion('${post.postId}')">
+      <button type="button" class="discussion-item" onclick="App.openDiscussion('${post.postId}')">
         <div class="discussion-avatar">${initial}</div>
         <div class="discussion-content">
           <h3 class="discussion-title">${post.title}</h3>
@@ -1906,7 +1910,7 @@ const App = {
             ${tags.map(t => `<span class="tag">${t}</span>`).join('')}
           </div>
         </div>
-      </div>
+      </button>
     `;
   },
 
@@ -2050,11 +2054,11 @@ const App = {
 
     const status = statusMap[consultation.status] || statusMap['pending'];
     const type = typeMap[consultation.requestType] || consultation.requestType;
-    const date = new Date(consultation.createdAt).toLocaleDateString('zh-TW');
+    const date = this.formatLocaleDate(consultation.createdAt);
     const title = escapeHtml(consultation.title || t('support.chatTitle'));
 
     return `
-      <div class="consultation-item" onclick="App.openConsultation('${consultation.consultationId}')">
+      <button type="button" class="consultation-item" onclick="App.openConsultation('${consultation.consultationId}')">
         <div class="consultation-header">
           <h3>${title}</h3>
           <span class="status-badge ${status.class}">${status.text}</span>
@@ -2070,7 +2074,7 @@ const App = {
             <span class="consultation-link">前往對話 →</span>
           </div>
         </div>
-      </div>
+      </button>
     `;
   },
 
@@ -2233,7 +2237,7 @@ const App = {
     const initial = className[0];
 
     return `
-      <div class="class-card" onclick="App.openClassDetail('${classInfo.classId}')">
+      <button type="button" class="class-card" onclick="App.openClassDetail('${classInfo.classId}')">
         <div class="class-card-header">
           <div class="class-avatar">${initial}</div>
           <div class="class-info">
@@ -2252,7 +2256,7 @@ const App = {
           <button class="btn btn-sm" onclick="event.stopPropagation(); App.copyInviteCode('${classInfo.inviteCode}')">${t('app.copyInviteCode')}</button>
         </div>
         ` : ''}
-      </div>
+      </button>
     `;
   },
 
@@ -2360,7 +2364,7 @@ const App = {
     const memberName = member.displayName || member.userName || member.email || member.userEmail || 'Unknown';
     const memberEmail = member.email || member.userEmail || '';
     const initial = memberName[0];
-    const joinDate = member.joinedAt ? new Date(member.joinedAt).toLocaleDateString('zh-TW') : '';
+    const joinDate = member.joinedAt ? this.formatLocaleDate(member.joinedAt) : '';
 
     return `
       <div class="member-item">
@@ -2452,9 +2456,7 @@ const App = {
       const result = await API.users.update(user.userId, data);
       if (result.success) {
         // 更新本地用戶資料
-        const updatedUser = { ...user, ...data };
-        API.setCurrentUser(updatedUser);
-        this.currentUser = updatedUser;
+        const updatedUser = this.syncCurrentUserState({ ...user, ...data });
         this.updateUserUI();
         showToast(t('toast.profileUpdated'));
         return true;
@@ -3130,7 +3132,7 @@ const App = {
             const summary = this.escapeText(this.truncateText(c.description || c.summary || (I18n.getLocale() === 'en' ? 'Continue learning in this course workspace.' : '在這個課程工作區中持續學習與互動。'), 110));
             const instructor = this.escapeText(c.instructorName || (I18n.getLocale() === 'en' ? 'Course instructor' : '課程教師'));
             return `
-            <div class="course-card" onclick="MoodleUI.openCourse('${c.courseId}')">
+            <button type="button" class="course-card" onclick="MoodleUI.openCourse('${c.courseId}')">
               <div class="course-card-cover ${this.getToneClass(c.category || c.courseId || c.title)}">
                 <div class="course-card-cover-top">
                   <span class="course-category">${categoryLabel}</span>
@@ -3157,7 +3159,7 @@ const App = {
                   </div>
                 ` : ''}
               </div>
-            </div>
+            </button>
           `;
           }).join('')}
         </div>
@@ -3308,6 +3310,9 @@ const App = {
     if (!container) return;
     container.innerHTML = `<div class="loading-indicator">${t('common.loading')}</div>`;
     try {
+      if (typeof window.hydrateVideoProgressFromBackend === 'function') {
+        await window.hydrateVideoProgressFromBackend();
+      }
       const result = await API.resources.list({ type: 'video' });
       const videos = result.success ? (result.data || []) : [];
       const escapeText = value => {
@@ -3345,7 +3350,7 @@ const App = {
         if (typeof videoData !== 'undefined' && videoId) {
           videoData[videoId] = {
             ...existingMeta,
-            title: video.title || existingMeta.title || '未命名影片',
+            title: video.title || existingMeta.title || t('video.untitled'),
             author,
             duration,
             views: viewsValue !== null && viewsValue !== undefined ? compactNumber(viewsValue) : (existingMeta.views || '--'),
@@ -3459,8 +3464,8 @@ const App = {
                 </div>
                 <div class="video-library-body">
                   <div>
-                    <h3 class="video-library-card-title">${escapeText(video.title || '未命名影片')}</h3>
-                    <p class="video-library-card-desc">${escapeText((video.description || '').trim() ? (String(video.description).replace(/\s+/g, ' ').trim().slice(0, 120) + (String(video.description).replace(/\s+/g, ' ').trim().length > 120 ? '...' : '')) : '這支影片目前尚未提供補充說明。')}</p>
+                    <h3 class="video-library-card-title">${escapeText(video.title || t('video.untitled'))}</h3>
+                    <p class="video-library-card-desc">${escapeText((video.description || '').trim() ? (String(video.description).replace(/\s+/g, ' ').trim().slice(0, 120) + (String(video.description).replace(/\s+/g, ' ').trim().length > 120 ? '...' : '')) : t('video.noDescription'))}</p>
                   </div>
                   <div class="video-library-card-meta">
                     <span class="video-library-meta-item">
@@ -3469,12 +3474,12 @@ const App = {
                     </span>
                     <span class="video-library-meta-item">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12Z"/><circle cx="12" cy="12" r="3"/></svg>
-                      <span>${escapeText(video.viewsLabel)} 次觀看</span>
+                      <span>${escapeText(t('video.viewsLabel', { count: video.viewsLabel }))}</span>
                     </span>
                   </div>
                   <div class="video-library-progress-block">
                     <div class="video-library-progress-head">
-                      <span>學習進度</span>
+                      <span>${t('video.progressTitle')}</span>
                       <span>${video.progress}%</span>
                     </div>
                     <div class="video-progress">
@@ -3484,11 +3489,11 @@ const App = {
                   <div class="video-library-card-actions">
                     <button type="button" class="video-library-card-action secondary" onclick="event.stopPropagation(); addToPlaylist(${inlineValue(video.videoId)})">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                      <span>稍後觀看</span>
+                      <span>${t('video.watchLater')}</span>
                     </button>
                     <button type="button" class="video-library-card-action primary" onclick="event.stopPropagation(); openVideoPlayer && openVideoPlayer(${inlineValue(video.videoId)}, ${video.contentUrl ? inlineValue(video.contentUrl) : 'undefined'})">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5,3 19,12 5,21"/></svg>
-                      <span>立即播放</span>
+                      <span>${t('video.playNow')}</span>
                     </button>
                   </div>
                 </div>
@@ -3498,7 +3503,7 @@ const App = {
               <div class="discussion-state full-span">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="23,7 16,12 23,17"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
                 <div class="discussion-state-title">${t('app.noVideos')}</div>
-                <div class="discussion-state-copy">目前還沒有可用的影音橋段，稍後再回來看看。</div>
+                <div class="discussion-state-copy">${t('video.noVideosCopy')}</div>
               </div>
             ` : ''}
           </div>

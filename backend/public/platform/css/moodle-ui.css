@@ -11,10 +11,17 @@
 }
 
 .moodle-course-card {
+  display: block;
+  width: 100%;
+  padding: 0;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 244, 236, 0.96) 100%);
   border-radius: 24px;
   overflow: hidden;
   border: 1px solid rgba(26, 58, 92, 0.12);
+  appearance: none;
+  text-align: left;
+  color: inherit;
+  font: inherit;
   box-shadow: 0 18px 38px rgba(15, 23, 42, 0.08);
   transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
   cursor: pointer;
@@ -24,6 +31,11 @@
   transform: translateY(-4px);
   box-shadow: 0 26px 48px rgba(15, 23, 42, 0.14);
   border-color: rgba(26, 58, 92, 0.18);
+}
+
+.moodle-course-card:focus-visible {
+  outline: 3px solid rgba(45, 43, 107, 0.28);
+  outline-offset: 3px;
 }
 
 .moodle-course-card .course-cover {
@@ -581,7 +593,34 @@
   box-shadow: 0 10px 18px rgba(15, 23, 42, 0.04);
 }
 
+.activity-item-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  appearance: none;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.activity-item-main:focus-visible {
+  outline: none;
+}
+
 .activity-item:hover {
+  background: rgba(255, 255, 255, 0.98);
+  transform: translateY(-2px);
+  box-shadow: 0 18px 28px rgba(15, 23, 42, 0.08);
+  border-color: rgba(87, 109, 72, 0.16);
+}
+
+.activity-item:focus-within {
   background: rgba(255, 255, 255, 0.98);
   transform: translateY(-2px);
   box-shadow: 0 18px 28px rgba(15, 23, 42, 0.08);
@@ -698,7 +737,8 @@
   transition: opacity 0.2s;
 }
 
-.activity-item:hover .activity-actions {
+.activity-item:hover .activity-actions,
+.activity-item:focus-within .activity-actions {
   opacity: 1;
 }
 
@@ -1470,12 +1510,21 @@
   border: 2px solid var(--gray-200);
   border-radius: 12px;
   cursor: pointer;
+  width: 100%;
+  appearance: none;
   text-align: center;
-  transition: all 0.2s;
+  color: inherit;
+  font: inherit;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s, opacity 0.2s, transform 0.2s, box-shadow 0.2s;
 }
 
 .activity-type-card:hover {
   border-color: var(--olive);
+}
+
+.activity-type-card:focus-visible {
+  outline: 3px solid rgba(74, 93, 35, 0.22);
+  outline-offset: 3px;
 }
 
 .activity-type-card.selected {
@@ -1597,7 +1646,7 @@
   border: 1px solid var(--gray-200);
   border-radius: 8px;
   font-size: 0.95rem;
-  transition: all 0.2s;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s, opacity 0.2s, transform 0.2s, box-shadow 0.2s;
 }
 
 .form-group input:focus,
@@ -1632,7 +1681,7 @@
   border-radius: 8px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s, opacity 0.2s, transform 0.2s, box-shadow 0.2s;
 }
 
 .btn-primary:hover {
@@ -1650,7 +1699,7 @@
   border-radius: 8px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s, opacity 0.2s, transform 0.2s, box-shadow 0.2s;
 }
 
 .btn-secondary:hover {
@@ -1668,7 +1717,7 @@
   border-radius: 6px;
   font-size: 0.85rem;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s, opacity 0.2s, transform 0.2s, box-shadow 0.2s;
 }
 
 .btn-sm:hover {
@@ -1686,7 +1735,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s, opacity 0.2s, transform 0.2s, box-shadow 0.2s;
 }
 
 .btn-icon:hover {
@@ -1706,7 +1755,7 @@
   align-items: center;
   justify-content: center;
   color: var(--gray-400);
-  transition: all 0.2s;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s, opacity 0.2s, transform 0.2s, box-shadow 0.2s;
 }
 
 .btn-icon-sm:hover {
@@ -2320,9 +2369,16 @@
 }
 
 .file-upload-area {
+  display: block;
+  width: 100%;
   border: 1px dashed rgba(74, 93, 35, 0.36);
   border-radius: 18px;
   padding: 1.5rem 1.25rem;
+  background: transparent;
+  appearance: none;
+  text-align: center;
+  color: inherit;
+  font: inherit;
   text-align: center;
   cursor: pointer;
   transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
@@ -2334,12 +2390,18 @@
   transform: translateY(-1px);
 }
 
+.file-upload-area:focus-visible {
+  outline: 2px solid rgba(74, 93, 35, 0.24);
+  outline-offset: 3px;
+}
+
 .file-upload-area svg {
   margin-bottom: 0.6rem;
   color: var(--olive);
 }
 
-.file-upload-area p {
+.file-upload-copy {
+  display: block;
   color: var(--gray-500);
   font-size: 0.9rem;
   margin: 0;
@@ -2743,11 +2805,21 @@
   display: flex;
   gap: 1rem;
   cursor: pointer;
+  width: 100%;
+  appearance: none;
+  text-align: left;
+  color: inherit;
+  font: inherit;
   transition: background 0.2s;
 }
 
 .discussion-item:hover {
   background: var(--gray-50);
+}
+
+.discussion-item:focus-visible {
+  outline: 3px solid rgba(74, 93, 35, 0.22);
+  outline-offset: -3px;
 }
 
 .discussion-item.pinned {
@@ -2955,14 +3027,29 @@
 
 .calendar-day {
   min-height: 100px;
+  width: 100%;
   padding: 0.5rem;
   border: 1px solid var(--gray-100);
   position: relative;
+  background: transparent;
+  appearance: none;
+  text-align: left;
+  color: inherit;
+  font: inherit;
 }
 
 .calendar-day.other-month {
   background: var(--gray-50);
   color: var(--gray-400);
+}
+
+button.calendar-day {
+  cursor: pointer;
+}
+
+button.calendar-day:focus-visible {
+  outline: 2px solid rgba(74, 93, 35, 0.22);
+  outline-offset: 2px;
 }
 
 .calendar-day.today {
@@ -2986,6 +3073,7 @@
 }
 
 .calendar-event {
+  display: block;
   font-size: 0.75rem;
   padding: 0.2rem 0.5rem;
   border-radius: 4px;
@@ -3217,6 +3305,11 @@
   border: 1px solid rgba(26, 58, 92, 0.08);
   background: rgba(255,255,255,0.94);
   cursor: pointer;
+  width: 100%;
+  appearance: none;
+  text-align: left;
+  color: inherit;
+  font: inherit;
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
@@ -3224,6 +3317,11 @@
   transform: translateY(-2px);
   border-color: rgba(212, 165, 116, 0.28);
   box-shadow: 0 16px 28px rgba(15, 23, 42, 0.08);
+}
+
+.notification-center .notification-item:focus-visible {
+  outline: 3px solid rgba(74, 93, 35, 0.22);
+  outline-offset: 3px;
 }
 
 .notification-center .notification-item.unread {
@@ -3813,6 +3911,11 @@
   border-radius: 22px;
   margin-bottom: 0.85rem;
   cursor: pointer;
+  width: 100%;
+  appearance: none;
+  text-align: left;
+  color: inherit;
+  font: inherit;
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
   box-shadow: 0 12px 24px rgba(15, 23, 42, 0.05);
 }
@@ -3822,6 +3925,61 @@
   transform: translateY(-3px);
   box-shadow: 0 20px 32px rgba(15, 23, 42, 0.08);
   border-color: rgba(87, 109, 72, 0.18);
+}
+
+.assignment-card:focus-visible,
+.quiz-card:focus-visible {
+  outline: 3px solid rgba(74, 93, 35, 0.22);
+  outline-offset: 3px;
+}
+
+.quiz-card {
+  flex-direction: column;
+  gap: 0.95rem;
+}
+
+.quiz-card-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  appearance: none;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.quiz-card-main:focus-visible {
+  outline: none;
+}
+
+.quiz-card:focus-within {
+  outline: 3px solid rgba(74, 93, 35, 0.22);
+  outline-offset: 3px;
+}
+
+.activity-card-open-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--olive-deep);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.activity-card-open-btn:focus-visible {
+  outline: 2px solid rgba(74, 93, 35, 0.22);
+  outline-offset: 3px;
+  border-radius: 999px;
 }
 
 .assignment-icon,
@@ -4139,7 +4297,7 @@
   font-weight: 500;
   color: var(--gray-500);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s, opacity 0.2s, transform 0.2s, box-shadow 0.2s;
 }
 
 .tab-btn:hover {
@@ -4167,7 +4325,7 @@
   background: var(--white);
   border-radius: 12px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s, opacity 0.2s, transform 0.2s, box-shadow 0.2s;
 }
 
 .forum-item:hover {
@@ -4418,7 +4576,7 @@
   font-size: 0.85rem;
   color: var(--gray-500);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s, opacity 0.2s, transform 0.2s, box-shadow 0.2s;
 }
 
 .btn-like:hover {
@@ -4533,6 +4691,7 @@
 
 /* ==================== 新增事件按鈕 ==================== */
 .calendar-more {
+  display: block;
   font-size: 0.7rem;
   color: var(--gray-500);
   padding: 0.2rem;
@@ -5471,6 +5630,11 @@
   padding: 0.75rem;
   border-radius: var(--radius-md);
   cursor: pointer;
+  width: 100%;
+  appearance: none;
+  text-align: left;
+  color: inherit;
+  font: inherit;
   transition: var(--transition-fast);
   border: 1px solid transparent;
 }
@@ -5482,6 +5646,11 @@
 .role-item.active {
   background: var(--olive-muted);
   border-color: var(--olive-light);
+}
+
+.role-item:focus-visible {
+  outline: 3px solid rgba(74, 93, 35, 0.22);
+  outline-offset: 3px;
 }
 
 .role-item.system-role {
@@ -5691,25 +5860,70 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  padding: 0.25rem 0;
+}
+
+.expand-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  padding: 0;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  appearance: none;
+  font-size: 0.7rem;
+  color: var(--gray-400);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.18s ease, color 0.18s ease;
+}
+
+.expand-icon:hover:not(:disabled) {
+  background: var(--gray-100);
+  color: var(--gray-600);
+}
+
+.expand-icon:focus-visible {
+  outline: 2px solid rgba(74, 93, 35, 0.22);
+  outline-offset: 2px;
+}
+
+.expand-icon.is-placeholder {
+  cursor: default;
+}
+
+.category-node-main {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
   padding: 0.5rem 0.75rem;
+  border: none;
   border-radius: var(--radius-md);
+  background: transparent;
+  appearance: none;
+  text-align: left;
+  color: inherit;
+  font: inherit;
   cursor: pointer;
   transition: var(--transition-fast);
 }
 
-.category-node:hover {
+.category-node-main:hover {
   background: var(--gray-50);
 }
 
-.category-node.active {
+.category-node.active .category-node-main {
   background: var(--olive-muted);
 }
 
-.expand-icon {
-  font-size: 0.7rem;
-  width: 12px;
-  color: var(--gray-400);
-  cursor: pointer;
+.category-node:focus-within .category-node-main {
+  outline: 2px solid rgba(74, 93, 35, 0.22);
+  outline-offset: 2px;
 }
 
 .category-node svg {
@@ -6292,7 +6506,7 @@
   background: transparent;
   border: none;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), opacity var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .badge-tab:hover {
@@ -6815,11 +7029,21 @@
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
   overflow: hidden;
+  width: 100%;
+  appearance: none;
+  text-align: left;
+  color: inherit;
+  font: inherit;
   transition: box-shadow var(--transition-base);
 }
 
 .rubric-card:hover {
   box-shadow: var(--shadow-lg);
+}
+
+.rubric-card:focus-visible {
+  outline: 3px solid rgba(74, 93, 35, 0.22);
+  outline-offset: 3px;
 }
 
 .rubric-card-header {
@@ -7082,7 +7306,7 @@
   border: 1px dashed var(--olive-400);
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), opacity var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .add-level-btn:hover,
@@ -7104,7 +7328,7 @@
   border-radius: var(--radius-lg);
   padding: 1.25rem;
   cursor: pointer;
-  transition: all var(--transition-base);
+  transition: background-color var(--transition-base), border-color var(--transition-base), color var(--transition-base), opacity var(--transition-base), transform var(--transition-base), box-shadow var(--transition-base);
 }
 
 .template-card:hover {
@@ -7171,7 +7395,7 @@
   border-radius: var(--radius-md);
   color: var(--gray-600);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), opacity var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .btn-back:hover {
@@ -7314,7 +7538,7 @@
   border-radius: var(--radius-md);
   padding: 1.25rem;
   margin-bottom: 1rem;
-  transition: all var(--transition-fast);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), opacity var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .group-card:hover {
@@ -7398,7 +7622,7 @@
   background: white;
   color: var(--gray-600);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), opacity var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .btn-sm:hover {
@@ -7609,7 +7833,7 @@
   border: 2px solid var(--gray-200);
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), opacity var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .group-select-item:hover {
@@ -8947,12 +9171,22 @@
   border-radius: var(--radius-lg);
   overflow: hidden;
   box-shadow: var(--shadow-sm);
-  transition: all 0.3s ease;
+  width: 100%;
+  appearance: none;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, opacity 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .scorm-card:hover {
   transform: translateY(-4px);
   box-shadow: var(--shadow-md);
+}
+
+.scorm-card:focus-visible {
+  outline: 3px solid rgba(74, 93, 35, 0.22);
+  outline-offset: 3px;
 }
 
 .scorm-card .card-header {
@@ -9011,7 +9245,7 @@
   font-size: 0.8rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -9125,7 +9359,7 @@
   color: var(--gray-400);
   cursor: pointer;
   border-radius: 4px;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
   flex-shrink: 0;
 }
 
@@ -9145,12 +9379,22 @@
   border-radius: var(--radius-lg);
   overflow: hidden;
   box-shadow: var(--shadow-sm);
-  transition: all 0.3s ease;
+  width: 100%;
+  appearance: none;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, opacity 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .lti-tool-card:hover {
   transform: translateY(-4px);
   box-shadow: var(--shadow-md);
+}
+
+.lti-tool-card:focus-visible {
+  outline: 3px solid rgba(74, 93, 35, 0.22);
+  outline-offset: 3px;
 }
 
 .lti-tool-card .card-header {
@@ -9226,7 +9470,7 @@
   font-size: 0.8rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -9278,7 +9522,7 @@
   font-size: 0.85rem;
   color: var(--gray-600);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .h5p-filter-bar .filter-btn:hover,
@@ -9305,12 +9549,22 @@
   border-radius: var(--radius-lg);
   overflow: hidden;
   box-shadow: var(--shadow-sm);
-  transition: all 0.3s ease;
+  width: 100%;
+  appearance: none;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, opacity 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .h5p-card:hover {
   transform: translateY(-4px);
   box-shadow: var(--shadow-md);
+}
+
+.h5p-card:focus-visible {
+  outline: 3px solid rgba(74, 93, 35, 0.22);
+  outline-offset: 3px;
 }
 
 .h5p-card .card-thumbnail {
@@ -9383,7 +9637,7 @@
   font-size: 0.8rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -9885,7 +10139,7 @@
   border: 1px solid var(--gray-300);
   border-radius: var(--radius-md);
   font-size: 0.9rem;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .scorm-modal .form-group input:focus,
@@ -10063,7 +10317,7 @@
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   overflow: hidden;
-  transition: all 0.3s ease;
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, opacity 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .rubric-card:hover {
@@ -10118,7 +10372,7 @@
   font-size: 0.8rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .rubric-builder-modal {
@@ -10292,7 +10546,7 @@
   overflow: hidden;
   box-shadow: var(--shadow-sm);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, opacity 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .completion-settings-page .course-card:hover {
@@ -10419,7 +10673,7 @@
   height: 32px;
   padding: 4px;
   border-radius: var(--radius-sm);
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .quill-editor-container .ql-toolbar button:hover {
@@ -10958,7 +11212,7 @@
   padding: 0.35rem;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .mini-calendar-day:hover {

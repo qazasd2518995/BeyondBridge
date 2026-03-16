@@ -42,11 +42,37 @@ const FORUM_LIST_PROJECTION = [
   'updatedAt'
 ];
 
+const FORUM_DISCUSSION_INDEX_PROJECTION = [
+  'discussionId',
+  'forumId',
+  'title',
+  'authorName',
+  'authorRole',
+  'pinned',
+  'replyCount',
+  'lastReplyAt',
+  'lastReplyByName',
+  'contentPreview',
+  'createdAt',
+  'updatedAt'
+];
+
 function buildDiscussionPreview(content) {
   return String(content || '')
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, 160);
+}
+
+function normalizeLatestDiscussionMeta(latestDiscussion) {
+  if (!latestDiscussion || typeof latestDiscussion !== 'object') return null;
+  if (!latestDiscussion.discussionId && !latestDiscussion.title && !latestDiscussion.createdAt) return null;
+  return {
+    discussionId: latestDiscussion.discussionId || null,
+    title: latestDiscussion.title || '',
+    createdAt: latestDiscussion.createdAt || null,
+    authorName: latestDiscussion.authorName || '未知用戶'
+  };
 }
 
 function getDiscussionSortTime(discussion) {
@@ -113,6 +139,19 @@ async function getManagedCourseIdsForUser(user) {
   return managedCourses.map(course => course.courseId).filter(Boolean);
 }
 
+async function listAllCourseIds() {
+  const courses = await db.scan({
+    filter: {
+      expression: 'entityType = :type',
+      values: {
+        ':type': 'COURSE'
+      }
+    },
+    projection: ['courseId']
+  });
+  return courses.map(course => course.courseId).filter(Boolean);
+}
+
 async function getForumsForCourseIds(courseIds = []) {
   if (!Array.isArray(courseIds) || courseIds.length === 0) return [];
 
@@ -133,12 +172,13 @@ function summarizeForumFromIndices(forum, discussionRows) {
   const normalizedRows = discussionRows.map(normalizeDiscussionIndexRow).filter(Boolean);
   const hasStoredDiscussionCount = Number.isFinite(Number(forum.stats?.discussionCount));
   const hasStoredPostCount = Number.isFinite(Number(forum.stats?.postCount));
+  const storedLatestDiscussion = normalizeLatestDiscussionMeta(forum.stats?.latestDiscussion);
   const discussionCount = hasStoredDiscussionCount ? Number(forum.stats?.discussionCount) : normalizedRows.length;
   const postCount = hasStoredPostCount
     ? Number(forum.stats?.postCount)
     : normalizedRows.reduce((sum, row) => sum + Number(row.replyCount || 0), 0);
 
-  const latestDiscussion = normalizedRows
+  const latestDiscussion = storedLatestDiscussion || normalizedRows
     .slice()
     .sort((a, b) => new Date(getDiscussionSortTime(b) || 0) - new Date(getDiscussionSortTime(a) || 0))[0];
 
@@ -146,11 +186,43 @@ function summarizeForumFromIndices(forum, discussionRows) {
     discussionCount,
     postCount,
     latestDiscussion: latestDiscussion ? {
+      discussionId: latestDiscussion.discussionId || null,
       title: latestDiscussion.title,
       createdAt: getDiscussionSortTime(latestDiscussion),
       authorName: latestDiscussion.latestReply?.authorName || latestDiscussion.authorName
     } : null
   };
+}
+
+function forumNeedsDiscussionSummaryFallback(forum) {
+  const discussionCount = Number(forum?.stats?.discussionCount);
+  const postCount = Number(forum?.stats?.postCount);
+  const latestDiscussion = normalizeLatestDiscussionMeta(forum?.stats?.latestDiscussion);
+  if (!Number.isFinite(discussionCount) || !Number.isFinite(postCount)) {
+    return true;
+  }
+  if (discussionCount > 0 && !latestDiscussion) {
+    return true;
+  }
+  return false;
+}
+
+async function getLatestDiscussionMetaFromForumIndex(forumId) {
+  const discussions = await db.query(`FORUM#${forumId}`, {
+    skPrefix: 'DISCUSSION#',
+    projection: FORUM_DISCUSSION_INDEX_PROJECTION
+  });
+  const latestDiscussion = discussions
+    .map(normalizeDiscussionIndexRow)
+    .filter(Boolean)
+    .sort((a, b) => new Date(getDiscussionSortTime(b) || 0) - new Date(getDiscussionSortTime(a) || 0))[0];
+
+  return latestDiscussion ? {
+    discussionId: latestDiscussion.discussionId,
+    title: latestDiscussion.title,
+    createdAt: getDiscussionSortTime(latestDiscussion),
+    authorName: latestDiscussion.latestReply?.authorName || latestDiscussion.authorName
+  } : null;
 }
 
 async function deleteDiscussionGraph(discussionId) {
@@ -189,16 +261,8 @@ router.get('/', authMiddleware, async (req, res) => {
 
     let forums = [];
     if (isAdmin) {
-      forums = await db.scan({
-        filter: {
-          expression: 'entityType = :type',
-          values: { ':type': 'FORUM' }
-        },
-        projection: FORUM_LIST_PROJECTION
-      });
-      if (courseId) {
-        forums = forums.filter(f => f.courseId === courseId);
-      }
+      const adminCourseIds = courseId ? [courseId] : await listAllCourseIds();
+      forums = await getForumsForCourseIds(adminCourseIds);
     } else {
       const [progressList, managedCourseIds] = await Promise.all([
         db.getUserCourseProgress(req.user.userId),
@@ -219,31 +283,22 @@ router.get('/', authMiddleware, async (req, res) => {
       forums = await getForumsForCourseIds(scopedCourseIds);
     }
 
+    const forumsRequiringFallback = forums.filter(forumNeedsDiscussionSummaryFallback);
     const [forumDiscussionRows, subscriptionMap] = await Promise.all([
       Promise.all(
-        forums.map(f => db.query(`FORUM#${f.forumId}`, {
+        forumsRequiringFallback.map(f => db.query(`FORUM#${f.forumId}`, {
           skPrefix: 'DISCUSSION#',
-          projection: [
-            'discussionId',
-            'forumId',
-            'title',
-            'authorName',
-            'authorRole',
-            'pinned',
-            'replyCount',
-            'lastReplyAt',
-            'lastReplyByName',
-            'contentPreview',
-            'createdAt',
-            'updatedAt'
-          ]
+          projection: FORUM_DISCUSSION_INDEX_PROJECTION
         }))
       ),
       getForumSubscriptionMap(req.user.userId)
     ]);
+    const discussionFallbackMap = new Map(
+      forumsRequiringFallback.map((forum, index) => [forum.forumId, forumDiscussionRows[index] || []])
+    );
 
     const forumsWithStats = forums.map((f, index) => {
-        const discussions = forumDiscussionRows[index] || [];
+        const discussions = discussionFallbackMap.get(f.forumId) || [];
         const summary = summarizeForumFromIndices(f, discussions);
         const storedSubscription = subscriptionMap.get(f.forumId);
         const defaultSubscribed = f.subscriptionMode === 'forced' || f.subscriptionMode === 'auto';
@@ -449,7 +504,8 @@ router.post('/', authMiddleware, async (req, res) => {
 
       stats: {
         discussionCount: 0,
-        postCount: 0
+        postCount: 0,
+        latestDiscussion: null
       },
 
       createdBy: userId,
@@ -818,6 +874,12 @@ router.post('/:id/discussions', authMiddleware, async (req, res) => {
     // 更新討論區統計
     await db.updateItem(`FORUM#${id}`, 'META', {
       'stats.discussionCount': (forum.stats?.discussionCount || 0) + 1,
+      'stats.latestDiscussion': {
+        discussionId,
+        title,
+        createdAt: now,
+        authorName: user?.displayName || '未知用戶'
+      },
       updatedAt: now
     });
 
@@ -910,6 +972,18 @@ router.put('/:id/discussions/:discussionId', authMiddleware, async (req, res) =>
       });
     }
 
+    if (forum.stats?.latestDiscussion?.discussionId === discussionId) {
+      await db.updateItem(`FORUM#${id}`, 'META', {
+        'stats.latestDiscussion': {
+          discussionId,
+          title: updates.title || discussion.title,
+          createdAt: discussion.lastReplyAt || updates.updatedAt,
+          authorName: discussion.lastReplyByName || discussion.authorName || '未知用戶'
+        },
+        updatedAt: updates.updatedAt
+      });
+    }
+
     delete updatedDiscussion.PK;
     delete updatedDiscussion.SK;
 
@@ -964,10 +1038,13 @@ router.delete('/:id/discussions/:discussionId', authMiddleware, async (req, res)
     const deletedDiscussion = await deleteDiscussionGraph(discussionId);
     await db.deleteItem(`FORUM#${id}`, `DISCUSSION#${discussionId}`);
 
+    const latestDiscussion = await getLatestDiscussionMetaFromForumIndex(id);
+
     // 更新討論區統計
     await db.updateItem(`FORUM#${id}`, 'META', {
       'stats.discussionCount': Math.max(0, (forum.stats?.discussionCount || 1) - 1),
       'stats.postCount': Math.max(0, (forum.stats?.postCount || deletedDiscussion.postCount) - deletedDiscussion.postCount),
+      'stats.latestDiscussion': latestDiscussion,
       updatedAt: new Date().toISOString()
     });
 
@@ -1088,6 +1165,12 @@ router.post('/:id/discussions/:discussionId/posts', authMiddleware, async (req, 
     // 更新討論區統計
     await db.updateItem(`FORUM#${id}`, 'META', {
       'stats.postCount': (forum.stats?.postCount || 0) + 1,
+      'stats.latestDiscussion': {
+        discussionId,
+        title: discussion.title,
+        createdAt: now,
+        authorName: user?.displayName || '未知用戶'
+      },
       updatedAt: now
     });
 
@@ -1252,9 +1335,12 @@ router.delete('/:id/discussions/:discussionId/posts/:postId', authMiddleware, as
       ? 1
       : 0;
 
+    const latestDiscussion = await getLatestDiscussionMetaFromForumIndex(id);
+
     // 更新討論區統計
     await db.updateItem(`FORUM#${id}`, 'META', {
       'stats.postCount': Math.max(0, (forum.stats?.postCount || 1) - 1),
+      'stats.latestDiscussion': latestDiscussion,
       updatedAt: now
     });
 

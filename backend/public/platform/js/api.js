@@ -239,6 +239,17 @@ const API = {
 
     async getActivities(userId, limit = 50) {
       return API.request(`/users/${userId}/activities?limit=${limit}`);
+    },
+
+    async getVideoProgress(userId) {
+      return API.request(`/users/${userId}/video-progress`);
+    },
+
+    async updateVideoProgress(userId, videoId, data) {
+      return API.request(`/users/${userId}/video-progress/${encodeURIComponent(videoId)}`, {
+        method: 'PUT',
+        body: data
+      });
     }
   },
 

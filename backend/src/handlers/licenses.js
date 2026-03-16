@@ -134,14 +134,21 @@ router.post('/request', authMiddleware, async (req, res) => {
 
     // 檢查是否已有此資源的授權
     const existingLicenses = await db.getUserLicenses(userId);
-    const hasLicense = existingLicenses.some(
-      lic => lic.resourceId === resourceId && lic.status === 'active'
+    const existingLicense = existingLicenses.find(
+      lic => lic.resourceId === resourceId && ['active', 'pending'].includes(lic.status)
     );
-    if (hasLicense) {
+    if (existingLicense?.status === 'active') {
       return res.status(409).json({
         success: false,
         error: 'ALREADY_LICENSED',
         message: '您已擁有此資源的授權'
+      });
+    }
+    if (existingLicense?.status === 'pending') {
+      return res.status(409).json({
+        success: false,
+        error: 'LICENSE_REQUEST_PENDING',
+        message: '此資源的授權申請正在審核中'
       });
     }
 

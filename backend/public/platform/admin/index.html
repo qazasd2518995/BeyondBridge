@@ -1028,13 +1028,18 @@
         }
 
         .quick-action-btn {
+            display: block;
+            width: 100%;
             padding: 1.25rem 1rem;
             background: linear-gradient(135deg, var(--cream) 0%, white 100%);
             border: 2px solid var(--sand);
             border-radius: var(--radius-lg);
+            appearance: none;
             text-align: center;
+            color: inherit;
+            font: inherit;
             cursor: pointer;
-            transition: var(--transition-base);
+            transition: transform var(--transition-base), box-shadow var(--transition-base), border-color var(--transition-base), background-color var(--transition-base);
             position: relative;
             overflow: hidden;
         }
@@ -1048,7 +1053,7 @@
             height: 3px;
             background: linear-gradient(90deg, var(--olive) 0%, var(--olive-light) 100%);
             transform: scaleX(0);
-            transition: var(--transition-base);
+            transition: transform var(--transition-base);
         }
 
         .quick-action-btn:hover {
@@ -1056,6 +1061,11 @@
             border-color: var(--olive);
             transform: translateY(-3px);
             box-shadow: var(--shadow-md);
+        }
+
+        .quick-action-btn:focus-visible {
+            outline: 3px solid rgba(45, 43, 107, 0.28);
+            outline-offset: 3px;
         }
 
         .quick-action-btn:hover::before {
@@ -1067,7 +1077,7 @@
             height: 28px;
             margin-bottom: 0.75rem;
             color: var(--olive);
-            transition: var(--transition-base);
+            transition: transform var(--transition-base), color var(--transition-base);
         }
 
         .quick-action-btn:hover svg {
@@ -1215,6 +1225,11 @@
             margin-bottom: 0.7rem;
             border-radius: 20px;
             cursor: pointer;
+            width: 100%;
+            appearance: none;
+            text-align: left;
+            color: inherit;
+            font: inherit;
             transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease;
             border: 1px solid rgba(26, 58, 92, 0.08);
             background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248,245,239,0.94));
@@ -1242,6 +1257,10 @@
         }
         .queue-item.active::before {
             opacity: 1;
+        }
+        .queue-item:focus-visible {
+            outline: 3px solid rgba(74, 93, 35, 0.22);
+            outline-offset: 3px;
         }
         .queue-item-head {
             display: flex;
@@ -3438,6 +3457,11 @@
             padding: 1.25rem;
             cursor: pointer;
             border: 2px solid transparent;
+            width: 100%;
+            appearance: none;
+            text-align: left;
+            color: inherit;
+            font: inherit;
             transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
         }
 
@@ -3449,6 +3473,11 @@
         .role-filter-card.is-selected {
             border-color: var(--olive);
             box-shadow: 0 0 0 3px rgba(168, 184, 154, 0.18), var(--shadow-md);
+        }
+
+        .role-filter-card:focus-visible {
+            outline: 3px solid rgba(168, 184, 154, 0.24);
+            outline-offset: 3px;
         }
 
         .role-filter-summary {
@@ -3505,6 +3534,11 @@
             padding: 0.9rem 1rem;
             border-bottom: 1px solid var(--gray-200);
             cursor: pointer;
+            width: 100%;
+            appearance: none;
+            text-align: left;
+            color: inherit;
+            font: inherit;
             transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
         }
 
@@ -3519,6 +3553,11 @@
         .role-item.is-active {
             background: linear-gradient(90deg, rgba(168, 184, 154, 0.18) 0%, rgba(255, 255, 255, 0) 100%);
             border-left: 3px solid var(--olive);
+        }
+
+        .role-item:focus-visible {
+            outline: 3px solid rgba(168, 184, 154, 0.24);
+            outline-offset: -3px;
         }
 
         .role-item-head {
@@ -4067,14 +4106,19 @@
         .export-card {
             position: relative;
             overflow: hidden;
+            display: flex;
+            width: 100%;
             background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248,245,239,0.98));
             border-radius: 24px;
             padding: 1.35rem;
+            appearance: none;
+            text-align: left;
+            color: inherit;
+            font: inherit;
             cursor: pointer;
-            transition: var(--transition-base);
+            transition: transform var(--transition-base), box-shadow var(--transition-base), border-color var(--transition-base), background-color var(--transition-base);
             border: 1px solid rgba(26, 58, 92, 0.08);
             box-shadow: 0 18px 32px rgba(15, 23, 42, 0.06);
-            display: flex;
             flex-direction: column;
             gap: 1rem;
         }
@@ -4092,6 +4136,11 @@
             background: linear-gradient(180deg, rgba(255,255,255,1), rgba(248,245,239,0.98));
             transform: translateY(-4px);
             box-shadow: 0 24px 42px rgba(15, 23, 42, 0.1);
+        }
+
+        .export-card:focus-visible {
+            outline: 3px solid rgba(45, 43, 107, 0.28);
+            outline-offset: 3px;
         }
 
         .export-card-head {
@@ -4125,7 +4174,7 @@
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
-            transition: var(--transition-base);
+            transition: transform var(--transition-base), background-color var(--transition-base), color var(--transition-base);
         }
 
         .export-card:hover .export-icon {
@@ -5172,7 +5221,7 @@
                             </div>
                             <div class="card-body">
                                 <div class="quick-actions">
-                                    <div class="quick-action-btn" onclick="showView('users'); openCreateUserModal()">
+                                    <button type="button" class="quick-action-btn" onclick="showView('users'); openCreateUserModal()">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                             <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
                                             <circle cx="8.5" cy="7" r="4"/>
@@ -5180,21 +5229,21 @@
                                             <line x1="23" y1="11" x2="17" y2="11"/>
                                         </svg>
                                         <span data-i18n="admin.dashboard.addUser">新增用戶</span>
-                                    </div>
-                                    <div class="quick-action-btn" onclick="showView('courses')">
+                                    </button>
+                                    <button type="button" class="quick-action-btn" onclick="showView('courses')">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                             <polygon points="12,2 2,7 12,12 22,7"/>
                                             <line x1="12" y1="12" x2="12" y2="22"/>
                                         </svg>
                                         <span data-i18n="admin.dashboard.courseManage">課程管理</span>
-                                    </div>
-                                    <div class="quick-action-btn" onclick="showView('announcements'); openCreateAnnouncementModal()">
+                                    </button>
+                                    <button type="button" class="quick-action-btn" onclick="showView('announcements'); openCreateAnnouncementModal()">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                                         </svg>
                                         <span data-i18n="admin.dashboard.postAnnounce">發布公告</span>
-                                    </div>
-                                    <div class="quick-action-btn" onclick="showView('auditLogs')">
+                                    </button>
+                                    <button type="button" class="quick-action-btn" onclick="showView('auditLogs')">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                                             <polyline points="14 2 14 8 20 8"/>
@@ -5202,7 +5251,7 @@
                                             <line x1="16" y1="17" x2="8" y2="17"/>
                                         </svg>
                                         <span data-i18n="admin.dashboard.auditLogs">審計日誌</span>
-                                    </div>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -5258,7 +5307,7 @@
 
                 <!-- 角色分類統計 -->
                 <div class="role-stats">
-                    <div class="role-filter-card tone-all is-selected" onclick="filterUsersByRole('all')" id="roleCardAll">
+                    <button type="button" class="role-filter-card tone-all is-selected" onclick="filterUsersByRole('all')" id="roleCardAll">
                         <div class="role-filter-summary">
                             <div>
                                 <div class="role-filter-label" data-i18n="admin.users.allUsers">全部用戶</div>
@@ -5270,8 +5319,8 @@
                                 </svg>
                             </div>
                         </div>
-                    </div>
-                    <div class="role-filter-card tone-educator" onclick="filterUsersByRole('educator')" id="roleCardEducator">
+                    </button>
+                    <button type="button" class="role-filter-card tone-educator" onclick="filterUsersByRole('educator')" id="roleCardEducator">
                         <div class="role-filter-summary">
                             <div>
                                 <div class="role-filter-label" data-i18n="admin.users.educator">建橋者</div>
@@ -5283,8 +5332,8 @@
                                 </svg>
                             </div>
                         </div>
-                    </div>
-                    <div class="role-filter-card tone-trainer" onclick="filterUsersByRole('trainer')" id="roleCardTrainer">
+                    </button>
+                    <button type="button" class="role-filter-card tone-trainer" onclick="filterUsersByRole('trainer')" id="roleCardTrainer">
                         <div class="role-filter-summary">
                             <div>
                                 <div class="role-filter-label" data-i18n="admin.users.trainer">橋樑工匠</div>
@@ -5296,8 +5345,8 @@
                                 </svg>
                             </div>
                         </div>
-                    </div>
-                    <div class="role-filter-card tone-creator" onclick="filterUsersByRole('creator')" id="roleCardCreator">
+                    </button>
+                    <button type="button" class="role-filter-card tone-creator" onclick="filterUsersByRole('creator')" id="roleCardCreator">
                         <div class="role-filter-summary">
                             <div>
                                 <div class="role-filter-label" data-i18n="admin.users.creator">知識建築師</div>
@@ -5309,8 +5358,8 @@
                                 </svg>
                             </div>
                         </div>
-                    </div>
-                    <div class="role-filter-card tone-student" onclick="filterUsersByRole('student')" id="roleCardStudent">
+                    </button>
+                    <button type="button" class="role-filter-card tone-student" onclick="filterUsersByRole('student')" id="roleCardStudent">
                         <div class="role-filter-summary">
                             <div>
                                 <div class="role-filter-label" data-i18n="admin.users.student">探橋者</div>
@@ -5322,7 +5371,7 @@
                                 </svg>
                             </div>
                         </div>
-                    </div>
+                    </button>
                 </div>
 
                 <div class="card">
@@ -6216,7 +6265,7 @@
 
                 <!-- Export Options -->
                 <div class="export-options-grid">
-                    <div class="export-card" onclick="showExportModal('users')">
+                    <button type="button" class="export-card" onclick="showExportModal('users')">
                         <div class="export-card-head">
                             <div class="export-card-copy">
                                 <span class="export-card-kicker">Export</span>
@@ -6238,11 +6287,11 @@
                             <span class="format-badge">PDF</span>
                         </div>
                         <div class="export-card-footer">
-                            <span class="export-card-note">Profiles · roles · status</span>
+                            <span class="export-card-note">${t('admin.dataExport.userDataMeta')}</span>
                             <span class="export-card-cta">開始匯出</span>
                         </div>
-                    </div>
-                    <div class="export-card" onclick="showExportModal('courses')">
+                    </button>
+                    <button type="button" class="export-card" onclick="showExportModal('courses')">
                         <div class="export-card-head">
                             <div class="export-card-copy">
                                 <span class="export-card-kicker">Export</span>
@@ -6265,8 +6314,8 @@
                             <span class="export-card-note">Catalog · enrollments · progress</span>
                             <span class="export-card-cta">開始匯出</span>
                         </div>
-                    </div>
-                    <div class="export-card" onclick="showExportModal('licenses')">
+                    </button>
+                    <button type="button" class="export-card" onclick="showExportModal('licenses')">
                         <div class="export-card-head">
                             <div class="export-card-copy">
                                 <span class="export-card-kicker">Export</span>
@@ -6289,8 +6338,8 @@
                             <span class="export-card-note">Requests · approvals · expiry</span>
                             <span class="export-card-cta">開始匯出</span>
                         </div>
-                    </div>
-                    <div class="export-card" onclick="showExportModal('analytics')">
+                    </button>
+                    <button type="button" class="export-card" onclick="showExportModal('analytics')">
                         <div class="export-card-head">
                             <div class="export-card-copy">
                                 <span class="export-card-kicker">Export</span>
@@ -6314,7 +6363,7 @@
                             <span class="export-card-note">Trends · dates · engagement</span>
                             <span class="export-card-cta">開始匯出</span>
                         </div>
-                    </div>
+                    </button>
                 </div>
 
                 <!-- Recent Exports -->
@@ -9929,10 +9978,22 @@
         }
 
         // Helpers
-        function formatDate(dateStr) {
+        function getAdminLocaleTag() {
+            return I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW';
+        }
+
+        function formatDate(dateStr, options = {}) {
             if (!dateStr) return '-';
             const date = new Date(dateStr);
-            return date.toLocaleDateString('zh-TW');
+            if (Number.isNaN(date.getTime())) return '-';
+            return date.toLocaleDateString(getAdminLocaleTag(), options);
+        }
+
+        function formatDateTime(dateStr, options = {}) {
+            if (!dateStr) return '-';
+            const date = new Date(dateStr);
+            if (Number.isNaN(date.getTime())) return '-';
+            return date.toLocaleString(getAdminLocaleTag(), options);
         }
 
         // Navigation
@@ -10036,9 +10097,7 @@
             };
 
             tbody.innerHTML = logs.slice(0, 100).map((log) => {
-                const timeLabel = log.timestamp
-                    ? new Date(log.timestamp).toLocaleString('zh-TW')
-                    : '-';
+                const timeLabel = formatDateTime(log.timestamp);
                 const actionLabel = actionLabels[String(log.action || '').toLowerCase()] || log.action || '-';
 
                 return `
@@ -10064,8 +10123,8 @@
             if (isToday) {
                 return date.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
             } else {
-                return date.toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' }) + ' ' +
-                       date.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
+                return formatDate(date, { month: 'short', day: 'numeric' }) + ' ' +
+                       date.toLocaleTimeString(getAdminLocaleTag(), { hour: '2-digit', minute: '2-digit' });
             }
         }
 
@@ -10107,7 +10166,7 @@
                     <div class="admin-toast-title">${escapeHtml(titleMap[tone])}</div>
                     <div class="admin-toast-message">${escapeHtml(String(message || ''))}</div>
                 </div>
-                <button type="button" class="admin-toast-close" aria-label="Close notification">
+                <button type="button" class="admin-toast-close" aria-label="${escapeHtml(t('admin.toast.closeLabel'))}">
                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
             `;
@@ -10291,7 +10350,7 @@
                 };
 
                 return `
-                    <div class="queue-item ${isActive ? 'active' : ''}" onclick="openAdminChat('${room.chatId}')">
+                    <button type="button" class="queue-item ${isActive ? 'active' : ''}" onclick="openAdminChat('${room.chatId}')">
                         <div class="queue-item-head">
                             <div class="queue-user">
                                 <div class="queue-avatar">${escapeHtml(avatar)}</div>
@@ -10311,7 +10370,7 @@
                             <span class="queue-footer-copy">${room.agentName ? escapeHtml(`${document.documentElement.lang === 'en' ? 'Handled by' : '目前由'} ${room.agentName}`) : escapeHtml(document.documentElement.lang === 'en' ? 'Ready to claim or continue' : '可立即接手或延續處理')}</span>
                             <span class="queue-footer-copy">${escapeHtml(room.chatId)}</span>
                         </div>
-                    </div>
+                    </button>
                 `;
             }).join('');
         }
@@ -10878,7 +10937,7 @@
             grid.innerHTML = contents.map((content) => {
                 const contentId = content.id || content.contentId || '';
                 const libraryName = content.libraryName || 'Unknown';
-                const createdAt = content.createdAt ? new Date(content.createdAt).toLocaleDateString('zh-TW') : '-';
+                const createdAt = formatDate(content.createdAt);
 
                 return renderAdminEntityCard({
                     tone: 'h5p',
@@ -10968,7 +11027,7 @@
                         <td><span class="badge badge-info">${escapeHtml(versionLabel)}</span></td>
                         <td>${escapeHtml(String(pkg.courseName || pkg.courseId || '-'))}</td>
                         <td>${escapeHtml(String(pkg.completionCount || 0))}</td>
-                        <td>${escapeHtml(packageDate ? new Date(packageDate).toLocaleDateString('zh-TW') : '-')}</td>
+                        <td>${escapeHtml(formatDate(packageDate))}</td>
                         <td>
                             <button class="btn-icon" onclick="previewScorm('${escapeHtml(String(packageId))}')" title="${t('common.preview')}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
                             <button class="btn-icon" onclick="deleteScorm('${escapeHtml(String(packageId))}')" title="${t('common.delete')}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
@@ -11207,7 +11266,7 @@
                 const visibleRoles = roles.length === 0 ? defaultRoles : roles;
 
                 container.innerHTML = visibleRoles.map(role => `
-                    <div class="role-item" data-role-id="${escapeHtml(role.id)}" onclick="selectRole('${role.id}')">
+                    <button type="button" class="role-item" data-role-id="${escapeHtml(role.id)}" onclick="selectRole('${role.id}')">
                         <div class="role-item-head">
                             <div>
                                 <div class="role-item-title">
@@ -11218,7 +11277,7 @@
                             <span class="role-item-meta">${role.userCount || 0} ${t('admin.roles.userCount')}</span>
                         </div>
                         <p class="role-item-desc">${escapeHtml(role.description || t('admin.roles.noDescription'))}</p>
-                    </div>
+                    </button>
                 `).join('');
             } catch (error) {
                 console.error('Load roles error:', error);
@@ -11318,7 +11377,7 @@
                     stats: [
                         `${t('admin.rubrics.totalScore')}: ${rubric.totalScore || 0}`,
                         `${t('admin.rubrics.courseCount')}: ${rubric.usageCount ?? rubric.courseCount ?? 0}`,
-                        `${t('admin.rubrics.createdDate')}: ${rubric.createdAt ? new Date(rubric.createdAt).toLocaleDateString('zh-TW') : '-'}`
+                        `${t('admin.rubrics.createdDate')}: ${formatDate(rubric.createdAt)}`
                     ]
                 })).join('');
             } catch (error) {
@@ -11376,7 +11435,7 @@
 
             exportRows.forEach((log) => {
                 lines.push([
-                    log.timestamp ? new Date(log.timestamp).toLocaleString('zh-TW') : '-',
+                    formatDateTime(log.timestamp),
                     log.user || '-',
                     log.action || '-',
                     log.target || '-',
@@ -11579,7 +11638,7 @@
                             <span class="error-log-severity ${err.severity}">${err.severity || 'info'}</span>
                         </div>
                         <div class="error-log-body">
-                            <div class="error-log-meta">${err.category} · ${new Date(err.timestamp).toLocaleString('zh-TW')}</div>
+                            <div class="error-log-meta">${err.category} · ${formatDateTime(err.timestamp)}</div>
                         </div>
                     </div>
                 `).join('');
@@ -11904,7 +11963,7 @@
                     range: type === 'analytics' ? exportRange : '',
                     exportedAt
                 });
-                showToast(message || '匯出完成');
+                showToast(message || t('admin.success.exported'));
                 return true;
             } catch (error) {
                 console.error('Export error:', error);
@@ -12213,7 +12272,7 @@
                     return;
                 }
 
-                showToast(result.message || (ruleId ? '規則更新成功' : '規則建立成功'));
+                showToast(result.message || (ruleId ? t('admin.automation.ruleUpdated') : t('admin.automation.ruleCreated')));
                 closeModal('automationRuleModal');
                 await loadAutomationRules();
             } catch (error) {
@@ -12504,7 +12563,7 @@
                     return false;
                 }
 
-                showToast(result.message || successFallback || '操作成功');
+                showToast(result.message || successFallback || t('admin.success.operation'));
                 if (typeof reloadFn === 'function') {
                     await reloadFn();
                 }
@@ -12714,7 +12773,7 @@
                                 { value: '2004', label: '2004' }
                             ]
                         },
-                        { name: 'entryUrl', label: '入口 URL', placeholder: 'https://...' }
+                        { name: 'entryUrl', label: t('admin.forms.entryUrl'), placeholder: t('admin.forms.urlPlaceholder') }
                     ]
                 });
 
@@ -12738,7 +12797,7 @@
             try {
                 const result = await API.scorm.get(packageId);
                 if (!result.success || !result.data) {
-                    showToast(result.message || '無法載入 SCORM 包資訊', 'error');
+                    showToast(result.message || t('admin.scorm.previewFailed'), 'error');
                     return;
                 }
 
@@ -12750,12 +12809,12 @@
                 }
 
                 await showAdminMessageDialog({
-                    title: 'SCORM 包資訊',
+                    title: t('admin.scorm.previewTitle'),
                     message: [
-                        `名稱: ${pkg.name || '-'}`,
-                        `課程: ${pkg.courseId || '-'}`,
-                        `版本: ${pkg.version || '-'}`,
-                        `建立時間: ${pkg.createdAt ? new Date(pkg.createdAt).toLocaleString('zh-TW') : '-'}`
+                        `${t('common.name')}: ${pkg.name || '-'}`,
+                        `${t('admin.scorm.course')}: ${pkg.courseId || '-'}`,
+                        `${t('admin.scorm.version')}: ${pkg.version || '-'}`,
+                        `${t('common.createdAt')}: ${formatDateTime(pkg.createdAt)}`
                     ].join('\n')
                 });
             } catch (error) {
@@ -12768,23 +12827,23 @@
             try {
                 await showConfirmDialog({
                     title: t('admin.confirm.deleteTitle'),
-                    message: '確定要刪除此 SCORM 包嗎？',
+                    message: t('admin.scorm.confirmDelete'),
                     type: 'danger',
                     confirmText: t('common.delete')
                 });
 
                 const result = await API.scorm.delete(packageId);
                 if (!result.success) {
-                    showToast(result.message || '刪除 SCORM 包失敗', 'error');
+                    showToast(result.message || t('admin.scorm.deleteFailed'), 'error');
                     return;
                 }
 
-                showToast(result.message || 'SCORM 包已刪除');
+                showToast(result.message || t('admin.success.deleted'));
                 loadScorm();
             } catch (error) {
                 if (error.message !== 'cancelled') {
                     console.error('Delete SCORM error:', error);
-                    showToast('刪除 SCORM 包失敗', 'error');
+                    showToast(t('admin.scorm.deleteFailed'), 'error');
                 }
             }
         }
@@ -12795,8 +12854,8 @@
                     title: t('admin.lti.addTool'),
                     submitText: t('common.create'),
                     fields: [
-                        { name: 'name', label: 'LTI 工具名稱', required: true },
-                        { name: 'toolUrl', label: '工具 URL', required: true, placeholder: 'https://...' },
+                        { name: 'name', label: t('admin.lti.nameCol'), required: true },
+                        { name: 'toolUrl', label: t('admin.forms.toolUrl'), required: true, placeholder: t('admin.forms.urlPlaceholder') },
                         { name: 'description', label: '工具描述', type: 'textarea', rows: 3 },
                         {
                             name: 'version',
@@ -12839,8 +12898,8 @@
                     title: `${t('common.edit')} LTI`,
                     submitText: t('common.save'),
                     fields: [
-                        { name: 'name', label: 'LTI 工具名稱', required: true, value: tool.name || '' },
-                        { name: 'toolUrl', label: '工具 URL', required: true, value: tool.toolUrl || '', placeholder: 'https://...' },
+                        { name: 'name', label: t('admin.lti.nameCol'), required: true, value: tool.name || '' },
+                        { name: 'toolUrl', label: t('admin.forms.toolUrl'), required: true, value: tool.toolUrl || '', placeholder: t('admin.forms.urlPlaceholder') },
                         { name: 'description', label: '工具描述', type: 'textarea', rows: 3, value: tool.description || '' },
                         {
                             name: 'version',
@@ -12863,16 +12922,16 @@
                 });
 
                 if (!updateResult.success) {
-                    showToast(updateResult.message || '更新 LTI 工具失敗', 'error');
+                    showToast(updateResult.message || t('admin.error.saveFailed'), 'error');
                     return;
                 }
 
-                showToast(updateResult.message || 'LTI 工具更新成功');
+                showToast(updateResult.message || t('admin.success.saved'));
                 loadLti();
             } catch (error) {
                 if (error.message !== 'cancelled') {
                     console.error('Edit LTI error:', error);
-                    showToast('更新 LTI 工具失敗', 'error');
+                    showToast(t('admin.error.saveFailed'), 'error');
                 }
             }
         }
@@ -12881,23 +12940,23 @@
             try {
                 await showConfirmDialog({
                     title: t('admin.confirm.deleteTitle'),
-                    message: '確定要刪除此 LTI 工具嗎？',
+                    message: t('admin.lti.confirmDelete'),
                     type: 'danger',
                     confirmText: t('common.delete')
                 });
 
                 const result = await API.ltiTools.delete(toolId);
                 if (!result.success) {
-                    showToast(result.message || '刪除 LTI 工具失敗', 'error');
+                    showToast(result.message || t('admin.error.deleteFailed'), 'error');
                     return;
                 }
 
-                showToast(result.message || 'LTI 工具已刪除');
+                showToast(result.message || t('admin.success.deleted'));
                 loadLti();
             } catch (error) {
                 if (error.message !== 'cancelled') {
                     console.error('Delete LTI error:', error);
-                    showToast('刪除 LTI 工具失敗', 'error');
+                    showToast(t('admin.error.deleteFailed'), 'error');
                 }
             }
         }
@@ -12923,7 +12982,7 @@
                         courseId: values.courseId || null
                     }),
                     loadH5p,
-                    'H5P 內容建立成功'
+                    t('admin.h5p.created')
                 );
             } catch (error) {
                 // 用戶取消
@@ -12949,7 +13008,7 @@
                         capabilities: []
                     }),
                     loadRoles,
-                    '角色建立成功'
+                    t('admin.success.saved')
                 );
             } catch (error) {
                 // 用戶取消
@@ -12974,7 +13033,7 @@
                         criteria: []
                     }),
                     loadRubrics,
-                    '評分標準建立成功'
+                    t('admin.success.saved')
                 );
             } catch (error) {
                 // 用戶取消
@@ -13000,7 +13059,7 @@
                     fields: [
                         {
                             name: 'raw',
-                            label: '題目 JSON 陣列',
+                            label: t('admin.questionBank.importJsonArray'),
                             type: 'textarea',
                             rows: 12,
                             required: true,
@@ -13008,7 +13067,7 @@
                             spellcheck: false,
                             hint: '請貼上 JSON Array，每筆需包含 questionText、type 等欄位'
                         },
-                        { name: 'categoryId', label: '指定匯入 categoryId', value: '' }
+                        { name: 'categoryId', label: t('admin.questionBank.importCategoryId'), value: '' }
                     ]
                 });
 
@@ -13016,12 +13075,12 @@
                 try {
                     questions = JSON.parse(values.raw);
                 } catch (error) {
-                    showToast('JSON 格式錯誤，請提供有效的 JSON 陣列。', 'error');
+                    showToast(t('admin.questionBank.invalidJsonArray'), 'error');
                     return;
                 }
 
                 if (!Array.isArray(questions) || questions.length === 0) {
-                    showToast('請提供至少一筆題目資料。', 'error');
+                    showToast(t('admin.questionBank.importEmpty'), 'error');
                     return;
                 }
 

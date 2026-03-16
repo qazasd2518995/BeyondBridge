@@ -419,7 +419,7 @@
             padding: 0.5rem 1rem;
             width: 300px;
             border: 1px solid var(--gray-200);
-            transition: all 0.2s ease;
+            transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
         }
 
         .search-box:focus-within {
@@ -453,7 +453,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.2s ease;
+            transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
             position: relative;
         }
 
@@ -683,6 +683,11 @@
             padding: 1rem;
             border-radius: var(--radius-md);
             border: 1px solid var(--sand);
+            width: 100%;
+            appearance: none;
+            text-align: left;
+            color: inherit;
+            font: inherit;
             transition: var(--transition-base);
             background: linear-gradient(135deg, var(--white) 0%, var(--cream) 100%);
             cursor: pointer;
@@ -693,6 +698,11 @@
             background: linear-gradient(135deg, var(--olive-muted) 0%, var(--cream) 100%);
             transform: translateX(6px);
             box-shadow: var(--shadow-sm);
+        }
+
+        .course-item:focus-visible {
+            outline: 3px solid rgba(74, 93, 35, 0.22);
+            outline-offset: 3px;
         }
 
         .course-thumbnail {
@@ -760,6 +770,107 @@
             gap: 0.75rem;
         }
 
+        .class-card {
+            display: flex;
+            flex-direction: column;
+            gap: 0.95rem;
+            width: 100%;
+            padding: 1rem 1.05rem;
+            border-radius: 20px;
+            border: 1px solid rgba(26, 58, 92, 0.08);
+            background: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,245,239,0.96) 100%);
+            box-shadow: 0 14px 24px rgba(15, 23, 42, 0.05);
+            appearance: none;
+            text-align: left;
+            color: inherit;
+            font: inherit;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+
+        .class-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 32px rgba(15, 23, 42, 0.08);
+            border-color: rgba(74, 93, 35, 0.18);
+        }
+
+        .class-card:focus-visible {
+            outline: 3px solid rgba(74, 93, 35, 0.22);
+            outline-offset: 3px;
+        }
+
+        .class-card-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.85rem;
+        }
+
+        .class-avatar {
+            width: 2.6rem;
+            height: 2.6rem;
+            border-radius: 0.95rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            background: linear-gradient(135deg, var(--olive) 0%, var(--olive-deep) 100%);
+            color: var(--cream);
+            font-size: 1rem;
+            font-weight: 700;
+            box-shadow: 0 12px 22px rgba(15, 23, 42, 0.12);
+        }
+
+        .class-info {
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+
+        .class-info h3 {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--charcoal);
+            line-height: 1.4;
+        }
+
+        .class-info p {
+            margin: 0;
+            color: var(--gray-600);
+            line-height: 1.6;
+            font-size: 0.88rem;
+        }
+
+        .class-card-body {
+            padding-top: 0.85rem;
+            border-top: 1px solid rgba(26, 58, 92, 0.08);
+        }
+
+        .class-stats {
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+            flex-wrap: wrap;
+            font-size: 0.8rem;
+            color: var(--gray-600);
+        }
+
+        .class-stats span {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.38rem 0.7rem;
+            border-radius: 999px;
+            background: rgba(45, 43, 107, 0.08);
+            color: var(--olive-deep);
+            font-weight: 700;
+        }
+
+        .class-card-footer {
+            display: flex;
+            justify-content: flex-end;
+        }
+
         .progress-bar {
             flex: 1;
             height: 6px;
@@ -803,6 +914,11 @@
             padding: 1.08rem 1.1rem;
             border: 1px solid rgba(26, 58, 92, 0.08);
             border-radius: 20px;
+            width: 100%;
+            appearance: none;
+            text-align: left;
+            color: inherit;
+            font: inherit;
             background: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,245,239,0.98) 100%);
             transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
             box-shadow: 0 14px 24px rgba(15, 23, 42, 0.05);
@@ -824,6 +940,11 @@
             transform: translateY(-3px);
             border-color: rgba(212, 165, 116, 0.34);
             box-shadow: 0 22px 34px rgba(15, 23, 42, 0.09);
+        }
+
+        .dashboard-row-card:focus-visible {
+            outline: 3px solid rgba(74, 93, 35, 0.22);
+            outline-offset: 3px;
         }
 
         .dashboard-row-icon {
@@ -1454,13 +1575,23 @@
             padding: 1.25rem;
             text-align: center;
             cursor: pointer;
-            transition: var(--transition-base);
+            width: 100%;
+            background: transparent;
+            appearance: none;
+            color: inherit;
+            font: inherit;
+            transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
         }
 
         .pending-task-item:hover {
             transform: translateY(-3px);
             border-color: var(--olive-light);
             box-shadow: var(--shadow-sm);
+        }
+
+        .pending-task-item:focus-visible {
+            outline: 3px solid rgba(74, 93, 35, 0.22);
+            outline-offset: 3px;
         }
 
         .pending-task-item.tone-terracotta {
@@ -1878,6 +2009,11 @@
             border: 1px solid rgba(26, 58, 92, 0.1);
             box-shadow: 0 18px 34px rgba(15, 23, 42, 0.06);
             cursor: pointer;
+            width: 100%;
+            appearance: none;
+            text-align: left;
+            color: inherit;
+            font: inherit;
             transition: var(--transition-base);
         }
 
@@ -1885,6 +2021,11 @@
             transform: translateY(-4px);
             box-shadow: 0 24px 42px rgba(15, 23, 42, 0.1);
             border-color: rgba(26, 58, 92, 0.16);
+        }
+
+        .bridge-class-card:focus-visible {
+            outline: 3px solid rgba(74, 93, 35, 0.22);
+            outline-offset: 3px;
         }
 
         .bridge-class-card::after {
@@ -2082,6 +2223,11 @@
             border: 1px solid rgba(26, 58, 92, 0.1);
             box-shadow: 0 18px 34px rgba(15, 23, 42, 0.06);
             cursor: pointer;
+            width: 100%;
+            appearance: none;
+            text-align: left;
+            color: inherit;
+            font: inherit;
             transition: var(--transition-base);
         }
 
@@ -2089,6 +2235,11 @@
             transform: translateY(-4px);
             box-shadow: 0 24px 42px rgba(15, 23, 42, 0.1);
             border-color: rgba(26, 58, 92, 0.16);
+        }
+
+        .bridge-student-class-card:focus-visible {
+            outline: 3px solid rgba(74, 93, 35, 0.22);
+            outline-offset: 3px;
         }
 
         .bridge-student-class-card::after {
@@ -4409,6 +4560,48 @@
 
         .forum-card {
             cursor: pointer;
+            width: 100%;
+            padding: 1.25rem;
+            appearance: none;
+            text-align: left;
+            color: inherit;
+            font: inherit;
+        }
+
+        .forum-card:focus-visible {
+            outline: 3px solid rgba(74, 93, 35, 0.24);
+            outline-offset: 3px;
+        }
+
+        .forum-topic-card {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+        }
+
+        .forum-topic-main {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            width: 100%;
+            padding: 0;
+            border: none;
+            background: transparent;
+            appearance: none;
+            text-align: left;
+            color: inherit;
+            font: inherit;
+            cursor: pointer;
+        }
+
+        .forum-topic-card:focus-within {
+            border-color: rgba(74, 93, 35, 0.24);
+            box-shadow: var(--shadow-md);
+            transform: translateY(-1px);
+        }
+
+        .forum-topic-main:focus-visible {
+            outline: none;
         }
 
         .forum-card-icon,
@@ -4924,7 +5117,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.2s ease;
+            transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
         }
 
         .calendar-nav button:hover {
@@ -4955,7 +5148,7 @@
             font-size: 0.8rem;
             border-radius: 4px;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
         }
 
         .calendar-day:hover {
@@ -5195,11 +5388,18 @@
         }
 
         .resource-card {
+            display: block;
+            width: 100%;
+            padding: 0;
             background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 245, 239, 0.98) 100%);
             border-radius: 24px;
             border: 1px solid rgba(26, 58, 92, 0.1);
             overflow: hidden;
-            transition: var(--transition-base);
+            appearance: none;
+            text-align: left;
+            color: inherit;
+            font: inherit;
+            transition: transform var(--transition-base), box-shadow var(--transition-base), border-color var(--transition-base);
             cursor: pointer;
             box-shadow: 0 18px 34px rgba(15, 23, 42, 0.06);
             opacity: 0;
@@ -5221,13 +5421,18 @@
             height: 5px;
             background: linear-gradient(90deg, rgba(87, 109, 72, 0.94), rgba(26, 58, 92, 0.92));
             opacity: 0.92;
-            transition: var(--transition-base);
+            transition: opacity var(--transition-base);
         }
 
         .resource-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 26px 44px rgba(15, 23, 42, 0.1);
             border-color: rgba(26, 58, 92, 0.16);
+        }
+
+        .resource-card:focus-visible {
+            outline: 3px solid rgba(45, 43, 107, 0.28);
+            outline-offset: 3px;
         }
 
         /* Staggered animation for cards */
@@ -6554,22 +6759,22 @@
                         </div>
                         <div class="card-body">
                             <div class="pending-tasks-grid">
-                                <div class="pending-task-item tone-terracotta" onclick="showView('moodleAssignments'); MoodleUI.loadAssignments();">
+                                <button type="button" class="pending-task-item tone-terracotta" onclick="showView('moodleAssignments'); MoodleUI.loadAssignments();">
                                     <div class="pending-task-count tone-terracotta" id="pendingAssignments">0</div>
                                     <div class="pending-task-label" data-i18n="teacher.pendingAssignments">待批改作業</div>
-                                </div>
-                                <div class="pending-task-item tone-blue" onclick="showView('moodleQuizzes'); MoodleUI.loadQuizzes();">
+                                </button>
+                                <button type="button" class="pending-task-item tone-blue" onclick="showView('moodleQuizzes'); MoodleUI.loadQuizzes();">
                                     <div class="pending-task-count tone-blue" id="pendingQuizzes">0</div>
                                     <div class="pending-task-label" data-i18n="teacher.pendingQuizReview">待審核測驗</div>
-                                </div>
-                                <div class="pending-task-item tone-sand" onclick="showView('moodleForums'); MoodleUI.loadForums();">
+                                </button>
+                                <button type="button" class="pending-task-item tone-sand" onclick="showView('moodleForums'); MoodleUI.loadForums();">
                                     <div class="pending-task-count tone-sand" id="pendingForums">0</div>
                                     <div class="pending-task-label" data-i18n="teacher.pendingForumReplies">待回覆討論</div>
-                                </div>
-                                <div class="pending-task-item tone-olive" onclick="showView('moodleNotifications'); MoodleUI.loadNotifications();">
+                                </button>
+                                <button type="button" class="pending-task-item tone-olive" onclick="showView('moodleNotifications'); MoodleUI.loadNotifications();">
                                     <div class="pending-task-count tone-olive" id="pendingNotifications">0</div>
                                     <div class="pending-task-label" data-i18n="teacher.newNotifications">新通知</div>
-                                </div>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -7017,22 +7222,22 @@
                 <!-- Profile Banner -->
                 <div class="card settings-hero">
                     <div class="card-body settings-hero-body">
-                        <div id="settingsProfileInitial" class="settings-hero-avatar">林</div>
+                        <div id="settingsProfileInitial" class="settings-hero-avatar">—</div>
                         <div class="settings-hero-content">
-                            <h2 id="settingsProfileName" class="settings-hero-name">林建橋者</h2>
-                            <p id="settingsProfileEmail" class="settings-hero-email">teacher.lin@school.edu.tw</p>
+                            <h2 id="settingsProfileName" class="settings-hero-name">—</h2>
+                            <p id="settingsProfileEmail" class="settings-hero-email">—</p>
                             <div class="settings-hero-meta">
                                 <span id="settingsHeroTier" class="settings-hero-meta-card">
                                     <span class="settings-hero-meta-label" data-i18n="settings.memberLevel">會員等級</span>
-                                    <strong class="settings-hero-meta-value" data-i18n="settings.memberPro">專業版</strong>
+                                    <strong class="settings-hero-meta-value">—</strong>
                                 </span>
                                 <span id="settingsHeroJoinDate" class="settings-hero-meta-card">
                                     <span class="settings-hero-meta-label" data-i18n="settings.joinDate">加入日期</span>
-                                    <strong class="settings-hero-meta-value">2024/01/15</strong>
+                                    <strong class="settings-hero-meta-value">—</strong>
                                 </span>
                                 <span id="settingsHeroLicense" class="settings-hero-meta-card">
                                     <span class="settings-hero-meta-label" data-i18n="settings.licenseQuota">授權額度</span>
-                                    <strong class="settings-hero-meta-value">50/100</strong>
+                                    <strong class="settings-hero-meta-value">0/0</strong>
                                 </span>
                             </div>
                         </div>
@@ -7044,7 +7249,7 @@
                     <div class="card settings-panel">
                         <div class="card-header settings-panel-head">
                             <div>
-                                <div class="settings-panel-kicker">Profile</div>
+                                <div class="settings-panel-kicker" data-i18n="settings.panelProfileKicker">Profile</div>
                                 <h2 class="card-title" data-i18n="settings.profileTitle">建橋者資料</h2>
                                 <p class="settings-panel-desc">更新你的基本資訊，讓橋隊、課程與平台資料保持一致。</p>
                             </div>
@@ -7084,7 +7289,7 @@
                     <div class="card settings-panel">
                         <div class="card-header settings-panel-head">
                             <div>
-                                <div class="settings-panel-kicker">Notifications</div>
+                                <div class="settings-panel-kicker" data-i18n="settings.panelNotificationsKicker">Notifications</div>
                                 <h2 class="card-title" data-i18n="settings.notificationsTitle">通知設定</h2>
                                 <p class="settings-panel-desc">決定哪些提醒會出現在平台內與電子郵件中。</p>
                             </div>
@@ -7113,7 +7318,7 @@
                     <div class="card settings-panel">
                         <div class="card-header settings-panel-head">
                             <div>
-                                <div class="settings-panel-kicker">Security</div>
+                                <div class="settings-panel-kicker" data-i18n="settings.panelSecurityKicker">Security</div>
                                 <h2 class="card-title" data-i18n="settings.securityTitle">安全設定</h2>
                                 <p class="settings-panel-desc">定期更新密碼，維持你的帳號與學習資料安全。</p>
                             </div>
@@ -7146,7 +7351,7 @@
                     <div class="card settings-panel">
                         <div class="card-header settings-panel-head">
                             <div>
-                                <div class="settings-panel-kicker">Preferences</div>
+                                <div class="settings-panel-kicker" data-i18n="settings.panelPreferencesKicker">Preferences</div>
                                 <h2 class="card-title" data-i18n="settings.displayTitle">顯示偏好</h2>
                                 <p class="settings-panel-desc">依照你的學習節奏調整平台視覺與介面偏好。</p>
                             </div>
@@ -7442,7 +7647,7 @@
             </div>
         </div>
         <div class="notification-list">
-            <div class="notification-item unread">
+            <button type="button" class="notification-item unread" onclick="openNotificationFromPanel('demo-resource-update')">
                 <div class="notification-icon new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg></div>
                 <div class="notification-content">
                     <div class="notification-chip">教材</div>
@@ -7450,8 +7655,8 @@
                     <div class="message">AI 輔助築橋設計已可加入授權與學習清單。</div>
                     <div class="time">10 分鐘前</div>
                 </div>
-            </div>
-            <div class="notification-item unread">
+            </button>
+            <button type="button" class="notification-item unread" onclick="openNotificationFromPanel('demo-license-approved')">
                 <div class="notification-icon complete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg></div>
                 <div class="notification-content">
                     <div class="notification-chip">授權</div>
@@ -7459,8 +7664,8 @@
                     <div class="message">你已可開始使用申請中的教材與相關學習資源。</div>
                     <div class="time">1 小時前</div>
                 </div>
-            </div>
-            <div class="notification-item">
+            </button>
+            <button type="button" class="notification-item" onclick="openNotificationFromPanel('demo-reply-update')">
                 <div class="notification-icon update"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>
                 <div class="notification-content">
                     <div class="notification-chip">回覆</div>
@@ -7468,7 +7673,7 @@
                     <div class="message">Benjamin 已在諮詢對話中補充新的建議內容。</div>
                     <div class="time">昨天</div>
                 </div>
-            </div>
+            </button>
         </div>
         <div class="notification-panel-footer">
             <button type="button" class="notification-panel-link" onclick="openAllNotificationsFromPanel()">查看全部通知</button>
@@ -7534,7 +7739,7 @@
             box-shadow: 0 24px 64px rgba(44, 44, 44, 0.25);
             transform: scale(0.9) translateY(20px);
             opacity: 0;
-            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: background-color 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.4s cubic-bezier(0.16, 1, 0.3, 1), color 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .modal.active,
         .modal-overlay.active .modal,
@@ -8609,6 +8814,11 @@
             border-radius: 18px;
             background: rgba(255,255,255,0.92);
             cursor: pointer;
+            width: 100%;
+            appearance: none;
+            text-align: left;
+            color: inherit;
+            font: inherit;
             transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
         }
         .notification-panel .notification-item:hover {
@@ -8616,6 +8826,11 @@
             border-color: rgba(212, 165, 116, 0.28);
             box-shadow: 0 14px 24px rgba(15, 23, 42, 0.08);
             background: rgba(255,255,255,0.98);
+        }
+
+        .notification-panel .notification-item:focus-visible {
+            outline: 3px solid rgba(74, 93, 35, 0.22);
+            outline-offset: 3px;
         }
         .notification-panel .notification-item.unread {
             background: linear-gradient(180deg, rgba(245, 247, 255, 0.96), rgba(255, 255, 255, 0.96));
@@ -8755,7 +8970,7 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            transition: all 0.2s;
+            transition: background-color 0.2s, border-color 0.2s, color 0.2s, opacity 0.2s, transform 0.2s, box-shadow 0.2s;
         }
         .unit-item:hover { background: var(--gray-200); }
         .unit-item.active { background: var(--olive); color: var(--cream); }
@@ -8781,12 +8996,24 @@
         .search-result-item {
             padding: 0.75rem 1rem;
             cursor: pointer;
-            border-bottom: 1px solid var(--gray-100);
             display: flex;
             align-items: center;
             gap: 0.75rem;
+            width: 100%;
+            border: none;
+            border-bottom: 1px solid var(--gray-100);
+            background: transparent;
+            appearance: none;
+            text-align: left;
+            color: inherit;
+            font: inherit;
         }
         .search-result-item:hover { background: var(--gray-50); }
+        .search-result-item:focus-visible {
+            outline: 2px solid rgba(74, 93, 35, 0.24);
+            outline-offset: -2px;
+            background: var(--gray-50);
+        }
         .search-result-item .result-icon { width: 32px; height: 32px; border-radius: 6px; background: var(--olive); display: flex; align-items: center; justify-content: center; }
         .search-result-item .result-icon svg { width: 16px; height: 16px; color: var(--cream); }
         .search-result-copy { min-width: 0; }
@@ -8927,12 +9154,19 @@
         /* Course Cards Grid */
         .courses-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
         .course-card {
+            display: block;
+            width: 100%;
+            padding: 0;
             background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 244, 236, 0.96) 100%);
             border-radius: 24px;
             border: 1px solid rgba(26, 58, 92, 0.12);
             overflow: hidden;
+            appearance: none;
+            text-align: left;
+            color: inherit;
+            font: inherit;
             cursor: pointer;
-            transition: var(--transition-base);
+            transition: transform var(--transition-base), box-shadow var(--transition-base), border-color var(--transition-base);
             box-shadow: 0 18px 38px rgba(15, 23, 42, 0.08);
             opacity: 0;
             animation: fadeSlideUp 0.5s ease forwards;
@@ -8947,6 +9181,11 @@
             transform: translateY(-6px);
             box-shadow: 0 26px 48px rgba(15, 23, 42, 0.14);
             border-color: rgba(26, 58, 92, 0.18);
+        }
+
+        .course-card:focus-visible {
+            outline: 3px solid rgba(45, 43, 107, 0.28);
+            outline-offset: 3px;
         }
         .course-card-cover {
             min-height: 170px;
@@ -9139,7 +9378,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.2s;
+            transition: background-color 0.2s, border-color 0.2s, color 0.2s, opacity 0.2s, transform 0.2s, box-shadow 0.2s;
         }
         .btn-icon:hover { background: var(--olive); color: var(--cream); border-color: var(--olive); }
 
@@ -9722,7 +9961,7 @@
             border: 1px solid var(--gray-200);
             border-radius: 8px;
             font-size: 0.95rem;
-            transition: all 0.2s;
+            transition: background-color 0.2s, border-color 0.2s, color 0.2s, opacity 0.2s, transform 0.2s, box-shadow 0.2s;
         }
         .form-input:focus { outline: none; border-color: var(--olive); box-shadow: 0 0 0 3px rgba(45, 43, 107, 0.1); }
         .toggle-group { padding: 1rem; border-bottom: 1px solid var(--gray-100); background: rgba(255,255,255,0.42); }
@@ -9740,7 +9979,7 @@
             background: var(--gray-200);
             border-radius: 13px;
             position: relative;
-            transition: all 0.3s;
+            transition: background-color 0.3s, box-shadow 0.3s;
         }
         .toggle::after {
             content: '';
@@ -9751,7 +9990,7 @@
             border-radius: 50%;
             top: 2px;
             left: 2px;
-            transition: all 0.3s;
+            transition: left 0.3s, background-color 0.3s, box-shadow 0.3s;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         .toggle-group input:checked + .toggle { background: var(--olive); }
@@ -10339,6 +10578,11 @@
             background: linear-gradient(180deg, var(--white) 0%, rgba(252, 249, 242, 0.94) 100%);
             box-shadow: var(--shadow-sm);
             cursor: pointer;
+            width: 100%;
+            appearance: none;
+            text-align: left;
+            color: inherit;
+            font: inherit;
             transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
         }
 
@@ -10346,6 +10590,11 @@
             transform: translateY(-1px);
             border-color: rgba(26, 58, 92, 0.16);
             box-shadow: var(--shadow-md);
+        }
+
+        .consultation-item:focus-visible {
+            outline: 3px solid rgba(74, 93, 35, 0.22);
+            outline-offset: 3px;
         }
 
         .consultation-header {
@@ -10700,7 +10949,7 @@
             font-size: 1.2rem;
             font-weight: 500;
             color: var(--gray-400);
-            transition: all 0.3s ease;
+            transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, opacity 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
             position: relative;
         }
 
@@ -10764,7 +11013,7 @@
             font-size: 0.95rem;
             font-weight: 400;
             color: var(--charcoal);
-            transition: all 0.3s ease;
+            transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, opacity 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
         }
 
         .login-form input::placeholder {
@@ -10797,7 +11046,7 @@
             font-weight: 600;
             letter-spacing: 0.05em;
             cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: background-color 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s cubic-bezier(0.16, 1, 0.3, 1), color 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
             margin-top: 1.5rem;
             position: relative;
             overflow: hidden;
@@ -10822,7 +11071,7 @@
             top: 50%;
             transform: translateY(-50%) translateX(-10px);
             opacity: 0;
-            transition: all 0.3s ease;
+            transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, opacity 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
         }
 
         .login-btn:hover {
@@ -11121,7 +11370,7 @@
                 <form id="loginForm" class="login-form" onsubmit="handleLogin(event)">
                     <div class="form-group">
                         <label data-i18n="login.email">電子郵件</label>
-                        <input type="email" id="loginEmail" placeholder="your@email.com" required>
+                        <input type="email" id="loginEmail" data-i18n-placeholder="login.emailPlaceholder" placeholder="your@email.com" required>
                     </div>
                     <div class="form-group">
                         <label data-i18n="login.password">密碼</label>
@@ -11407,7 +11656,7 @@
                 }[r.contentType] || '' : '';
 
                 return `
-                    <div class="resource-card${libraryViewMode === 'list' ? ' list-view' : ''}" onclick="openResourceModal('${r.resourceId}')">
+                    <button type="button" class="resource-card${libraryViewMode === 'list' ? ' list-view' : ''}" onclick="openResourceModal('${r.resourceId}')">
                         <div class="resource-cover ${toneClass}">
                             <span class="resource-type-badge">${typeLabel}</span>
                             ${contentBadge ? `<span class="resource-content-badge">${contentBadge}</span>` : ''}
@@ -11448,7 +11697,7 @@
                                 <span class="resource-open-link">${locale === 'en' ? 'View resource' : '查看教材'}</span>
                             </div>
                         </div>
-                    </div>
+                    </button>
                 `;
             }).join('');
         }
@@ -11924,18 +12173,18 @@
 
             if (isLtiResource) {
                 return `
-                    <div class="resource-modal-footer-note">${courseId ? '此教材會引導使用者前往課程報名或課程詳情頁。' : '此教材尚未綁定特定課程，會先帶你前往課程中心查看可報名課程。'}</div>
-                    <button class="btn-secondary" onclick="closeModal()">關閉</button>
+                    <div class="resource-modal-footer-note">${courseId ? t('resource.ltiCourseLinkedNote') : t('resource.ltiCourseUnlinkedNote')}</div>
+                    <button class="btn-secondary" onclick="closeModal()">${t('common.close')}</button>
                     <button class="btn-primary resource-modal-btn-external" onclick="${courseId ? `navigateToCourse(${courseAction})` : 'openCourseCenterFromResourceModal()'}">
-                        ${courseId ? '前往課程報名' : '前往課程中心'}
+                        ${courseId ? t('resource.courseEnrollAction') : t('resource.courseCenterAction')}
                     </button>
                 `;
             }
 
             return `
-                <div class="resource-modal-footer-note">可先將教材加入授權流程，再分配到課程或橋隊。</div>
-                <button class="btn-secondary" onclick="closeModal()">關閉</button>
-                <button class="btn-primary" onclick="addToLicense()">加入授權</button>
+                <div class="resource-modal-footer-note">${t('resource.footerLicenseNote')}</div>
+                <button class="btn-secondary" onclick="closeModal()">${t('common.close')}</button>
+                <button class="btn-primary" onclick="addToLicense()">${t('resource.addToLicense')}</button>
             `;
         }
 
@@ -11995,9 +12244,71 @@
             document.getElementById('resourceModal').classList.remove('active');
         }
 
-        function addToLicense() {
-            closeModal();
-            showToast('已加入授權清單！');
+        async function addToLicense() {
+            if (!currentResourceId) {
+                showToast(t('toast.operationFailed'));
+                return;
+            }
+
+            try {
+                const result = await API.licenses.request(currentResourceId, { licenseType: 'personal' });
+                if (!result?.success) {
+                    if (result?.error === 'ALREADY_LICENSED') {
+                        showToast(t('toast.licenseAlreadyOwned'));
+                        return;
+                    }
+                    if (result?.error === 'LICENSE_REQUEST_PENDING') {
+                        showToast(t('toast.licenseAlreadyPending'));
+                        return;
+                    }
+                    showToast(result?.message || t('toast.licenseRequestFailed'));
+                    return;
+                }
+
+                closeModal();
+                showToast(result.message || t('toast.licenseRequestSubmitted'));
+
+                const user = API.getCurrentUser();
+                if (user?.userId) {
+                    void window.App?.loadUserLicenses?.(user.userId);
+                    void window.App?.loadUserStats?.(user.userId);
+                }
+            } catch (error) {
+                console.error('Add to license error:', error);
+                showToast(t('toast.licenseRequestFailed'));
+            }
+        }
+
+        function getSavedVideoIds(user = API.getCurrentUser()) {
+            const saved = user?.preferences?.savedVideoIds;
+            return Array.isArray(saved) ? saved.map(id => String(id)) : [];
+        }
+
+        async function updateCurrentUserPreferencesPatch(patch = {}) {
+            const user = API.getCurrentUser();
+            if (!user?.userId) {
+                return { success: false, error: 'NOT_AUTHENTICATED' };
+            }
+
+            const preferences = {
+                ...(user.preferences || {}),
+                ...patch
+            };
+
+            const result = await API.users.update(user.userId, { preferences });
+            if (!result?.success) {
+                return result;
+            }
+
+            const updatedUser = { ...user, preferences };
+            API.setCurrentUser(updatedUser);
+            if (window.App?.syncCurrentUserState) {
+                window.App.syncCurrentUserState(updatedUser);
+            } else if (window.App) {
+                window.App.currentUser = updatedUser;
+            }
+
+            return { success: true, data: updatedUser };
         }
 
         // Course modal
@@ -12023,13 +12334,13 @@
                 const type = escapeHtml(resource.type || 'resource');
                 const author = escapeHtml(resource.authorName || resource.author || resource.creatorName || '未知作者');
                 return `
-                    <div class="search-result-item" onclick="openResourceModal(${JSON.stringify(String(resourceId))})">
+                    <button type="button" class="search-result-item" onclick="openResourceModal(${JSON.stringify(String(resourceId))})">
                         <div class="result-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"></path></svg></div>
                         <div class="search-result-copy">
                             <div class="search-result-title">${title}</div>
                             <div class="search-result-meta">${type} · ${author}</div>
                         </div>
-                    </div>
+                    </button>
                 `;
             }).join('');
         }
@@ -12068,7 +12379,7 @@
                             list.innerHTML = `<div class="notification-empty"><p class="notification-empty-copy">${escapeHtml(I18n.getLocale() === 'en' ? 'No notifications' : '沒有通知')}</p></div>`;
                         } else {
                             list.innerHTML = notifications.slice(0, 10).map(n => `
-                                <div class="notification-item ${n.readAt || n.read ? '' : 'unread'}" onclick="openNotificationFromPanel('${n.notificationId || n.id}')">
+                                <button type="button" class="notification-item ${n.readAt || n.read ? '' : 'unread'}" onclick="openNotificationFromPanel('${n.notificationId || n.id}')">
                                     <div class="notification-icon ${(n.type || 'course')}">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${getNotificationIcon(n.type)}</svg>
                                     </div>
@@ -12078,7 +12389,7 @@
                                         <div class="message">${escapeHtml(n.message || '')}</div>
                                         <div class="time">${n.createdAt ? new Date(n.createdAt).toLocaleString(I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW') : ''}</div>
                                     </div>
-                                </div>
+                                </button>
                             `).join('');
                         }
                     }
@@ -12331,6 +12642,10 @@
         let videoProgressInterval = null;
         let youtubeIframeApiPromise = null;
         let youtubePlayer = null;
+        let videoProgressHydrationPromise = null;
+        let videoProgressHydratedUserId = null;
+        const videoProgressSyncTimers = new Map();
+        const VIDEO_PROGRESS_SYNC_DELAY_MS = 2500;
 
         function clampProgressValue(value) {
             if (window.PlatformUIRuntime?.clampProgressValue) {
@@ -12352,41 +12667,223 @@
             element.style.width = `${progress}%`;
         }
 
-        function getStoredVideoProgressMap() {
-            try {
-                const raw = window.localStorage.getItem(VIDEO_PROGRESS_STORAGE_KEY);
-                if (!raw) return {};
-                const parsed = JSON.parse(raw);
-                return parsed && typeof parsed === 'object' ? parsed : {};
-            } catch (error) {
-                return {};
+        function normalizeVideoProgressEntry(entry, fallback = 0) {
+            if (entry && typeof entry === 'object' && !Array.isArray(entry)) {
+                return {
+                    progress: clampProgressValue(entry.progress ?? fallback),
+                    updatedAt: typeof entry.updatedAt === 'string' ? entry.updatedAt : null,
+                    source: typeof entry.source === 'string' ? entry.source : null
+                };
             }
+            return {
+                progress: clampProgressValue(entry ?? fallback),
+                updatedAt: null,
+                source: null
+            };
         }
 
-        function getStoredVideoProgress(videoId, fallback = 0) {
-            if (!videoId) return clampProgressValue(fallback);
-            const storedValue = getStoredVideoProgressMap()[videoId];
-            return clampProgressValue(storedValue ?? fallback);
-        }
-
-        function persistVideoProgress(videoId, progress) {
-            if (!videoId) return;
-            const normalizedProgress = clampProgressValue(progress);
-            const progressMap = getStoredVideoProgressMap();
-            progressMap[videoId] = normalizedProgress;
+        function writeVideoProgressMap(progressMap) {
             try {
                 window.localStorage.setItem(VIDEO_PROGRESS_STORAGE_KEY, JSON.stringify(progressMap));
             } catch (error) {
                 // ignore storage quota or privacy mode failures
             }
-            if (videoData[videoId]) {
-                videoData[videoId].progress = normalizedProgress;
+        }
+
+        function getStoredVideoProgressMap() {
+            try {
+                const raw = window.localStorage.getItem(VIDEO_PROGRESS_STORAGE_KEY);
+                if (!raw) return {};
+                const parsed = JSON.parse(raw);
+                if (!parsed || typeof parsed !== 'object') return {};
+                return Object.fromEntries(
+                    Object.entries(parsed).map(([videoId, entry]) => [videoId, normalizeVideoProgressEntry(entry)])
+                );
+            } catch (error) {
+                return {};
             }
         }
 
-        function applyVideoProgress(videoId, progress) {
+        function getRemoteVideoProgressMap() {
+            if (typeof API === 'undefined' || typeof API.getCurrentUser !== 'function') {
+                return {};
+            }
+            const currentUser = API.getCurrentUser();
+            const progressMap = currentUser?.preferences?.videoProgress;
+            if (!progressMap || typeof progressMap !== 'object') return {};
+            return Object.fromEntries(
+                Object.entries(progressMap).map(([videoId, entry]) => [videoId, normalizeVideoProgressEntry(entry)])
+            );
+        }
+
+        function mergeVideoProgressMaps(localMap = {}, remoteMap = {}) {
+            const merged = {};
+            const videoIds = new Set([...Object.keys(localMap), ...Object.keys(remoteMap)]);
+
+            videoIds.forEach((videoId) => {
+                const localEntry = normalizeVideoProgressEntry(localMap[videoId]);
+                const remoteEntry = normalizeVideoProgressEntry(remoteMap[videoId]);
+                const localTime = localEntry.updatedAt ? Date.parse(localEntry.updatedAt) : NaN;
+                const remoteTime = remoteEntry.updatedAt ? Date.parse(remoteEntry.updatedAt) : NaN;
+
+                let selectedEntry = localEntry;
+                if (Number.isFinite(localTime) && Number.isFinite(remoteTime)) {
+                    selectedEntry = remoteTime >= localTime ? remoteEntry : localEntry;
+                } else if (Number.isFinite(remoteTime)) {
+                    selectedEntry = remoteEntry;
+                } else if (!Number.isFinite(localTime) && remoteEntry.progress > localEntry.progress) {
+                    selectedEntry = remoteEntry;
+                }
+
+                if (localEntry.progress > selectedEntry.progress) {
+                    selectedEntry = localEntry;
+                }
+
+                merged[videoId] = normalizeVideoProgressEntry(selectedEntry);
+            });
+
+            return merged;
+        }
+
+        function updateCurrentUserVideoProgress(videoId, entry) {
+            if (!videoId || typeof API === 'undefined' || typeof API.getCurrentUser !== 'function' || typeof API.setCurrentUser !== 'function') {
+                return;
+            }
+            const currentUser = API.getCurrentUser();
+            if (!currentUser) return;
+            const normalizedEntry = normalizeVideoProgressEntry(entry);
+            API.setCurrentUser({
+                ...currentUser,
+                preferences: {
+                    ...(currentUser.preferences || {}),
+                    videoProgress: {
+                        ...((currentUser.preferences && currentUser.preferences.videoProgress) || {}),
+                        [videoId]: normalizedEntry
+                    }
+                }
+            });
+        }
+
+        async function flushVideoProgressToBackend(videoId, entry) {
+            if (!videoId || typeof API === 'undefined' || typeof API.users?.updateVideoProgress !== 'function') return;
+            const currentUser = typeof API.getCurrentUser === 'function' ? API.getCurrentUser() : null;
+            const userId = currentUser?.userId || currentUser?.id;
+            if (!userId) return;
+            const normalizedEntry = normalizeVideoProgressEntry(entry);
+            try {
+                const result = await API.users.updateVideoProgress(userId, videoId, normalizedEntry);
+                if (result?.success && result.data?.entry) {
+                    updateCurrentUserVideoProgress(videoId, result.data.entry);
+                }
+            } catch (error) {
+                console.error('Sync video progress error:', error);
+            }
+        }
+
+        function scheduleVideoProgressSync(videoId, entry, options = {}) {
+            if (!videoId) return;
+            const normalizedEntry = normalizeVideoProgressEntry(entry);
+            const existingTimer = videoProgressSyncTimers.get(videoId);
+            if (existingTimer) {
+                clearTimeout(existingTimer);
+                videoProgressSyncTimers.delete(videoId);
+            }
+
+            const run = () => {
+                videoProgressSyncTimers.delete(videoId);
+                void flushVideoProgressToBackend(videoId, normalizedEntry);
+            };
+
+            if (options.immediate) {
+                run();
+                return;
+            }
+
+            const timerId = window.setTimeout(run, VIDEO_PROGRESS_SYNC_DELAY_MS);
+            videoProgressSyncTimers.set(videoId, timerId);
+        }
+
+        async function hydrateVideoProgressFromBackend() {
+            if (typeof API === 'undefined' || typeof API.getCurrentUser !== 'function' || typeof API.users?.getVideoProgress !== 'function') {
+                return {};
+            }
+
+            const currentUser = API.getCurrentUser();
+            const userId = currentUser?.userId || currentUser?.id;
+            if (!userId) {
+                return {};
+            }
+            if (videoProgressHydratedUserId !== userId) {
+                videoProgressHydrationPromise = null;
+                videoProgressHydratedUserId = userId;
+            }
+            if (videoProgressHydrationPromise) {
+                return videoProgressHydrationPromise;
+            }
+
+            videoProgressHydrationPromise = (async () => {
+                const localMap = getStoredVideoProgressMap();
+                const cachedRemoteMap = getRemoteVideoProgressMap();
+                try {
+                    const result = await API.users.getVideoProgress(userId);
+                    const remoteMap = result?.success ? result.data || {} : cachedRemoteMap;
+                    const mergedMap = mergeVideoProgressMaps(localMap, remoteMap);
+                    writeVideoProgressMap(mergedMap);
+                    Object.entries(mergedMap).forEach(([videoId, entry]) => {
+                        if (videoData[videoId]) {
+                            videoData[videoId].progress = entry.progress;
+                        }
+                        updateVideoCardProgress(videoId, entry.progress);
+                    });
+                    if (typeof API.setCurrentUser === 'function') {
+                        API.setCurrentUser({
+                            ...currentUser,
+                            preferences: {
+                                ...(currentUser.preferences || {}),
+                                videoProgress: mergedMap
+                            }
+                        });
+                    }
+                    return mergedMap;
+                } catch (error) {
+                    console.error('Hydrate video progress error:', error);
+                    return localMap;
+                }
+            })();
+
+            return videoProgressHydrationPromise;
+        }
+
+        window.hydrateVideoProgressFromBackend = hydrateVideoProgressFromBackend;
+
+        function getStoredVideoProgress(videoId, fallback = 0) {
+            if (!videoId) return clampProgressValue(fallback);
+            const storedEntry = getStoredVideoProgressMap()[videoId];
+            return normalizeVideoProgressEntry(storedEntry, fallback).progress;
+        }
+
+        function persistVideoProgress(videoId, progress, options = {}) {
+            if (!videoId) return normalizeVideoProgressEntry({ progress });
             const normalizedProgress = clampProgressValue(progress);
-            persistVideoProgress(videoId, normalizedProgress);
+            const progressMap = getStoredVideoProgressMap();
+            const entry = normalizeVideoProgressEntry({
+                progress: normalizedProgress,
+                updatedAt: options.updatedAt || new Date().toISOString(),
+                source: options.source || null
+            });
+            progressMap[videoId] = entry;
+            writeVideoProgressMap(progressMap);
+            if (videoData[videoId]) {
+                videoData[videoId].progress = normalizedProgress;
+            }
+            updateCurrentUserVideoProgress(videoId, entry);
+            scheduleVideoProgressSync(videoId, entry, options);
+            return entry;
+        }
+
+        function applyVideoProgress(videoId, progress, options = {}) {
+            const normalizedProgress = clampProgressValue(progress);
+            const entry = persistVideoProgress(videoId, normalizedProgress, options);
 
             if (currentVideo && currentVideo.id === videoId) {
                 currentVideo.progress = normalizedProgress;
@@ -12399,6 +12896,7 @@
             if (progressText) progressText.textContent = `進度: ${normalizedProgress}%`;
 
             updateVideoCardProgress(videoId, normalizedProgress);
+            return entry;
         }
 
         function loadYouTubeIframeApi() {
@@ -12435,7 +12933,7 @@
             return youtubeIframeApiPromise;
         }
 
-        function syncYouTubeProgress(videoId) {
+        function syncYouTubeProgress(videoId, options = {}) {
             if (!youtubePlayer || typeof youtubePlayer.getDuration !== 'function' || typeof youtubePlayer.getCurrentTime !== 'function') {
                 return;
             }
@@ -12445,7 +12943,7 @@
                 return;
             }
             const progress = Math.round((currentTime / duration) * 100);
-            applyVideoProgress(videoId, progress);
+            applyVideoProgress(videoId, progress, { source: 'youtube', ...options });
         }
 
         function bindVideoPlaybackTracking(videoId) {
@@ -12462,10 +12960,10 @@
                 }
             };
 
-            const syncProgress = () => {
+            const syncProgress = (options = {}) => {
                 if (!Number.isFinite(videoElement.duration) || videoElement.duration <= 0) return;
                 const progress = Math.round((videoElement.currentTime / videoElement.duration) * 100);
-                applyVideoProgress(videoId, progress);
+                applyVideoProgress(videoId, progress, { source: 'html5', ...options });
             };
 
             if (videoElement.readyState >= 1) {
@@ -12473,8 +12971,9 @@
             } else {
                 videoElement.addEventListener('loadedmetadata', seekToStoredProgress, { once: true });
             }
-            videoElement.addEventListener('timeupdate', syncProgress);
-            videoElement.addEventListener('ended', () => applyVideoProgress(videoId, 100));
+            videoElement.addEventListener('timeupdate', () => syncProgress());
+            videoElement.addEventListener('pause', () => syncProgress({ immediate: true }));
+            videoElement.addEventListener('ended', () => applyVideoProgress(videoId, 100, { source: 'html5', immediate: true }));
         }
 
         async function bindYouTubePlaybackTracking(videoId) {
@@ -12492,7 +12991,7 @@
                             if (Number.isFinite(duration) && duration > 0 && initialProgress > 0 && initialProgress < 95) {
                                 event.target.seekTo((initialProgress / 100) * duration, true);
                             }
-                            syncYouTubeProgress(videoId);
+                            syncYouTubeProgress(videoId, { immediate: true });
                         },
                         onStateChange: (event) => {
                             if (!window.YT?.PlayerState) return;
@@ -12503,11 +13002,11 @@
                                 event.data === window.YT.PlayerState.BUFFERING ||
                                 event.data === window.YT.PlayerState.CUED
                             ) {
-                                syncYouTubeProgress(videoId);
+                                syncYouTubeProgress(videoId, { immediate: true });
                                 stopProgressTracking();
                             } else if (event.data === window.YT.PlayerState.ENDED) {
                                 stopProgressTracking();
-                                applyVideoProgress(videoId, 100);
+                                applyVideoProgress(videoId, 100, { source: 'youtube', immediate: true });
                             }
                         }
                     }
@@ -12521,7 +13020,8 @@
             videoData[videoId].progress = getStoredVideoProgress(videoId, videoData[videoId].progress);
         });
 
-        function openVideoPlayer(videoId, videoUrl) {
+        async function openVideoPlayer(videoId, videoUrl) {
+            await hydrateVideoProgressFromBackend();
             const sourceVideo = videoData[videoId] || {
                 title: '未知影片',
                 author: '未知作者',
@@ -12622,8 +13122,8 @@
                             </div>
                             <div class="video-player-progress-block">
                                 <div class="video-player-progress-header">
-                                    <span>目前紀錄</span>
-                                    <span id="videoProgressText">進度: ${video.progress}%</span>
+                                    <span>${t('video.recordLabel')}</span>
+                                    <span id="videoProgressText">${t('video.progressValue', { progress: video.progress })}</span>
                                 </div>
                                 <div class="video-player-progress-track">
                                     <div id="videoProgressBar" class="video-player-progress-fill" data-progress-width="${clampProgressValue(video.progress)}"></div>
@@ -12633,33 +13133,33 @@
 
                         <aside class="video-player-sidebar">
                             <section class="video-player-panel">
-                                <div class="video-player-panel-title">內容摘要</div>
+                                <div class="video-player-panel-title">${t('video.summaryTitle')}</div>
                                 <p class="video-player-description">${safeDescription}</p>
                                 <div class="video-player-stat-line">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12Z"/><circle cx="12" cy="12" r="3"/></svg>
-                                    <span><strong>${safeViews}</strong> 次觀看</span>
+                                    <span>${t('video.viewsLabel', { count: safeViews })}</span>
                                 </div>
                                 <div class="video-player-stat-line">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                                    <span>片長 <strong>${safeDuration}</strong></span>
+                                    <span>${t('video.durationValue', { duration: safeDuration })}</span>
                                 </div>
                                 <div class="video-player-stat-line">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 12 2 2 4-4"/><path d="M12 3a9 9 0 1 0 9 9"/></svg>
-                                    <span>目前紀錄 <strong>${video.progress}%</strong></span>
+                                    <span>${t('video.recordValue', { progress: video.progress })}</span>
                                 </div>
                             </section>
 
                             <section class="video-player-panel">
-                                <div class="video-player-panel-title">快速操作</div>
-                                <p class="video-player-description">你可以先標記完成，或把這支影片加入個人播放清單，方便之後回來複習。</p>
+                                <div class="video-player-panel-title">${t('video.actionsTitle')}</div>
+                                <p class="video-player-description">${t('video.actionsCopy')}</p>
                                 <div class="video-player-action-group">
                                     <button type="button" class="video-player-primary-action" onclick="markVideoComplete('${videoId}')">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                                        <span>標記完成</span>
+                                        <span>${t('video.markComplete')}</span>
                                     </button>
                                     <button type="button" class="video-player-secondary-action" onclick="addToPlaylist('${videoId}')">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                                        <span>加入播放清單</span>
+                                        <span>${t('video.watchLater')}</span>
                                     </button>
                                 </div>
                             </section>
@@ -12683,7 +13183,13 @@
             modal.focus();
         }
 
-        function closeVideoPlayer() {
+        async function closeVideoPlayer() {
+            if (currentVideo?.id) {
+                applyVideoProgress(currentVideo.id, currentVideo.progress ?? 0, {
+                    source: currentVideo.youtubeId ? 'youtube-close' : 'html5-close',
+                    immediate: true
+                });
+            }
             stopProgressTracking();
             destroyYouTubePlayer();
             const modal = document.getElementById('videoPlayerModal');
@@ -12719,8 +13225,8 @@
         }
 
         function markVideoComplete(videoId) {
-            applyVideoProgress(videoId, 100);
-            showToast('已標記為完成！');
+            applyVideoProgress(videoId, 100, { source: 'manual-complete', immediate: true });
+            showToast(t('video.completeSuccess'));
         }
 
         function updateVideoCardProgress(videoId, progress) {
@@ -12740,8 +13246,34 @@
             });
         }
 
-        function addToPlaylist(videoId) {
-            showToast('已加入播放清單！');
+        async function addToPlaylist(videoId) {
+            const normalizedVideoId = String(videoId || '').trim();
+            if (!normalizedVideoId) {
+                showToast(t('toast.playlistAddFailed'));
+                return;
+            }
+
+            try {
+                const existing = getSavedVideoIds();
+                if (existing.includes(normalizedVideoId)) {
+                    showToast(t('toast.playlistAlreadyAdded'));
+                    return;
+                }
+
+                const result = await updateCurrentUserPreferencesPatch({
+                    savedVideoIds: [...existing, normalizedVideoId]
+                });
+
+                if (!result?.success) {
+                    showToast(result?.message || t('toast.playlistAddFailed'));
+                    return;
+                }
+
+                showToast(t('toast.playlistAdded'));
+            } catch (error) {
+                console.error('Add to playlist error:', error);
+                showToast(t('toast.playlistAddFailed'));
+            }
         }
 
         function toggleVideoFullscreen() {
@@ -12760,7 +13292,7 @@
         function handleVideoKeyboard(e) {
             switch(e.key) {
                 case 'Escape':
-                    closeVideoPlayer();
+                    void closeVideoPlayer();
                     break;
                 case 'f':
                 case 'F':
@@ -12860,16 +13392,16 @@
         ];
 
         function getDiscussionToneClass(seedValue) {
-            const seed = String(seedValue || '匿名');
+            const seed = String(seedValue || t('discussion.anonymous'));
             const total = [...seed].reduce((sum, char) => sum + char.charCodeAt(0), 0);
             return `tone-${total % 5}`;
         }
 
         function formatDiscussionTimestamp(value) {
-            if (!value) return '剛剛';
+            if (!value) return t('discussion.justNow');
 
             const date = new Date(value);
-            if (Number.isNaN(date.getTime())) return '剛剛';
+            if (Number.isNaN(date.getTime())) return t('discussion.justNow');
 
             const locale = (Array.isArray(navigator.languages) && navigator.languages[0]) || navigator.language || 'zh-TW';
             return new Intl.DateTimeFormat(locale, {
@@ -12881,7 +13413,7 @@
 
         function getDiscussionExcerpt(content, maxLength = 180) {
             const normalized = String(content || '').replace(/\s+/g, ' ').trim();
-            if (!normalized) return '尚未提供內容摘要。';
+            if (!normalized) return t('discussion.noExcerpt');
             if (normalized.length <= maxLength) return normalized;
             return `${normalized.slice(0, maxLength).trim()}...`;
         }
@@ -12894,7 +13426,7 @@
 
         function renderDiscussionState(message, variant = 'empty') {
             const isError = variant === 'error';
-            const title = isError ? '載入討論失敗' : '尚無討論';
+            const title = isError ? t('discussion.stateLoadFailed') : t('discussion.stateEmpty');
             const icon = isError
                 ? '<path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>'
                 : '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>';
@@ -12910,9 +13442,9 @@
 
         function renderDiscussionCard(discussion, options = {}) {
             const discussionId = discussion?.discussionId || discussion?.postId || discussion?.id || '';
-            const authorName = discussion?.authorName || discussion?.userDisplayName || '匿名';
+            const authorName = discussion?.authorName || discussion?.userDisplayName || t('discussion.anonymous');
             const safeAuthorName = escapeHtml(authorName);
-            const safeTitle = escapeHtml(discussion?.title || '未命名討論');
+            const safeTitle = escapeHtml(discussion?.title || t('discussion.untitled'));
             const safeExcerpt = escapeHtml(getDiscussionExcerpt(discussion?.content, options.excerptLength || 180));
             const safeCategory = discussion?.category ? escapeHtml(discussion.category) : '';
             const safeInitial = escapeHtml(authorName.trim().charAt(0) || '匿');
@@ -12951,17 +13483,17 @@
                                 ${likeAction ? `
                                     <button type="button" class="discussion-stat discussion-stat-button" onclick="${likeAction}">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9A2 2 0 0 0 18.69 9H14Z"/><path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
-                                        <span>${likeCount} 讚</span>
+                                        <span>${t('discussion.likesLabel', { count: likeCount })}</span>
                                     </button>
                                 ` : ''}
                                 <span class="discussion-stat">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                                    <span>${replyCount} 回覆</span>
+                                    <span>${t('discussion.repliesLabel', { count: replyCount })}</span>
                                 </span>
                                 ${viewCount ? `
                                     <span class="discussion-stat">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12Z"/><circle cx="12" cy="12" r="3"/></svg>
-                                        <span>${viewCount} 觀看</span>
+                                        <span>${t('discussion.viewsLabel', { count: viewCount })}</span>
                                     </span>
                                 ` : ''}
                             </div>
@@ -12969,13 +13501,13 @@
                                 ${replyAction ? `
                                     <button type="button" class="discussion-action-btn secondary" onclick="${replyAction}">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                                        <span>回覆討論</span>
+                                        <span>${t('discussion.replyAction')}</span>
                                     </button>
                                 ` : ''}
                                 ${openAction ? `
                                     <button type="button" class="discussion-action-btn primary" onclick="${openAction}">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-                                        <span>前往論壇</span>
+                                        <span>${t('discussion.openForumAction')}</span>
                                     </button>
                                 ` : ''}
                             </div>
@@ -13042,14 +13574,15 @@
         function openNewPostModal() {
             closeNewPostModal();
 
+            const closeLabel = t('discussion.modalClose');
             const overlay = document.createElement('div');
             overlay.id = 'newPostModal';
             overlay.className = 'modal-overlay active';
             overlay.innerHTML = `
                 <div class="modal active discussion-modal" role="dialog" aria-modal="true" aria-labelledby="newPostModalTitle">
                     <div class="modal-header">
-                        <h2 id="newPostModalTitle">發起新討論</h2>
-                        <button type="button" class="modal-close" aria-label="關閉">
+                        <h2 id="newPostModalTitle">${t('discussion.newTitle')}</h2>
+                        <button type="button" class="modal-close" aria-label="${escapeHtml(closeLabel)}">
                             <span aria-hidden="true">&times;</span>
                         </button>
                     </div>
@@ -13060,31 +13593,31 @@
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8"/><path d="M8 13h5"/></svg>
                                 </div>
                                 <div>
-                                    <div class="discussion-modal-intro-title">建立清楚、有價值的討論主題</div>
-                                    <p class="discussion-modal-intro-copy">標題直接說明問題，內容補充情境與需求，能提高其他使用者回覆品質。</p>
+                                    <div class="discussion-modal-intro-title">${t('discussion.newIntroTitle')}</div>
+                                    <p class="discussion-modal-intro-copy">${t('discussion.newIntroCopy')}</p>
                                 </div>
                             </div>
                             <div class="discussion-modal-grid">
                                 <div class="bridge-form-group">
-                                    <label class="bridge-form-label" for="newPostTitleInput">標題</label>
-                                    <input id="newPostTitleInput" type="text" class="bridge-form-control" placeholder="例如：如何設計跨領域探究課程？" maxlength="120">
+                                    <label class="bridge-form-label" for="newPostTitleInput">${t('discussion.newLabelTitle')}</label>
+                                    <input id="newPostTitleInput" type="text" class="bridge-form-control" placeholder="${escapeHtml(t('discussion.newPlaceholderTitle'))}" maxlength="120">
                                 </div>
                                 <div class="bridge-form-group">
-                                    <label class="bridge-form-label" for="newPostCategoryInput">分類</label>
+                                    <label class="bridge-form-label" for="newPostCategoryInput">${t('discussion.newLabelCategory')}</label>
                                     <select id="newPostCategoryInput" class="bridge-form-control">
                                         ${buildDiscussionCategoryOptions()}
                                     </select>
                                 </div>
                             </div>
                             <div class="bridge-form-group">
-                                <label class="bridge-form-label" for="newPostContentInput">內容</label>
-                                <textarea id="newPostContentInput" class="bridge-form-control discussion-form-textarea" placeholder="描述你的教學情境、目前作法、卡住的地方，讓其他人更容易理解。"></textarea>
+                                <label class="bridge-form-label" for="newPostContentInput">${t('discussion.newLabelContent')}</label>
+                                <textarea id="newPostContentInput" class="bridge-form-control discussion-form-textarea" placeholder="${escapeHtml(t('discussion.newPlaceholderContent'))}"></textarea>
                             </div>
                         </div>
                         <div class="modal-footer">
-                            <div class="discussion-modal-note">發布後會同步更新平台討論摘要，方便其他使用者快速看到這則主題。</div>
-                            <button type="button" class="btn-secondary">取消</button>
-                            <button type="submit" class="btn-primary">發布討論</button>
+                            <div class="discussion-modal-note">${t('discussion.newFooterNote')}</div>
+                            <button type="button" class="btn-secondary">${t('common.cancel')}</button>
+                            <button type="submit" class="btn-primary">${t('discussion.submit')}</button>
                         </div>
                     </form>
                 </div>
@@ -13118,7 +13651,7 @@
             const content = contentTextarea?.value?.trim();
 
             if (!title || !content) {
-                showToast('請填寫標題和內容');
+                showToast(t('discussion.validationMissingPost'));
                 return;
             }
 
@@ -13130,15 +13663,15 @@
                 });
 
                 if (result.success) {
-                    showToast('討論已發布！');
+                    showToast(t('toast.discussionPosted'));
                     closeNewPostModal();
                     refreshDiscussionViews();
                 } else {
-                    showToast(result.message || '發布失敗');
+                    showToast(result.message || t('toast.discussionPostFailed'));
                 }
             } catch (error) {
                 console.error('Submit post error:', error);
-                showToast('發布失敗');
+                showToast(t('toast.discussionPostFailed'));
             }
         }
 
@@ -13522,6 +14055,7 @@
             if (!postId) return;
             closeReplyModal();
 
+            const closeLabel = t('discussion.modalClose');
             const overlay = document.createElement('div');
             overlay.id = 'replyModal';
             overlay.dataset.postId = String(postId);
@@ -13529,8 +14063,8 @@
             overlay.innerHTML = `
                 <div class="modal active discussion-modal" role="dialog" aria-modal="true" aria-labelledby="replyModalTitle">
                     <div class="modal-header">
-                        <h2 id="replyModalTitle">回覆討論</h2>
-                        <button type="button" class="modal-close" aria-label="關閉">
+                        <h2 id="replyModalTitle">${t('discussion.replyTitle')}</h2>
+                        <button type="button" class="modal-close" aria-label="${escapeHtml(closeLabel)}">
                             <span aria-hidden="true">&times;</span>
                         </button>
                     </div>
@@ -13541,19 +14075,19 @@
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8"/><path d="M8 13h6"/></svg>
                                 </div>
                                 <div>
-                                    <div class="discussion-modal-intro-title">讓回覆更具體、更可執行</div>
-                                    <p class="discussion-modal-intro-copy">補充經驗、範例或建議步驟，比單句回覆更有幫助，也更符合平台的專業交流氛圍。</p>
+                                    <div class="discussion-modal-intro-title">${t('discussion.replyIntroTitle')}</div>
+                                    <p class="discussion-modal-intro-copy">${t('discussion.replyIntroCopy')}</p>
                                 </div>
                             </div>
                             <div class="bridge-form-group">
-                                <label class="bridge-form-label" for="replyContentInput">回覆內容</label>
-                                <textarea id="replyContentInput" class="bridge-form-control discussion-form-textarea" rows="5" placeholder="輸入你的回覆、建議或可參考的做法。"></textarea>
+                                <label class="bridge-form-label" for="replyContentInput">${t('discussion.replyLabelContent')}</label>
+                                <textarea id="replyContentInput" class="bridge-form-control discussion-form-textarea" rows="5" placeholder="${escapeHtml(t('discussion.replyPlaceholderContent'))}"></textarea>
                             </div>
                         </div>
                         <div class="modal-footer">
-                            <div class="discussion-modal-note">送出後會同步刷新討論摘要與回覆數，方便其他使用者追蹤這個主題。</div>
-                            <button type="button" class="btn-secondary">取消</button>
-                            <button type="submit" class="btn-primary">送出回覆</button>
+                            <div class="discussion-modal-note">${t('discussion.replyFooterNote')}</div>
+                            <button type="button" class="btn-secondary">${t('common.cancel')}</button>
+                            <button type="submit" class="btn-primary">${t('discussion.submitReply')}</button>
                         </div>
                     </form>
                 </div>
@@ -13581,23 +14115,23 @@
             const postId = modal.dataset.postId;
             const content = modal.querySelector('#replyContentInput')?.value?.trim();
             if (!postId || !content) {
-                showToast('請輸入回覆內容');
+                showToast(t('discussion.validationMissingReply'));
                 return;
             }
 
             try {
                 const result = await API.discussions.reply(postId, content);
                 if (!result.success) {
-                    showToast(result.message || '回覆送出失敗');
+                    showToast(result.message || t('toast.replyFailed'));
                     return;
                 }
 
-                showToast('回覆已送出！');
+                showToast(t('toast.replySuccess'));
                 closeReplyModal();
                 refreshDiscussionViews();
             } catch (error) {
                 console.error('Submit reply error:', error);
-                showToast('回覆送出失敗');
+                showToast(t('toast.replyFailed'));
             }
         }
 
@@ -13646,7 +14180,7 @@
             container.innerHTML = `
                 <div class="bridge-class-grid">
                     ${filtered.map(cls => `
-                        <div class="bridge-class-card" onclick="openClassDetail('${cls.classId}')">
+                        <button type="button" class="bridge-class-card" onclick="openClassDetail('${cls.classId}')">
                             <div class="bridge-class-card-accent ${getClassColor(cls.subject)}">
                                 <div class="bridge-class-card-cover-top">
                                     <span class="bridge-class-card-subject">${cls.subject || '一般課程'}</span>
@@ -13680,7 +14214,7 @@
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        </button>
                     `).join('')}
                 </div>
             `;
@@ -14379,7 +14913,7 @@
                 container.innerHTML = `
                     <div class="bridge-class-grid">
                         ${classes.map(cls => `
-                            <div onclick="openStudentClassDetail('${cls.classId}')" class="bridge-student-class-card">
+                            <button type="button" onclick="openStudentClassDetail('${cls.classId}')" class="bridge-student-class-card">
                                 <div class="bridge-student-class-accent ${getClassColor(cls.subject)}">
                                     <div class="bridge-student-class-cover-top">
                                         <span class="bridge-student-class-subject">${escapeHtml(cls.subject || '一般課程')}</span>
@@ -14418,7 +14952,7 @@
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            </button>
                         `).join('')}
                     </div>
                 `;

@@ -114,6 +114,114 @@ router.put('/:id', authMiddleware, async (req, res) => {
 });
 
 /**
+ * GET /api/users/:id/video-progress
+ * 取得影音進度偏好
+ */
+router.get('/:id/video-progress', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!req.user.isAdmin && req.user.userId !== id) {
+      return res.status(403).json({
+        success: false,
+        error: 'FORBIDDEN',
+        message: '無權限查看此用戶資料'
+      });
+    }
+
+    const user = await db.getUser(id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'USER_NOT_FOUND',
+        message: '找不到用戶'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: user.preferences?.videoProgress || {}
+    });
+  } catch (error) {
+    console.error('Get video progress error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'FETCH_FAILED',
+      message: '取得影音進度失敗'
+    });
+  }
+});
+
+/**
+ * PUT /api/users/:id/video-progress/:videoId
+ * 更新單一影音進度
+ */
+router.put('/:id/video-progress/:videoId', authMiddleware, async (req, res) => {
+  try {
+    const { id, videoId } = req.params;
+    const { progress, source, updatedAt } = req.body || {};
+
+    if (!req.user.isAdmin && req.user.userId !== id) {
+      return res.status(403).json({
+        success: false,
+        error: 'FORBIDDEN',
+        message: '無權限更新此用戶資料'
+      });
+    }
+
+    const user = await db.getUser(id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'USER_NOT_FOUND',
+        message: '找不到用戶'
+      });
+    }
+
+    const normalizedProgress = Math.max(0, Math.min(100, Number(progress) || 0));
+    const entry = {
+      progress: normalizedProgress,
+      updatedAt: updatedAt || new Date().toISOString(),
+      source: source || null
+    };
+
+    const preferences = {
+      ...(user.preferences || {}),
+      videoProgress: {
+        ...((user.preferences && user.preferences.videoProgress) || {}),
+        [videoId]: entry
+      }
+    };
+
+    const updatedUser = await db.updateItem(`USER#${id}`, 'PROFILE', {
+      preferences,
+      updatedAt: new Date().toISOString()
+    });
+
+    delete updatedUser.passwordHash;
+    delete updatedUser.PK;
+    delete updatedUser.SK;
+
+    res.json({
+      success: true,
+      message: '影音進度已更新',
+      data: {
+        videoId,
+        entry,
+        preferences: updatedUser.preferences || {}
+      }
+    });
+  } catch (error) {
+    console.error('Update video progress error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'UPDATE_FAILED',
+      message: '更新影音進度失敗'
+    });
+  }
+});
+
+/**
  * GET /api/users/:id/courses
  * 取得用戶的課程與進度
  */
