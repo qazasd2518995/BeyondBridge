@@ -2,23 +2,24 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#F5F7FA">
     <title>BeyondBridge | 超越之橋 - 數位教育服務平臺</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Noto+Serif+TC:wght@400;600;700&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
     <style>
         :root {
-            --olive-deep: #3D4A2D;
-            --olive: #4A5D23;
-            --olive-light: #6B7F3A;
-            --cream: #F7F3EB;
-            --cream-dark: #EDE6D6;
-            --terracotta: #C17A5E;
-            --terracotta-light: #D4967D;
-            --charcoal: #2C2C2C;
-            --sage: #A8B89A;
-            --sand: #D4C5A9;
+            --olive-deep: #1A3A5C;
+            --olive: #2D2B6B;
+            --olive-light: #4A4899;
+            --cream: #F5F7FA;
+            --cream-dark: #E8ECF2;
+            --terracotta: #1A6B4A;
+            --terracotta-light: #3A9B7A;
+            --charcoal: #1E293B;
+            --sage: #8BB8A8;
+            --sand: #C5D0DC;
         }
 
         * {
@@ -29,6 +30,7 @@
 
         html {
             scroll-behavior: smooth;
+            scroll-padding-top: 6rem;
         }
 
         body {
@@ -37,6 +39,7 @@
             color: var(--charcoal);
             line-height: 1.7;
             overflow-x: hidden;
+            min-height: 100vh;
         }
 
         /* Grain overlay */
@@ -57,51 +60,150 @@
             font-family: 'Cormorant Garamond', 'Noto Serif TC', serif;
         }
 
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        a,
+        button {
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        section[id] {
+            scroll-margin-top: 6rem;
+        }
+
         /* Navigation */
         nav {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
-            padding: 1.5rem 4rem;
+            padding: calc(1.25rem + env(safe-area-inset-top)) calc(4rem + env(safe-area-inset-right)) 1.25rem calc(4rem + env(safe-area-inset-left));
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 1rem;
             z-index: 100;
             background: linear-gradient(to bottom, var(--cream) 0%, transparent 100%);
             transition: all 0.4s ease;
         }
 
         nav.scrolled {
-            background: rgba(247, 243, 235, 0.95);
+            background: rgba(245, 247, 250, 0.95);
             backdrop-filter: blur(10px);
             box-shadow: 0 2px 40px rgba(0,0,0,0.05);
         }
 
         .logo {
-            font-family: 'Cormorant Garamond', serif;
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--olive-deep);
             text-decoration: none;
-            letter-spacing: -0.02em;
+            display: flex;
+            align-items: center;
         }
 
-        .logo span {
-            display: block;
-            font-size: 0.75rem;
-            font-family: 'DM Sans', sans-serif;
-            font-weight: 400;
-            letter-spacing: 0.2em;
-            text-transform: uppercase;
-            color: var(--olive-light);
-            margin-top: 2px;
+        .logo img {
+            height: 48px;
+            width: auto;
         }
 
         .nav-links {
             display: flex;
             gap: 3rem;
             list-style: none;
+        }
+
+        .nav-toggle {
+            display: none;
+            width: 48px;
+            height: 48px;
+            border: 1px solid rgba(45, 43, 107, 0.14);
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.86);
+            color: var(--olive-deep);
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 14px 30px rgba(26, 58, 92, 0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+        }
+
+        .nav-toggle:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 18px 36px rgba(26, 58, 92, 0.12);
+            background: rgba(255, 255, 255, 0.96);
+        }
+
+        .nav-toggle svg {
+            width: 22px;
+            height: 22px;
+        }
+
+        .nav-mobile-shell[hidden] {
+            display: none;
+        }
+
+        .nav-mobile-shell {
+            position: fixed;
+            inset: 0;
+            z-index: 95;
+        }
+
+        .nav-mobile-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(26, 58, 92, 0.28);
+            backdrop-filter: blur(8px);
+        }
+
+        .nav-mobile-panel {
+            position: absolute;
+            top: calc(5.5rem + env(safe-area-inset-top));
+            left: max(1rem, calc(env(safe-area-inset-left) + 1rem));
+            right: max(1rem, calc(env(safe-area-inset-right) + 1rem));
+            background: rgba(245, 247, 250, 0.96);
+            border: 1px solid rgba(45, 43, 107, 0.08);
+            border-radius: 28px;
+            padding: 1rem;
+            box-shadow: 0 24px 60px rgba(26, 58, 92, 0.16);
+        }
+
+        .nav-mobile-links {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .nav-mobile-links a {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 1rem 1.1rem;
+            border-radius: 18px;
+            color: var(--olive-deep);
+            text-decoration: none;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .nav-mobile-links a::after {
+            content: '→';
+            font-size: 1rem;
+            color: var(--terracotta);
+        }
+
+        .nav-mobile-links .nav-cta {
+            justify-content: center;
+            background: var(--olive);
+            color: var(--cream) !important;
+            box-shadow: 0 14px 28px rgba(45, 43, 107, 0.18);
+        }
+
+        .nav-mobile-links .nav-cta::after {
+            display: none;
         }
 
         .nav-links a {
@@ -221,6 +323,7 @@
 
         .hero-buttons {
             display: flex;
+            flex-wrap: wrap;
             gap: 1rem;
             opacity: 0;
             animation: fadeSlideUp 0.8s ease 0.8s forwards;
@@ -243,7 +346,7 @@
         .btn-primary:hover {
             background: var(--olive-deep);
             transform: translateY(-3px);
-            box-shadow: 0 10px 30px rgba(74, 93, 35, 0.2);
+            box-shadow: 0 10px 30px rgba(45, 43, 107, 0.25);
         }
 
         .btn-secondary {
@@ -366,7 +469,7 @@
             right: -20%;
             width: 600px;
             height: 600px;
-            background: radial-gradient(circle, rgba(168, 184, 154, 0.1) 0%, transparent 70%);
+            background: radial-gradient(circle, rgba(139, 184, 168, 0.1) 0%, transparent 70%);
             pointer-events: none;
         }
 
@@ -420,7 +523,7 @@
         .pain-card p {
             font-size: 0.95rem;
             line-height: 1.8;
-            color: rgba(247, 243, 235, 0.8);
+            color: rgba(245, 247, 250, 0.8);
         }
 
         /* Solution Section */
@@ -743,7 +846,7 @@
 
         .team-desc {
             font-size: 0.9rem;
-            color: rgba(247, 243, 235, 0.8);
+            color: rgba(245, 247, 250, 0.8);
             line-height: 1.6;
         }
 
@@ -812,18 +915,19 @@
         }
 
         .footer-brand .logo {
-            color: var(--cream);
             margin-bottom: 1rem;
             display: inline-block;
         }
 
-        .footer-brand .logo span {
-            color: var(--sage);
+        .footer-brand .logo img {
+            height: 42px;
+            width: auto;
+            filter: brightness(10);
         }
 
         .footer-desc {
             font-size: 0.9rem;
-            color: rgba(247, 243, 235, 0.7);
+            color: rgba(245, 247, 250, 0.7);
             line-height: 1.7;
             margin-top: 1rem;
         }
@@ -844,7 +948,7 @@
         }
 
         .footer-links a {
-            color: rgba(247, 243, 235, 0.7);
+            color: rgba(245, 247, 250, 0.7);
             text-decoration: none;
             font-size: 0.9rem;
             transition: color 0.3s ease;
@@ -860,7 +964,7 @@
             padding-top: 2rem;
             text-align: center;
             font-size: 0.85rem;
-            color: rgba(247, 243, 235, 0.5);
+            color: rgba(245, 247, 250, 0.5);
         }
 
         /* Animations */
@@ -910,11 +1014,15 @@
         /* Responsive */
         @media (max-width: 1024px) {
             nav {
-                padding: 1rem 2rem;
+                padding: calc(1rem + env(safe-area-inset-top)) calc(2rem + env(safe-area-inset-right)) 1rem calc(2rem + env(safe-area-inset-left));
             }
 
             .nav-links {
                 display: none;
+            }
+
+            .nav-toggle {
+                display: inline-flex;
             }
 
             .hero {
@@ -965,11 +1073,116 @@
             .solution-card {
                 position: relative;
                 width: 100%;
+                top: auto;
+                left: auto;
+            }
+
+            .solution-card:nth-child(1),
+            .solution-card:nth-child(2),
+            .solution-card:nth-child(3) {
+                top: auto;
+                left: auto;
             }
 
             .footer-content {
                 grid-template-columns: 1fr;
                 gap: 2rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            nav {
+                padding: calc(0.85rem + env(safe-area-inset-top)) calc(1rem + env(safe-area-inset-right)) 0.85rem calc(1rem + env(safe-area-inset-left));
+            }
+
+            .logo img {
+                height: 40px;
+            }
+
+            .hero {
+                min-height: auto;
+                padding: 6.5rem 1rem 3rem;
+            }
+
+            .hero-content {
+                text-align: left;
+            }
+
+            .hero-description {
+                margin-left: 0;
+                margin-right: 0;
+            }
+
+            .hero-buttons {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .btn-primary,
+            .btn-secondary {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .hero-visual {
+                order: initial;
+                margin-top: 1rem;
+                margin-bottom: 0;
+            }
+
+            .bridge-illustration {
+                max-width: 360px;
+            }
+
+            .shape-1 {
+                width: 180px;
+                height: 180px;
+                top: 8%;
+                right: -4%;
+            }
+
+            .shape-2 {
+                width: 132px;
+                height: 132px;
+                bottom: 14%;
+                right: 18%;
+            }
+
+            .shape-3 {
+                width: 100px;
+                height: 100px;
+                left: -2%;
+            }
+
+            section {
+                padding: 3.5rem 1rem;
+            }
+
+            .section-header {
+                margin-bottom: 3rem;
+            }
+
+            .pain-card,
+            .service-card,
+            .audience-card,
+            .team-card,
+            .cta-content,
+            .solution-card {
+                padding: 1.5rem;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            html {
+                scroll-behavior: auto;
+            }
+
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
             }
         }
     </style>
@@ -978,8 +1191,7 @@
     <!-- Navigation -->
     <nav>
         <a href="#" class="logo">
-            BeyondBridge
-            <span>Build the bridge. Go beyond.</span>
+            <img src="/images/logo-color.png" alt="BeyondBridge - Build The Bridge. Go Beyond.">
         </a>
         <ul class="nav-links">
             <li><a href="#pain-points">市場痛點</a></li>
@@ -988,7 +1200,26 @@
             <li><a href="#team">核心團隊</a></li>
             <li><a href="mailto:contact@beyondbridge.tw" class="nav-cta">聯絡我們</a></li>
         </ul>
+        <button type="button" class="nav-toggle" id="navToggle" aria-label="開啟網站選單" aria-expanded="false" aria-controls="mobileNav">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="4" y1="7" x2="20" y2="7"/>
+                <line x1="4" y1="12" x2="20" y2="12"/>
+                <line x1="4" y1="17" x2="20" y2="17"/>
+            </svg>
+        </button>
     </nav>
+    <div class="nav-mobile-shell" id="mobileNav" hidden>
+        <div class="nav-mobile-backdrop" id="mobileNavBackdrop"></div>
+        <div class="nav-mobile-panel">
+            <ul class="nav-mobile-links">
+                <li><a href="#pain-points">市場痛點</a></li>
+                <li><a href="#services">服務項目</a></li>
+                <li><a href="#audience">目標客群</a></li>
+                <li><a href="#team">核心團隊</a></li>
+                <li><a href="mailto:contact@beyondbridge.tw" class="nav-cta">聯絡我們</a></li>
+            </ul>
+        </div>
+    </div>
 
     <!-- Hero Section -->
     <section class="hero">
@@ -1018,26 +1249,26 @@
             </div>
             <svg class="bridge-illustration" viewBox="0 0 500 400" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <!-- Stylized Bridge Illustration -->
-                <path d="M50 300 Q150 280 250 300 Q350 320 450 300" stroke="#3D4A2D" stroke-width="3" fill="none"/>
-                <path d="M50 310 Q150 290 250 310 Q350 330 450 310" stroke="#3D4A2D" stroke-width="2" fill="none"/>
+                <path d="M50 300 Q150 280 250 300 Q350 320 450 300" stroke="#1A3A5C" stroke-width="3" fill="none"/>
+                <path d="M50 310 Q150 290 250 310 Q350 330 450 310" stroke="#1A3A5C" stroke-width="2" fill="none"/>
 
                 <!-- Bridge cables -->
-                <path d="M250 100 L250 300" stroke="#4A5D23" stroke-width="2"/>
-                <path d="M250 100 L100 300" stroke="#4A5D23" stroke-width="1.5"/>
-                <path d="M250 100 L400 300" stroke="#4A5D23" stroke-width="1.5"/>
-                <path d="M250 100 L150 300" stroke="#4A5D23" stroke-width="1"/>
-                <path d="M250 100 L350 300" stroke="#4A5D23" stroke-width="1"/>
-                <path d="M250 100 L200 300" stroke="#4A5D23" stroke-width="1"/>
-                <path d="M250 100 L300 300" stroke="#4A5D23" stroke-width="1"/>
+                <path d="M250 100 L250 300" stroke="#2D2B6B" stroke-width="2"/>
+                <path d="M250 100 L100 300" stroke="#2D2B6B" stroke-width="1.5"/>
+                <path d="M250 100 L400 300" stroke="#2D2B6B" stroke-width="1.5"/>
+                <path d="M250 100 L150 300" stroke="#2D2B6B" stroke-width="1"/>
+                <path d="M250 100 L350 300" stroke="#2D2B6B" stroke-width="1"/>
+                <path d="M250 100 L200 300" stroke="#2D2B6B" stroke-width="1"/>
+                <path d="M250 100 L300 300" stroke="#2D2B6B" stroke-width="1"/>
 
                 <!-- Decorative arches -->
-                <path d="M80 320 Q165 260 250 320" stroke="#6B7F3A" stroke-width="2" fill="none"/>
-                <path d="M250 320 Q335 260 420 320" stroke="#6B7F3A" stroke-width="2" fill="none"/>
+                <path d="M80 320 Q165 260 250 320" stroke="#4A4899" stroke-width="2" fill="none"/>
+                <path d="M250 320 Q335 260 420 320" stroke="#4A4899" stroke-width="2" fill="none"/>
 
                 <!-- Abstract shapes -->
-                <circle cx="100" cy="200" r="40" fill="#A8B89A" opacity="0.5"/>
-                <circle cx="400" cy="180" r="50" fill="#C17A5E" opacity="0.4"/>
-                <circle cx="350" cy="250" r="30" fill="#D4C5A9" opacity="0.6"/>
+                <circle cx="100" cy="200" r="40" fill="#8BB8A8" opacity="0.5"/>
+                <circle cx="400" cy="180" r="50" fill="#1A6B4A" opacity="0.4"/>
+                <circle cx="350" cy="250" r="30" fill="#C5D0DC" opacity="0.6"/>
             </svg>
         </div>
     </section>
@@ -1188,7 +1419,7 @@
         <div class="team-grid">
             <div class="team-card reveal">
                 <div class="team-photo">
-                    <img src="images/justin.jpg" alt="Justin Cheng">
+                    <img src="images/justin.jpg" alt="Justin Cheng" loading="lazy">
                 </div>
                 <h3>Justin Cheng</h3>
                 <p class="team-role">Co-founder & Head of Product & Engineering</p>
@@ -1196,7 +1427,7 @@
             </div>
             <div class="team-card reveal">
                 <div class="team-photo">
-                    <img src="images/benjamin.jpg" alt="Benjamin Chen">
+                    <img src="images/benjamin.jpg" alt="Benjamin Chen" loading="lazy">
                 </div>
                 <h3>Benjamin Chen</h3>
                 <p class="team-role">Co-founder & Head of Content & Learning Experience</p>
@@ -1204,7 +1435,7 @@
             </div>
             <div class="team-card reveal">
                 <div class="team-photo">
-                    <img src="images/mina.jpg" alt="Mina Yang">
+                    <img src="images/mina.jpg" alt="Mina Yang" loading="lazy">
                 </div>
                 <h3>Mina Yang</h3>
                 <p class="team-role">Co-founder & Head of Operations & Customer Success</p>
@@ -1235,8 +1466,7 @@
         <div class="footer-content">
             <div class="footer-brand">
                 <a href="#" class="logo">
-                    BeyondBridge
-                    <span>Build the bridge. Go beyond.</span>
+                    <img src="/images/logo-white.png" alt="BeyondBridge">
                 </a>
                 <p class="footer-desc">BeyondBridge 致力於以數位創新方式革新傳統知識建材製作與學習內容供應生態。成為臺灣建橋者（教育工作者）與企業培訓主管心中可信賴的「知識之橋」。</p>
             </div>
@@ -1268,13 +1498,32 @@
             </div>
         </div>
         <div class="footer-bottom">
-            <p>&copy; 2025 BeyondBridge. All rights reserved.</p>
+            <p>&copy; 2026 BeyondBridge. All rights reserved.</p>
         </div>
     </footer>
 
     <script>
         // Navigation scroll effect
         const nav = document.querySelector('nav');
+        const navToggle = document.getElementById('navToggle');
+        const mobileNav = document.getElementById('mobileNav');
+        const mobileNavBackdrop = document.getElementById('mobileNavBackdrop');
+
+        const setMobileNavState = (isOpen) => {
+            mobileNav.hidden = !isOpen;
+            navToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            document.body.style.overflow = isOpen ? 'hidden' : '';
+        };
+
+        const closeMobileNav = () => setMobileNavState(false);
+
+        navToggle.addEventListener('click', () => {
+            const nextState = navToggle.getAttribute('aria-expanded') !== 'true';
+            setMobileNavState(nextState);
+        });
+
+        mobileNavBackdrop.addEventListener('click', closeMobileNav);
+
         window.addEventListener('scroll', () => {
             if (window.scrollY > 50) {
                 nav.classList.add('scrolled');
@@ -1306,12 +1555,29 @@
                 e.preventDefault();
                 const target = document.querySelector(this.getAttribute('href'));
                 if (target) {
+                    closeMobileNav();
                     target.scrollIntoView({
                         behavior: 'smooth',
                         block: 'start'
                     });
                 }
             });
+        });
+
+        document.querySelectorAll('.nav-mobile-links a[href^="mailto:"]').forEach((anchor) => {
+            anchor.addEventListener('click', closeMobileNav);
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && navToggle.getAttribute('aria-expanded') === 'true') {
+                closeMobileNav();
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 1024 && navToggle.getAttribute('aria-expanded') === 'true') {
+                closeMobileNav();
+            }
         });
     </script>
 </body>

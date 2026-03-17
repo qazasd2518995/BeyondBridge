@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>BeyondBridge Platform | 教育資源平台</title>
     <link rel="icon" type="image/png" href="/images/logo-icon-color.png">
     <link rel="apple-touch-icon" href="/images/logo-icon-color.png">
@@ -112,6 +112,17 @@
             background: linear-gradient(135deg, var(--cream) 0%, var(--cream-dark) 100%);
             color: var(--charcoal);
             line-height: 1.6;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        button,
+        a,
+        input,
+        select,
+        textarea {
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
 
         :where(
@@ -363,6 +374,7 @@
             flex: 1;
             margin-left: var(--sidebar-width);
             min-height: 100vh;
+            min-width: 0;
             transition: opacity 0.15s ease;
         }
 
@@ -381,20 +393,29 @@
         /* Top Bar */
         .top-bar {
             background: var(--white);
-            padding: 1rem 2rem;
+            padding: calc(1rem + env(safe-area-inset-top)) calc(2rem + env(safe-area-inset-right)) 1rem calc(2rem + env(safe-area-inset-left));
             display: flex;
             align-items: center;
             justify-content: space-between;
+            gap: 1rem;
             border-bottom: 1px solid var(--gray-200);
             position: sticky;
             top: 0;
             z-index: 50;
         }
 
+        .page-header-wrapper {
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
         .page-title {
             font-size: 1.5rem;
             font-weight: 700;
             color: var(--olive-deep);
+            line-height: 1.2;
         }
 
         .page-title span {
@@ -408,6 +429,8 @@
         .top-bar-actions {
             display: flex;
             align-items: center;
+            justify-content: flex-end;
+            flex-wrap: wrap;
             gap: 1rem;
         }
 
@@ -417,7 +440,7 @@
             background: var(--gray-100);
             border-radius: 8px;
             padding: 0.5rem 1rem;
-            width: 300px;
+            width: min(300px, 100%);
             border: 1px solid var(--gray-200);
             transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
         }
@@ -5851,6 +5874,7 @@
         @media (max-width: 768px) {
             .sidebar {
                 transform: translateX(-100%);
+                width: min(var(--sidebar-width), calc(100vw - 3rem));
                 transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                 z-index: 1001;
             }
@@ -6089,6 +6113,58 @@
                 display: none;
             }
 
+            .top-bar {
+                padding: calc(0.85rem + env(safe-area-inset-top)) calc(1rem + env(safe-area-inset-right)) 0.85rem calc(1rem + env(safe-area-inset-left));
+                align-items: flex-start;
+            }
+
+            .page-title {
+                font-size: 1.25rem;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.35rem;
+            }
+
+            .page-title span {
+                margin-left: 0;
+            }
+
+            .top-bar-actions {
+                margin-left: auto;
+                gap: 0.75rem;
+            }
+
+            .dashboard {
+                padding: 1rem;
+            }
+
+            .card-header,
+            .card-body {
+                padding: 1rem;
+            }
+
+            .course-item {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .course-thumbnail {
+                width: 100%;
+                height: 160px;
+            }
+
+            .data-table {
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .data-table th,
+            .data-table td {
+                white-space: nowrap;
+            }
+
             /* 半透明遮罩層 */
             .sidebar-overlay {
                 position: fixed;
@@ -6102,6 +6178,7 @@
                 visibility: hidden;
                 transition: opacity 0.3s ease, visibility 0.3s ease;
                 -webkit-tap-highlight-color: transparent;
+                overscroll-behavior: contain;
             }
 
             .sidebar-overlay.visible {
@@ -6132,7 +6209,7 @@
             }
 
             .sidebar-footer {
-                padding: 1rem;
+                padding: 1rem max(1rem, calc(env(safe-area-inset-right) + 1rem)) max(1rem, calc(env(safe-area-inset-bottom) + 1rem)) max(1rem, calc(env(safe-area-inset-left) + 1rem));
             }
 
             .user-profile {
@@ -6460,9 +6537,9 @@
                             <circle cx="11" cy="11" r="8"/>
                             <line x1="21" y1="21" x2="16.65" y2="16.65"/>
                         </svg>
-                        <input type="text" data-i18n-placeholder="common.searchPlaceholder" placeholder="搜尋建材、橋樑...">
+                        <input type="text" data-i18n-placeholder="common.searchPlaceholder" placeholder="搜尋建材、橋樑..." aria-label="搜尋建材與橋樑" autocomplete="off">
                     </div>
-                    <button id="notificationToggleBtn" class="icon-btn" onclick="toggleNotifications()">
+                    <button id="notificationToggleBtn" class="icon-btn" onclick="toggleNotifications()" aria-label="開啟通知">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                             <path d="M13.73 21a2 2 0 01-3.46 0"/>
@@ -10749,6 +10826,7 @@
         .login-view {
             display: grid;
             min-height: 100vh;
+            min-height: 100dvh;
             background: var(--cream);
             grid-template-columns: 1fr 1fr;
         }
@@ -11295,7 +11373,7 @@
 
         /* ─── Responsive Design ─── */
         @media (max-width: 900px) {
-            .login-view.active {
+            .login-view {
                 grid-template-columns: 1fr;
             }
 
@@ -11305,24 +11383,33 @@
 
             .login-form-panel {
                 min-height: 100vh;
-                padding: 2rem;
+                min-height: 100dvh;
+                width: 100%;
+                padding: calc(2rem + env(safe-area-inset-top)) max(1.25rem, calc(env(safe-area-inset-right) + 1.25rem)) max(1.5rem, calc(env(safe-area-inset-bottom) + 1.5rem)) max(1.25rem, calc(env(safe-area-inset-left) + 1.25rem));
             }
 
             .login-card {
                 padding: 2rem;
+                max-width: 100%;
             }
 
             /* Show a simple header on mobile */
             .login-form-panel::after {
                 content: 'BeyondBridge';
                 position: absolute;
-                top: 2rem;
+                top: calc(1.5rem + env(safe-area-inset-top));
                 left: 50%;
                 transform: translateX(-50%);
                 font-family: 'Cormorant Garamond', serif;
                 font-size: 1.5rem;
                 font-weight: 600;
                 color: var(--olive-deep);
+            }
+
+            .login-footer {
+                position: static;
+                transform: none;
+                margin-top: 1.5rem;
             }
         }
 
@@ -11427,17 +11514,17 @@
                     <button type="button" class="auth-tab" data-i18n="login.tab.register" onclick="switchAuthTab('register')">註冊</button>
                 </div>
 
-                <div id="loginError" class="login-error"></div>
+                <div id="loginError" class="login-error" aria-live="polite"></div>
 
                 <!-- Login Form -->
                 <form id="loginForm" class="login-form" onsubmit="handleLogin(event)">
                     <div class="form-group">
-                        <label data-i18n="login.email">電子郵件</label>
-                        <input type="email" id="loginEmail" data-i18n-placeholder="login.emailPlaceholder" placeholder="your@email.com" required>
+                        <label for="loginEmail" data-i18n="login.email">電子郵件</label>
+                        <input type="email" id="loginEmail" name="email" data-i18n-placeholder="login.emailPlaceholder" placeholder="your@email.com" autocomplete="email" inputmode="email" spellcheck="false" required>
                     </div>
                     <div class="form-group">
-                        <label data-i18n="login.password">密碼</label>
-                        <input type="password" id="loginPassword" data-i18n-placeholder="login.passwordPlaceholder" placeholder="請輸入密碼" required>
+                        <label for="loginPassword" data-i18n="login.password">密碼</label>
+                        <input type="password" id="loginPassword" name="password" data-i18n-placeholder="login.passwordPlaceholder" placeholder="請輸入密碼" autocomplete="current-password" required>
                     </div>
                     <button type="submit" class="login-btn" data-i18n="login.submit">踏上橋樑</button>
                 </form>
@@ -11449,28 +11536,28 @@
 
                     <!-- Invite Code - Inline compact style -->
                     <div class="invite-code-group">
-                        <label>
+                        <label for="registerInviteCode">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
                             <span data-i18n="register.inviteCode">通行碼</span>
                         </label>
-                        <input type="text" id="registerInviteCode" data-i18n-placeholder="register.inviteCodePlaceholder" placeholder="ABC123" maxlength="6" class="invite-code-input">
+                        <input type="text" id="registerInviteCode" name="inviteCode" data-i18n-placeholder="register.inviteCodePlaceholder" placeholder="ABC123" maxlength="6" class="invite-code-input" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false">
                     </div>
 
                     <!-- Name + Email in 2 columns -->
                     <div class="form-row">
                         <div class="form-group">
-                            <label data-i18n="register.name">姓名</label>
-                            <input type="text" id="registerName" data-i18n-placeholder="register.namePlaceholder" placeholder="您的姓名" required>
+                            <label for="registerName" data-i18n="register.name">姓名</label>
+                            <input type="text" id="registerName" name="name" data-i18n-placeholder="register.namePlaceholder" placeholder="您的姓名" autocomplete="name" required>
                         </div>
                         <div class="form-group">
-                            <label data-i18n="register.email">電子郵件</label>
-                            <input type="email" id="registerEmail" data-i18n-placeholder="register.emailPlaceholder" placeholder="email@example.com" required>
+                            <label for="registerEmail" data-i18n="register.email">電子郵件</label>
+                            <input type="email" id="registerEmail" name="registerEmail" data-i18n-placeholder="register.emailPlaceholder" placeholder="email@example.com" autocomplete="email" inputmode="email" spellcheck="false" required>
                         </div>
                     </div>
 
                     <div class="form-group">
-                        <label data-i18n="register.password">密碼</label>
-                        <input type="password" id="registerPassword" data-i18n-placeholder="register.passwordPlaceholder" placeholder="至少6個字元" required minlength="6">
+                        <label for="registerPassword" data-i18n="register.password">密碼</label>
+                        <input type="password" id="registerPassword" name="registerPassword" data-i18n-placeholder="register.passwordPlaceholder" placeholder="至少6個字元" autocomplete="new-password" required minlength="6">
                     </div>
 
                     <button type="submit" class="login-btn" data-i18n="register.submit">開始探索</button>
@@ -15309,6 +15396,9 @@
         // Mobile menu toggle with overlay and gesture support
         const mobileMenuBtn = document.createElement('button');
         mobileMenuBtn.className = 'mobile-menu-btn';
+        mobileMenuBtn.type = 'button';
+        mobileMenuBtn.setAttribute('aria-label', '開啟側邊選單');
+        mobileMenuBtn.setAttribute('aria-expanded', 'false');
         mobileMenuBtn.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>';
 
         const topBarActions = document.querySelector('.top-bar-actions');
@@ -15321,12 +15411,14 @@
         function openSidebar() {
             sidebar.classList.add('open');
             sidebarOverlay.classList.add('visible');
+            mobileMenuBtn.setAttribute('aria-expanded', 'true');
             document.body.style.overflow = 'hidden'; // 防止背景滾動
         }
 
         function closeSidebar() {
             sidebar.classList.remove('open');
             sidebarOverlay.classList.remove('visible');
+            mobileMenuBtn.setAttribute('aria-expanded', 'false');
             document.body.style.overflow = '';
         }
 
