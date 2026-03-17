@@ -1046,6 +1046,9 @@
             background: rgba(26, 58, 92, 0.05);
             color: var(--text-secondary);
             font-weight: 600;
+            min-width: 0;
+            max-width: 100%;
+            line-height: 1.45;
         }
 
         .dashboard-row-side {
@@ -1112,6 +1115,11 @@
             font-weight: 700;
             cursor: pointer;
             transition: var(--transition-fast);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            white-space: normal;
         }
 
         .dashboard-row-action:hover {
@@ -1687,6 +1695,8 @@
         .teacher-action-btn span {
             font-size: 0.9rem;
             font-weight: 600;
+            line-height: 1.45;
+            text-wrap: balance;
         }
 
         .teacher-action-btn.tone-olive { background: linear-gradient(135deg, rgba(45, 43, 107, 0.16) 0%, var(--white) 100%); }
@@ -6008,16 +6018,36 @@
             }
 
             .dashboard-row-card {
-                align-items: flex-start;
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.85rem;
+            }
+
+            .dashboard-row-icon {
+                width: 3rem;
+                height: 3rem;
+                border-radius: 1rem;
+            }
+
+            .dashboard-row-body,
+            .dashboard-row-meta {
+                width: 100%;
             }
 
             .dashboard-row-side {
                 width: 100%;
-                align-items: flex-start;
+                align-items: stretch;
             }
 
             .dashboard-row-title {
                 white-space: normal;
+            }
+
+            .dashboard-row-meta-item,
+            .dashboard-row-badge,
+            .dashboard-row-action {
+                width: 100%;
+                justify-content: center;
             }
 
             .library-toolbar,
@@ -6134,6 +6164,28 @@
                 gap: 0.75rem;
             }
 
+            .announcement-banner {
+                padding: 0.9rem 1rem;
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.65rem;
+            }
+
+            .announcement-content {
+                align-items: flex-start;
+                flex-wrap: wrap;
+                gap: 0.6rem;
+            }
+
+            .announcement-text {
+                width: 100%;
+                line-height: 1.5;
+            }
+
+            .announcement-close {
+                align-self: flex-end;
+            }
+
             .dashboard {
                 padding: 1rem;
             }
@@ -6163,6 +6215,22 @@
             .data-table th,
             .data-table td {
                 white-space: nowrap;
+            }
+
+            .modal-footer,
+            .bridge-modal-footer {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .modal-footer .btn-primary,
+            .modal-footer .btn-secondary,
+            .bridge-modal-footer .btn-primary,
+            .bridge-modal-footer .btn-secondary,
+            .bridge-modal-footer .bridge-primary-btn,
+            .bridge-modal-footer .bridge-secondary-btn {
+                width: 100%;
+                justify-content: center;
             }
 
             /* 半透明遮罩層 */
@@ -11456,6 +11524,7 @@
             display: flex;
             align-items: center;
             gap: 1rem;
+            min-width: 0;
         }
         .announcement-badge {
             background: rgba(255,255,255,0.2);
@@ -11474,6 +11543,9 @@
             cursor: pointer;
             opacity: 0.7;
             transition: opacity 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
         .announcement-close:hover { opacity: 1; }
     </style>

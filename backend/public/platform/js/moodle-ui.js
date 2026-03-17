@@ -6049,6 +6049,12 @@ const MoodleUI = {
     const inactiveCount = students.filter(student => Number(student.inactiveDays || 0) >= 7).length;
     const riskSummary = atRiskData.summary || {};
     const topAlertCount = (riskSummary.high || 0) + (riskSummary.medium || 0);
+    const learnerLabel = isEnglish ? 'Learner' : '學員';
+    const progressLabel = isEnglish ? 'Progress' : '進度';
+    const riskLabel = isEnglish ? 'Risk level' : '風險等級';
+    const missingLabel = isEnglish ? 'Missing work' : '缺交作業';
+    const lastActiveLabel = isEnglish ? 'Last active' : '最近活動';
+    const alertsLabel = isEnglish ? 'Alerts' : '警示內容';
 
     return `
       <div class="management-detail-page teacher-analytics-page">
@@ -6136,23 +6142,23 @@ const MoodleUI = {
             <table class="management-table">
               <thead>
                 <tr>
-                  <th>${isEnglish ? 'Learner' : '學員'}</th>
-                  <th>${isEnglish ? 'Progress' : '進度'}</th>
-                  <th>${isEnglish ? 'Risk level' : '風險等級'}</th>
-                  <th>${isEnglish ? 'Missing work' : '缺交作業'}</th>
-                  <th>${isEnglish ? 'Last active' : '最近活動'}</th>
+                  <th>${learnerLabel}</th>
+                  <th>${progressLabel}</th>
+                  <th>${riskLabel}</th>
+                  <th>${missingLabel}</th>
+                  <th>${lastActiveLabel}</th>
                 </tr>
               </thead>
               <tbody>
                 ${students.map((student) => `
                   <tr>
-                    <td>
+                    <td data-label="${learnerLabel}">
                       <div class="management-inline-stack">
                         <strong>${this.escapeText(student.studentName || student.studentId || (isEnglish ? 'Learner' : '學員'))}</strong>
                         <span>${this.escapeText(student.studentEmail || student.studentId || '—')}</span>
                       </div>
                     </td>
-                    <td>
+                    <td data-label="${progressLabel}">
                       <div class="teacher-analytics-progress-cell">
                         <div class="teacher-analytics-progress-bar">
                           <div class="teacher-analytics-progress-fill" data-progress-width="${this.clampProgressValue(student.progress || 0)}"></div>
@@ -6160,9 +6166,9 @@ const MoodleUI = {
                         <span>${this.escapeText(`${Math.round(Number(student.progress || 0))}%`)}</span>
                       </div>
                     </td>
-                    <td>${this.renderAnalyticsRiskBadge(student.riskLevel)}</td>
-                    <td>${this.escapeText(String(student.missingAssignments || 0))}</td>
-                    <td>${student.lastAccessedAt ? this.escapeText(this.formatPlatformDate(student.lastAccessedAt, { year: 'numeric', month: 'numeric', day: 'numeric' }) || '—') : this.escapeText(isEnglish ? 'Never' : '尚無紀錄')}</td>
+                    <td data-label="${riskLabel}">${this.renderAnalyticsRiskBadge(student.riskLevel)}</td>
+                    <td data-label="${missingLabel}">${this.escapeText(String(student.missingAssignments || 0))}</td>
+                    <td data-label="${lastActiveLabel}">${student.lastAccessedAt ? this.escapeText(this.formatPlatformDate(student.lastAccessedAt, { year: 'numeric', month: 'numeric', day: 'numeric' }) || '—') : this.escapeText(isEnglish ? 'Never' : '尚無紀錄')}</td>
                   </tr>
                 `).join('')}
               </tbody>
@@ -6181,30 +6187,30 @@ const MoodleUI = {
             <table class="management-table">
               <thead>
                 <tr>
-                  <th>${isEnglish ? 'Learner' : '學員'}</th>
-                  <th>${isEnglish ? 'Risk level' : '風險等級'}</th>
-                  <th>${isEnglish ? 'Alerts' : '警示內容'}</th>
-                  <th>${isEnglish ? 'Progress' : '進度'}</th>
+                  <th>${learnerLabel}</th>
+                  <th>${riskLabel}</th>
+                  <th>${alertsLabel}</th>
+                  <th>${progressLabel}</th>
                 </tr>
               </thead>
               <tbody>
                 ${atRiskStudents.map((student) => `
                   <tr>
-                    <td>
+                    <td data-label="${learnerLabel}">
                       <div class="management-inline-stack">
                         <strong>${this.escapeText(student.studentName || student.studentId || (isEnglish ? 'Learner' : '學員'))}</strong>
                         <span>${this.escapeText(student.studentEmail || student.studentId || '—')}</span>
                       </div>
                     </td>
-                    <td>${this.renderAnalyticsRiskBadge(student.riskLevel)}</td>
-                    <td>
+                    <td data-label="${riskLabel}">${this.renderAnalyticsRiskBadge(student.riskLevel)}</td>
+                    <td data-label="${alertsLabel}">
                       <div class="teacher-analytics-alert-list">
                         ${(Array.isArray(student.alerts) ? student.alerts : []).map((alert) => `
                           <span class="teacher-analytics-alert-chip ${alert.severity === 'high' ? 'is-danger' : 'is-warning'}">${this.escapeText(alert.message || alert.type || '—')}</span>
                         `).join('')}
                       </div>
                     </td>
-                    <td>${this.escapeText(`${Math.round(Number(student.progress || 0))}%`)}</td>
+                    <td data-label="${progressLabel}">${this.escapeText(`${Math.round(Number(student.progress || 0))}%`)}</td>
                   </tr>
                 `).join('')}
               </tbody>

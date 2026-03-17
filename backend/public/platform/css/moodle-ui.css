@@ -10520,6 +10520,82 @@
     display: block;
     overflow-x: auto;
   }
+
+  .teacher-analytics-page .management-table-shell {
+    overflow: visible;
+  }
+
+  .teacher-analytics-page .management-table-heading {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .teacher-analytics-page .management-table,
+  .teacher-analytics-page .management-table thead,
+  .teacher-analytics-page .management-table tbody {
+    display: block;
+  }
+
+  .teacher-analytics-page .management-table thead {
+    display: none;
+  }
+
+  .teacher-analytics-page .management-table tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    padding: 0.85rem;
+  }
+
+  .teacher-analytics-page .management-table tr {
+    display: grid;
+    gap: 0.8rem;
+    padding: 1rem;
+    border: 1px solid rgba(26, 58, 92, 0.1);
+    border-radius: 18px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 245, 239, 0.96));
+    box-shadow: 0 10px 22px rgba(15, 23, 42, 0.05);
+  }
+
+  .teacher-analytics-page .management-table td {
+    display: grid;
+    grid-template-columns: minmax(82px, 96px) minmax(0, 1fr);
+    gap: 0.75rem;
+    padding: 0;
+    border: none;
+    font-size: 0.86rem;
+    align-items: start;
+  }
+
+  .teacher-analytics-page .management-table td::before {
+    content: attr(data-label);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--gray-500);
+  }
+
+  .teacher-analytics-page .management-inline-stack,
+  .teacher-analytics-page .teacher-analytics-alert-list {
+    min-width: 0;
+  }
+
+  .teacher-analytics-page .teacher-analytics-progress-cell {
+    flex-wrap: wrap;
+    row-gap: 0.4rem;
+  }
+
+  .teacher-analytics-page .teacher-analytics-progress-bar {
+    width: min(160px, 100%);
+    flex: 1 1 120px;
+  }
+
+  .teacher-analytics-page .teacher-analytics-alert-chip {
+    justify-content: flex-start;
+    text-align: left;
+    white-space: normal;
+  }
 }
 
 /* ==================== 評分標準頁面 ==================== */
