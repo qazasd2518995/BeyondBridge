@@ -21,22 +21,24 @@ const {
 } = require('../../utils/lti/jwt');
 
 /**
- * POST /api/lti/13/initiate
+ * GET/POST /api/lti/13/initiate
  * 啟動 LTI 1.3 OIDC 登入流程
  *
  * 這是從 BeyondBridge 啟動外部工具的起點
  * 需要已認證的用戶
+ * GET: 前端 iframe/redirect 方式（自動重導向到 Tool OIDC Login）
+ * POST: API 方式（回傳 JSON）
  */
-router.post('/initiate', authMiddleware, async (req, res) => {
+router.all('/initiate', authMiddleware, async (req, res) => {
   try {
-    const {
-      toolId,
-      courseId,
-      resourceId,
-      resourceTitle,
-      messageType = 'LtiResourceLinkRequest',
-      customParams = {}
-    } = req.body;
+    // 支援 GET query params 和 POST body
+    const params = req.method === 'GET' ? req.query : req.body;
+    const toolId = params.toolId || params.tool_id;
+    const courseId = params.courseId || params.course_id;
+    const resourceId = params.resourceId || params.resource_link_id;
+    const resourceTitle = params.resourceTitle;
+    const messageType = params.messageType || params.message_type || 'LtiResourceLinkRequest';
+    const customParams = params.customParams || {};
 
     if (!toolId) {
       return res.status(400).json({
@@ -99,7 +101,6 @@ router.post('/initiate', authMiddleware, async (req, res) => {
     });
 
     // 構建 OIDC 登入初始化請求參數
-    const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
     const loginParams = new URLSearchParams({
       iss: process.env.LTI_PLATFORM_ISSUER || 'https://beyondbridge.edu',
       target_link_uri: tool.targetLinkUri || tool.toolUrl,
@@ -113,15 +114,19 @@ router.post('/initiate', authMiddleware, async (req, res) => {
       lti_deployment_id: tool.deploymentId
     });
 
-    // 回傳 OIDC 登入 URL（前端將重導向用戶到此 URL）
     const oidcLoginUrl = `${tool.oidcLoginUrl}?${loginParams.toString()}`;
 
+    // GET 請求（iframe/redirect）：直接重導向到 Tool 的 OIDC Login URL
+    if (req.method === 'GET') {
+      return res.redirect(oidcLoginUrl);
+    }
+
+    // POST 請求：回傳 JSON
     res.json({
       success: true,
       data: {
         oidcLoginUrl,
         state,
-        // 也提供分離的參數，讓前端可以選擇如何處理
         loginParams: {
           iss: process.env.LTI_PLATFORM_ISSUER || 'https://beyondbridge.edu',
           target_link_uri: tool.targetLinkUri || tool.toolUrl,
