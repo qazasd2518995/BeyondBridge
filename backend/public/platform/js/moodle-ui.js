@@ -800,11 +800,11 @@ const MoodleUI = {
             <span class="section-meta-badge">${Array.isArray(section.activities) ? section.activities.length : 0} ${I18n.getLocale() === 'en' ? 'activities' : '個活動'}</span>
           ${isTeacher ? `
             <div class="section-actions">
-              <button onclick="MoodleUI.openAddActivity('${courseId}', '${section.sectionId}')" class="btn-sm">
+              <button type="button" onclick="MoodleUI.openAddActivity('${courseId}', '${section.sectionId}')" class="btn-sm">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 ${t('moodleCourse.addActivity')}
               </button>
-              <button onclick="MoodleUI.editSection('${courseId}', '${section.sectionId}')" class="btn-icon">
+              <button type="button" onclick="MoodleUI.editSection('${courseId}', '${section.sectionId}')" class="btn-icon" aria-label="${this.escapeText(I18n.getLocale() === 'en' ? 'Edit section' : '編輯章節')}">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
               </button>
             </div>
@@ -894,10 +894,10 @@ const MoodleUI = {
         </button>
         ${isTeacher ? `
           <div class="activity-actions" onclick="event.stopPropagation()">
-            <button onclick="MoodleUI.editActivity('${courseId}', '${sectionId}', '${managementActivityId}')" class="btn-icon-sm">
+            <button type="button" onclick="MoodleUI.editActivity('${courseId}', '${sectionId}', '${managementActivityId}')" class="btn-icon-sm" aria-label="${this.escapeText(I18n.getLocale() === 'en' ? 'Edit activity' : '編輯活動')}">
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
             </button>
-            <button onclick="MoodleUI.deleteActivity('${courseId}', '${sectionId}', '${managementActivityId}')" class="btn-icon-sm danger">
+            <button type="button" onclick="MoodleUI.deleteActivity('${courseId}', '${sectionId}', '${managementActivityId}')" class="btn-icon-sm danger" aria-label="${this.escapeText(I18n.getLocale() === 'en' ? 'Delete activity' : '刪除活動')}">
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
             </button>
           </div>
@@ -11535,9 +11535,10 @@ const MoodleUI = {
             <label>${t('moodleCourseSettings.maxStudents')}</label>
             <input type="number" id="cs_maxEnrollment" value="${c.maxEnrollment || ''}">
           </div>
-          <div class="form-group">
-            <label>
-              <input type="checkbox" id="cs_visible" ${courseVisibility === 'show' ? 'checked' : ''}> ${t('moodleCourseSettings.visibleToStudents')}
+          <div class="form-group form-checkbox-row">
+            <label class="checkbox-label" for="cs_visible">
+              <input type="checkbox" id="cs_visible" name="cs_visible" ${courseVisibility === 'show' ? 'checked' : ''}>
+              <span>${t('moodleCourseSettings.visibleToStudents')}</span>
             </label>
           </div>
           <div class="form-actions">
@@ -11596,9 +11597,10 @@ const MoodleUI = {
             <label>${t('moodleSectionEdit.summaryLabel')}</label>
             <textarea id="es_summary" rows="3">${section.summary || ''}</textarea>
           </div>
-          <div class="form-group">
-            <label>
-              <input type="checkbox" id="es_visible" ${section.visible !== false ? 'checked' : ''}> 對學生可見
+          <div class="form-group form-checkbox-row">
+            <label class="checkbox-label" for="es_visible">
+              <input type="checkbox" id="es_visible" name="es_visible" ${section.visible !== false ? 'checked' : ''}>
+              <span>${t('moodleCourseSettings.visibleToStudents')}</span>
             </label>
           </div>
           <div class="form-actions">
@@ -11720,9 +11722,10 @@ const MoodleUI = {
               <textarea id="ea_content" rows="6">${merged.content || ''}</textarea>
             </div>
           ` : ''}
-          <div class="form-group">
-            <label>
-              <input type="checkbox" id="ea_visible" ${merged.visible !== false ? 'checked' : ''}> 對學生可見
+          <div class="form-group form-checkbox-row">
+            <label class="checkbox-label" for="ea_visible">
+              <input type="checkbox" id="ea_visible" name="ea_visible" ${merged.visible !== false ? 'checked' : ''}>
+              <span>${t('moodleCourseSettings.visibleToStudents')}</span>
             </label>
           </div>
           <div class="form-actions">
