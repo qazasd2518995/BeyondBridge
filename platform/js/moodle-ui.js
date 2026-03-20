@@ -694,11 +694,13 @@ const MoodleUI = {
 
       // 啟動 LTI OIDC 流程
       const baseUrl = window.location.origin;
+      const token = localStorage.getItem('accessToken');
       const launchUrl = `${baseUrl}/api/lti/13/initiate?` + new URLSearchParams({
         tool_id: toolId,
         course_id: courseId,
         resource_link_id: activityId,
-        target: 'iframe' // 或 'window' 在新視窗開啟
+        target: 'iframe',
+        ...(token && { token })
       }).toString();
 
       // 建立啟動視窗/iframe
@@ -851,11 +853,13 @@ const MoodleUI = {
    */
   async launchDeepLinking(toolId, courseId) {
     const baseUrl = window.location.origin;
+    const token = localStorage.getItem('accessToken');
     const launchUrl = `${baseUrl}/api/lti/13/initiate?` + new URLSearchParams({
       tool_id: toolId,
       course_id: courseId,
       message_type: 'LtiDeepLinkingRequest',
-      target: 'iframe'
+      target: 'iframe',
+      ...(token && { token })
     }).toString();
 
     this.openLtiLaunchModal(launchUrl, '選擇學習內容');

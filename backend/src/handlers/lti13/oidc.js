@@ -29,7 +29,13 @@ const {
  * GET: 前端 iframe/redirect 方式（自動重導向到 Tool OIDC Login）
  * POST: API 方式（回傳 JSON）
  */
-router.all('/initiate', authMiddleware, async (req, res) => {
+router.all('/initiate', (req, res, next) => {
+  // LTI initiate 支援從 query parameter 取 token（iframe GET 方式）
+  if (!req.headers.authorization && req.query.token) {
+    req.headers.authorization = `Bearer ${req.query.token}`;
+  }
+  next();
+}, authMiddleware, async (req, res) => {
   try {
     // 支援 GET query params 和 POST body
     const params = req.method === 'GET' ? req.query : req.body;
