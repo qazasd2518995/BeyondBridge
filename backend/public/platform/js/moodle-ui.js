@@ -1723,26 +1723,33 @@ const MoodleUI = {
   openLtiLaunchModal(launchUrl, toolName) {
     const existing = document.getElementById('ltiLaunchModal');
     if (existing) existing.remove();
+    const safeToolName = this.escapeText(toolName || t('moodleLti.externalTool'));
+    const openInWindowLabel = this.escapeText(t('moodleActivity.openNewWindow'));
+    const closeLabel = this.escapeText(t('common.close'));
+    const externalToolLabel = this.escapeText(t('moodleLti.externalTool'));
     const modal = document.createElement('div');
     modal.id = 'ltiLaunchModal';
-    modal.className = 'modal-overlay active';
+    modal.className = 'modal-overlay active lti-launch-overlay';
     modal.innerHTML = `
-      <div class="modal-content modal-fullscreen">
-        <div class="modal-header">
-          <h3>🔗 ${toolName}</h3>
+      <div class="modal-content modal-fullscreen lti-launch-modal-shell" role="dialog" aria-modal="true" aria-labelledby="ltiLaunchModalTitle">
+        <div class="modal-header lti-launch-modal-header">
+          <div class="modal-heading">
+            <p class="modal-kicker">${externalToolLabel}</p>
+            <h3 id="ltiLaunchModalTitle" class="modal-title">${safeToolName}</h3>
+          </div>
           <div class="modal-header-actions">
-            <button onclick="MoodleUI.openLtiInNewWindow()" class="btn-secondary btn-sm" title="${t('moodleActivity.openNewWindow')}">
+            <button type="button" onclick="MoodleUI.openLtiInNewWindow()" class="btn-secondary btn-sm lti-launch-window-btn" title="${openInWindowLabel}" aria-label="${openInWindowLabel}">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
                 <polyline points="15,3 21,3 21,9"/>
                 <line x1="10" y1="14" x2="21" y2="3"/>
               </svg>
             </button>
-            <button onclick="MoodleUI.closeModal('ltiLaunchModal')" class="modal-close">&times;</button>
+            <button type="button" onclick="MoodleUI.closeModal('ltiLaunchModal')" class="modal-close" aria-label="${closeLabel}">&times;</button>
           </div>
         </div>
-        <div class="modal-body">
-          <iframe id="ltiLaunchFrame" class="lti-launch-frame" src="${launchUrl}"></iframe>
+        <div class="modal-body lti-launch-modal-body">
+          <iframe id="ltiLaunchFrame" class="lti-launch-frame" src="${launchUrl}" title="${safeToolName}"></iframe>
         </div>
       </div>
     `;
