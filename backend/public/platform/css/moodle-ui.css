@@ -4326,12 +4326,15 @@
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  min-width: 0;
+  min-width: max-content;
   padding: 0.42rem 0.78rem;
   border-radius: 999px;
   font-size: 0.74rem;
   font-weight: 700;
   line-height: 1;
+  white-space: nowrap;
+  word-break: keep-all;
+  flex: 0 0 auto;
 }
 
 .activity-picker-card-chip {
@@ -4343,7 +4346,6 @@
 .activity-picker-card-code {
   background: rgba(12, 23, 35, 0.18);
   color: rgba(255, 255, 255, 0.92);
-  white-space: nowrap;
 }
 
 .activity-picker-card-copy {
