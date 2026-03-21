@@ -4327,14 +4327,16 @@
   align-items: center;
   gap: 0.35rem;
   min-width: max-content;
+  width: fit-content;
   padding: 0.42rem 0.78rem;
   border-radius: 999px;
   font-size: 0.74rem;
   font-weight: 700;
   line-height: 1;
-  white-space: nowrap;
-  word-break: keep-all;
-  flex: 0 0 auto;
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+  flex: 0 0 auto !important;
+  max-width: none;
 }
 
 .activity-picker-card-chip {
