@@ -689,7 +689,6 @@ const MoodleUI = {
             <div class="course-hero-badges">
               <span class="course-category-badge">${this.escapeText(categoryLabel)}</span>
               ${!canTeach && course.isEnrolled ? `<span class="course-enrolled-pill">${t('moodleCourse.enrolled')}</span>` : ''}
-              ${canManage ? `<span class="course-enrolled-pill is-manage">${I18n.getLocale() === 'en' ? 'Manage course' : '管理課程'}</span>` : ''}
             </div>
             <span class="course-format-badge">${this.escapeText(formatLabel)}</span>
           </div>
