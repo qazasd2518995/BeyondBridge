@@ -126,13 +126,14 @@ const MoodleUI = {
   },
 
   normalizeCourseRecord(course = {}) {
-    const progressValue = course.progress?.progressPercentage ?? course.progressPercentage ?? course.progress ?? null;
+    const progressSource = course.userProgress || course.progress;
+    const progressValue = progressSource?.progressPercentage ?? course.progressPercentage ?? course.progress ?? null;
     const normalizedProgress = Number(progressValue);
     const visibility = this.normalizeCourseVisibility(course.visibility ?? course.visible);
     return {
       ...course,
       courseId: course.courseId || course.id,
-      isEnrolled: course.isEnrolled ?? Boolean(course.progress),
+      isEnrolled: course.isEnrolled ?? Boolean(progressSource),
       progress: Number.isFinite(normalizedProgress) ? normalizedProgress : course.progress,
       visibility,
       visible: visibility === 'show'
