@@ -211,8 +211,13 @@ router.get('/:id/participants', authMiddleware, async (req, res) => {
       });
     }
 
-    // 只有講師和管理員可以看完整參與者列表
-    if (!canManageCourse(course, req.user)) {
+    const canManage = canManageCourse(course, req.user);
+    const enrollment = canManage
+      ? null
+      : await db.getItem(`USER#${userId}`, `PROG#COURSE#${id}`);
+
+    // 教師可看完整名單；已加入課程的學生可看精簡成員名單
+    if (!canManage && !enrollment) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -233,16 +238,19 @@ router.get('/:id/participants', authMiddleware, async (req, res) => {
       enrollments.map(async (e) => {
         const user = await db.getUser(e.userId);
         if (user) {
-          return {
+          const participant = {
             userId: e.userId,
             displayName: user.displayName,
-            email: user.email,
             role: 'student',
-            enrolledAt: e.enrolledAt,
-            lastAccess: e.lastAccessedAt,
-            progress: e.progressPercentage,
-            status: e.status
+            enrolledAt: e.enrolledAt
           };
+          if (canManage) {
+            participant.email = user.email;
+            participant.lastAccess = e.lastAccessedAt;
+            participant.progress = e.progressPercentage;
+            participant.status = e.status;
+          }
+          return participant;
         }
         return null;
       })
@@ -251,13 +259,16 @@ router.get('/:id/participants', authMiddleware, async (req, res) => {
     // 加入講師
     const instructor = await db.getUser(course.instructorId) || await db.getAdmin(course.instructorId);
     if (instructor) {
-      participants.unshift({
+      const instructorParticipant = {
         userId: course.instructorId,
         displayName: instructor.displayName,
-        email: instructor.email,
         role: 'instructor',
         enrolledAt: course.createdAt
-      });
+      };
+      if (canManage) {
+        instructorParticipant.email = instructor.email;
+      }
+      participants.unshift(instructorParticipant);
     }
 
     res.json({

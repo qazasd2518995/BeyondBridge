@@ -54,7 +54,9 @@ const MoodleUI = {
   },
 
   canViewParticipants(course, user = API.getCurrentUser()) {
-    return this.canTeachCourse(course, user);
+    if (!course || !user) return false;
+    if (this.canTeachCourse(course, user)) return true;
+    return !!course.isEnrolled;
   },
 
   canManageBadge(badge, user = API.getCurrentUser()) {
@@ -759,6 +761,9 @@ const MoodleUI = {
           : t('moodleCourse.formatSingle');
     const studentsLabel = `${course.enrollmentCount || course.enrolledCount || 0} ${t('moodleCourse.studentsCount')}`;
     const courseCode = course.shortName || course.code || course.courseCode || '';
+    const participantsTabLabel = canTeach
+      ? t('moodleCourse.tabParticipants')
+      : (I18n.getLocale() === 'en' ? 'Members' : '成員');
     const courseMeta = [
       `${t('moodleCourse.teacherLabel')}：${course.instructorName || course.teacherName || t('moodleCourse.teacher')}`,
       studentsLabel,
@@ -837,7 +842,7 @@ const MoodleUI = {
       <!-- 課程導航標籤 -->
       <div class="course-nav-tabs">
         <button class="nav-tab active" data-course-tab="content" onclick="MoodleUI.switchCourseTab('content', this)">${t('moodleCourse.tabContent')}</button>
-        ${canViewParticipants ? `<button class="nav-tab" data-course-tab="participants" onclick="MoodleUI.switchCourseTab('participants', this)">${t('moodleCourse.tabParticipants')}</button>` : ''}
+        ${canViewParticipants ? `<button class="nav-tab" data-course-tab="participants" onclick="MoodleUI.switchCourseTab('participants', this)">${participantsTabLabel}</button>` : ''}
         <button class="nav-tab" data-course-tab="grades" onclick="MoodleUI.switchCourseTab('grades', this)">${t('moodleCourse.tabGrades')}</button>
         ${canViewReports ? `<button class="nav-tab" data-course-tab="reports" onclick="MoodleUI.switchCourseTab('reports', this)">${t('moodleCourse.tabReports')}</button>` : ''}
       </div>
@@ -1119,6 +1124,67 @@ const MoodleUI = {
       return `<div class="empty-list">${t('moodleParticipant.noParticipants')}</div>`;
     }
 
+    const teacherView = this.canTeachCourse(this.currentCourse, API.getCurrentUser());
+    const isEnglish = I18n.getLocale() === 'en';
+    const roleLabelMap = {
+      student: isEnglish ? 'Learner' : '學習者',
+      learner: isEnglish ? 'Learner' : '學習者',
+      teacher: isEnglish ? 'Instructor' : '教師',
+      instructor: isEnglish ? 'Instructor' : '教師',
+      admin: isEnglish ? 'Administrator' : '管理員'
+    };
+
+    if (!teacherView) {
+      const sortedParticipants = [...participants].sort((a, b) => {
+        const aRole = String(a.role || 'student').toLowerCase();
+        const bRole = String(b.role || 'student').toLowerCase();
+        const aPriority = ['instructor', 'teacher', 'admin'].includes(aRole) ? 0 : 1;
+        const bPriority = ['instructor', 'teacher', 'admin'].includes(bRole) ? 0 : 1;
+        if (aPriority !== bPriority) return aPriority - bPriority;
+        const aName = String(a.displayName || a.userName || '').trim();
+        const bName = String(b.displayName || b.userName || '').trim();
+        return aName.localeCompare(bName, isEnglish ? 'en' : 'zh-Hant');
+      });
+
+      return `
+        <div class="participants-list">
+          <div class="participants-directory-shell">
+            <div class="participants-directory-header">
+              <div class="participants-directory-copy">
+                <span class="participants-directory-kicker">${isEnglish ? 'Course members' : '課程成員'}</span>
+                <h3 class="participants-directory-title">${isEnglish ? 'Learn with this cohort' : '和這群成員一起學習'}</h3>
+                <p class="participants-directory-desc">${isEnglish ? 'See the instructor and learners currently enrolled in this course.' : '查看目前加入這門課的教師與學員名單。'}</p>
+              </div>
+              <span class="participants-directory-count">${this.escapeText(`${sortedParticipants.length} ${isEnglish ? 'members' : '位成員'}`)}</span>
+            </div>
+            <div class="participants-directory-grid">
+              ${sortedParticipants.map((participant) => {
+                const roleKey = String(participant.role || 'student').toLowerCase();
+                const roleLabel = roleLabelMap[roleKey] || (isEnglish ? 'Learner' : '學習者');
+                const joinedText = participant.enrolledAt
+                  ? (isEnglish
+                    ? `Joined ${this.escapeText(this.formatPlatformDate(participant.enrolledAt, { year: 'numeric', month: 'short', day: 'numeric' }) || '')}`
+                    : `加入課程 ${this.escapeText(this.formatPlatformDate(participant.enrolledAt, { year: 'numeric', month: 'numeric', day: 'numeric' }) || '')}`)
+                  : (isEnglish ? 'Course member' : '課程成員');
+                const avatarText = this.escapeText(((participant.displayName || participant.userName || roleLabel).trim().charAt(0) || roleLabel.charAt(0)).toUpperCase());
+
+                return `
+                  <article class="participants-member-card">
+                    <div class="participants-member-avatar">${avatarText}</div>
+                    <div class="participants-member-copy">
+                      <strong>${this.escapeText(participant.displayName || participant.userName || (isEnglish ? 'Learner' : '學員'))}</strong>
+                      <span class="participants-member-role">${this.escapeText(roleLabel)}</span>
+                      <span class="participants-member-meta">${joinedText}</span>
+                    </div>
+                  </article>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
     return `
       <div class="participants-list">
         <div class="participants-table-shell">
@@ -1135,14 +1201,7 @@ const MoodleUI = {
           <tbody>
             ${participants.map((p) => {
               const roleKey = String(p.role || 'student').toLowerCase();
-              const roleLabelMap = {
-                student: I18n.getLocale() === 'en' ? 'Learner' : '學習者',
-                learner: I18n.getLocale() === 'en' ? 'Learner' : '學習者',
-                teacher: I18n.getLocale() === 'en' ? 'Instructor' : '教師',
-                instructor: I18n.getLocale() === 'en' ? 'Instructor' : '教師',
-                admin: I18n.getLocale() === 'en' ? 'Administrator' : '管理員'
-              };
-              const roleLabel = roleLabelMap[roleKey] || (I18n.getLocale() === 'en' ? 'Learner' : '學習者');
+              const roleLabel = roleLabelMap[roleKey] || (isEnglish ? 'Learner' : '學習者');
 
               return `
                 <tr class="participant-row">

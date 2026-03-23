@@ -6925,17 +6925,6 @@
                                         </svg>
                                         <span data-i18n="dashboard.pendingQuizzes">待考測驗</span>
                                     </a>
-                                    <a href="#" class="quick-action-btn tile" onclick="showView('moodleGradebook'); MoodleUI.loadGradebook();">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2">
-                                            <line x1="8" y1="6" x2="21" y2="6"/>
-                                            <line x1="8" y1="12" x2="21" y2="12"/>
-                                            <line x1="8" y1="18" x2="21" y2="18"/>
-                                            <line x1="3" y1="6" x2="3.01" y2="6"/>
-                                            <line x1="3" y1="12" x2="3.01" y2="12"/>
-                                            <line x1="3" y1="18" x2="3.01" y2="18"/>
-                                        </svg>
-                                        <span data-i18n="dashboard.myGrades">我的成績</span>
-                                    </a>
                                 </div>
                             </div>
                         </div>
@@ -11993,13 +11982,13 @@
                 'rolesManagement', 'courseCategories', 'auditLogs', 'scormManager', 'ltiManager', 'h5pManager'
             ]);
             const teacherOnlyViews = new Set([
-                'teacherDashboard', 'classes', 'gradebookManagement', 'teacherAnalytics', 'questionBank', 'rubrics', 'groupsManager', 'courseCompletionSettings'
+                'teacherDashboard', 'classes', 'gradebookManagement', 'teacherAnalytics', 'questionBank', 'rubrics', 'groupsManager', 'courseCompletionSettings', 'moodleFiles'
             ]);
-            const studentOnlyViews = new Set(['studentClasses']);
+            const hiddenFromStudents = new Set(['studentClasses', 'moodleFiles', 'moodleGradebook']);
 
             if (adminOnlyViews.has(viewName)) return isAdminRole(user);
             if (teacherOnlyViews.has(viewName)) return isTeachingRole(user);
-            if (studentOnlyViews.has(viewName)) return isStudentRole(user);
+            if (hiddenFromStudents.has(viewName) && isStudentRole(user)) return false;
             return true;
         }
 
