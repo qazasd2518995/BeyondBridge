@@ -177,6 +177,10 @@ app.use('/api/teachers', teacherAlertsRoutes);
 const uploadsPath = path.join(__dirname, '../uploads');
 app.use('/uploads', express.static(uploadsPath));
 
+// PDF.js 靜態資源
+const pdfJsDistPath = path.join(__dirname, '../node_modules/pdfjs-dist');
+app.use('/vendor/pdfjs', express.static(pdfJsDistPath));
+
 // 靜態檔案服務
 const publicPath = path.join(__dirname, '../public');
 app.use(express.static(publicPath));

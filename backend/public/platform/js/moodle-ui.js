@@ -1538,6 +1538,10 @@ const MoodleUI = {
     const close = () => {
       overlay.remove();
       document.removeEventListener('keydown', escHandler);
+      Promise.resolve(typeof overlay._activityViewerCleanup === 'function' ? overlay._activityViewerCleanup() : null)
+        .catch((error) => {
+          console.error('Activity viewer cleanup failed:', error);
+        });
     };
     const escHandler = (event) => {
       if (event.key === 'Escape') {
@@ -1606,6 +1610,209 @@ const MoodleUI = {
     `;
   },
 
+  async ensurePdfJsLibrary() {
+    if (window.pdfjsLib?.getDocument) {
+      return window.pdfjsLib;
+    }
+
+    if (!this._pdfJsLibraryPromise) {
+      this._pdfJsLibraryPromise = import('/vendor/pdfjs/legacy/build/pdf.mjs')
+        .then((pdfjsLib) => {
+          if (pdfjsLib?.GlobalWorkerOptions) {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/legacy/build/pdf.worker.mjs';
+          }
+          window.pdfjsLib = pdfjsLib;
+          return pdfjsLib;
+        })
+        .catch((error) => {
+          this._pdfJsLibraryPromise = null;
+          throw error;
+        });
+    }
+
+    return this._pdfJsLibraryPromise;
+  },
+
+  async renderPdfActivityViewer({ viewer, url }) {
+    const isEnglish = I18n.getLocale() === 'en';
+    const loadingLabel = isEnglish ? 'Loading PDF…' : 'PDF 載入中…';
+    const zoomOutLabel = isEnglish ? 'Zoom out' : '縮小';
+    const zoomInLabel = isEnglish ? 'Zoom in' : '放大';
+    const pageCountLabel = (count) => isEnglish ? `${count} pages` : `共 ${count} 頁`;
+    const pageLabel = (pageNumber) => isEnglish ? `Page ${pageNumber}` : `第 ${pageNumber} 頁`;
+    const loadErrorLabel = isEnglish ? 'This PDF cannot be previewed right now.' : '目前無法預覽這份 PDF。';
+
+    viewer.body.innerHTML = `
+      <div class="activity-viewer-frame activity-viewer-frame-pdf">
+        <div class="activity-viewer-pdf-shell">
+          <div class="activity-viewer-pdf-toolbar">
+            <div class="activity-viewer-pdf-toolbar-group">
+              <button type="button" class="activity-viewer-pdf-btn" data-pdf-zoom-out aria-label="${this.escapeText(zoomOutLabel)}">−</button>
+              <span class="activity-viewer-pdf-scale" data-pdf-scale>110%</span>
+              <button type="button" class="activity-viewer-pdf-btn" data-pdf-zoom-in aria-label="${this.escapeText(zoomInLabel)}">+</button>
+            </div>
+            <span class="activity-viewer-pdf-pages" data-pdf-pages>${this.escapeText(loadingLabel)}</span>
+          </div>
+          <div class="activity-viewer-pdf-canvas-wrap" data-pdf-canvas-wrap>
+            <div class="activity-viewer-pdf-loading">${this.escapeText(loadingLabel)}</div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const mount = viewer.body.querySelector('[data-pdf-canvas-wrap]');
+    const scaleLabel = viewer.body.querySelector('[data-pdf-scale]');
+    const pagesLabel = viewer.body.querySelector('[data-pdf-pages]');
+    const zoomOutButton = viewer.body.querySelector('[data-pdf-zoom-out]');
+    const zoomInButton = viewer.body.querySelector('[data-pdf-zoom-in]');
+    const state = {
+      destroyed: false,
+      renderRunId: 0,
+      renderTasks: [],
+      scale: 1.1,
+      pdf: null,
+      loadingTask: null
+    };
+
+    if (!mount || !scaleLabel || !pagesLabel || !zoomOutButton || !zoomInButton) {
+      return;
+    }
+
+    const cancelRenders = () => {
+      state.renderTasks.forEach((task) => {
+        try {
+          task?.cancel?.();
+        } catch (error) {
+          console.warn('Cancel PDF render task failed:', error);
+        }
+      });
+      state.renderTasks = [];
+    };
+
+    viewer.overlay._activityViewerCleanup = () => {
+      state.destroyed = true;
+      cancelRenders();
+      try {
+        state.loadingTask?.destroy?.();
+      } catch (error) {
+        console.warn('Destroy PDF loading task failed:', error);
+      }
+      try {
+        state.pdf?.destroy?.();
+      } catch (error) {
+        console.warn('Destroy PDF document failed:', error);
+      }
+    };
+
+    const pdfjsLib = await this.ensurePdfJsLibrary();
+    if (state.destroyed) {
+      return;
+    }
+
+    const renderDocument = async () => {
+      if (!state.pdf || state.destroyed) {
+        return;
+      }
+
+      const currentRunId = ++state.renderRunId;
+      cancelRenders();
+      scaleLabel.textContent = `${Math.round(state.scale * 100)}%`;
+      pagesLabel.textContent = pageCountLabel(state.pdf.numPages);
+      mount.innerHTML = `<div class="activity-viewer-pdf-loading">${this.escapeText(loadingLabel)}</div>`;
+
+      try {
+        const fragment = document.createDocumentFragment();
+        for (let pageNumber = 1; pageNumber <= state.pdf.numPages; pageNumber += 1) {
+          if (state.destroyed || currentRunId !== state.renderRunId) {
+            return;
+          }
+
+          const page = await state.pdf.getPage(pageNumber);
+          const viewport = page.getViewport({ scale: state.scale });
+          const outputScale = Math.min(window.devicePixelRatio || 1, 2);
+          const canvas = document.createElement('canvas');
+          const context = canvas.getContext('2d', { alpha: false });
+
+          if (!context) {
+            continue;
+          }
+
+          canvas.width = Math.max(1, Math.floor(viewport.width * outputScale));
+          canvas.height = Math.max(1, Math.floor(viewport.height * outputScale));
+          canvas.style.width = `${Math.max(1, Math.floor(viewport.width))}px`;
+          canvas.style.height = `${Math.max(1, Math.floor(viewport.height))}px`;
+          context.setTransform(outputScale, 0, 0, outputScale, 0, 0);
+
+          const renderTask = page.render({
+            canvasContext: context,
+            viewport
+          });
+
+          state.renderTasks.push(renderTask);
+          await renderTask.promise;
+
+          if (state.destroyed || currentRunId !== state.renderRunId) {
+            return;
+          }
+
+          const pageCard = document.createElement('div');
+          pageCard.className = 'activity-viewer-pdf-page';
+
+          const pageMarker = document.createElement('div');
+          pageMarker.className = 'activity-viewer-pdf-page-label';
+          pageMarker.textContent = pageLabel(pageNumber);
+
+          pageCard.appendChild(pageMarker);
+          pageCard.appendChild(canvas);
+          fragment.appendChild(pageCard);
+        }
+
+        if (state.destroyed || currentRunId !== state.renderRunId) {
+          return;
+        }
+
+        mount.innerHTML = '';
+        mount.appendChild(fragment);
+      } catch (error) {
+        if (error?.name === 'RenderingCancelledException' || state.destroyed) {
+          return;
+        }
+        console.error('Render PDF document failed:', error);
+        mount.innerHTML = `<div class="activity-viewer-pdf-error">${this.escapeText(loadErrorLabel)}</div>`;
+      }
+    };
+
+    zoomOutButton.addEventListener('click', () => {
+      if (state.destroyed) return;
+      state.scale = Math.max(0.7, Number((state.scale - 0.1).toFixed(2)));
+      renderDocument();
+    });
+
+    zoomInButton.addEventListener('click', () => {
+      if (state.destroyed) return;
+      state.scale = Math.min(2.2, Number((state.scale + 0.1).toFixed(2)));
+      renderDocument();
+    });
+
+    try {
+      state.loadingTask = pdfjsLib.getDocument({
+        url,
+        cMapUrl: '/vendor/pdfjs/cmaps/',
+        cMapPacked: true
+      });
+      state.pdf = await state.loadingTask.promise;
+      pagesLabel.textContent = pageCountLabel(state.pdf.numPages);
+      await renderDocument();
+    } catch (error) {
+      if (state.destroyed) {
+        return;
+      }
+      console.error('Load PDF document failed:', error);
+      pagesLabel.textContent = '';
+      mount.innerHTML = `<div class="activity-viewer-pdf-error">${this.escapeText(loadErrorLabel)}</div>`;
+    }
+  },
+
   /**
    * 開啟檔案活動 - 在平台內預覽（禁止下載）
    */
@@ -1629,21 +1836,21 @@ const MoodleUI = {
 
       const token = localStorage.getItem('accessToken');
       const authedUrl = viewUrl + '?token=' + encodeURIComponent(token);
+      const isPdf = contentType === 'application/pdf';
 
       const viewer = this.openActivityViewerShell({
         overlayId: 'file-viewer-overlay',
         title,
         subtitle: contentType,
-        externalUrl: authedUrl
+        externalUrl: isPdf ? '' : authedUrl
       });
       viewer.overlay.oncontextmenu = () => false;
 
-      if (contentType === 'application/pdf') {
-        viewer.body.innerHTML = `
-          <div class="activity-viewer-frame">
-            <iframe src="${this.escapeText(`${authedUrl}#toolbar=0&navpanes=0&scrollbar=1`)}" class="activity-viewer-embed"></iframe>
-          </div>
-        `;
+      if (isPdf) {
+        await this.renderPdfActivityViewer({
+          viewer,
+          url: authedUrl
+        });
       } else if (contentType.startsWith('image/')) {
         viewer.body.innerHTML = `
           <div class="activity-viewer-frame">

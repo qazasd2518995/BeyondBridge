@@ -25,6 +25,7 @@
     "jose": "^6.1.3",
     "jsonwebtoken": "^9.0.0",
     "nodemailer": "^6.9.0",
+    "pdfjs-dist": "^5.5.207",
     "socket.io": "^4.8.3",
     "uuid": "^9.0.0"
   },
