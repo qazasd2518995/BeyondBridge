@@ -84,8 +84,13 @@ async function updateItem(pk, sk, updates) {
   const updateExpressions = [];
   const expressionAttributeNames = {};
   const expressionAttributeValues = {};
+  const validEntries = Object.entries(updates).filter(([, value]) => value !== undefined);
 
-  Object.entries(updates).forEach(([key, value], index) => {
+  if (validEntries.length === 0) {
+    return getItem(pk, sk);
+  }
+
+  validEntries.forEach(([key, value], index) => {
     const attrName = `#attr${index}`;
     const attrValue = `:val${index}`;
     updateExpressions.push(`${attrName} = ${attrValue}`);

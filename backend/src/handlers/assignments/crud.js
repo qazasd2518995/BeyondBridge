@@ -88,7 +88,9 @@ router.get('/', authMiddleware, async (req, res) => {
             submitted: true,
             submittedAt: submission.submittedAt,
             grade: submission.grade,
-            graded: submission.gradedAt !== null
+            graded: submission.gradedAt !== null,
+            isLate: !!submission.isLate,
+            lateBy: submission.lateBy || 0
           } : {
             submitted: false
           }
@@ -207,7 +209,10 @@ router.get('/my', authMiddleware, async (req, res) => {
               files: submission.files,
               grade: submission.grade,
               feedback: submission.feedback,
-              gradedAt: submission.gradedAt
+              gradedAt: submission.gradedAt,
+              isLate: !!submission.isLate,
+              lateBy: submission.lateBy || 0,
+              version: submission.version || 1
             } : null
           };
         })
@@ -293,7 +298,10 @@ router.get('/:id', authMiddleware, async (req, res) => {
           grade: submission.grade,
           feedback: submission.feedback,
           gradedAt: submission.gradedAt,
-          gradedBy: submission.gradedBy
+          gradedBy: submission.gradedBy,
+          isLate: !!submission.isLate,
+          lateBy: submission.lateBy || 0,
+          version: submission.version || 1
         } : null
       }
     });

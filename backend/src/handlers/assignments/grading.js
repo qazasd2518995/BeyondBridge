@@ -18,6 +18,83 @@ const { authMiddleware } = require('../../utils/auth');
 const { canManageCourse } = require('../../utils/course-access');
 const { invalidateGradebookSnapshots } = require('../../utils/gradebook-snapshots');
 const archiver = require('archiver');
+const path = require('path');
+const fs = require('fs').promises;
+const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3');
+
+const S3_BUCKET = process.env.S3_BUCKET || 'beyondbridge-files';
+const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, '../../../uploads');
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION || 'ap-southeast-2'
+});
+
+function extractStoredFileId(file = {}) {
+  if (!file || typeof file !== 'object') return null;
+  const directId = file.fileId || file.id || null;
+  if (directId) return directId;
+
+  const candidates = [
+    file.downloadUrl,
+    file.viewUrl,
+    file.url,
+    file.fileUrl
+  ].filter(Boolean);
+
+  for (const value of candidates) {
+    const match = String(value).match(/\/api\/files\/([^/?#]+)/);
+    if (match?.[1]) return match[1];
+  }
+
+  return null;
+}
+
+async function getStoredFileBuffer(fileId) {
+  if (!fileId) return null;
+  const fileRecord = await db.getItem(`FILE#${fileId}`, 'META');
+  if (!fileRecord) return null;
+
+  const s3Key = fileRecord.s3Key || `files/${fileRecord.storageName}`;
+  try {
+    const result = await s3Client.send(new GetObjectCommand({
+      Bucket: S3_BUCKET,
+      Key: s3Key
+    }));
+    const chunks = [];
+    for await (const chunk of result.Body) {
+      chunks.push(chunk);
+    }
+    return {
+      buffer: Buffer.concat(chunks),
+      filename: fileRecord.filename,
+      contentType: fileRecord.contentType,
+      uploadedAt: fileRecord.createdAt || fileRecord.updatedAt || null
+    };
+  } catch (s3Error) {
+    try {
+      if (!fileRecord.storagePath) {
+        const fallbackPath = path.join(UPLOAD_DIR, fileRecord.storageName || '');
+        await fs.access(fallbackPath);
+        return {
+          buffer: await fs.readFile(fallbackPath),
+          filename: fileRecord.filename,
+          contentType: fileRecord.contentType,
+          uploadedAt: fileRecord.createdAt || fileRecord.updatedAt || null
+        };
+      }
+
+      await fs.access(fileRecord.storagePath);
+      return {
+        buffer: await fs.readFile(fileRecord.storagePath),
+        filename: fileRecord.filename,
+        contentType: fileRecord.contentType,
+        uploadedAt: fileRecord.createdAt || fileRecord.updatedAt || null
+      };
+    } catch (fsError) {
+      console.warn('Load stored assignment file failed:', { fileId, s3Error: s3Error?.message, fsError: fsError?.message });
+      return null;
+    }
+  }
+}
 
 // ==================== 作業批改（教師） ====================
 
@@ -61,6 +138,9 @@ router.get('/:id/submissions', authMiddleware, async (req, res) => {
         delete s.SK;
         return {
           ...s,
+          studentId: s.studentId || s.userId,
+          studentName: user?.displayName || '未知用戶',
+          studentEmail: user?.email,
           userName: user?.displayName || '未知用戶',
           userEmail: user?.email
         };
@@ -115,12 +195,12 @@ router.get('/:id/submissions', authMiddleware, async (req, res) => {
 });
 
 /**
- * GET /api/assignments/:id/submissions/:submissionId
+ * GET /api/assignments/:id/submissions/:submissionRef
  * 取得單一提交詳情（教師用）
  */
-router.get('/:id/submissions/:submissionId', authMiddleware, async (req, res) => {
+router.get('/:id/submissions/:submissionRef', authMiddleware, async (req, res) => {
   try {
-    const { id, submissionId } = req.params;
+    const { id, submissionRef } = req.params;
     const userId = req.user.userId;
 
     const assignment = await db.getItem(`ASSIGNMENT#${id}`, 'META');
@@ -144,7 +224,11 @@ router.get('/:id/submissions/:submissionId', authMiddleware, async (req, res) =>
 
     // 找到提交
     const submissions = await db.query(`ASSIGNMENT#${id}`, { skPrefix: 'SUBMISSION#' });
-    const submission = submissions.find(s => s.submissionId === submissionId);
+    const submission = submissions.find(s =>
+      s.submissionId === submissionRef ||
+      s.userId === submissionRef ||
+      s.studentId === submissionRef
+    );
 
     if (!submission) {
       return res.status(404).json({
@@ -164,6 +248,9 @@ router.get('/:id/submissions/:submissionId', authMiddleware, async (req, res) =>
       success: true,
       data: {
         ...submission,
+        studentId: submission.studentId || submission.userId,
+        studentName: user?.displayName || '未知用戶',
+        studentEmail: user?.email,
         userName: user?.displayName || '未知用戶',
         userEmail: user?.email,
         assignment: {
@@ -603,14 +690,15 @@ router.get('/:id/download-all', authMiddleware, async (req, res) => {
         });
       }
 
-      // 檔案資訊（不實際下載檔案，只提供 URL 清單）
+      // 附件資訊與實體檔案
       if (submission.files && submission.files.length > 0) {
         const filesList = submission.files.map((f, i) => ({
           index: i + 1,
           filename: f.name || f.filename || `file_${i + 1}`,
           size: f.size,
           type: f.type || f.mimeType,
-          url: f.url || f.s3Key || '(本地檔案)',
+          fileId: extractStoredFileId(f),
+          url: f.downloadUrl || f.viewUrl || f.url || f.s3Key || '(本地檔案)',
           uploadedAt: f.uploadedAt
         }));
 
@@ -618,11 +706,22 @@ router.get('/:id/download-all', authMiddleware, async (req, res) => {
           name: `${folderName}/files_list.json`
         });
 
-        // 如果有 base64 內容，也包含進去（小檔案可能直接存在 DB 中）
+        // 如果有正式檔案記錄，直接把實體檔案打進 zip。
+        for (let i = 0; i < submission.files.length; i++) {
+          const file = submission.files[i];
+          const storedFile = await getStoredFileBuffer(extractStoredFileId(file));
+          if (!storedFile?.buffer) continue;
+
+          const filename = storedFile.filename || file.name || file.filename || `file_${i + 1}`;
+          archive.append(storedFile.buffer, {
+            name: `${folderName}/files/${filename}`
+          });
+        }
+
+        // 舊資料若仍把 base64 內容直接存進提交，也一併保留。
         for (let i = 0; i < submission.files.length; i++) {
           const file = submission.files[i];
           if (file.content) {
-            // Base64 編碼的檔案內容
             const buffer = Buffer.from(file.content, 'base64');
             const filename = file.name || file.filename || `file_${i + 1}`;
             archive.append(buffer, {
@@ -754,9 +853,10 @@ router.get('/:id/export-grades', authMiddleware, async (req, res) => {
       const safeTitle = assignment.title.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_');
       const timestamp = new Date().toISOString().split('T')[0];
 
+      const csvFilename = `${safeTitle}_成績_${timestamp}.csv`;
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader('Content-Disposition',
-        `attachment; filename*=UTF-8''${encodeURIComponent(safeTitle)}_成績_${timestamp}.csv`);
+        `attachment; filename*=UTF-8''${encodeURIComponent(csvFilename)}`);
       res.send(BOM + csvContent);
 
     } else {
@@ -861,6 +961,32 @@ router.post('/:id/bulk-grade', authMiddleware, async (req, res) => {
         updatedAt: now
       });
 
+      const progress = await db.getItem(`USER#${g.studentId}`, `PROG#COURSE#${assignment.courseId}`);
+      if (progress) {
+        const progressGrades = [...(progress.grades || [])];
+        const existingIndex = progressGrades.findIndex(item => item.assignmentId === id);
+        const gradeEntry = {
+          assignmentId: id,
+          assignmentTitle: assignment.title,
+          grade: finalGrade,
+          maxGrade: assignment.maxGrade,
+          gradedAt: now
+        };
+
+        if (existingIndex >= 0) {
+          progressGrades[existingIndex] = gradeEntry;
+        } else {
+          progressGrades.push(gradeEntry);
+        }
+
+        const overallGrade = progressGrades.reduce((sum, item) => sum + (item.grade / item.maxGrade * 100), 0) / progressGrades.length;
+        await db.updateItem(`USER#${g.studentId}`, `PROG#COURSE#${assignment.courseId}`, {
+          grades: progressGrades,
+          overallGrade: Math.round(overallGrade * 100) / 100,
+          updatedAt: now
+        });
+      }
+
       results.push({ studentId: g.studentId, success: true, finalGrade });
     }
 
@@ -877,6 +1003,8 @@ router.post('/:id/bulk-grade', authMiddleware, async (req, res) => {
     });
 
     const successCount = results.filter(r => r.success).length;
+
+    await invalidateGradebookSnapshots(assignment.courseId);
 
     res.json({
       success: true,
@@ -908,7 +1036,7 @@ router.get('/:id/download-submissions', authMiddleware, async (req, res) => {
     const { filter = 'all' } = req.query; // all, graded, ungraded, late
 
     // 檢查權限（教師或管理員）
-    const assignment = await db.get(`ASSIGNMENT#${id}`, 'META');
+    const assignment = await db.getItem(`ASSIGNMENT#${id}`, 'META');
     if (!assignment) {
       return res.status(404).json({
         success: false,
@@ -918,11 +1046,8 @@ router.get('/:id/download-submissions', authMiddleware, async (req, res) => {
     }
 
     // 驗證是否為課程教師或管理員
-    const course = await db.get(`COURSE#${assignment.courseId}`, 'META');
-    const isInstructor = course?.instructorId === userId ||
-                         (course?.instructors && course.instructors.includes(userId));
-
-    if (!req.user.isAdmin && !isInstructor) {
+    const course = await db.getItem(`COURSE#${assignment.courseId}`, 'META');
+    if (!canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -958,7 +1083,7 @@ router.get('/:id/download-submissions', authMiddleware, async (req, res) => {
     }
 
     // 取得所有相關學生資訊
-    const studentIds = [...new Set(submissions.map(s => s.studentId))];
+    const studentIds = [...new Set(submissions.map(s => s.studentId || s.userId).filter(Boolean))];
     const students = {};
     for (const studentId of studentIds) {
       const student = await db.getUser(studentId);
@@ -969,11 +1094,12 @@ router.get('/:id/download-submissions', authMiddleware, async (req, res) => {
 
     // 準備下載資料（返回提交清單和檔案連結）
     const downloadData = submissions.map(submission => {
-      const student = students[submission.studentId] || {};
-      const studentName = student.displayName || student.email?.split('@')[0] || submission.studentId;
+      const effectiveStudentId = submission.studentId || submission.userId;
+      const student = students[effectiveStudentId] || {};
+      const studentName = student.displayName || student.email?.split('@')[0] || effectiveStudentId;
 
       return {
-        studentId: submission.studentId,
+        studentId: effectiveStudentId,
         studentName: studentName,
         studentEmail: student.email || null,
         submittedAt: submission.submittedAt,
@@ -991,7 +1117,7 @@ router.get('/:id/download-submissions', authMiddleware, async (req, res) => {
           uploadedAt: file.uploadedAt
         })),
         // 用於建立資料夾名稱
-        folderName: `${studentName.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_')}_${submission.studentId.substring(0, 8)}`
+        folderName: `${studentName.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_')}_${String(effectiveStudentId).substring(0, 8)}`
       };
     });
 
@@ -1034,7 +1160,7 @@ router.get('/:id/submission-stats', authMiddleware, async (req, res) => {
     const userId = req.user.userId;
 
     // 檢查權限（教師或管理員）
-    const assignment = await db.get(`ASSIGNMENT#${id}`, 'META');
+    const assignment = await db.getItem(`ASSIGNMENT#${id}`, 'META');
     if (!assignment) {
       return res.status(404).json({
         success: false,
@@ -1044,11 +1170,8 @@ router.get('/:id/submission-stats', authMiddleware, async (req, res) => {
     }
 
     // 驗證是否為課程教師或管理員
-    const course = await db.get(`COURSE#${assignment.courseId}`, 'META');
-    const isInstructor = course?.instructorId === userId ||
-                         (course?.instructors && course.instructors.includes(userId));
-
-    if (!req.user.isAdmin && !isInstructor) {
+    const course = await db.getItem(`COURSE#${assignment.courseId}`, 'META');
+    if (!canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',

@@ -7,6 +7,43 @@ const express = require('express');
 const router = express.Router();
 const db = require('../../utils/db');
 const { authMiddleware } = require('../../utils/auth');
+const { canManageCourse } = require('../../utils/course-access');
+
+async function getCourseAssignments(courseId) {
+  return db.queryByIndex('GSI1', `COURSE#${courseId}`, 'GSI1PK', {
+    skName: 'GSI1SK',
+    skPrefix: 'ASSIGNMENT#'
+  });
+}
+
+async function getCourseQuizzes(courseId) {
+  return db.queryByIndex('GSI1', `COURSE#${courseId}`, 'GSI1PK', {
+    skName: 'GSI1SK',
+    skPrefix: 'QUIZ#'
+  });
+}
+
+async function getCourseForums(courseId) {
+  return db.queryByIndex('GSI1', `COURSE#${courseId}`, 'GSI1PK', {
+    skName: 'GSI1SK',
+    skPrefix: 'FORUM#'
+  });
+}
+
+async function getCourseEnrollments(courseId) {
+  return db.queryByIndex('GSI1', `COURSE#${courseId}`, 'GSI1PK', {
+    skPrefix: 'ENROLLED#',
+    skName: 'GSI1SK'
+  });
+}
+
+async function getForumDiscussions(forumId) {
+  return db.query(`FORUM#${forumId}`, { skPrefix: 'DISCUSSION#' });
+}
+
+async function getDiscussionPosts(discussionId) {
+  return db.query(`DISCUSSION#${discussionId}`, { skPrefix: 'POST#' });
+}
 
 // ==================== 課程報告與分析 ====================
 
@@ -18,11 +55,10 @@ const { authMiddleware } = require('../../utils/auth');
 router.get('/:id/participation-report', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user.userId;
     const { startDate, endDate } = req.query;
 
     // 取得課程
-    const course = await db.get(`COURSE#${id}`, 'META');
+    const course = await db.getItem(`COURSE#${id}`, 'META');
     if (!course) {
       return res.status(404).json({
         success: false,
@@ -32,9 +68,7 @@ router.get('/:id/participation-report', authMiddleware, async (req, res) => {
     }
 
     // 檢查權限
-    const isInstructor = course.instructorId === userId ||
-                         (course.instructors && course.instructors.includes(userId));
-    if (!req.user.isAdmin && !isInstructor) {
+    if (!canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -43,17 +77,14 @@ router.get('/:id/participation-report', authMiddleware, async (req, res) => {
     }
 
     // 取得所有報名學生
-    const enrollments = await db.queryByIndex(
-      'GSI1',
-      `COURSE#${id}`,
-      'GSI1PK',
-      { skPrefix: 'ENROLLED#', skName: 'GSI1SK' }
-    );
+    const enrollments = await getCourseEnrollments(id);
 
     // 取得課程活動（作業、測驗、論壇）
-    const assignments = await db.query(`COURSE#${id}`, { skPrefix: 'ASSIGNMENT#' });
-    const quizzes = await db.query(`COURSE#${id}`, { skPrefix: 'QUIZ#' });
-    const forums = await db.query(`COURSE#${id}`, { skPrefix: 'FORUM#' });
+    const [assignments, quizzes, forums] = await Promise.all([
+      getCourseAssignments(id),
+      getCourseQuizzes(id),
+      getCourseForums(id)
+    ]);
 
     // 收集每個學生的參與資料
     const studentParticipation = [];
@@ -63,12 +94,12 @@ router.get('/:id/participation-report', authMiddleware, async (req, res) => {
       if (!student) continue;
 
       // 取得學生的課程進度
-      const progress = await db.get(`USER#${enrollment.userId}`, `PROG#COURSE#${id}`);
+      const progress = await db.getItem(`USER#${enrollment.userId}`, `PROG#COURSE#${id}`);
 
       // 取得作業提交數
       let assignmentSubmissions = 0;
       for (const assignment of assignments) {
-        const submission = await db.get(`ASSIGNMENT#${assignment.assignmentId}`, `SUBMISSION#${enrollment.userId}`);
+        const submission = await db.getItem(`ASSIGNMENT#${assignment.assignmentId}`, `SUBMISSION#${enrollment.userId}`);
         if (submission && submission.submittedAt) {
           assignmentSubmissions++;
         }
@@ -89,18 +120,14 @@ router.get('/:id/participation-report', authMiddleware, async (req, res) => {
       let forumPosts = 0;
       let forumReplies = 0;
       for (const forum of forums) {
-        const posts = await db.query(`FORUM#${forum.forumId}`, {
-          skPrefix: 'DISCUSSION#'
-        });
-        for (const post of posts) {
-          if (post.authorId === enrollment.userId) {
+        const discussions = await getForumDiscussions(forum.forumId);
+        for (const discussion of discussions) {
+          if (discussion.authorId === enrollment.userId) {
             forumPosts++;
           }
-          const replies = await db.query(`FORUM#${forum.forumId}`, {
-            skPrefix: `REPLY#${post.discussionId}`
-          });
-          for (const reply of replies) {
-            if (reply.authorId === enrollment.userId) {
+          const posts = await getDiscussionPosts(discussion.discussionId);
+          for (const post of posts) {
+            if (post.authorId === enrollment.userId) {
               forumReplies++;
             }
           }
@@ -174,10 +201,9 @@ router.get('/:id/participation-report', authMiddleware, async (req, res) => {
 router.get('/:id/activity-report', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user.userId;
 
     // 取得課程
-    const course = await db.get(`COURSE#${id}`, 'META');
+    const course = await db.getItem(`COURSE#${id}`, 'META');
     if (!course) {
       return res.status(404).json({
         success: false,
@@ -187,9 +213,7 @@ router.get('/:id/activity-report', authMiddleware, async (req, res) => {
     }
 
     // 檢查權限
-    const isInstructor = course.instructorId === userId ||
-                         (course.instructors && course.instructors.includes(userId));
-    if (!req.user.isAdmin && !isInstructor) {
+    if (!canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -198,19 +222,14 @@ router.get('/:id/activity-report', authMiddleware, async (req, res) => {
     }
 
     // 取得報名學生數
-    const enrollments = await db.queryByIndex(
-      'GSI1',
-      `COURSE#${id}`,
-      'GSI1PK',
-      { skPrefix: 'ENROLLED#', skName: 'GSI1SK' }
-    );
+    const enrollments = await getCourseEnrollments(id);
     const totalStudents = enrollments.length;
 
     // 取得所有活動及其完成狀況
     const activityReport = [];
 
     // 作業
-    const assignments = await db.query(`COURSE#${id}`, { skPrefix: 'ASSIGNMENT#' });
+    const assignments = await getCourseAssignments(id);
     for (const assignment of assignments) {
       const submissions = await db.query(`ASSIGNMENT#${assignment.assignmentId}`, {
         skPrefix: 'SUBMISSION#'
@@ -238,7 +257,7 @@ router.get('/:id/activity-report', authMiddleware, async (req, res) => {
     }
 
     // 測驗
-    const quizzes = await db.query(`COURSE#${id}`, { skPrefix: 'QUIZ#' });
+    const quizzes = await getCourseQuizzes(id);
     for (const quiz of quizzes) {
       let attempted = 0;
       let passed = 0;
@@ -285,11 +304,9 @@ router.get('/:id/activity-report', authMiddleware, async (req, res) => {
     }
 
     // 論壇
-    const forums = await db.query(`COURSE#${id}`, { skPrefix: 'FORUM#' });
+    const forums = await getCourseForums(id);
     for (const forum of forums) {
-      const discussions = await db.query(`FORUM#${forum.forumId}`, {
-        skPrefix: 'DISCUSSION#'
-      });
+      const discussions = await getForumDiscussions(forum.forumId);
 
       let totalReplies = 0;
       const participatingStudents = new Set();
@@ -298,13 +315,11 @@ router.get('/:id/activity-report', authMiddleware, async (req, res) => {
         if (discussion.authorId) {
           participatingStudents.add(discussion.authorId);
         }
-        const replies = await db.query(`FORUM#${forum.forumId}`, {
-          skPrefix: `REPLY#${discussion.discussionId}`
-        });
-        totalReplies += replies.length;
-        for (const reply of replies) {
-          if (reply.authorId) {
-            participatingStudents.add(reply.authorId);
+        totalReplies += Number(discussion.replyCount || 0);
+        const posts = await getDiscussionPosts(discussion.discussionId);
+        for (const post of posts) {
+          if (post.authorId) {
+            participatingStudents.add(post.authorId);
           }
         }
       }
@@ -352,10 +367,9 @@ router.get('/:id/activity-report', authMiddleware, async (req, res) => {
 router.get('/:id/grade-analysis', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user.userId;
 
     // 取得課程
-    const course = await db.get(`COURSE#${id}`, 'META');
+    const course = await db.getItem(`COURSE#${id}`, 'META');
     if (!course) {
       return res.status(404).json({
         success: false,
@@ -365,9 +379,7 @@ router.get('/:id/grade-analysis', authMiddleware, async (req, res) => {
     }
 
     // 檢查權限
-    const isInstructor = course.instructorId === userId ||
-                         (course.instructors && course.instructors.includes(userId));
-    if (!req.user.isAdmin && !isInstructor) {
+    if (!canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -376,12 +388,7 @@ router.get('/:id/grade-analysis', authMiddleware, async (req, res) => {
     }
 
     // 取得報名學生
-    const enrollments = await db.queryByIndex(
-      'GSI1',
-      `COURSE#${id}`,
-      'GSI1PK',
-      { skPrefix: 'ENROLLED#', skName: 'GSI1SK' }
-    );
+    const enrollments = await getCourseEnrollments(id);
 
     // 收集所有成績數據
     const studentGrades = {};
@@ -402,7 +409,7 @@ router.get('/:id/grade-analysis', authMiddleware, async (req, res) => {
     }
 
     // 收集作業成績
-    const assignments = await db.query(`COURSE#${id}`, { skPrefix: 'ASSIGNMENT#' });
+    const assignments = await getCourseAssignments(id);
     for (const assignment of assignments) {
       gradeItems.push({
         type: 'assignment',
@@ -413,7 +420,7 @@ router.get('/:id/grade-analysis', authMiddleware, async (req, res) => {
       });
 
       for (const enrollment of enrollments) {
-        const submission = await db.get(`ASSIGNMENT#${assignment.assignmentId}`, `SUBMISSION#${enrollment.userId}`);
+        const submission = await db.getItem(`ASSIGNMENT#${assignment.assignmentId}`, `SUBMISSION#${enrollment.userId}`);
         if (submission && submission.grade !== null && submission.grade !== undefined) {
           studentGrades[enrollment.userId].items[assignment.assignmentId] = {
             grade: submission.grade,
@@ -427,7 +434,7 @@ router.get('/:id/grade-analysis', authMiddleware, async (req, res) => {
     }
 
     // 收集測驗成績
-    const quizzes = await db.query(`COURSE#${id}`, { skPrefix: 'QUIZ#' });
+    const quizzes = await getCourseQuizzes(id);
     for (const quiz of quizzes) {
       gradeItems.push({
         type: 'quiz',
@@ -526,11 +533,10 @@ router.get('/:id/grade-analysis', authMiddleware, async (req, res) => {
 router.get('/:id/export-report', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user.userId;
     const { type = 'grades' } = req.query; // grades, participation
 
     // 取得課程
-    const course = await db.get(`COURSE#${id}`, 'META');
+    const course = await db.getItem(`COURSE#${id}`, 'META');
     if (!course) {
       return res.status(404).json({
         success: false,
@@ -540,9 +546,7 @@ router.get('/:id/export-report', authMiddleware, async (req, res) => {
     }
 
     // 檢查權限
-    const isInstructor = course.instructorId === userId ||
-                         (course.instructors && course.instructors.includes(userId));
-    if (!req.user.isAdmin && !isInstructor) {
+    if (!canManageCourse(course, req.user)) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -551,12 +555,7 @@ router.get('/:id/export-report', authMiddleware, async (req, res) => {
     }
 
     // 取得報名學生
-    const enrollments = await db.queryByIndex(
-      'GSI1',
-      `COURSE#${id}`,
-      'GSI1PK',
-      { skPrefix: 'ENROLLED#', skName: 'GSI1SK' }
-    );
+    const enrollments = await getCourseEnrollments(id);
 
     let csvContent = '';
     let filename = '';
@@ -568,7 +567,7 @@ router.get('/:id/export-report', authMiddleware, async (req, res) => {
 
       for (const enrollment of enrollments) {
         const student = await db.getUser(enrollment.userId);
-        const progress = await db.get(`USER#${enrollment.userId}`, `PROG#COURSE#${id}`);
+        const progress = await db.getItem(`USER#${enrollment.userId}`, `PROG#COURSE#${id}`);
 
         rows.push([
           student?.displayName || 'Unknown',
@@ -585,8 +584,10 @@ router.get('/:id/export-report', authMiddleware, async (req, res) => {
 
     } else {
       // 成績報告 CSV
-      const assignments = await db.query(`COURSE#${id}`, { skPrefix: 'ASSIGNMENT#' });
-      const quizzes = await db.query(`COURSE#${id}`, { skPrefix: 'QUIZ#' });
+      const [assignments, quizzes] = await Promise.all([
+        getCourseAssignments(id),
+        getCourseQuizzes(id)
+      ]);
 
       const headers = ['學生姓名', '學生 Email'];
       assignments.forEach(a => headers.push(`作業: ${a.title}`));
@@ -604,7 +605,7 @@ router.get('/:id/export-report', authMiddleware, async (req, res) => {
 
         // 作業成績
         for (const assignment of assignments) {
-          const submission = await db.get(`ASSIGNMENT#${assignment.assignmentId}`, `SUBMISSION#${enrollment.userId}`);
+          const submission = await db.getItem(`ASSIGNMENT#${assignment.assignmentId}`, `SUBMISSION#${enrollment.userId}`);
           if (submission?.grade !== null && submission?.grade !== undefined) {
             row.push(submission.grade);
             totalPoints += submission.grade;
@@ -649,7 +650,7 @@ router.get('/:id/export-report', authMiddleware, async (req, res) => {
     const csvWithBom = bom + csvContent;
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
+    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`);
     res.send(csvWithBom);
 
   } catch (error) {

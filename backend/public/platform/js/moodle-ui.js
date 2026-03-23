@@ -12,6 +12,9 @@ const MoodleUI = {
   currentAssignmentCourseId: null,
   currentQuizCourseId: null,
   currentForumCourseId: null,
+  currentAssignmentDetail: null,
+  assignmentSubmissionDraft: null,
+  currentViewedAssignmentSubmission: null,
   currentQuestionBankCourseId: null,
   currentQuestionBankCategoryFilter: null,
   currentCalendarEvents: [],
@@ -190,6 +193,79 @@ const MoodleUI = {
     return type || 'text';
   },
 
+  extractAssignmentFileId(file = {}) {
+    if (!file || typeof file !== 'object') return null;
+    const directId = file.fileId || file.id || null;
+    if (directId) return directId;
+
+    const candidates = [
+      file.downloadUrl,
+      file.viewUrl,
+      file.url,
+      file.fileUrl
+    ].filter(Boolean);
+
+    for (const value of candidates) {
+      const match = String(value).match(/\/api\/files\/([^/?#]+)/);
+      if (match?.[1]) return match[1];
+    }
+
+    return null;
+  },
+
+  normalizeAssignmentFile(file, index = 0) {
+    if (!file) return null;
+
+    if (typeof file === 'string') {
+      const dataUrl = String(file);
+      const mimeType = dataUrl.startsWith('data:')
+        ? (dataUrl.match(/^data:([^;]+)/)?.[1] || 'application/octet-stream')
+        : 'application/octet-stream';
+      return {
+        fileId: null,
+        name: `submission_file_${index + 1}`,
+        filename: `submission_file_${index + 1}`,
+        fileName: `submission_file_${index + 1}`,
+        size: null,
+        contentType: mimeType,
+        mimeType,
+        legacyDataUrl: dataUrl.startsWith('data:') ? dataUrl : null,
+        content: dataUrl.startsWith('data:') ? String(dataUrl).split(',')[1] : null,
+        uploadedAt: null
+      };
+    }
+
+    const fileId = this.extractAssignmentFileId(file);
+    const filename = file.filename || file.fileName || file.name || `file_${index + 1}`;
+    const mimeType = file.contentType || file.mimeType || file.type || 'application/octet-stream';
+    const token = encodeURIComponent(API.accessToken || localStorage.getItem('accessToken') || '');
+    const generatedViewUrl = fileId ? `/api/files/${fileId}/view${token ? `?token=${token}` : ''}` : null;
+    const generatedDownloadUrl = fileId ? `/api/files/${fileId}/download${token ? `?token=${token}` : ''}` : null;
+
+    return {
+      ...file,
+      fileId,
+      name: filename,
+      filename,
+      fileName: filename,
+      size: Number(file.size ?? file.fileSize ?? 0) || null,
+      contentType: mimeType,
+      mimeType,
+      uploadedAt: file.uploadedAt || file.createdAt || null,
+      viewUrl: generatedViewUrl || file.viewUrl || null,
+      downloadUrl: generatedDownloadUrl || file.downloadUrl || null,
+      legacyDataUrl: file.legacyDataUrl || null,
+      content: file.content || null
+    };
+  },
+
+  normalizeAssignmentFiles(files = []) {
+    if (!Array.isArray(files)) return [];
+    return files
+      .map((file, index) => this.normalizeAssignmentFile(file, index))
+      .filter(Boolean);
+  },
+
   filterCourseCollection(courses = [], filters = {}) {
     let filtered = Array.isArray(courses) ? [...courses] : [];
     const search = String(filters.search || '').trim().toLowerCase();
@@ -262,7 +338,12 @@ const MoodleUI = {
   },
 
   normalizeAssignmentState(assignment = {}) {
-    const submission = assignment.submission || null;
+    const submission = assignment.submission
+      ? {
+          ...assignment.submission,
+          files: this.normalizeAssignmentFiles(assignment.submission.files || [])
+        }
+      : null;
     const submissionStatus = assignment.submissionStatus || {};
 
     const submitted = Boolean(
@@ -284,12 +365,34 @@ const MoodleUI = {
       submission?.gradedAt ||
       hasGrade
     );
+    const computedSubmission = submission || (submissionStatus.submitted
+      ? {
+          submittedAt: submissionStatus.submittedAt || null,
+          grade: submissionStatus.grade ?? null,
+          gradedAt: submissionStatus.graded ? submissionStatus.gradedAt || submissionStatus.submittedAt || null : null,
+          isLate: submissionStatus.isLate ?? (submissionStatus.submittedAt && assignment.dueDate
+            ? new Date(submissionStatus.submittedAt) > new Date(assignment.dueDate)
+            : false),
+          lateBy: submissionStatus.lateBy || 0,
+          files: []
+        }
+      : null);
 
     return {
       ...assignment,
+      submission: computedSubmission,
+      submissions: Array.isArray(assignment.submissions)
+        ? assignment.submissions.map((item = {}) => ({
+            ...item,
+            studentId: item.studentId || item.userId || '',
+            studentName: item.studentName || item.userName || '',
+            studentEmail: item.studentEmail || item.userEmail || '',
+            files: this.normalizeAssignmentFiles(item.files || [])
+          }))
+        : [],
       submitted,
       graded,
-      grade: assignment.grade ?? submission?.grade ?? submissionStatus.grade ?? null,
+      grade: assignment.grade ?? computedSubmission?.grade ?? submissionStatus.grade ?? null,
       maxPoints: assignment.maxPoints ?? assignment.maxGrade ?? 100,
       maxGrade: assignment.maxGrade ?? assignment.maxPoints ?? 100,
       submissionType: this.normalizeAssignmentSubmissionType(assignment.submissionType)
@@ -3133,7 +3236,12 @@ const MoodleUI = {
       : a.graded
         ? { label: t('moodleAssignment.statusGraded'), tone: 'is-accent' }
         : a.submitted
-          ? { label: t('moodleAssignment.statusSubmitted'), tone: 'is-success' }
+          ? {
+              label: a.submission?.isLate
+                ? (isEnglish ? 'Submitted late' : '逾時提交')
+                : t('moodleAssignment.statusSubmitted'),
+              tone: a.submission?.isLate ? 'is-warning' : 'is-success'
+            }
           : isStudentOverdue
             ? { label: t('moodleAssignment.statusOverdue'), tone: 'is-danger' }
             : { label: t('moodleAssignment.statusPending'), tone: 'is-neutral' };
@@ -3302,6 +3410,232 @@ const MoodleUI = {
         </div>
       </div>
     `;
+  },
+
+  isAssignmentPastDue(assignment = {}) {
+    const dueDate = assignment?.dueDate ? new Date(assignment.dueDate) : null;
+    return Boolean(dueDate && !Number.isNaN(dueDate.getTime()) && dueDate < new Date());
+  },
+
+  createAssignmentSubmissionDraft(assignment = {}) {
+    const normalized = this.normalizeAssignmentState(assignment);
+    const submission = normalized.submission || {};
+    return {
+      assignmentId: normalized.assignmentId,
+      courseId: normalized.courseId,
+      submissionType: normalized.submissionType,
+      content: submission.content || '',
+      existingFiles: this.normalizeAssignmentFiles(submission.files || []),
+      pendingFiles: [],
+      graded: Boolean(normalized.graded),
+      submittedAt: submission.submittedAt || null,
+      isLate: Boolean(submission.isLate),
+      lateBy: Number(submission.lateBy || 0)
+    };
+  },
+
+  renderAssignmentFileRows(files = [], { removable = false, removeHandler = '', downloadHandler = '' } = {}) {
+    const normalizedFiles = this.normalizeAssignmentFiles(files);
+    if (!normalizedFiles.length) return '';
+
+    return normalizedFiles.map((file, index) => {
+      const filename = this.escapeText(file.name || file.filename || file.fileName || `file_${index + 1}`);
+      const sizeLabel = file.size ? `<span class="file-size">(${this.escapeText(this.formatFileSize(file.size))})</span>` : '';
+      const uploadedAt = file.uploadedAt
+        ? `<span class="assignment-file-meta">${this.escapeText(this.formatPlatformDate(file.uploadedAt, { dateStyle: 'medium', timeStyle: 'short' }) || '')}</span>`
+        : '';
+      const downloadControl = (file.downloadUrl || file.legacyDataUrl || file.content)
+        ? (downloadHandler
+          ? `<button type="button" class="assignment-file-action" onclick="${downloadHandler}(${index})">${t('common.download') || '下載'}</button>`
+          : `<a class="assignment-file-action" href="${this.escapeText(file.downloadUrl)}" target="_blank" rel="noopener noreferrer">${t('common.download') || '下載'}</a>`)
+        : '';
+      const removeControl = removable
+        ? `<button type="button" class="assignment-file-action is-danger" onclick="${removeHandler}(${index})">${t('common.remove') || '移除'}</button>`
+        : '';
+
+      return `
+        <div class="selected-file assignment-file-row">
+          <div class="assignment-file-copy">
+            <span class="file-name">${filename}</span>
+            ${sizeLabel}
+            ${uploadedAt}
+          </div>
+          <div class="assignment-file-actions">
+            ${downloadControl}
+            ${removeControl}
+          </div>
+        </div>
+      `;
+    }).join('');
+  },
+
+  renderAssignmentDraftFiles() {
+    const container = document.getElementById('selectedFiles');
+    if (!container) return;
+
+    const draft = this.assignmentSubmissionDraft;
+    if (!draft) {
+      container.innerHTML = '';
+      return;
+    }
+
+    const existingHtml = this.renderAssignmentFileRows(draft.existingFiles, {
+      removable: !draft.graded,
+      removeHandler: 'MoodleUI.removeAssignmentExistingFile',
+      downloadHandler: 'MoodleUI.downloadDraftAssignmentExistingFile'
+    });
+    const pendingHtml = (draft.pendingFiles || []).map((file, index) => `
+      <div class="selected-file assignment-file-row is-pending">
+        <div class="assignment-file-copy">
+          <span class="file-name">${this.escapeText(file.name || `file_${index + 1}`)}</span>
+          <span class="file-size">(${this.escapeText(this.formatFileSize(file.size || 0))})</span>
+          <span class="assignment-file-meta">${I18n.getLocale() === 'en' ? 'Ready to upload' : '待上傳'}</span>
+        </div>
+        <div class="assignment-file-actions">
+          <button type="button" class="assignment-file-action is-danger" onclick="MoodleUI.removeAssignmentPendingFile(${index})">${t('common.remove') || '移除'}</button>
+        </div>
+      </div>
+    `).join('');
+
+    container.innerHTML = `
+      ${existingHtml ? `<div class="assignment-file-group"><div class="assignment-file-group-title">${I18n.getLocale() === 'en' ? 'Current attachments' : '目前附件'}</div>${existingHtml}</div>` : ''}
+      ${pendingHtml ? `<div class="assignment-file-group"><div class="assignment-file-group-title">${I18n.getLocale() === 'en' ? 'New attachments' : '新附件'}</div>${pendingHtml}</div>` : ''}
+    `;
+  },
+
+  syncAssignmentSubmissionContent(value) {
+    if (!this.assignmentSubmissionDraft) return;
+    this.assignmentSubmissionDraft.content = value;
+  },
+
+  handleAssignmentFileSelect(input) {
+    const draft = this.assignmentSubmissionDraft;
+    if (!draft || !input?.files?.length) return;
+
+    const files = Array.from(input.files);
+    const maxFiles = Number(this.currentAssignmentDetail?.maxFiles || 0);
+    const nextCount = (draft.existingFiles?.length || 0) + (draft.pendingFiles?.length || 0) + files.length;
+
+    if (maxFiles > 0 && nextCount > maxFiles) {
+      showToast(I18n.getLocale() === 'en'
+        ? `You can upload up to ${maxFiles} files for this assignment.`
+        : `這份作業最多可上傳 ${maxFiles} 個檔案。`);
+      input.value = '';
+      return;
+    }
+
+    draft.pendingFiles = [...(draft.pendingFiles || []), ...files];
+    input.value = '';
+    this.renderAssignmentDraftFiles();
+  },
+
+  removeAssignmentExistingFile(index) {
+    if (!this.assignmentSubmissionDraft?.existingFiles) return;
+    this.assignmentSubmissionDraft.existingFiles = this.assignmentSubmissionDraft.existingFiles.filter((_, fileIndex) => fileIndex !== index);
+    this.renderAssignmentDraftFiles();
+  },
+
+  removeAssignmentPendingFile(index) {
+    if (!this.assignmentSubmissionDraft?.pendingFiles) return;
+    this.assignmentSubmissionDraft.pendingFiles = this.assignmentSubmissionDraft.pendingFiles.filter((_, fileIndex) => fileIndex !== index);
+    this.renderAssignmentDraftFiles();
+  },
+
+  triggerAssignmentFileDownload(file = {}, fallbackName = 'attachment') {
+    const normalizedFile = this.normalizeAssignmentFile(file);
+    if (!normalizedFile) return;
+
+    if (normalizedFile.downloadUrl) {
+      window.open(normalizedFile.downloadUrl, '_blank', 'noopener');
+      return;
+    }
+
+    const dataUrl = normalizedFile.legacyDataUrl || (normalizedFile.content
+      ? `data:${normalizedFile.contentType || 'application/octet-stream'};base64,${normalizedFile.content}`
+      : '');
+
+    if (!dataUrl) return;
+
+    const anchor = document.createElement('a');
+    anchor.href = dataUrl;
+    anchor.download = normalizedFile.name || fallbackName;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+  },
+
+  downloadDraftAssignmentExistingFile(index) {
+    const file = this.assignmentSubmissionDraft?.existingFiles?.[index];
+    if (!file) return;
+    this.triggerAssignmentFileDownload(file, file.name || `attachment_${index + 1}`);
+  },
+
+  downloadCurrentAssignmentFile(index) {
+    const file = this.currentAssignmentDetail?.submission?.files?.[index];
+    if (!file) return;
+    this.triggerAssignmentFileDownload(file, file.name || `attachment_${index + 1}`);
+  },
+
+  downloadViewedAssignmentFile(index) {
+    const file = this.currentViewedAssignmentSubmission?.files?.[index];
+    if (!file) return;
+    this.triggerAssignmentFileDownload(file, file.name || `attachment_${index + 1}`);
+  },
+
+  async withdrawAssignment(assignmentId) {
+    const confirmed = await showConfirmDialog({
+      message: I18n.getLocale() === 'en'
+        ? 'Remove this submission and reopen the assignment for editing?'
+        : '要移除這份提交，重新回到可編輯狀態嗎？',
+      confirmLabel: t('common.confirm')
+    });
+    if (!confirmed) return;
+
+    try {
+      const result = await API.assignments.withdraw(assignmentId);
+      if (result.success) {
+        showToast(result.message || (I18n.getLocale() === 'en' ? 'Submission removed' : '提交已移除'));
+        this.openAssignment(assignmentId);
+      } else {
+        showToast(result.message || t('moodleAssignment.submitFailed'));
+      }
+    } catch (error) {
+      console.error('Withdraw assignment error:', error);
+      showToast(t('moodleAssignment.submitFailed'));
+    }
+  },
+
+  async downloadAllAssignmentSubmissions(assignmentId) {
+    try {
+      const response = await fetch(`${API.baseUrl}/assignments/${assignmentId}/download-all`, {
+        headers: {
+          Authorization: API.accessToken ? `Bearer ${API.accessToken}` : '',
+          'X-Language': I18n.getLocale()
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        showToast(errorData?.message || (I18n.getLocale() === 'en' ? 'Download failed' : '下載失敗'));
+        return;
+      }
+
+      const blob = await response.blob();
+      const contentDisposition = response.headers.get('content-disposition') || '';
+      const filenameMatch = contentDisposition.match(/filename\*=UTF-8''([^;]+)/);
+      const filename = filenameMatch?.[1] ? decodeURIComponent(filenameMatch[1]) : `assignment_${assignmentId}_submissions.zip`;
+      const blobUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = blobUrl;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+    } catch (error) {
+      console.error('Download all submissions error:', error);
+      showToast(I18n.getLocale() === 'en' ? 'Download failed' : '下載失敗');
+    }
   },
 
   // ==================== 作業系統 ====================
@@ -3477,6 +3811,23 @@ const MoodleUI = {
         }
       }
 
+      if (isTeacher) {
+        try {
+          const submissionsResult = await API.assignments.getSubmissions(assignmentId);
+          if (submissionsResult.success) {
+            assignment.submissions = this.normalizeAssignmentState({
+              submissions: submissionsResult.data || []
+            }).submissions;
+          }
+        } catch (submissionError) {
+          console.warn('Load assignment submissions failed:', submissionError);
+        }
+      }
+
+      this.currentAssignmentDetail = assignment;
+      this.assignmentSubmissionDraft = !isTeacher ? this.createAssignmentSubmissionDraft(assignment) : null;
+      this.currentViewedAssignmentSubmission = null;
+
       const safeTitle = this.escapeText(assignment.title || t('moodleAssignment.title'));
       const safeCourseName = this.escapeText(assignment.courseName || t('moodleAssignment.course'));
       const isEnglish = I18n.getLocale() === 'en';
@@ -3496,14 +3847,20 @@ const MoodleUI = {
       const briefNote = isTeacher
         ? (isEnglish ? 'Review the task brief, grading basis, and submission requirements before checking student work.' : '先確認這份作業的任務說明、評分依據與提交條件，再開始檢視學生作業。')
         : (isEnglish ? 'Understand the task goal, instructions, and submission requirements before you begin.' : '開始前先理解這次任務的目標、說明與提交方式。');
+      const isPastDue = this.isAssignmentPastDue(assignment);
+      const hasSubmissionGrade = assignment.submission && assignment.submission.grade !== undefined && assignment.submission.grade !== null;
       const statusClass = assignment.submission
-        ? (assignment.submission.grade !== undefined ? 'graded' : 'submitted')
-        : 'not-submitted';
+        ? (hasSubmissionGrade ? 'graded' : (assignment.submission.isLate ? 'late-submitted' : 'submitted'))
+        : (isPastDue ? 'late-submitted' : 'not-submitted');
       const statusText = assignment.submission
-        ? (assignment.submission.grade !== undefined
+        ? (hasSubmissionGrade
           ? `${t('moodleAssignment.gradedStatus')}: ${assignment.submission.grade}/${assignment.maxPoints}`
-          : t('moodleAssignment.submittedStatus'))
-        : t('moodleAssignment.notSubmitted');
+          : (assignment.submission.isLate
+            ? (isEnglish ? 'Submitted late' : '已逾時提交')
+            : t('moodleAssignment.submittedStatus')))
+        : (isPastDue
+          ? (isEnglish ? 'Overdue, submission still open' : '已逾時，仍可提交')
+          : t('moodleAssignment.notSubmitted'));
       const descriptionHtml = assignment.description
         ? this.formatMultilineText(assignment.description)
         : this.escapeText(t('moodleAssignment.noDesc'));
@@ -3560,6 +3917,10 @@ const MoodleUI = {
         </div>
       `;
 
+      if (!isTeacher) {
+        this.renderAssignmentDraftFiles();
+      }
+
       showView('assignmentDetail');
     } catch (error) {
       console.error('Open assignment error:', error);
@@ -3572,6 +3933,11 @@ const MoodleUI = {
    */
   renderSubmissionArea(assignment) {
     const isEnglish = I18n.getLocale() === 'en';
+    const normalizedAssignment = this.normalizeAssignmentState(assignment || {});
+    const submission = normalizedAssignment.submission || null;
+    const isPastDue = this.isAssignmentPastDue(normalizedAssignment);
+    const isLateSubmission = Boolean(submission?.isLate);
+    const canEditSubmission = Boolean(submission) && !normalizedAssignment.graded;
     const submissionKicker = isEnglish ? 'Submission' : '我的提交';
     const submissionNote = isEnglish
       ? 'Your text, files, and teacher feedback will stay attached to this assignment.'
@@ -3580,25 +3946,47 @@ const MoodleUI = {
     const submitWorkNote = isEnglish
       ? 'Text and files can be submitted separately or together. The record will stay on this assignment page.'
       : '文字與附件可擇一或一起提交，送出後會記錄在此作業頁。';
-    if (assignment.submission) {
-      return `
-        <section class="submission-area">
-          <div class="assignment-panel-head">
-            <div class="assignment-panel-copy">
-              <span class="assignment-panel-kicker">${submissionKicker}</span>
-              <h3 class="assignment-panel-title">${t('moodleAssignment.mySubmission')}</h3>
-              <p class="assignment-panel-note">${submissionNote}</p>
+    const noticeHtml = !submission && isPastDue
+      ? `
+        <div class="assignment-deadline-note is-late">
+          <strong>${isEnglish ? 'Overdue, but submissions are still accepted.' : '已逾時，仍可繼續提交。'}</strong>
+          <span>${isEnglish ? 'The upload time will be recorded and marked as late.' : '系統會保留你的上傳時間，並標記這次提交為逾時。'}</span>
+        </div>
+      `
+      : (submission
+        ? `
+          <div class="assignment-deadline-note ${isLateSubmission ? 'is-late' : 'is-submitted'}">
+            <strong>${isLateSubmission ? (isEnglish ? 'Submitted after the due date' : '這份作業是逾時提交') : (isEnglish ? 'Submission recorded' : '提交已記錄')}</strong>
+            <span>${t('moodleAssignment.submitTime')}：${this.escapeText(this.formatPlatformDate(submission.submittedAt, { dateStyle: 'medium', timeStyle: 'short' }) || '—')}</span>
+          </div>
+        `
+        : '');
+
+    const submissionSummaryHtml = submission ? `
+      <section class="assignment-submission-summary">
+        <div class="assignment-panel-head">
+          <div class="assignment-panel-copy">
+            <span class="assignment-panel-kicker">${submissionKicker}</span>
+            <h3 class="assignment-panel-title">${t('moodleAssignment.mySubmission')}</h3>
+            <p class="assignment-panel-note">${submissionNote}</p>
+          </div>
+        </div>
+        ${noticeHtml}
+        <div class="assignment-body submitted-content">
+          ${submission.content ? `<div class="text-content">${this.formatMultilineText(submission.content)}</div>` : ''}
+          ${submission.files?.length ? `
+            <div class="assignment-file-group">
+              <div class="assignment-file-group-title">${t('moodleAssignment.attachments')}</div>
+              ${this.renderAssignmentFileRows(submission.files, {
+                removable: false,
+                downloadHandler: 'MoodleUI.downloadCurrentAssignmentFile'
+              })}
             </div>
-          </div>
-          <div class="assignment-body submitted-content">
-            ${assignment.submission.content ? `<div class="text-content">${this.formatMultilineText(assignment.submission.content)}</div>` : ''}
-            ${assignment.submission.files ? `<div class="file-list">${assignment.submission.files.map(f => `<span class="file-item">${this.escapeText(f.filename || f.fileName || f.name || 'file')}</span>`).join('')}</div>` : ''}
-          </div>
-          <p class="assignment-submit-time">${t('moodleAssignment.submitTime')}：${new Date(assignment.submission.submittedAt).toLocaleString(I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW')}</p>
-          ${assignment.submission.feedback ? `<div class="assignment-feedback-card"><h4>${t('moodleAssignment.teacherFeedback')}</h4><p>${this.formatMultilineText(assignment.submission.feedback)}</p></div>` : ''}
-        </section>
-      `;
-    }
+          ` : ''}
+        </div>
+        ${submission.feedback ? `<div class="assignment-feedback-card"><h4>${t('moodleAssignment.teacherFeedback')}</h4><p>${this.formatMultilineText(submission.feedback)}</p></div>` : ''}
+      </section>
+    ` : '';
 
     return `
       <section class="submission-area">
@@ -3609,14 +3997,17 @@ const MoodleUI = {
             <p class="assignment-panel-note">${submitWorkNote}</p>
           </div>
         </div>
-        <form id="submissionForm" class="assignment-form">
-          ${assignment.submissionType !== 'file' ? `
+        ${submissionSummaryHtml}
+        ${!submission ? noticeHtml : ''}
+        ${!normalizedAssignment.graded ? `
+          <form id="submissionForm" class="assignment-form">
+            ${normalizedAssignment.submissionType !== 'file' ? `
             <div class="assignment-form-field">
               <label>${t('moodleAssignment.contentLabel')}</label>
-              <textarea id="submissionContent" rows="8" placeholder="${t('moodleAssignment.contentPlaceholder')}"></textarea>
+              <textarea id="submissionContent" rows="8" placeholder="${t('moodleAssignment.contentPlaceholder')}" oninput="MoodleUI.syncAssignmentSubmissionContent(this.value)">${this.escapeText(this.assignmentSubmissionDraft?.content || submission?.content || '')}</textarea>
             </div>
-          ` : ''}
-          ${assignment.submissionType !== 'text' ? `
+            ` : ''}
+            ${normalizedAssignment.submissionType !== 'text' ? `
             <div class="assignment-form-field">
               <label>${t('moodleAssignment.uploadLabel')}</label>
               <button type="button" class="file-upload-area" onclick="document.getElementById('submissionFile').click()">
@@ -3627,14 +4018,16 @@ const MoodleUI = {
                 </svg>
                 <span class="file-upload-copy">${t('moodleAssignment.uploadHint')}</span>
               </button>
-              <input type="file" id="submissionFile" class="hidden-file-input" onchange="MoodleUI.handleFileSelect(this)">
+              <input type="file" id="submissionFile" class="hidden-file-input" onchange="MoodleUI.handleAssignmentFileSelect(this)" multiple>
               <div id="selectedFiles"></div>
             </div>
-          ` : ''}
-          <div class="assignment-form-actions">
-            <button type="button" onclick="MoodleUI.submitAssignment('${assignment.assignmentId}')" class="btn-primary">${t('moodleAssignment.submitBtn')}</button>
-          </div>
-        </form>
+            ` : ''}
+            <div class="assignment-form-actions">
+              ${canEditSubmission ? `<button type="button" onclick="MoodleUI.withdrawAssignment('${normalizedAssignment.assignmentId}')" class="btn-secondary">${isEnglish ? 'Remove submission' : '移除提交'}</button>` : ''}
+              <button type="button" onclick="MoodleUI.submitAssignment('${normalizedAssignment.assignmentId}')" class="btn-primary">${canEditSubmission ? (isEnglish ? 'Update submission' : '更新提交') : t('moodleAssignment.submitBtn')}</button>
+            </div>
+          </form>
+        ` : ''}
       </section>
     `;
   },
@@ -3652,6 +4045,11 @@ const MoodleUI = {
             <h3 class="assignment-panel-title">${t('moodleAssignment.studentSubmissions')} (${assignment.submissions?.length || 0})</h3>
             <p class="assignment-panel-note">${isEnglish ? 'Review submission timestamps, score inputs, and grading actions in one place.' : '在同一個工作區檢視提交時間、分數欄位與批改操作。'}</p>
           </div>
+          ${(assignment.submissions || []).length > 0 ? `
+            <div class="assignment-panel-actions">
+              <button type="button" class="btn-secondary" onclick="MoodleUI.downloadAllAssignmentSubmissions('${assignment.assignmentId}')">${isEnglish ? 'Download all' : '下載全部'}</button>
+            </div>
+          ` : ''}
         </div>
         ${(assignment.submissions || []).length === 0 ? `
           <div class="assignment-empty-state">
@@ -3668,11 +4066,12 @@ const MoodleUI = {
                   <div>
                     <span class="assignment-submission-name">${this.escapeText(s.studentName || s.studentId || 'Student')}</span>
                     <span class="assignment-submission-time">${this.escapeText(new Date(s.submittedAt).toLocaleString(I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW'))}</span>
+                    ${s.isLate ? `<span class="assignment-submission-tag is-late">${isEnglish ? 'Late' : '逾時'}</span>` : ''}
                   </div>
                 </div>
                 <div class="assignment-submission-actions">
                   <button onclick="MoodleUI.viewSubmission('${assignment.assignmentId}', '${s.studentId}')" class="btn-sm">${t('moodleAssignment.viewBtn')}</button>
-                  <input type="number" id="grade_${s.studentId}" class="grade-input-compact" value="${s.grade || ''}" placeholder="${t('moodleGrade.score')}">
+                  <input type="number" id="grade_${s.studentId}" class="grade-input-compact" value="${s.grade ?? ''}" placeholder="${t('moodleGrade.score')}">
                   <button onclick="MoodleUI.gradeSubmission('${assignment.assignmentId}', '${s.studentId}')" class="btn-primary">${t('moodleAssignment.gradeBtn')}</button>
                 </div>
               </div>
@@ -3690,15 +4089,32 @@ const MoodleUI = {
     try {
       const result = await API.assignments.getSubmission(assignmentId, studentId);
       if (result.success) {
-        const s = result.data;
+        const submissionData = {
+          ...result.data,
+          studentId: result.data.studentId || result.data.userId || studentId,
+          studentName: result.data.studentName || result.data.userName || studentId,
+          studentEmail: result.data.studentEmail || result.data.userEmail || '',
+          files: this.normalizeAssignmentFiles(result.data.files || [])
+        };
+        this.currentViewedAssignmentSubmission = submissionData;
         MoodleUI.createModal('view-submission-modal', t('moodleAssignment.viewSubmission'), `
           <div class="submission-detail">
-            <p><strong>${t('moodleParticipant.student')}：</strong>${s.studentName || studentId}</p>
-            <p><strong>${t('moodleAssignment.submitTime')}：</strong>${s.submittedAt ? new Date(s.submittedAt).toLocaleString(I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW') : t('moodleAssignment.notSubmitted')}</p>
-            <div class="submission-content">${s.content || `<em>${t('moodleAssignment.noTextContent')}</em>`}</div>
-            ${s.files?.length ? `<div class="submission-files"><strong>${t('moodleAssignment.attachments')}：</strong><ul>${s.files.map(f => `<li>${f.name || f.fileName}</li>`).join('')}</ul></div>` : ''}
-            ${s.grade !== undefined && s.grade !== null ? `<p><strong>${t('moodleGrade.score')}：</strong>${s.grade}</p>` : ''}
-            ${s.feedback ? `<p><strong>${t('moodleGrade.feedback')}：</strong>${s.feedback}</p>` : ''}
+            <p><strong>${t('moodleParticipant.student')}：</strong>${this.escapeText(submissionData.studentName || studentId)}</p>
+            ${submissionData.studentEmail ? `<p><strong>Email：</strong>${this.escapeText(submissionData.studentEmail)}</p>` : ''}
+            <p><strong>${t('moodleAssignment.submitTime')}：</strong>${submissionData.submittedAt ? this.escapeText(new Date(submissionData.submittedAt).toLocaleString(I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW')) : t('moodleAssignment.notSubmitted')}</p>
+            ${submissionData.isLate ? `<p><strong>${I18n.getLocale() === 'en' ? 'Status' : '狀態'}：</strong>${I18n.getLocale() === 'en' ? 'Late submission' : '逾時提交'}</p>` : ''}
+            <div class="submission-content">${submissionData.content ? this.formatMultilineText(submissionData.content) : `<em>${t('moodleAssignment.noTextContent')}</em>`}</div>
+            ${submissionData.files?.length ? `
+              <div class="submission-files">
+                <strong>${t('moodleAssignment.attachments')}：</strong>
+                ${this.renderAssignmentFileRows(submissionData.files, {
+                  removable: false,
+                  downloadHandler: 'MoodleUI.downloadViewedAssignmentFile'
+                })}
+              </div>
+            ` : ''}
+            ${submissionData.grade !== undefined && submissionData.grade !== null ? `<p><strong>${t('moodleGrade.score')}：</strong>${this.escapeText(String(submissionData.grade))}</p>` : ''}
+            ${submissionData.feedback ? `<p><strong>${t('moodleGrade.feedback')}：</strong>${this.formatMultilineText(submissionData.feedback)}</p>` : ''}
           </div>
         `);
       } else {
@@ -3726,6 +4142,7 @@ const MoodleUI = {
       });
       if (result.success) {
         showToast(t('moodleAssignment.gradeSuccess'));
+        this.openAssignment(assignmentId);
       } else {
         showToast(result.message || t('moodleAssignment.gradeFailed'));
       }
@@ -3738,30 +4155,74 @@ const MoodleUI = {
    * 提交作業
    */
   async submitAssignment(assignmentId) {
-    const content = document.getElementById('submissionContent')?.value;
-    const fileInput = document.getElementById('submissionFile');
-    const files = fileInput?.files;
+    const assignment = this.currentAssignmentDetail?.assignmentId === assignmentId
+      ? this.currentAssignmentDetail
+      : await API.assignments.get(assignmentId).then(result => result.success ? this.normalizeAssignmentState(result.data || {}) : null);
+    if (!assignment) {
+      showToast(t('moodleAssignment.loadFailed'));
+      return;
+    }
 
-    if (!content && (!files || files.length === 0)) {
+    const draft = this.assignmentSubmissionDraft || this.createAssignmentSubmissionDraft(assignment);
+    const content = String(draft.content || '').trim();
+    const existingFiles = this.normalizeAssignmentFiles(draft.existingFiles || []);
+    const pendingFiles = Array.isArray(draft.pendingFiles) ? draft.pendingFiles : [];
+    const submissionType = assignment.submissionType || 'text';
+    const totalFileCount = existingFiles.length + pendingFiles.length;
+
+    if (submissionType === 'text' && !content) {
       showToast(t('moodleAssignment.contentRequired'));
       return;
     }
 
-    const data = { content };
+    if (submissionType === 'file' && totalFileCount === 0) {
+      showToast(t('moodleAssignment.contentRequired'));
+      return;
+    }
 
-    // 處理檔案上傳
-    if (files && files.length > 0) {
-      data.files = [];
-      for (const file of files) {
-        const fileData = await API.files.fileToBase64(file);
-        data.files.push(fileData);
-      }
+    if (submissionType === 'both' && !content && totalFileCount === 0) {
+      showToast(t('moodleAssignment.contentRequired'));
+      return;
     }
 
     try {
-      const result = await API.assignments.submit(assignmentId, data);
+      const uploadedFiles = [];
+      for (const file of pendingFiles) {
+        const uploadResult = await API.files.upload(file, {
+          folder: `assignments/${assignment.courseId || 'general'}/${assignmentId}`,
+          courseId: assignment.courseId || null,
+          visibility: assignment.courseId ? 'course' : 'private'
+        });
+
+        if (!uploadResult.success || !uploadResult.data) {
+          showToast(uploadResult.message || t('moodleAssignment.submitFailed'));
+          return;
+        }
+
+        uploadedFiles.push(this.normalizeAssignmentFile({
+          ...uploadResult.data,
+          uploadedAt: uploadResult.data.createdAt || new Date().toISOString()
+        }));
+      }
+
+      const files = [...existingFiles, ...uploadedFiles].map(file => ({
+        fileId: file.fileId || null,
+        filename: file.name || file.filename || file.fileName || 'file',
+        name: file.name || file.filename || file.fileName || 'file',
+        size: file.size || null,
+        contentType: file.contentType || file.mimeType || 'application/octet-stream',
+        mimeType: file.contentType || file.mimeType || 'application/octet-stream',
+        uploadedAt: file.uploadedAt || new Date().toISOString(),
+        viewUrl: file.viewUrl || null,
+        downloadUrl: file.downloadUrl || null
+      }));
+
+      const result = await API.assignments.submit(assignmentId, {
+        content,
+        files
+      });
       if (result.success) {
-        showToast(t('moodleAssignment.submitSuccess'));
+        showToast(result.message || t('moodleAssignment.submitSuccess'));
         this.openAssignment(assignmentId);
       } else {
         showToast(result.message || t('moodleAssignment.submitFailed'));

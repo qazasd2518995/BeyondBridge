@@ -45,26 +45,9 @@ router.post('/:id/submit', authMiddleware, async (req, res) => {
 
     const now = new Date();
     const dueDate = new Date(assignment.dueDate);
-    const cutoffDate = assignment.cutoffDate ? new Date(assignment.cutoffDate) : null;
-
-    // 檢查是否已過最終截止日期
-    if (cutoffDate && now > cutoffDate) {
-      return res.status(403).json({
-        success: false,
-        error: 'SUBMISSION_CLOSED',
-        message: '已超過最終截止日期，無法提交'
-      });
-    }
-
-    // 檢查是否遲交
-    const isLate = now > dueDate;
-    if (isLate && !assignment.allowLateSubmission) {
-      return res.status(403).json({
-        success: false,
-        error: 'LATE_SUBMISSION_NOT_ALLOWED',
-        message: '此作業不接受遲交'
-      });
-    }
+    // 作業逾期後仍允許提交，只記錄逾時狀態與提交時間。
+    const hasValidDueDate = dueDate instanceof Date && !Number.isNaN(dueDate.getTime());
+    const isLate = hasValidDueDate ? now > dueDate : false;
 
     // 驗證提交內容
     if (assignment.submissionType === 'online_text' && !content) {

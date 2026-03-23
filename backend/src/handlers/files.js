@@ -9,6 +9,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../utils/db');
 const { authMiddleware } = require('../utils/auth');
+const { canManageCourse } = require('../utils/course-access');
 const path = require('path');
 const fs = require('fs').promises;
 const crypto = require('crypto');
@@ -349,10 +350,10 @@ router.get('/courses/:courseId', authMiddleware, async (req, res) => {
       });
     }
 
-    const isInstructor = course.instructorId === userId;
+    const canManage = canManageCourse(course, req.user);
     const progress = await db.getItem(`USER#${userId}`, `PROG#COURSE#${courseId}`);
 
-    if (!isInstructor && !progress && !req.user.isAdmin) {
+    if (!canManage && !progress && !req.user.isAdmin) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -514,7 +515,12 @@ router.get('/:id/view', (req, res, next) => {
  * GET /api/files/:id/download
  * 下載檔案
  */
-router.get('/:id/download', authMiddleware, async (req, res) => {
+router.get('/:id/download', (req, res, next) => {
+  if (!req.headers.authorization && req.query.token) {
+    req.headers.authorization = `Bearer ${req.query.token}`;
+  }
+  authMiddleware(req, res, next);
+}, async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.userId;
@@ -819,7 +825,7 @@ async function checkFileAccess(file, userId, isAdmin) {
     if (progress) return true;
 
     const course = await db.getItem(`COURSE#${file.courseId}`, 'META');
-    if (course && course.instructorId === userId) return true;
+    if (course && canManageCourse(course, { userId, isAdmin })) return true;
   }
 
   return false;

@@ -1656,9 +1656,10 @@ router.get('/courses/:courseId/export', authMiddleware, async (req, res) => {
       const safeFilename = course.title.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_');
       const timestamp = new Date().toISOString().split('T')[0];
 
+      const csvFilename = `${safeFilename}_成績_${timestamp}.csv`;
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader('Content-Disposition',
-        `attachment; filename*=UTF-8''${encodeURIComponent(safeFilename)}_成績_${timestamp}.csv`);
+        `attachment; filename*=UTF-8''${encodeURIComponent(csvFilename)}`);
       res.send(csvWithBOM);
 
     } else {

@@ -72,6 +72,7 @@ router.get('/', authMiddleware, async (req, res) => {
         const attempts = await db.query(`QUIZ#${q.quizId}`, {
           skPrefix: `ATTEMPT#${userId}#`
         });
+        const completedAttempts = attempts.filter(a => a.status === 'completed');
 
         const bestAttempt = attempts.reduce((best, current) => {
           if (!best || current.score > best.score) return current;
@@ -87,7 +88,7 @@ router.get('/', authMiddleware, async (req, res) => {
             bestScore: bestAttempt?.score || null,
             lastAttemptAt: attempts.length > 0 ?
               attempts[attempts.length - 1].submittedAt : null,
-            canAttempt: !q.maxAttempts || attempts.length < q.maxAttempts
+            canAttempt: !q.maxAttempts || completedAttempts.length < q.maxAttempts
           }
         };
       })

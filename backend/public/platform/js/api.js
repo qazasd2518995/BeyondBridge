@@ -1199,6 +1199,12 @@ const API = {
       });
     },
 
+    async withdraw(assignmentId) {
+      return API.request(`/assignments/${assignmentId}/submit`, {
+        method: 'DELETE'
+      });
+    },
+
     async getSubmissions(assignmentId) {
       return API.request(`/assignments/${assignmentId}/submissions`);
     },
@@ -1596,7 +1602,10 @@ const API = {
       return API.request(`/files${params ? '?' + params : ''}`);
     },
 
-    async upload(file, folder = '') {
+    async upload(file, folderOrOptions = '') {
+      const options = typeof folderOrOptions === 'string'
+        ? { folder: folderOrOptions }
+        : (folderOrOptions || {});
       const dataUrl = await this.fileToBase64(file);
       const content = String(dataUrl).includes(',') ? String(dataUrl).split(',')[1] : String(dataUrl);
 
@@ -1607,7 +1616,9 @@ const API = {
           contentType: file.type || 'application/octet-stream',
           size: file.size,
           content,
-          folder
+          folder: options.folder || '',
+          courseId: options.courseId || null,
+          visibility: options.visibility || 'private'
         }
       });
     },
