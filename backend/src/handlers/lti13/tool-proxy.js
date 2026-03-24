@@ -10,6 +10,122 @@ const express = require('express');
 const router = express.Router();
 const { getItem, putItem, updateItem, query } = require('../../utils/db');
 const { generateId } = require('../../utils/db');
+const { invalidateGradebookSnapshots } = require('../../utils/gradebook-snapshots');
+
+function clampProgress(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return 0;
+  return Math.max(0, Math.min(100, numeric));
+}
+
+async function syncCourseProgress(data) {
+  const {
+    courseId,
+    userId,
+    activityId,
+    progress,
+    completed,
+    timestamp
+  } = data;
+
+  if (!courseId || !userId) return null;
+
+  const [course, courseProgress] = await Promise.all([
+    getItem(`COURSE#${courseId}`, 'META'),
+    getItem(`USER#${userId}`, `PROG#COURSE#${courseId}`)
+  ]);
+
+  if (!course || !courseProgress) {
+    return null;
+  }
+
+  const totalActivities = Math.max(1, Number(course?.stats?.totalActivities) || 1);
+  const now = timestamp || new Date().toISOString();
+  const progressMap = { ...(courseProgress.activityProgressMap || {}) };
+  const completedActivities = new Set(courseProgress.completedActivities || []);
+  const accessMap = { ...(courseProgress.activityAccessMap || {}) };
+
+  if (activityId) {
+    progressMap[activityId] = Math.max(progressMap[activityId] || 0, clampProgress(progress));
+    if (!accessMap[activityId]) {
+      accessMap[activityId] = now;
+    }
+    if (completed) {
+      progressMap[activityId] = 100;
+      completedActivities.add(activityId);
+    }
+  }
+
+  const trackedActivityIds = new Set(Object.keys(progressMap));
+  const fullyCompletedCount = [...completedActivities].filter(id => !trackedActivityIds.has(id)).length;
+  const weightedProgress = Object.values(progressMap)
+    .reduce((sum, value) => sum + (clampProgress(value) / 100), 0);
+  const progressPercentage = Math.min(100, Math.round(((fullyCompletedCount + weightedProgress) / totalActivities) * 100));
+
+  const updates = {
+    activityProgressMap: progressMap,
+    activityAccessMap: accessMap,
+    progressPercentage,
+    lastAccessedAt: now,
+    updatedAt: now
+  };
+
+  if (activityId && completed) {
+    updates.completedActivities = [...completedActivities];
+  }
+
+  if ((updates.completedActivities || courseProgress.completedActivities || []).length >= totalActivities) {
+    updates.status = 'completed';
+    updates.completedAt = courseProgress.completedAt || now;
+  } else if (courseProgress.status === 'completed' && progressPercentage < 100) {
+    updates.status = 'in_progress';
+    updates.completedAt = null;
+  }
+
+  const updatedProgress = await updateItem(`USER#${userId}`, `PROG#COURSE#${courseId}`, updates);
+
+  if (activityId) {
+    const activities = await query(`COURSE#${courseId}`, { skPrefix: 'ACTIVITY#' });
+    const activity = activities.find(item => item.activityId === activityId);
+    if (activity) {
+      const nextStats = {
+        ...(activity.stats || {}),
+        views: activity['stats.views'] ?? activity.stats?.views ?? 0,
+        completions: activity['stats.completions'] ?? activity.stats?.completions ?? 0
+      };
+      let shouldPersistActivity = false;
+
+      if (!courseProgress.activityAccessMap?.[activityId]) {
+        nextStats.views += 1;
+        shouldPersistActivity = true;
+      }
+      if (courseProgress.activityAccessMap?.[activityId] && nextStats.views === 0) {
+        nextStats.views = 1;
+        shouldPersistActivity = true;
+      }
+      if (completed && !(courseProgress.completedActivities || []).includes(activityId)) {
+        nextStats.completions += 1;
+        shouldPersistActivity = true;
+      }
+      if (activity['stats.views'] !== undefined || activity['stats.completions'] !== undefined) {
+        shouldPersistActivity = true;
+      }
+
+      if (shouldPersistActivity) {
+        const cleanedActivity = {
+          ...activity,
+          stats: nextStats,
+          updatedAt: now
+        };
+        delete cleanedActivity['stats.views'];
+        delete cleanedActivity['stats.completions'];
+        await putItem(cleanedActivity);
+      }
+    }
+  }
+
+  return updatedProgress;
+}
 
 /**
  * POST /api/lti/tools/:toolId/progress
@@ -24,6 +140,8 @@ router.post('/tools/:toolId/progress', async (req, res) => {
       sessionId,
       userId,
       type = 'progress',  // progress, completion
+      courseId,
+      resourceLinkId,
       unit,
       progress,           // 0-100
       score,
@@ -60,6 +178,10 @@ router.post('/tools/:toolId/progress', async (req, res) => {
       // 將進度百分比轉換為分數
       finalScore = Math.round((progress / 100) * maxScore);
     }
+    const clampedProgress = clampProgress(progress);
+    const effectiveCourseId = courseId || tool.courseId || null;
+    const activityId = resourceLinkId || null;
+    const isCompleted = type === 'completion' || activityProgress === 'Completed' || clampedProgress >= 100;
 
     const now = timestamp || new Date().toISOString();
 
@@ -71,21 +193,31 @@ router.post('/tools/:toolId/progress', async (req, res) => {
       toolId,
       userId,
       sessionId,
+      courseId: effectiveCourseId,
+      resourceLinkId: activityId,
       type,
       unit,
-      progress,
+      progress: clampedProgress,
       score: finalScore,
       maxScore,
-      activityProgress: activityProgress || (type === 'completion' ? 'Completed' : 'InProgress'),
+      activityProgress: activityProgress || (isCompleted ? 'Completed' : 'InProgress'),
       gradingProgress: gradingProgress || (type === 'completion' ? 'FullyGraded' : 'Pending'),
       details,
       createdAt: now
     };
 
     await putItem(progressRecord);
+    await syncCourseProgress({
+      courseId: effectiveCourseId,
+      userId,
+      activityId,
+      progress: clampedProgress,
+      completed: isCompleted,
+      timestamp: now
+    });
 
     // 如果是完成狀態，更新/建立 AGS 成績記錄
-    if (type === 'completion' || activityProgress === 'Completed') {
+    if (isCompleted) {
       await updateAgsScore({
         toolId,
         userId,
@@ -99,9 +231,9 @@ router.post('/tools/:toolId/progress', async (req, res) => {
     }
 
     // 同步到 gradebook（如果有課程關聯）
-    if (tool.courseId && (type === 'completion' || activityProgress === 'Completed')) {
+    if (effectiveCourseId && isCompleted) {
       await syncToGradebook({
-        courseId: tool.courseId,
+        courseId: effectiveCourseId,
         userId,
         toolId,
         toolName: tool.name,
@@ -110,6 +242,7 @@ router.post('/tools/:toolId/progress', async (req, res) => {
         maxScore,
         timestamp: now
       });
+      await invalidateGradebookSnapshots(effectiveCourseId);
     }
 
     res.json({

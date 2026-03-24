@@ -168,12 +168,20 @@ async function getTeacherCourses(user) {
 }
 
 async function getCourseEnrollments(courseId) {
-  return db.queryByIndex(
+  const enrollments = await db.queryByIndex(
     'GSI1',
     `COURSE#${courseId}`,
     'GSI1PK',
     { skPrefix: 'ENROLLED#', skName: 'GSI1SK' }
   );
+  return enrollments.filter(enrollment => {
+    const role = String(enrollment?.role || '').toLowerCase();
+    return role !== 'instructor' &&
+      role !== 'teacher' &&
+      role !== 'assistant' &&
+      role !== 'manager' &&
+      role !== 'educator';
+  });
 }
 
 async function getCourseLinkedAnalyticsEntities(courseId) {

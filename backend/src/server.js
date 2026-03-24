@@ -57,6 +57,7 @@ const auditLogsRoutes = require('./handlers/audit-logs');
 const scormRoutes = require('./handlers/scorm');
 const ltiRoutes = require('./handlers/lti');
 const lti13Routes = require('./handlers/lti13');
+const lti13ToolProxyRoutes = require('./handlers/lti13/tool-proxy');
 const h5pRoutes = require('./handlers/h5p');
 
 // 教師功能路由
@@ -167,6 +168,7 @@ app.use('/api/rubrics', rubricsRoutes);
 app.use('/api/audit-logs', auditLogsRoutes);
 app.use('/api/scorm', scormRoutes);
 app.use('/api/lti', ltiRoutes);
+app.use('/api/lti', lti13ToolProxyRoutes); // 相容既有 Tool Proxy 路徑
 app.use('/api/lti/13', lti13Routes);  // LTI 1.3 端點
 app.use('/api/h5p', h5pRoutes);
 
