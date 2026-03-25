@@ -12096,7 +12096,7 @@
             const teacherOnlyViews = new Set([
                 'teacherDashboard', 'classes', 'gradebookManagement', 'teacherAnalytics', 'questionBank', 'rubrics', 'groupsManager', 'courseCompletionSettings', 'moodleFiles'
             ]);
-            const hiddenFromStudents = new Set(['studentClasses', 'moodleFiles', 'moodleGradebook']);
+            const hiddenFromStudents = new Set(['studentClasses', 'moodleFiles']);
 
             if (adminOnlyViews.has(viewName)) return isAdminRole(user);
             if (teacherOnlyViews.has(viewName)) return isTeachingRole(user);

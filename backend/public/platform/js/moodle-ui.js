@@ -847,6 +847,7 @@ const MoodleUI = {
       <div class="course-nav-tabs">
         <button class="nav-tab active" data-course-tab="content" onclick="MoodleUI.switchCourseTab('content', this)">${t('moodleCourse.tabContent')}</button>
         ${canViewParticipants ? `<button class="nav-tab" data-course-tab="participants" onclick="MoodleUI.switchCourseTab('participants', this)">${participantsTabLabel}</button>` : ''}
+        <button class="nav-tab" data-course-tab="forums" onclick="MoodleUI.openCourseForums(${this.toInlineActionValue(course.courseId)})">${t('nav.classDiscussions')}</button>
         <button class="nav-tab" data-course-tab="grades" onclick="MoodleUI.switchCourseTab('grades', this)">${t('moodleCourse.tabGrades')}</button>
         ${canViewReports ? `<button class="nav-tab" data-course-tab="reports" onclick="MoodleUI.switchCourseTab('reports', this)">${t('moodleCourse.tabReports')}</button>` : ''}
       </div>
@@ -1051,6 +1052,18 @@ const MoodleUI = {
     } else if (tab === 'reports' && this.currentCourseId) {
       await this.loadCourseReports(this.currentCourseId);
     }
+  },
+
+  async openCourseForums(courseId = this.currentCourseId) {
+    const targetCourseId = courseId || this.currentCourseId || this.currentForumCourseId;
+    showView('moodleForums');
+
+    if (targetCourseId) {
+      await this.loadForums(targetCourseId);
+      return;
+    }
+
+    await this.loadForums();
   },
 
   /**

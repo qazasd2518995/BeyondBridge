@@ -397,6 +397,13 @@ const App = {
       </div>
       <div class="nav-section">
         <div class="nav-section-title">${t('nav.learningOutcomes')}</div>
+        <a href="#" class="nav-item" data-view="moodleGradebook" onclick="showView('moodleGradebook'); MoodleUI.loadGradebook();">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+            <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+          </svg>
+          ${t('nav.myGrades')}
+        </a>
         <a href="#" class="nav-item" data-view="badges" onclick="showView('badges'); MoodleUI.openBadges();">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="8" r="6"/>
