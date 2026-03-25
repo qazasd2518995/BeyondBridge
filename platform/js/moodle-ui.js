@@ -2363,7 +2363,12 @@ const MoodleUI = {
         return;
       }
 
-      const toolId = activity.data.toolId || activity.data.ltiToolId;
+      const resolvedActivity = {
+        ...activity.data,
+        activityId: activity.data.activityId || activityId,
+        sectionId: activity.data.sectionId || activity.data.currentSectionId || null
+      };
+      const toolId = resolvedActivity.toolId || resolvedActivity.ltiToolId;
       if (!toolId) {
         showToast(t('moodleActivity.noLtiTool'));
         return;
@@ -2380,8 +2385,14 @@ const MoodleUI = {
         ...(token && { token })
       }).toString();
 
+      const progressSession = this.createContentProgressSession(resolvedActivity, courseId);
+
       // 建立啟動視窗/iframe
-      this.openLtiLaunchModal(launchUrl, activity.data.name || t('moodleLti.externalTool'));
+      this.openLtiLaunchModal(
+        launchUrl,
+        resolvedActivity.name || t('moodleLti.externalTool'),
+        { progressSession }
+      );
 
     } catch (error) {
       console.error('LTI launch error:', error);
@@ -2392,9 +2403,9 @@ const MoodleUI = {
   /**
    * 開啟 LTI 啟動 Modal
    */
-  openLtiLaunchModal(launchUrl, toolName) {
+  openLtiLaunchModal(launchUrl, toolName, options = {}) {
     const existing = document.getElementById('ltiLaunchModal');
-    if (existing) existing.remove();
+    if (existing) this.closeModal('ltiLaunchModal');
     const safeToolName = this.escapeText(toolName || t('moodleLti.externalTool'));
     const openInWindowLabel = this.escapeText(t('moodleActivity.openNewWindow'));
     const closeLabel = this.escapeText(t('common.close'));
@@ -2426,6 +2437,10 @@ const MoodleUI = {
       </div>
     `;
     document.body.appendChild(modal);
+
+    if (options.progressSession && typeof options.progressSession.attachToCleanup === 'function') {
+      options.progressSession.attachToCleanup(modal, '_modalCleanup');
+    }
 
     // 儲存 launch URL 供新視窗使用
     this.currentLtiLaunchUrl = launchUrl;
