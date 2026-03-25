@@ -117,6 +117,8 @@ const MoodleUI = {
     return !path.createdBy || path.createdBy === user.userId;
   },
 
+  contentActivityAutoCompleteMs: 15000,
+
   getLearningPathUiCopy() {
     const isEnglish = I18n.getLocale() === 'en';
     const translate = (key, fallback) => {
@@ -206,6 +208,119 @@ const MoodleUI = {
     if (Array.isArray(result.data?.courses)) return result.data.courses;
     if (Array.isArray(result.data?.items)) return result.data.items;
     return [];
+  },
+
+  isContentProgressActivity(activity = {}) {
+    const activityType = String(activity.type || '').toLowerCase();
+    const contentType = String(activity.contentType || '').toLowerCase();
+    return ['page', 'url', 'file'].includes(activityType) ||
+      contentType.startsWith('video/') ||
+      contentType.startsWith('image/');
+  },
+
+  async triggerCourseCompletionCheck(courseId) {
+    if (!courseId || typeof API?.request !== 'function') return null;
+    try {
+      return await API.request(`/courses/${courseId}/check-completion`, {
+        method: 'POST'
+      });
+    } catch (error) {
+      console.warn('Check completion after content activity failed:', error);
+      return null;
+    }
+  },
+
+  installCleanupHook(target, propertyName, cleanup) {
+    if (!target || typeof cleanup !== 'function' || !propertyName) return;
+    const previousCleanup = typeof target[propertyName] === 'function' ? target[propertyName] : null;
+    target[propertyName] = async () => {
+      if (previousCleanup) {
+        await previousCleanup();
+      }
+      await cleanup();
+    };
+  },
+
+  createContentProgressSession(activity, courseId, options = {}) {
+    if (!activity?.activityId || !courseId) return null;
+
+    const startedAt = Date.now();
+    const autoCompleteAfterMs = Math.max(
+      5000,
+      Number(options.autoCompleteAfterMs || this.contentActivityAutoCompleteMs) || this.contentActivityAutoCompleteMs
+    );
+    const shouldAutoComplete = this.isContentProgressActivity(activity);
+    let readyForCompletion = false;
+    let completionTimer = null;
+    let completionRecorded = false;
+    let cleanupRan = false;
+
+    const recordAccess = async (payload = {}) => {
+      try {
+        return await API.courses.updateProgress(courseId, {
+          activityId: activity.activityId,
+          currentSectionId: activity.sectionId,
+          ...payload
+        });
+      } catch (error) {
+        console.warn('Record content activity progress failed:', error);
+        return null;
+      }
+    };
+
+    const recordCompletion = async () => {
+      if (!shouldAutoComplete || completionRecorded) return false;
+      completionRecorded = true;
+
+      try {
+        const result = await API.courses.completeActivity(courseId, activity.activityId);
+        if (result?.success) {
+          await this.triggerCourseCompletionCheck(courseId);
+          return true;
+        }
+      } catch (error) {
+        console.warn('Complete content activity failed:', error);
+      }
+
+      completionRecorded = false;
+      return false;
+    };
+
+    const scheduleCompletion = () => {
+      if (!shouldAutoComplete || !readyForCompletion || completionRecorded || completionTimer) return;
+      completionTimer = window.setTimeout(() => {
+        completionTimer = null;
+        recordCompletion();
+      }, autoCompleteAfterMs);
+    };
+
+    recordAccess();
+
+    return {
+      markReady: () => {
+        readyForCompletion = true;
+        scheduleCompletion();
+      },
+      markCompletedNow: () => recordCompletion(),
+      attachToCleanup: (target, propertyName) => {
+        this.installCleanupHook(target, propertyName, async () => {
+          if (cleanupRan) return;
+          cleanupRan = true;
+          if (completionTimer) {
+            clearTimeout(completionTimer);
+          }
+
+          const timeSpent = Math.floor((Date.now() - startedAt) / 1000);
+          if (timeSpent > 0) {
+            await recordAccess({ timeSpent });
+          }
+
+          if (readyForCompletion && !completionRecorded && timeSpent * 1000 >= autoCompleteAfterMs) {
+            await recordCompletion();
+          }
+        });
+      }
+    };
   },
 
   normalizeCourseRecord(course = {}) {
@@ -1702,11 +1817,14 @@ const MoodleUI = {
       }
       const activity = result.data;
       const content = activity.content || activity.description || `<p>${t('moodleActivity.noPageContent')}</p>`;
-      MoodleUI.createModal('page-activity-modal', activity.title || t('moodleActivity.pageTitle'), `
+      const modal = MoodleUI.createModal('page-activity-modal', activity.title || t('moodleActivity.pageTitle'), `
         <div class="page-activity-content">
           ${content}
         </div>
       `, { maxWidth: '800px' });
+      const session = this.createContentProgressSession(activity, courseId);
+      session?.markReady();
+      session?.attachToCleanup(modal, '_modalCleanup');
     } catch (error) {
       console.error('開啟頁面活動失敗:', error);
       showToast(t('moodleActivity.loadPageError'));
@@ -1750,12 +1868,12 @@ const MoodleUI = {
       // YouTube 影片：平台內嵌入播放
       const ytId = this.extractYouTubeId(url);
       if (ytId) {
-        this.openVideoViewer(activity.name || activity.title || t('moodleActivity.video'), ytId, url);
+        this.openVideoViewer(activity.name || activity.title || t('moodleActivity.video'), ytId, url, activity, courseId);
         return;
       }
 
       // 其他網頁：平台內 iframe 瀏覽
-      this.openWebViewer(activity.name || activity.title || url, url);
+      this.openWebViewer(activity.name || activity.title || url, url, activity, courseId);
     } catch (error) {
       console.error('開啟網址活動失敗:', error);
       showToast(t('moodleActivity.loadActivityError'));
@@ -1831,7 +1949,7 @@ const MoodleUI = {
   /**
    * YouTube 影片全螢幕播放器
    */
-  openVideoViewer(title, youtubeId, originalUrl) {
+  openVideoViewer(title, youtubeId, originalUrl, activity = null, courseId = null) {
     const fallbackUrl = originalUrl || `https://www.youtube.com/watch?v=${youtubeId}`;
     const viewer = this.openActivityViewerShell({
       overlayId: 'video-viewer-overlay',
@@ -1850,12 +1968,15 @@ const MoodleUI = {
                 allowfullscreen></iframe>
       </div>
     `;
+    const session = this.createContentProgressSession(activity, courseId);
+    session?.markReady();
+    session?.attachToCleanup(viewer.overlay, '_activityViewerCleanup');
   },
 
   /**
    * 網頁全螢幕 iframe 瀏覽器（不跳出平台）
    */
-  openWebViewer(title, url) {
+  openWebViewer(title, url, activity = null, courseId = null) {
     const viewer = this.openActivityViewerShell({
       overlayId: 'web-viewer-overlay',
       title,
@@ -1870,6 +1991,9 @@ const MoodleUI = {
                 allow="autoplay; encrypted-media; fullscreen"></iframe>
       </div>
     `;
+    const session = this.createContentProgressSession(activity, courseId);
+    session?.markReady();
+    session?.attachToCleanup(viewer.overlay, '_activityViewerCleanup');
   },
 
   async ensurePdfJsLibrary() {
@@ -1935,9 +2059,10 @@ const MoodleUI = {
       pdf: null,
       loadingTask: null
     };
+    let renderedSuccessfully = false;
 
     if (!mount || !scaleLabel || !pagesLabel || !zoomOutButton || !zoomInButton) {
-      return;
+      return false;
     }
 
     const cancelRenders = () => {
@@ -2035,6 +2160,7 @@ const MoodleUI = {
 
         mount.innerHTML = '';
         mount.appendChild(fragment);
+        renderedSuccessfully = true;
       } catch (error) {
         if (error?.name === 'RenderingCancelledException' || state.destroyed) {
           return;
@@ -2065,13 +2191,15 @@ const MoodleUI = {
       state.pdf = await state.loadingTask.promise;
       pagesLabel.textContent = pageCountLabel(state.pdf.numPages);
       await renderDocument();
+      return renderedSuccessfully;
     } catch (error) {
       if (state.destroyed) {
-        return;
+        return false;
       }
       console.error('Load PDF document failed:', error);
       pagesLabel.textContent = '';
       mount.innerHTML = `<div class="activity-viewer-pdf-error">${this.escapeText(loadErrorLabel)}</div>`;
+      return false;
     }
   },
 
@@ -2099,6 +2227,7 @@ const MoodleUI = {
       const token = localStorage.getItem('accessToken');
       const authedUrl = viewUrl + '?token=' + encodeURIComponent(token);
       const isPdf = contentType === 'application/pdf';
+      const session = this.createContentProgressSession(activity, courseId);
 
       const viewer = this.openActivityViewerShell({
         overlayId: 'file-viewer-overlay',
@@ -2109,10 +2238,13 @@ const MoodleUI = {
       viewer.overlay.oncontextmenu = () => false;
 
       if (isPdf) {
-        await this.renderPdfActivityViewer({
+        const rendered = await this.renderPdfActivityViewer({
           viewer,
           url: authedUrl
         });
+        if (rendered) {
+          session?.markReady();
+        }
       } else if (contentType.startsWith('image/')) {
         viewer.body.innerHTML = `
           <div class="activity-viewer-frame">
@@ -2121,6 +2253,7 @@ const MoodleUI = {
             </div>
           </div>
         `;
+        session?.markReady();
       } else if (contentType.startsWith('video/')) {
         viewer.body.innerHTML = `
           <div class="activity-viewer-frame">
@@ -2131,13 +2264,20 @@ const MoodleUI = {
             </div>
           </div>
         `;
+        const video = viewer.body.querySelector('video');
+        session?.markReady();
+        video?.addEventListener('ended', () => {
+          session?.markCompletedNow();
+        }, { once: true });
       } else {
         viewer.body.innerHTML = `
           <div class="activity-viewer-frame">
             <iframe src="${this.escapeText(authedUrl)}" class="activity-viewer-embed"></iframe>
           </div>
         `;
+        session?.markReady();
       }
+      session?.attachToCleanup(viewer.overlay, '_activityViewerCleanup');
 
     } catch (error) {
       console.error('開啟檔案活動失敗:', error);
@@ -2811,7 +2951,13 @@ const MoodleUI = {
    */
   closeModal(modalId) {
     const modal = document.getElementById(modalId);
+    const cleanup = modal && typeof modal._modalCleanup === 'function'
+      ? modal._modalCleanup
+      : null;
     if (modal) modal.remove();
+    Promise.resolve(cleanup ? cleanup() : null).catch((error) => {
+      console.error('Modal cleanup failed:', error);
+    });
     if (modalId === 'editActivityModal') {
       this.currentEditingActivity = null;
     }
