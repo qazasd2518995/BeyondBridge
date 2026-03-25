@@ -1760,6 +1760,7 @@
   "teacherAnalytics.riskNote": "風險判斷綜合了進度落後、長時間未上線、缺交作業與測驗表現下降。",
   "page.groupsManager": "群組管理 <span>Groups</span>",
   "page.h5pManager": "H5P 內容 <span>Interactive Content</span>",
+  "page.learningProgress": "學習進度 <span>Learning Progress</span>",
   "page.learningPaths": "學習路徑 <span>Learning Paths</span>",
   "page.library": "知識建材庫 <span>Knowledge Materials</span>",
   "page.licenses": "建材授權 <span>Material Licenses</span>",

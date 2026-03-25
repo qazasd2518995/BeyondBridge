@@ -1760,6 +1760,7 @@
   "teacherAnalytics.riskNote": "Risk levels combine progress gaps, inactivity, missing assignments, and recent quiz decline.",
   "page.groupsManager": "Groups <span>Groups</span>",
   "page.h5pManager": "H5P Content <span>Interactive Content</span>",
+  "page.learningProgress": "Learning Progress <span>Learning Progress</span>",
   "page.learningPaths": "Learning Paths <span>Learning Paths</span>",
   "page.library": "Resource Library <span>Knowledge Materials</span>",
   "page.licenses": "Licenses <span>Material Licenses</span>",
