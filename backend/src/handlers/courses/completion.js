@@ -9,6 +9,7 @@ const crypto = require('crypto');
 const db = require('../../utils/db');
 const { authMiddleware } = require('../../utils/auth');
 const { canManageCourse } = require('../../utils/course-access');
+const { syncLearningPathCourseStatus } = require('../../utils/learning-path-progress');
 
 /**
  * 完成條件類型
@@ -706,12 +707,20 @@ router.post('/:id/completion/self-mark', authMiddleware, async (req, res) => {
 
     // 更新進度
     const now = new Date().toISOString();
-    await db.updateItem(`USER#${userId}`, `PROG#COURSE#${id}`, {
+    const updatedProgress = await db.updateItem(`USER#${userId}`, `PROG#COURSE#${id}`, {
       selfMarkedComplete: true,
       selfMarkedAt: now,
       status: 'completed',
       completedAt: now,
       updatedAt: now
+    });
+
+    await syncLearningPathCourseStatus({
+      userId,
+      courseId: id,
+      completed: updatedProgress?.status === 'completed',
+      completedAt: updatedProgress?.completedAt || now,
+      timestamp: now
     });
 
     const rewards = await issueCourseCompletionRewards({
@@ -777,7 +786,7 @@ router.post('/:id/completion/manual/:targetUserId', authMiddleware, async (req, 
     const completionSettings = await db.getItem(`COURSE#${id}`, 'COMPLETION_SETTINGS');
 
     if (complete) {
-      await db.updateItem(`USER#${targetUserId}`, `PROG#COURSE#${id}`, {
+      const updatedProgress = await db.updateItem(`USER#${targetUserId}`, `PROG#COURSE#${id}`, {
         manuallyCompleted: true,
         manuallyCompletedBy: userId,
         manuallyCompletedAt: now,
@@ -785,6 +794,14 @@ router.post('/:id/completion/manual/:targetUserId', authMiddleware, async (req, 
         status: 'completed',
         completedAt: now,
         updatedAt: now
+      });
+
+      await syncLearningPathCourseStatus({
+        userId: targetUserId,
+        courseId: id,
+        completed: updatedProgress?.status === 'completed',
+        completedAt: updatedProgress?.completedAt || now,
+        timestamp: now
       });
 
       const rewards = await issueCourseCompletionRewards({
@@ -808,7 +825,7 @@ router.post('/:id/completion/manual/:targetUserId', authMiddleware, async (req, 
       });
     } else {
       // 撤銷完成狀態
-      await db.updateItem(`USER#${targetUserId}`, `PROG#COURSE#${id}`, {
+      const updatedProgress = await db.updateItem(`USER#${targetUserId}`, `PROG#COURSE#${id}`, {
         manuallyCompleted: false,
         manuallyCompletedBy: null,
         manuallyCompletedAt: null,
@@ -816,6 +833,14 @@ router.post('/:id/completion/manual/:targetUserId', authMiddleware, async (req, 
         status: 'in_progress',
         completedAt: null,
         updatedAt: now
+      });
+
+      await syncLearningPathCourseStatus({
+        userId: targetUserId,
+        courseId: id,
+        completed: updatedProgress?.status === 'completed',
+        completedAt: updatedProgress?.completedAt || null,
+        timestamp: now
       });
 
       res.json({
@@ -1064,13 +1089,29 @@ router.post('/:id/check-completion', authMiddleware, async (req, res) => {
       certificate: null
     };
 
+    let updatedProgress = progress;
+
     if (isCourseComplete && progress.status !== 'completed') {
-      await db.updateItem(`USER#${userId}`, `PROG#COURSE#${id}`, {
+      updatedProgress = await db.updateItem(`USER#${userId}`, `PROG#COURSE#${id}`, {
         status: 'completed',
         completedAt: now,
         updatedAt: now
       });
+    } else if (!isCourseComplete && progress.status === 'completed') {
+      updatedProgress = await db.updateItem(`USER#${userId}`, `PROG#COURSE#${id}`, {
+        status: 'in_progress',
+        completedAt: null,
+        updatedAt: now
+      });
     }
+
+    await syncLearningPathCourseStatus({
+      userId,
+      courseId: id,
+      completed: isCourseComplete,
+      completedAt: isCourseComplete ? (updatedProgress?.completedAt || now) : null,
+      timestamp: now
+    });
 
     if (isCourseComplete) {
       rewards = await issueCourseCompletionRewards({
@@ -1089,8 +1130,8 @@ router.post('/:id/check-completion', authMiddleware, async (req, res) => {
         courseId: id,
         isComplete: isCourseComplete,
         previousStatus: progress.status,
-        newStatus: isCourseComplete ? 'completed' : 'in_progress',
-        completedAt: isCourseComplete ? (progress.completedAt || now) : null,
+        newStatus: updatedProgress?.status || (isCourseComplete ? 'completed' : 'in_progress'),
+        completedAt: isCourseComplete ? (updatedProgress?.completedAt || now) : null,
         rewards,
         message: isCourseComplete
           ? (completionSettings?.completionMessage || '恭喜您完成此課程！')

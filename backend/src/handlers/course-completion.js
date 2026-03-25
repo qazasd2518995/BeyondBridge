@@ -8,6 +8,7 @@ const router = express.Router();
 const db = require('../utils/db');
 const { authMiddleware } = require('../utils/auth');
 const { canManageCourse } = require('../utils/course-access');
+const { syncLearningPathCourseStatus } = require('../utils/learning-path-progress');
 
 const TEACHING_ROLES = new Set([
   'manager',
@@ -243,14 +244,25 @@ async function syncProgressCompletion(courseId, userId, completed) {
   const progress = await db.getItem(`USER#${userId}`, `PROG#COURSE#${courseId}`);
   if (!progress) return;
 
+  const now = new Date().toISOString();
   const updates = {
     status: completed ? 'completed' : (progress.status === 'completed' ? 'in_progress' : progress.status),
-    completedAt: completed ? (progress.completedAt || new Date().toISOString()) : null,
+    completedAt: completed ? (progress.completedAt || now) : null,
     progressPercentage: completed ? 100 : progress.progressPercentage,
-    updatedAt: new Date().toISOString()
+    updatedAt: now
   };
 
-  await db.updateItem(progress.PK, progress.SK, updates);
+  const updatedProgress = await db.updateItem(progress.PK, progress.SK, updates);
+
+  await syncLearningPathCourseStatus({
+    userId,
+    courseId,
+    completed,
+    completedAt: updatedProgress?.completedAt || null,
+    timestamp: now
+  });
+
+  return updatedProgress;
 }
 
 // ============================================================================

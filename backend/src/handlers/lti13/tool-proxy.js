@@ -11,6 +11,7 @@ const router = express.Router();
 const { getItem, putItem, updateItem, query } = require('../../utils/db');
 const { generateId } = require('../../utils/db');
 const { invalidateGradebookSnapshots } = require('../../utils/gradebook-snapshots');
+const { syncLearningPathCourseStatus } = require('../../utils/learning-path-progress');
 
 function clampProgress(value) {
   const numeric = Number(value);
@@ -83,6 +84,14 @@ async function syncCourseProgress(data) {
   }
 
   const updatedProgress = await updateItem(`USER#${userId}`, `PROG#COURSE#${courseId}`, updates);
+
+  await syncLearningPathCourseStatus({
+    userId,
+    courseId,
+    completed: updatedProgress?.status === 'completed',
+    completedAt: updatedProgress?.completedAt || null,
+    timestamp: now
+  });
 
   if (activityId) {
     const activities = await query(`COURSE#${courseId}`, { skPrefix: 'ACTIVITY#' });

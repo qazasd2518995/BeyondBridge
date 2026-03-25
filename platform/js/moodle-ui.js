@@ -117,6 +117,89 @@ const MoodleUI = {
     return !path.createdBy || path.createdBy === user.userId;
   },
 
+  getLearningPathUiCopy() {
+    const isEnglish = I18n.getLocale() === 'en';
+    const translate = (key, fallback) => {
+      const value = t(key);
+      return value === key ? fallback : value;
+    };
+    return {
+      completed: translate('common.completed', isEnglish ? 'Completed' : '已完成'),
+      inProgress: translate('common.inProgress', isEnglish ? 'In progress' : '進行中'),
+      locked: translate('common.locked', isEnglish ? 'Locked' : '未解鎖'),
+      ready: translate('moodlePaths.readyLabel', isEnglish ? 'Ready to start' : '已解鎖'),
+      continueCourse: translate('moodlePaths.continueCourse', isEnglish ? 'Continue course' : '繼續學習'),
+      openCourse: translate('moodlePaths.openCourse', isEnglish ? 'Open course' : '前往課程'),
+      lockedHint: translate('moodlePaths.lockedHint', isEnglish ? 'Unlock this after finishing the previous course.' : '完成前一門課後解鎖'),
+      notEnrolledHint: translate('moodlePaths.notEnrolledHint', isEnglish ? 'Enroll in this path to follow the sequence.' : '報名後可依序開始學習'),
+      currentCourseLabel: translate('moodlePaths.currentCourseLabel', isEnglish ? 'Current focus' : '目前學習中')
+    };
+  },
+
+  getLearningPathCourseModels(path, progressData, { canManage = false } = {}) {
+    const uiCopy = this.getLearningPathUiCopy();
+    const courses = Array.isArray(path?.courses) ? path.courses : [];
+    const completedSet = new Set(
+      (Array.isArray(progressData?.completedCourses) ? progressData.completedCourses : [])
+        .map(item => item?.courseId || item)
+        .filter(Boolean)
+    );
+    const unlockedSet = new Set(Array.isArray(progressData?.unlockedCourses) ? progressData.unlockedCourses : []);
+    const currentCourseId = progressData?.currentCourse?.courseId || null;
+    const fallbackUnlockedSet = new Set();
+
+    courses.forEach((course, index) => {
+      const courseId = course.courseId || course.id || '';
+      if (!courseId) return;
+      const previousCourseId = index > 0 ? (courses[index - 1].courseId || courses[index - 1].id || '') : '';
+      const prerequisiteIds = Array.isArray(course.prerequisites) ? course.prerequisites.filter(Boolean) : [];
+      const sequentiallyUnlocked = index === 0 || !previousCourseId || completedSet.has(previousCourseId);
+      const prerequisitesMet = prerequisiteIds.length === 0 || prerequisiteIds.every(prerequisiteId => completedSet.has(prerequisiteId));
+      if (sequentiallyUnlocked && prerequisitesMet) {
+        fallbackUnlockedSet.add(courseId);
+      }
+    });
+
+    return courses.map((course, index) => {
+      const courseId = course.courseId || course.id || '';
+      const isCompleted = Boolean(course.completed || completedSet.has(courseId));
+      const isCurrent = Boolean(courseId && !isCompleted && currentCourseId === courseId);
+      const isUnlocked = Boolean(
+        courseId && (
+          canManage ||
+          isCompleted ||
+          isCurrent ||
+          unlockedSet.has(courseId) ||
+          (Boolean(path?.userEnrolled) && fallbackUnlockedSet.has(courseId))
+        )
+      );
+      const isLocked = Boolean(courseId) && !isUnlocked;
+      const canOpen = Boolean(courseId) && (canManage || (Boolean(path?.userEnrolled) && !isLocked));
+      const statusClass = isCompleted ? 'completed' : (isCurrent ? 'in-progress' : (isUnlocked ? 'ready' : 'locked'));
+      const statusLabel = isCompleted
+        ? uiCopy.completed
+        : (isCurrent ? uiCopy.inProgress : (isUnlocked ? uiCopy.ready : uiCopy.locked));
+      const helperText = !path?.userEnrolled && !canManage
+        ? uiCopy.notEnrolledHint
+        : (isLocked ? uiCopy.lockedHint : '');
+
+      return {
+        ...course,
+        courseId,
+        sequenceNumber: index + 1,
+        isCompleted,
+        isCurrent,
+        isUnlocked,
+        isLocked,
+        canOpen,
+        statusClass,
+        statusLabel,
+        helperText,
+        actionLabel: isCurrent ? uiCopy.continueCourse : uiCopy.openCourse
+      };
+    });
+  },
+
   extractCollectionData(result) {
     if (!result?.success) return [];
     if (Array.isArray(result.data)) return result.data;
@@ -10469,17 +10552,24 @@ const MoodleUI = {
       if (!pathResult.success) { container.innerHTML = `<div class="error">${t('common.loadFailed')}</div>`; return; }
       const p = pathResult.data;
       const canManage = this.canManageLearningPath(p, user);
+      const progressResult = (!canManage && p.userEnrolled)
+        ? await API.learningPaths.getProgress(pathId).catch(() => ({ success: false }))
+        : { success: false };
       const canViewReport = this.isTeachingRole(user);
       const reportResult = canViewReport
         ? await API.learningPaths.getReport(pathId).catch(() => ({ success: false }))
         : { success: false };
+      const progressData = progressResult.success ? progressResult.data : null;
       const report = reportResult.success ? reportResult.data : {};
-      const courses = p.courses || [];
-      const progress = p.userProgress || p.progress;
+      const courseModels = this.getLearningPathCourseModels(p, progressData, { canManage });
+      const currentCourseModel = courseModels.find(course => course.isCurrent) ||
+        courseModels.find(course => course.canOpen && !course.isCompleted) ||
+        null;
+      const progress = progressData?.overallProgress ?? p.userProgress ?? p.progress;
       const overallProgress = Math.round(typeof progress === 'object' ? progress.overallProgress || 0 : progress || 0);
       const difficultyMeta = this.getDifficultyMeta(p.difficulty);
-      const isEnglish = I18n.getLocale() === 'en';
-      const enrollmentLabel = t('moodleCourse.enrolled') || (isEnglish ? 'Enrolled' : '已加入');
+      const uiCopy = this.getLearningPathUiCopy();
+      const enrollmentLabel = t('moodleCourse.enrolled') || (I18n.getLocale() === 'en' ? 'Enrolled' : '已加入');
 
       container.innerHTML = `
         <div class="learning-path-detail">
@@ -10514,6 +10604,7 @@ const MoodleUI = {
               </div>
               <div class="path-detail-actions">
                 ${!canManage && !p.userEnrolled ? `<button onclick="MoodleUI.enrollLearningPath(${this.toInlineActionValue(pathId)})" class="btn-primary btn-sm">${t('moodlePaths.enroll')}</button>` : ''}
+                ${currentCourseModel ? `<button onclick="MoodleUI.openCourse(${this.toInlineActionValue(currentCourseModel.courseId)})" class="btn-primary btn-sm">${this.escapeText(currentCourseModel.actionLabel)}</button>` : ''}
                 ${!canManage && p.userEnrolled ? `<span class="badge-summary-pill">${this.escapeText(enrollmentLabel)}</span>` : ''}
                 ${canManage ? `<button onclick="MoodleUI.deleteLearningPath(${this.toInlineActionValue(pathId)})" class="btn-sm btn-danger">${t('moodleGradeCategory.delete')}</button>` : ''}
               </div>
@@ -10527,27 +10618,36 @@ const MoodleUI = {
             <div class="progress-bar">
               <div class="progress-fill" data-progress-width="${this.clampProgressValue(overallProgress)}"></div>
             </div>
+            ${currentCourseModel ? `
+              <div class="path-progress-next">
+                <span class="path-progress-next-label">${this.escapeText(uiCopy.currentCourseLabel)}</span>
+                <strong>${this.escapeText(currentCourseModel.title || currentCourseModel.name || `${t('moodlePaths.courseDefault')} ${currentCourseModel.sequenceNumber}`)}</strong>
+              </div>
+            ` : ''}
           </div>
         ` : ''}
         <div class="path-courses-section">
-        <h3>${t('moodlePaths.courseSequence')}（${courses.length} ${t('moodlePaths.courseUnit')}）</h3>
+        <h3>${t('moodlePaths.courseSequence')}（${courseModels.length} ${t('moodlePaths.courseUnit')}）</h3>
         <div class="path-course-list">
-          ${courses.map((c, idx) => `
+          ${courseModels.map((course) => `
             ${(() => {
-              const statusLabel = c.completed
-                ? (t('common.completed') || (isEnglish ? 'Completed' : '已完成'))
-                : ((c.progress || 0) > 0
-                  ? (t('common.inProgress') || (isEnglish ? 'In progress' : '進行中'))
-                  : (t('common.locked') || (isEnglish ? 'Locked' : '未解鎖')));
               return `
-            <div class="path-course-item ${c.completed ? 'is-complete' : ''}">
-              <div class="course-order ${c.completed ? 'completed' : ''}">${c.completed ? '✓' : idx + 1}</div>
+            <div class="path-course-item ${course.isCompleted ? 'is-complete' : ''} ${course.isCurrent ? 'is-current' : ''} ${course.isLocked ? 'is-locked' : 'is-openable'}">
+              <div class="course-order ${course.isCompleted ? 'completed' : (course.isLocked ? 'locked' : '')}">${course.isCompleted ? '✓' : course.sequenceNumber}</div>
               <div class="course-info">
-                <h4>${this.escapeText(c.title || c.name || `${t('moodlePaths.courseDefault')} ${idx + 1}`)}</h4>
-                <p>${this.escapeText(c.description || '')}</p>
+                <h4>${this.escapeText(course.title || course.name || `${t('moodlePaths.courseDefault')} ${course.sequenceNumber}`)}</h4>
+                <p>${this.escapeText(course.description || '')}</p>
+                ${course.helperText ? `<span class="path-course-note">${this.escapeText(course.helperText)}</span>` : ''}
               </div>
-              <div class="course-status ${c.completed ? 'completed' : ((c.progress || 0) > 0 ? 'in-progress' : 'locked')}">
-                ${statusLabel}
+              <div class="path-course-actions">
+                <div class="course-status ${course.statusClass}">
+                  ${this.escapeText(course.statusLabel)}
+                </div>
+                ${course.canOpen ? `
+                  <button type="button" class="${course.isCurrent ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}" onclick="MoodleUI.openCourse(${this.toInlineActionValue(course.courseId)})">
+                    ${this.escapeText(course.actionLabel)}
+                  </button>
+                ` : ''}
               </div>
             </div>
             `;

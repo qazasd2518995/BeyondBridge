@@ -7,6 +7,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../../utils/db');
 const { authMiddleware } = require('../../utils/auth');
+const { syncLearningPathCourseStatus } = require('../../utils/learning-path-progress');
 
 // ==================== 進度追蹤 ====================
 
@@ -112,6 +113,14 @@ router.put('/:id/progress', authMiddleware, async (req, res) => {
 
     const updatedProgress = await db.updateItem(`USER#${userId}`, `PROG#COURSE#${id}`, updates);
 
+    await syncLearningPathCourseStatus({
+      userId,
+      courseId: id,
+      completed: updatedProgress?.status === 'completed',
+      completedAt: updatedProgress?.completedAt || null,
+      timestamp: updates.lastAccessedAt
+    });
+
     // 記錄活動日誌
     await db.logActivity(userId, 'course_progress', 'course', id, {
       unitId: updates.currentUnit,
@@ -179,7 +188,15 @@ router.post('/:id/activities/:activityId/complete', authMiddleware, async (req, 
       updates.completedAt = now;
     }
 
-    await db.updateItem(`USER#${userId}`, `PROG#COURSE#${id}`, updates);
+    const updatedProgress = await db.updateItem(`USER#${userId}`, `PROG#COURSE#${id}`, updates);
+
+    await syncLearningPathCourseStatus({
+      userId,
+      courseId: id,
+      completed: updatedProgress?.status === 'completed',
+      completedAt: updatedProgress?.completedAt || null,
+      timestamp: now
+    });
 
     res.json({
       success: true,
