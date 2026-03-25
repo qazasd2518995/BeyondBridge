@@ -10628,14 +10628,107 @@ const MoodleUI = {
     showView('learningPaths');
     container.innerHTML = `<div class="loading">${t('common.loading')}</div>`;
     try {
+      const user = (typeof API !== 'undefined' && API.getCurrentUser) ? API.getCurrentUser() : null;
       const result = await API.learningPaths.list();
       const paths = result.success ? (Array.isArray(result.data) ? result.data : (result.data?.paths || [])) : [];
       this._learningPathsData = paths;
+      if (paths.length === 0 && user && !this.isTeachingRole(user)) {
+        const courses = await this.getRoleScopedCourses({ filters: { status: 'published' } }).catch(() => []);
+        this.renderLearningProgressFallback(container, courses);
+        return;
+      }
       this.renderLearningPathsPage(container, paths);
     } catch (error) {
       console.error('Open learning paths error:', error);
       container.innerHTML = `<div class="error">${t('moodlePaths.loadFailed')}</div>`;
     }
+  },
+
+  formatLearningProgressTime(totalSeconds = 0) {
+    const safeSeconds = Math.max(0, Number(totalSeconds) || 0);
+    const isEnglish = I18n.getLocale() === 'en';
+
+    if (safeSeconds >= 3600) {
+      const hours = Math.round((safeSeconds / 3600) * 10) / 10;
+      return isEnglish ? `${hours} hrs` : `${hours} 小時`;
+    }
+
+    if (safeSeconds >= 60) {
+      const minutes = Math.round(safeSeconds / 60);
+      return isEnglish ? `${minutes} mins` : `${minutes} 分鐘`;
+    }
+
+    return isEnglish ? `${safeSeconds} secs` : `${safeSeconds} 秒`;
+  },
+
+  renderLearningProgressFallback(container, courses = []) {
+    const isEnglish = I18n.getLocale() === 'en';
+    const translate = (key, fallback) => {
+      const value = t(key);
+      return value === key ? fallback : value;
+    };
+    const title = translate('moodlePaths.fallbackTitle', isEnglish ? 'My Learning Progress' : '我的學習進度');
+    const subtitle = translate(
+      'moodlePaths.fallbackSubtitle',
+      isEnglish ? 'No formal learning paths have been assigned yet. Your active course progress is shown here first.' : '目前尚未指派正式學習路徑，先顯示你目前的課程學習進度。'
+    );
+    const activeCourses = (Array.isArray(courses) ? courses : [])
+      .filter(course => Boolean(course.courseId || course.id))
+      .sort((a, b) => {
+        const aTime = new Date(a?.progress?.lastAccessedAt || a?.progress?.enrolledAt || 0).getTime();
+        const bTime = new Date(b?.progress?.lastAccessedAt || b?.progress?.enrolledAt || 0).getTime();
+        return bTime - aTime;
+      });
+
+    container.innerHTML = `
+      <div class="learning-paths-container">
+        <div class="learning-paths-header learning-paths-header-stack">
+          <div>
+            <h2>${this.escapeText(title)}</h2>
+            <p class="learning-paths-subtitle">${this.escapeText(subtitle)}</p>
+          </div>
+        </div>
+        <div class="learning-paths-grid">
+          ${activeCourses.length === 0 ? this.renderActivityEmptyState({
+            icon: '<svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>',
+            title: isEnglish ? 'No course progress yet' : '目前還沒有課程進度',
+            hint: isEnglish ? 'Open a course and interact with content activities to start recording progress.' : '先進入課程並閱讀內容活動，系統就會開始累積學習進度。'
+          }) : activeCourses.map(course => {
+            const courseId = course.courseId || course.id || '';
+            const progressValue = Math.max(0, Math.min(100, Number(course.progress ?? course.progressPercentage ?? 0) || 0));
+            const totalTimeSpent = course?.progress?.totalTimeSpent || 0;
+            const lastAccessedAt = course?.progress?.lastAccessedAt || course?.progress?.enrolledAt || null;
+            const lastAccessLabel = lastAccessedAt
+              ? this.formatPlatformDate(lastAccessedAt, { year: 'numeric', month: 'numeric', day: 'numeric' }) || '—'
+              : (isEnglish ? 'No record yet' : '尚無紀錄');
+            return `
+              <div class="learning-path-card learning-progress-card" onclick="MoodleUI.openCourse(${this.toInlineActionValue(courseId)})">
+                <div class="path-thumbnail ${this.getSurfaceToneClass(courseId || course.title || course.name || '')}">
+                  <span class="learning-progress-pill">${this.escapeText(isEnglish ? 'Course Progress' : '課程進度')}</span>
+                  <span class="path-thumbnail-icon">↗</span>
+                </div>
+                <div class="path-content">
+                  <div class="path-title">${this.escapeText(course.title || course.name || t('common.unnamed'))}</div>
+                  <div class="path-description">${this.escapeText(this.truncateText(course.summary || course.description || (isEnglish ? 'Continue learning from where you left off.' : '從你上次離開的位置繼續學習。'), 120))}</div>
+                  <div class="path-stats learning-progress-meta">
+                    <span>${this.escapeText(isEnglish ? `Progress ${progressValue}%` : `進度 ${progressValue}%`)}</span>
+                    <span>${this.escapeText(isEnglish ? `Time ${this.formatLearningProgressTime(totalTimeSpent)}` : `累積 ${this.formatLearningProgressTime(totalTimeSpent)}`)}</span>
+                    <span>${this.escapeText(isEnglish ? `Last active ${lastAccessLabel}` : `最近學習 ${lastAccessLabel}`)}</span>
+                  </div>
+                  <div class="path-progress">
+                    <div class="progress-bar">
+                      <div class="progress-fill" data-progress-width="${this.clampProgressValue(progressValue)}"></div>
+                    </div>
+                    <div class="progress-text">${this.escapeText(isEnglish ? 'Open course' : '前往課程')}</div>
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+    this.applyDynamicUiMetrics(container);
   },
 
   renderLearningPathsPage(container, paths) {
