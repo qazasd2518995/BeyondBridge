@@ -279,14 +279,14 @@ const App = {
           </svg>
           ${t('nav.completionConditions')}
         </a>
-        <a href="#" class="nav-item" data-view="learningPaths" onclick="showView('learningPaths'); MoodleUI.openLearningPaths();">
+        <a href="#" class="nav-item" data-view="learningProgress" onclick="showView('learningProgress'); MoodleUI.openLearningProgress();">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 20V10"/>
             <path d="M12 20V4"/>
             <path d="M6 20v-6"/>
             <path d="M18 10l-6-6-6 6"/>
           </svg>
-          ${t('nav.learningPaths')}
+          ${t('nav.learningProgress')}
         </a>
         <a href="#" class="nav-item" data-view="courses" onclick="navigateTo(this, 'courses')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -411,7 +411,7 @@ const App = {
           </svg>
           ${t('nav.myBadges')}
         </a>
-        <a href="#" class="nav-item" data-view="learningPaths" onclick="showView('learningPaths'); MoodleUI.openLearningPaths();">
+        <a href="#" class="nav-item" data-view="learningProgress" onclick="showView('learningProgress'); MoodleUI.openLearningProgress();">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 20V10"/>
             <path d="M12 20V4"/>

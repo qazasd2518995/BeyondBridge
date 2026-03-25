@@ -119,87 +119,39 @@ const MoodleUI = {
 
   contentActivityAutoCompleteMs: 15000,
 
-  getLearningPathUiCopy() {
+  getLearningProgressUiCopy() {
     const isEnglish = I18n.getLocale() === 'en';
-    const translate = (key, fallback) => {
-      const value = t(key);
-      return value === key ? fallback : value;
-    };
     return {
-      completed: translate('common.completed', isEnglish ? 'Completed' : '已完成'),
-      inProgress: translate('common.inProgress', isEnglish ? 'In progress' : '進行中'),
-      locked: translate('common.locked', isEnglish ? 'Locked' : '未解鎖'),
-      ready: translate('moodlePaths.readyLabel', isEnglish ? 'Ready to start' : '已解鎖'),
-      continueCourse: translate('moodlePaths.continueCourse', isEnglish ? 'Continue course' : '繼續學習'),
-      openCourse: translate('moodlePaths.openCourse', isEnglish ? 'Open course' : '前往課程'),
-      lockedHint: translate('moodlePaths.lockedHint', isEnglish ? 'Unlock this after finishing the previous course.' : '完成前一門課後解鎖'),
-      notEnrolledHint: translate('moodlePaths.notEnrolledHint', isEnglish ? 'Enroll in this path to follow the sequence.' : '報名後可依序開始學習'),
-      currentCourseLabel: translate('moodlePaths.currentCourseLabel', isEnglish ? 'Current focus' : '目前學習中')
+      title: isEnglish ? 'Learning Progress' : '學習進度',
+      subtitle: isEnglish
+        ? 'Track every course, every activity, your latest study time, and your accumulated learning time in one place.'
+        : '集中查看每門課、每個活動的完成狀態、最後學習時間與累積學習時間。',
+      noCoursesTitle: isEnglish ? 'No learning progress yet' : '目前還沒有學習進度',
+      noCoursesHint: isEnglish
+        ? 'Open a course and start interacting with learning activities. Your progress will appear here automatically.'
+        : '先進入課程並開始學習，系統就會在這裡自動累積你的進度。',
+      totalCourses: isEnglish ? 'Tracked courses' : '追蹤課程',
+      completedCourses: isEnglish ? 'Completed courses' : '完成課程',
+      totalTime: isEnglish ? 'Accumulated time' : '累積時間',
+      lastLearning: isEnglish ? 'Last learning time' : '最後學習時間',
+      overallProgress: isEnglish ? 'Overall progress' : '整體進度',
+      completedActivities: isEnglish ? 'Completed activities' : '已完成項目',
+      totalActivities: isEnglish ? 'Total activities' : '活動總數',
+      courseSummary: isEnglish ? 'Course summary' : '課程摘要',
+      activityDetails: isEnglish ? 'Activity progress details' : '活動學習明細',
+      openCourse: isEnglish ? 'Open course' : '前往課程',
+      viewDetails: isEnglish ? 'View details' : '查看明細',
+      openActivity: isEnglish ? 'Open activity' : '開啟活動',
+      backToOverview: isEnglish ? 'Back to progress overview' : '返回學習進度總覽',
+      completed: isEnglish ? 'Completed' : '已完成',
+      inProgress: isEnglish ? 'In progress' : '進行中',
+      notStarted: isEnglish ? 'Not started' : '未開始',
+      lastStudied: isEnglish ? 'Last studied' : '最後學習',
+      noRecord: isEnglish ? 'No record yet' : '尚無紀錄',
+      teacherHint: isEnglish
+        ? 'This page currently focuses on learner-side progress records.'
+        : '這個頁面目前聚焦在學員個人的學習紀錄。'
     };
-  },
-
-  getLearningPathCourseModels(path, progressData, { canManage = false } = {}) {
-    const uiCopy = this.getLearningPathUiCopy();
-    const courses = Array.isArray(path?.courses) ? path.courses : [];
-    const completedSet = new Set(
-      (Array.isArray(progressData?.completedCourses) ? progressData.completedCourses : [])
-        .map(item => item?.courseId || item)
-        .filter(Boolean)
-    );
-    const unlockedSet = new Set(Array.isArray(progressData?.unlockedCourses) ? progressData.unlockedCourses : []);
-    const currentCourseId = progressData?.currentCourse?.courseId || null;
-    const fallbackUnlockedSet = new Set();
-
-    courses.forEach((course, index) => {
-      const courseId = course.courseId || course.id || '';
-      if (!courseId) return;
-      const previousCourseId = index > 0 ? (courses[index - 1].courseId || courses[index - 1].id || '') : '';
-      const prerequisiteIds = Array.isArray(course.prerequisites) ? course.prerequisites.filter(Boolean) : [];
-      const sequentiallyUnlocked = index === 0 || !previousCourseId || completedSet.has(previousCourseId);
-      const prerequisitesMet = prerequisiteIds.length === 0 || prerequisiteIds.every(prerequisiteId => completedSet.has(prerequisiteId));
-      if (sequentiallyUnlocked && prerequisitesMet) {
-        fallbackUnlockedSet.add(courseId);
-      }
-    });
-
-    return courses.map((course, index) => {
-      const courseId = course.courseId || course.id || '';
-      const isCompleted = Boolean(course.completed || completedSet.has(courseId));
-      const isCurrent = Boolean(courseId && !isCompleted && currentCourseId === courseId);
-      const isUnlocked = Boolean(
-        courseId && (
-          canManage ||
-          isCompleted ||
-          isCurrent ||
-          unlockedSet.has(courseId) ||
-          (Boolean(path?.userEnrolled) && fallbackUnlockedSet.has(courseId))
-        )
-      );
-      const isLocked = Boolean(courseId) && !isUnlocked;
-      const canOpen = Boolean(courseId) && (canManage || (Boolean(path?.userEnrolled) && !isLocked));
-      const statusClass = isCompleted ? 'completed' : (isCurrent ? 'in-progress' : (isUnlocked ? 'ready' : 'locked'));
-      const statusLabel = isCompleted
-        ? uiCopy.completed
-        : (isCurrent ? uiCopy.inProgress : (isUnlocked ? uiCopy.ready : uiCopy.locked));
-      const helperText = !path?.userEnrolled && !canManage
-        ? uiCopy.notEnrolledHint
-        : (isLocked ? uiCopy.lockedHint : '');
-
-      return {
-        ...course,
-        courseId,
-        sequenceNumber: index + 1,
-        isCompleted,
-        isCurrent,
-        isUnlocked,
-        isLocked,
-        canOpen,
-        statusClass,
-        statusLabel,
-        helperText,
-        actionLabel: isCurrent ? uiCopy.continueCourse : uiCopy.openCourse
-      };
-    });
   },
 
   extractCollectionData(result) {
@@ -327,15 +279,127 @@ const MoodleUI = {
     const progressSource = course.userProgress || course.progress;
     const progressValue = progressSource?.progressPercentage ?? course.progressPercentage ?? course.progress ?? null;
     const normalizedProgress = Number(progressValue);
+    const progressDetails = progressSource && typeof progressSource === 'object'
+      ? { ...progressSource }
+      : null;
     const visibility = this.normalizeCourseVisibility(course.visibility ?? course.visible);
     return {
       ...course,
       courseId: course.courseId || course.id,
       isEnrolled: course.isEnrolled ?? Boolean(progressSource),
       progress: Number.isFinite(normalizedProgress) ? normalizedProgress : course.progress,
+      progressDetails,
+      userProgress: course.userProgress || progressDetails,
       visibility,
       visible: visibility === 'show'
     };
+  },
+
+  getCourseProgressSource(course = {}) {
+    const source = course.userProgress || course.progressDetails || (typeof course.progress === 'object' ? course.progress : null) || {};
+    const totalTimeSpent = Number(source.totalTimeSpent || 0) || 0;
+    const completedActivities = Array.isArray(source.completedActivities) ? source.completedActivities : [];
+    const activityAccessMap = source.activityAccessMap && typeof source.activityAccessMap === 'object' && !Array.isArray(source.activityAccessMap)
+      ? source.activityAccessMap
+      : {};
+    const activityTimeMap = source.activityTimeMap && typeof source.activityTimeMap === 'object' && !Array.isArray(source.activityTimeMap)
+      ? source.activityTimeMap
+      : {};
+    const activityProgressMap = source.activityProgressMap && typeof source.activityProgressMap === 'object' && !Array.isArray(source.activityProgressMap)
+      ? source.activityProgressMap
+      : {};
+    const progressPercentage = this.clampProgressValue(
+      source.progressPercentage ?? course.progressPercentage ?? course.progress ?? 0
+    );
+
+    return {
+      ...source,
+      totalTimeSpent,
+      progressPercentage,
+      completedActivities,
+      activityAccessMap,
+      activityTimeMap,
+      activityProgressMap
+    };
+  },
+
+  getCourseTotalActivities(course = {}) {
+    const sectionActivities = Array.isArray(course.sections)
+      ? course.sections.reduce((sum, section) => sum + ((Array.isArray(section.activities) ? section.activities.length : 0)), 0)
+      : 0;
+    const storedTotal = Number(
+      course?.stats?.totalActivities ??
+      course.totalActivities ??
+      course.activityCount ??
+      0
+    ) || 0;
+    return Math.max(sectionActivities, storedTotal);
+  },
+
+  getLearningProgressCourseStats(course = {}) {
+    const progress = this.getCourseProgressSource(course);
+    const totalActivities = this.getCourseTotalActivities(course);
+    const completedActivities = progress.completedActivities.length > 0
+      ? progress.completedActivities.length
+      : (totalActivities > 0 ? Math.round((this.clampProgressValue(progress.progressPercentage) / 100) * totalActivities) : 0);
+    const lastAccessedAt = progress.lastAccessedAt || progress.enrolledAt || null;
+    const hasStarted = progress.progressPercentage > 0 || progress.totalTimeSpent > 0 || Boolean(lastAccessedAt);
+
+    return {
+      progress,
+      totalActivities,
+      completedActivities,
+      progressPercentage: this.clampProgressValue(progress.progressPercentage),
+      totalTimeSpent: progress.totalTimeSpent,
+      lastAccessedAt,
+      hasStarted,
+      isCompleted: progress.status === 'completed' || (totalActivities > 0 && completedActivities >= totalActivities) || progress.progressPercentage >= 100
+    };
+  },
+
+  getLearningProgressSections(course = {}) {
+    const uiCopy = this.getLearningProgressUiCopy();
+    const progress = this.getCourseProgressSource(course);
+    const completedSet = new Set(progress.completedActivities);
+    const accessMap = progress.activityAccessMap || {};
+    const timeMap = progress.activityTimeMap || {};
+    const progressMap = progress.activityProgressMap || {};
+    const sections = Array.isArray(course.sections) ? course.sections : [];
+
+    return sections.map((section, sectionIndex) => {
+      const activities = Array.isArray(section.activities) ? section.activities : [];
+      const activityModels = activities.map((activity, activityIndex) => {
+        const resolvedActivityId = activity.launchActivityId || activity.activityId || activity.courseActivityId || '';
+        const lastAccessedAt = accessMap[resolvedActivityId] || accessMap[activity.activityId] || null;
+        const totalTimeSpent = Number(timeMap[resolvedActivityId] ?? timeMap[activity.activityId] ?? 0) || 0;
+        const itemProgress = this.clampProgressValue(progressMap[resolvedActivityId] ?? progressMap[activity.activityId] ?? 0);
+        const isCompleted = completedSet.has(resolvedActivityId) || completedSet.has(activity.activityId) || itemProgress >= 100;
+        const isStarted = isCompleted || Boolean(lastAccessedAt) || totalTimeSpent > 0 || itemProgress > 0;
+        const statusKey = isCompleted ? 'completed' : (isStarted ? 'in_progress' : 'not_started');
+        const statusLabel = isCompleted ? uiCopy.completed : (isStarted ? uiCopy.inProgress : uiCopy.notStarted);
+        const statusClass = isCompleted ? 'completed' : (isStarted ? 'in-progress' : 'not-started');
+
+        return {
+          ...activity,
+          activityId: resolvedActivityId || activity.activityId || '',
+          sequenceLabel: `${sectionIndex + 1}.${activityIndex + 1}`,
+          isCompleted,
+          isStarted,
+          statusKey,
+          statusLabel,
+          statusClass,
+          progressPercentage: isCompleted ? 100 : itemProgress,
+          totalTimeSpent,
+          lastAccessedAt
+        };
+      });
+
+      return {
+        ...section,
+        sectionTitle: section.name || section.title || `${I18n.getLocale() === 'en' ? 'Section' : '章節'} ${sectionIndex + 1}`,
+        activities: activityModels
+      };
+    }).filter(section => section.activities.length > 0);
   },
 
   normalizeCourseVisibility(value) {
@@ -10620,28 +10684,38 @@ const MoodleUI = {
   },
 
   /**
-   * 學習路徑
+   * 學習進度
    */
-  async openLearningPaths() {
+  async openLearningProgress(courseId = null, options = {}) {
     const container = document.getElementById('learningPathsContent');
     if (!container) return;
-    showView('learningPaths');
-    container.innerHTML = `<div class="loading">${t('common.loading')}</div>`;
-    try {
-      const user = (typeof API !== 'undefined' && API.getCurrentUser) ? API.getCurrentUser() : null;
-      const result = await API.learningPaths.list();
-      const paths = result.success ? (Array.isArray(result.data) ? result.data : (result.data?.paths || [])) : [];
-      this._learningPathsData = paths;
-      if (paths.length === 0 && user && !this.isTeachingRole(user)) {
-        const courses = await this.getRoleScopedCourses({ filters: { status: 'published' } }).catch(() => []);
-        this.renderLearningProgressFallback(container, courses);
-        return;
-      }
-      this.renderLearningPathsPage(container, paths);
-    } catch (error) {
-      console.error('Open learning paths error:', error);
-      container.innerHTML = `<div class="error">${t('moodlePaths.loadFailed')}</div>`;
+    if (!options.skipShowView) {
+      showView('learningProgress', {
+        path: options.path || '/platform/learning-progress',
+        replaceHistory: options.replaceHistory
+      });
     }
+    container.innerHTML = `<div class="loading">${t('common.loading')}</div>`;
+    if (courseId) {
+      await this.viewCourseLearningProgress(courseId, {
+        container,
+        skipShowView: true
+      });
+      return;
+    }
+
+    try {
+      const courses = await this.getRoleScopedCourses({ filters: { status: 'published' } }).catch(() => []);
+      this.currentLearningProgressCourses = Array.isArray(courses) ? courses : [];
+      this.renderLearningProgressOverview(container, this.currentLearningProgressCourses);
+    } catch (error) {
+      console.error('Open learning progress error:', error);
+      container.innerHTML = `<div class="error">${t('common.loadFailed')}</div>`;
+    }
+  },
+
+  async openLearningPaths(courseId = null, options = {}) {
+    return this.openLearningProgress(courseId, options);
   },
 
   formatLearningProgressTime(totalSeconds = 0) {
@@ -10661,68 +10735,133 @@ const MoodleUI = {
     return isEnglish ? `${safeSeconds} secs` : `${safeSeconds} 秒`;
   },
 
-  renderLearningProgressFallback(container, courses = []) {
-    const isEnglish = I18n.getLocale() === 'en';
-    const translate = (key, fallback) => {
-      const value = t(key);
-      return value === key ? fallback : value;
-    };
-    const title = translate('moodlePaths.fallbackTitle', isEnglish ? 'My Learning Progress' : '我的學習進度');
-    const subtitle = translate(
-      'moodlePaths.fallbackSubtitle',
-      isEnglish ? 'No formal learning paths have been assigned yet. Your active course progress is shown here first.' : '目前尚未指派正式學習路徑，先顯示你目前的課程學習進度。'
-    );
-    const activeCourses = (Array.isArray(courses) ? courses : [])
-      .filter(course => Boolean(course.courseId || course.id))
+  formatLearningProgressLastAccess(value, { includeDateTime = false } = {}) {
+    const uiCopy = this.getLearningProgressUiCopy();
+    if (!value) return uiCopy.noRecord;
+    const formatted = includeDateTime
+      ? this.formatPlatformDate(value, { dateStyle: 'medium', timeStyle: 'short' })
+      : this.formatTimeAgo(value);
+    return formatted || uiCopy.noRecord;
+  },
+
+  renderLearningProgressOverview(container, courses = []) {
+    const uiCopy = this.getLearningProgressUiCopy();
+    const user = API.getCurrentUser();
+    const trackedCourses = (Array.isArray(courses) ? courses : [])
+      .filter(course => Boolean(course?.courseId || course?.id))
       .sort((a, b) => {
-        const aTime = new Date(a?.progress?.lastAccessedAt || a?.progress?.enrolledAt || 0).getTime();
-        const bTime = new Date(b?.progress?.lastAccessedAt || b?.progress?.enrolledAt || 0).getTime();
-        return bTime - aTime;
+        const aStats = this.getLearningProgressCourseStats(a);
+        const bStats = this.getLearningProgressCourseStats(b);
+        return new Date(bStats.lastAccessedAt || 0).getTime() - new Date(aStats.lastAccessedAt || 0).getTime();
       });
+    const aggregate = trackedCourses.reduce((acc, course) => {
+      const stats = this.getLearningProgressCourseStats(course);
+      acc.totalTimeSpent += stats.totalTimeSpent;
+      if (stats.isCompleted) acc.completedCourses += 1;
+      if (stats.lastAccessedAt) {
+        const lastActivityAt = new Date(stats.lastAccessedAt).getTime();
+        if (lastActivityAt > acc.lastActivityAt) {
+          acc.lastActivityAt = lastActivityAt;
+          acc.lastAccessedAt = stats.lastAccessedAt;
+        }
+      }
+      return acc;
+    }, {
+      totalTimeSpent: 0,
+      completedCourses: 0,
+      lastActivityAt: 0,
+      lastAccessedAt: null
+    });
 
     container.innerHTML = `
-      <div class="learning-paths-container">
-        <div class="learning-paths-header learning-paths-header-stack">
-          <div>
-            <h2>${this.escapeText(title)}</h2>
-            <p class="learning-paths-subtitle">${this.escapeText(subtitle)}</p>
+      <div class="learning-progress-shell">
+        <div class="learning-progress-hero">
+          <div class="learning-progress-hero-copy">
+            <span class="learning-progress-kicker">${this.escapeText(I18n.getLocale() === 'en' ? 'Progress Center' : '學習進度中心')}</span>
+            <h2>${this.escapeText(uiCopy.title)}</h2>
+            <p>${this.escapeText(uiCopy.subtitle)}</p>
+            ${user && this.isTeachingRole(user) && user.role !== 'student'
+              ? `<div class="learning-progress-note">${this.escapeText(uiCopy.teacherHint)}</div>`
+              : ''}
+          </div>
+          <div class="learning-progress-summary-grid">
+            <div class="learning-progress-summary-card">
+              <label>${this.escapeText(uiCopy.totalCourses)}</label>
+              <strong>${trackedCourses.length}</strong>
+            </div>
+            <div class="learning-progress-summary-card">
+              <label>${this.escapeText(uiCopy.completedCourses)}</label>
+              <strong>${aggregate.completedCourses}</strong>
+            </div>
+            <div class="learning-progress-summary-card">
+              <label>${this.escapeText(uiCopy.totalTime)}</label>
+              <strong>${this.escapeText(this.formatLearningProgressTime(aggregate.totalTimeSpent))}</strong>
+            </div>
+            <div class="learning-progress-summary-card">
+              <label>${this.escapeText(uiCopy.lastLearning)}</label>
+              <strong>${this.escapeText(this.formatLearningProgressLastAccess(aggregate.lastAccessedAt))}</strong>
+            </div>
           </div>
         </div>
-        <div class="learning-paths-grid">
-          ${activeCourses.length === 0 ? this.renderActivityEmptyState({
-            icon: '<svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>',
-            title: isEnglish ? 'No course progress yet' : '目前還沒有課程進度',
-            hint: isEnglish ? 'Open a course and interact with content activities to start recording progress.' : '先進入課程並閱讀內容活動，系統就會開始累積學習進度。'
-          }) : activeCourses.map(course => {
+
+        <div class="learning-progress-course-grid">
+          ${trackedCourses.length === 0 ? this.renderActivityEmptyState({
+            icon: '<svg viewBox="0 0 24 24" width="56" height="56" fill="none" stroke="currentColor" stroke-width="1"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>',
+            title: uiCopy.noCoursesTitle,
+            hint: uiCopy.noCoursesHint
+          }) : trackedCourses.map(course => {
             const courseId = course.courseId || course.id || '';
-            const progressValue = Math.max(0, Math.min(100, Number(course.progress ?? course.progressPercentage ?? 0) || 0));
-            const totalTimeSpent = course?.progress?.totalTimeSpent || 0;
-            const lastAccessedAt = course?.progress?.lastAccessedAt || course?.progress?.enrolledAt || null;
-            const lastAccessLabel = lastAccessedAt
-              ? this.formatPlatformDate(lastAccessedAt, { year: 'numeric', month: 'numeric', day: 'numeric' }) || '—'
-              : (isEnglish ? 'No record yet' : '尚無紀錄');
+            const stats = this.getLearningProgressCourseStats(course);
+            const description = this.truncateText(
+              course.summary || course.description || (I18n.getLocale() === 'en' ? 'Keep learning and review your detailed activity records.' : '持續學習並查看每個活動的學習紀錄。'),
+              150
+            );
             return `
-              <div class="learning-path-card learning-progress-card" onclick="MoodleUI.openCourse(${this.toInlineActionValue(courseId)})">
-                <div class="path-thumbnail ${this.getSurfaceToneClass(courseId || course.title || course.name || '')}">
-                  <span class="learning-progress-pill">${this.escapeText(isEnglish ? 'Course Progress' : '課程進度')}</span>
-                  <span class="path-thumbnail-icon">↗</span>
-                </div>
-                <div class="path-content">
-                  <div class="path-title">${this.escapeText(course.title || course.name || t('common.unnamed'))}</div>
-                  <div class="path-description">${this.escapeText(this.truncateText(course.summary || course.description || (isEnglish ? 'Continue learning from where you left off.' : '從你上次離開的位置繼續學習。'), 120))}</div>
-                  <div class="path-stats learning-progress-meta">
-                    <span>${this.escapeText(isEnglish ? `Progress ${progressValue}%` : `進度 ${progressValue}%`)}</span>
-                    <span>${this.escapeText(isEnglish ? `Time ${this.formatLearningProgressTime(totalTimeSpent)}` : `累積 ${this.formatLearningProgressTime(totalTimeSpent)}`)}</span>
-                    <span>${this.escapeText(isEnglish ? `Last active ${lastAccessLabel}` : `最近學習 ${lastAccessLabel}`)}</span>
+              <article class="learning-progress-course-card ${this.getSurfaceToneClass(courseId || course.title || course.name || '')}">
+                <div class="learning-progress-course-head">
+                  <div>
+                    <div class="learning-progress-course-title">${this.escapeText(course.title || course.name || t('common.unnamed'))}</div>
+                    <p class="learning-progress-course-desc">${this.escapeText(description)}</p>
                   </div>
-                  <div class="path-progress">
-                    <div class="progress-bar">
-                      <div class="progress-fill" data-progress-width="${this.clampProgressValue(progressValue)}"></div>
-                    </div>
-                    <div class="progress-text">${this.escapeText(isEnglish ? 'Open course' : '前往課程')}</div>
+                  <span class="learning-progress-status-chip ${stats.isCompleted ? 'completed' : (stats.hasStarted ? 'in-progress' : 'not-started')}">
+                    ${this.escapeText(stats.isCompleted ? uiCopy.completed : (stats.hasStarted ? uiCopy.inProgress : uiCopy.notStarted))}
+                  </span>
+                </div>
+
+                <div class="learning-progress-course-metrics">
+                  <div class="learning-progress-metric">
+                    <label>${this.escapeText(uiCopy.overallProgress)}</label>
+                    <strong>${stats.progressPercentage}%</strong>
+                  </div>
+                  <div class="learning-progress-metric">
+                    <label>${this.escapeText(uiCopy.completedActivities)}</label>
+                    <strong>${stats.completedActivities} / ${stats.totalActivities || 0}</strong>
+                  </div>
+                  <div class="learning-progress-metric">
+                    <label>${this.escapeText(uiCopy.totalTime)}</label>
+                    <strong>${this.escapeText(this.formatLearningProgressTime(stats.totalTimeSpent))}</strong>
+                  </div>
+                  <div class="learning-progress-metric">
+                    <label>${this.escapeText(uiCopy.lastLearning)}</label>
+                    <strong>${this.escapeText(this.formatLearningProgressLastAccess(stats.lastAccessedAt))}</strong>
                   </div>
                 </div>
-              </div>
+
+                <div class="learning-progress-course-bar">
+                  <div class="progress-bar">
+                    <div class="progress-fill" data-progress-width="${stats.progressPercentage}"></div>
+                  </div>
+                </div>
+
+                <div class="learning-progress-course-actions">
+                  <button type="button" class="btn-secondary btn-sm" onclick="MoodleUI.viewCourseLearningProgress(${this.toInlineActionValue(courseId)})">
+                    ${this.escapeText(uiCopy.viewDetails)}
+                  </button>
+                  <button type="button" class="btn-primary btn-sm" onclick="MoodleUI.openCourse(${this.toInlineActionValue(courseId)})">
+                    ${this.escapeText(uiCopy.openCourse)}
+                  </button>
+                </div>
+              </article>
             `;
           }).join('')}
         </div>
@@ -10731,288 +10870,150 @@ const MoodleUI = {
     this.applyDynamicUiMetrics(container);
   },
 
-  renderLearningPathsPage(container, paths) {
-    const user = (typeof API !== 'undefined' && API.getCurrentUser) ? API.getCurrentUser() : null;
-    const canManage = !!(user && (user.isAdmin || ['manager', 'coursecreator', 'educator', 'trainer', 'creator', 'teacher', 'assistant'].includes(user.role)));
-
-    container.innerHTML = `
-      <div class="learning-paths-container">
-        <div class="learning-paths-header">
-          <h2>${t('moodlePaths.title')}</h2>
-          ${canManage ? `<button onclick="MoodleUI.openCreateLearningPathModal()" class="btn-primary">${t('moodlePaths.create')}</button>` : ''}
-        </div>
-      <div class="learning-paths-grid">
-        ${paths.length === 0 ? this.renderActivityEmptyState({
-          icon: '<svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>',
-          title: t('moodlePaths.noPaths')
-        }) :
-          paths.map(p => `
-            ${(() => {
-              const difficultyMeta = this.getDifficultyMeta(p.difficulty);
-              return `
-            <div class="learning-path-card"
-                 onclick="MoodleUI.viewLearningPathDetail(${this.toInlineActionValue(p.pathId || p.id)})">
-              <div class="path-thumbnail ${difficultyMeta.toneClass}">
-                <span class="path-difficulty ${difficultyMeta.className}">${this.escapeText(difficultyMeta.label)}</span>
-                <span class="path-thumbnail-icon">${difficultyMeta.icon}</span>
-              </div>
-              <div class="path-content">
-                <div class="path-title">${this.escapeText(p.name || p.title || t('common.unnamed'))}</div>
-                <div class="path-description">${this.escapeText(this.truncateText(p.description || t('common.noDescription'), 120))}</div>
-                <div class="path-stats">
-                  <span>${t('moodlePaths.coursesLabel')}${(p.courses || []).length}</span>
-                  <span>${t('moodlePaths.durationLabel')}${this.escapeText(p.duration || '—')}</span>
-                  <span>${t('moodlePaths.enrolledLabel')}${p.enrolledCount || 0}</span>
-                </div>
-              ${p.progress != null ? `
-                <div class="path-progress">
-                  <div class="progress-bar">
-                    <div class="progress-fill" data-progress-width="${this.clampProgressValue(p.progress)}"></div>
-                  </div>
-                  <div class="progress-text">${t('moodlePaths.progress')} ${Math.round(p.progress)}%</div>
-                </div>
-              ` : ''}
-            </div>
-            `;
-            })()}
-          `).join('')}
-      </div>
-      </div>`;
-    this.applyDynamicUiMetrics(container);
-  },
-
-  async viewLearningPathDetail(pathId) {
-    const container = document.getElementById('learningPathsContent');
-    if (!container) return;
+  async viewCourseLearningProgress(courseId, options = {}) {
+    const container = options.container || document.getElementById('learningPathsContent');
+    if (!container || !courseId) return;
+    if (!options.skipShowView) {
+      showView('learningProgress', {
+        path: options.path || '/platform/learning-progress',
+        replaceHistory: options.replaceHistory
+      });
+    }
     container.innerHTML = `<div class="loading">${t('common.loading')}</div>`;
     try {
-      const user = (typeof API !== 'undefined' && API.getCurrentUser) ? API.getCurrentUser() : null;
-      const pathResult = await API.learningPaths.get(pathId);
-      if (!pathResult.success) { container.innerHTML = `<div class="error">${t('common.loadFailed')}</div>`; return; }
-      const p = pathResult.data;
-      const canManage = this.canManageLearningPath(p, user);
-      const progressResult = (!canManage && p.userEnrolled)
-        ? await API.learningPaths.getProgress(pathId).catch(() => ({ success: false }))
-        : { success: false };
-      const canViewReport = this.isTeachingRole(user);
-      const reportResult = canViewReport
-        ? await API.learningPaths.getReport(pathId).catch(() => ({ success: false }))
-        : { success: false };
-      const progressData = progressResult.success ? progressResult.data : null;
-      const report = reportResult.success ? reportResult.data : {};
-      const courseModels = this.getLearningPathCourseModels(p, progressData, { canManage });
-      const currentCourseModel = courseModels.find(course => course.isCurrent) ||
-        courseModels.find(course => course.canOpen && !course.isCompleted) ||
-        null;
-      const progress = progressData?.overallProgress ?? p.userProgress ?? p.progress;
-      const overallProgress = Math.round(typeof progress === 'object' ? progress.overallProgress || 0 : progress || 0);
-      const difficultyMeta = this.getDifficultyMeta(p.difficulty);
-      const uiCopy = this.getLearningPathUiCopy();
-      const enrollmentLabel = t('moodleCourse.enrolled') || (I18n.getLocale() === 'en' ? 'Enrolled' : '已加入');
+      const result = await API.courses.get(courseId);
+      if (!result.success || !result.data) {
+        container.innerHTML = `<div class="error">${t('common.loadFailed')}</div>`;
+        return;
+      }
+      const course = this.normalizeCourseRecord(result.data || {});
+      this.currentLearningProgressCourse = course;
+      const uiCopy = this.getLearningProgressUiCopy();
+      const stats = this.getLearningProgressCourseStats(course);
+      const sections = this.getLearningProgressSections(course);
+      const activityTypeLabels = {
+        page: I18n.getLocale() === 'en' ? 'Page' : '頁面',
+        url: I18n.getLocale() === 'en' ? 'Link' : '連結',
+        file: I18n.getLocale() === 'en' ? 'File' : '檔案',
+        assignment: I18n.getLocale() === 'en' ? 'Assignment' : '作業',
+        quiz: I18n.getLocale() === 'en' ? 'Quiz' : '測驗',
+        forum: I18n.getLocale() === 'en' ? 'Forum' : '討論區',
+        label: I18n.getLocale() === 'en' ? 'Label' : '標籤',
+        lti: 'LTI'
+      };
 
       container.innerHTML = `
-        <div class="learning-path-detail">
-          <button onclick="MoodleUI.openLearningPaths()" class="btn-back">${t('common.backToList')}</button>
-          <div class="path-detail-header">
-            <div class="path-detail-image ${difficultyMeta.toneClass}">
-              <div class="path-thumbnail ${difficultyMeta.toneClass}">
-                <span class="path-difficulty ${difficultyMeta.className}">${this.escapeText(difficultyMeta.label)}</span>
-                <span class="path-thumbnail-icon">${difficultyMeta.icon}</span>
-              </div>
+        <div class="learning-progress-detail">
+          <button type="button" class="btn-back" onclick="MoodleUI.openLearningProgress()">${this.escapeText(uiCopy.backToOverview)}</button>
+
+          <div class="learning-progress-detail-hero">
+            <div class="learning-progress-detail-copy">
+              <span class="learning-progress-kicker">${this.escapeText(uiCopy.courseSummary)}</span>
+              <h2>${this.escapeText(course.title || course.name || t('common.unnamed'))}</h2>
+              <p>${this.escapeText(course.description || course.summary || t('common.noDescription'))}</p>
             </div>
-            <div class="path-detail-info">
-              <h1>${this.escapeText(p.name || p.title || t('common.unnamed'))}</h1>
-              <p>${this.escapeText(p.description || '')}</p>
-              <div class="path-summary-grid">
-                <div class="path-summary-card">
-                  <label>${t('moodlePaths.coursesLabel')}</label>
-                  <strong>${courses.length}</strong>
-                </div>
-                <div class="path-summary-card">
-                  <label>${t('moodlePaths.durationLabel')}</label>
-                  <strong>${this.escapeText(p.duration || '—')}</strong>
-                </div>
-                <div class="path-summary-card">
-                  <label>${t('moodlePaths.enrolledLabel')}</label>
-                  <strong>${p.enrolledCount || report.totalEnrolled || 0}</strong>
-                </div>
-                <div class="path-summary-card">
-                  <label>${t('moodlePaths.progress')}</label>
-                  <strong>${overallProgress}%</strong>
-                </div>
-              </div>
-              <div class="path-detail-actions">
-                ${!canManage && !p.userEnrolled ? `<button onclick="MoodleUI.enrollLearningPath(${this.toInlineActionValue(pathId)})" class="btn-primary btn-sm">${t('moodlePaths.enroll')}</button>` : ''}
-                ${currentCourseModel ? `<button onclick="MoodleUI.openCourse(${this.toInlineActionValue(currentCourseModel.courseId)})" class="btn-primary btn-sm">${this.escapeText(currentCourseModel.actionLabel)}</button>` : ''}
-                ${!canManage && p.userEnrolled ? `<span class="badge-summary-pill">${this.escapeText(enrollmentLabel)}</span>` : ''}
-                ${canManage ? `<button onclick="MoodleUI.deleteLearningPath(${this.toInlineActionValue(pathId)})" class="btn-sm btn-danger">${t('moodleGradeCategory.delete')}</button>` : ''}
-              </div>
+            <div class="learning-progress-detail-actions">
+              <button type="button" class="btn-primary btn-sm" onclick="MoodleUI.openCourse(${this.toInlineActionValue(courseId)})">
+                ${this.escapeText(uiCopy.openCourse)}
+              </button>
             </div>
           </div>
-        ${progress != null ? `
-          <div class="path-progress-panel">
-            <div class="path-progress-heading">
-              <span>${t('moodlePaths.overallProgress')}</span><span>${overallProgress}%</span>
+
+          <div class="learning-progress-summary-grid">
+            <div class="learning-progress-summary-card">
+              <label>${this.escapeText(uiCopy.overallProgress)}</label>
+              <strong>${stats.progressPercentage}%</strong>
             </div>
+            <div class="learning-progress-summary-card">
+              <label>${this.escapeText(uiCopy.completedActivities)}</label>
+              <strong>${stats.completedActivities} / ${stats.totalActivities || 0}</strong>
+            </div>
+            <div class="learning-progress-summary-card">
+              <label>${this.escapeText(uiCopy.totalTime)}</label>
+              <strong>${this.escapeText(this.formatLearningProgressTime(stats.totalTimeSpent))}</strong>
+            </div>
+            <div class="learning-progress-summary-card">
+              <label>${this.escapeText(uiCopy.lastLearning)}</label>
+              <strong>${this.escapeText(this.formatLearningProgressLastAccess(stats.lastAccessedAt, { includeDateTime: true }))}</strong>
+            </div>
+          </div>
+
+          <div class="learning-progress-detail-progress">
             <div class="progress-bar">
-              <div class="progress-fill" data-progress-width="${this.clampProgressValue(overallProgress)}"></div>
+              <div class="progress-fill" data-progress-width="${stats.progressPercentage}"></div>
             </div>
-            ${currentCourseModel ? `
-              <div class="path-progress-next">
-                <span class="path-progress-next-label">${this.escapeText(uiCopy.currentCourseLabel)}</span>
-                <strong>${this.escapeText(currentCourseModel.title || currentCourseModel.name || `${t('moodlePaths.courseDefault')} ${currentCourseModel.sequenceNumber}`)}</strong>
-              </div>
-            ` : ''}
           </div>
-        ` : ''}
-        <div class="path-courses-section">
-        <h3>${t('moodlePaths.courseSequence')}（${courseModels.length} ${t('moodlePaths.courseUnit')}）</h3>
-        <div class="path-course-list">
-          ${courseModels.map((course) => `
-            ${(() => {
-              return `
-            <div class="path-course-item ${course.isCompleted ? 'is-complete' : ''} ${course.isCurrent ? 'is-current' : ''} ${course.isLocked ? 'is-locked' : 'is-openable'}">
-              <div class="course-order ${course.isCompleted ? 'completed' : (course.isLocked ? 'locked' : '')}">${course.isCompleted ? '✓' : course.sequenceNumber}</div>
-              <div class="course-info">
-                <h4>${this.escapeText(course.title || course.name || `${t('moodlePaths.courseDefault')} ${course.sequenceNumber}`)}</h4>
-                <p>${this.escapeText(course.description || '')}</p>
-                ${course.helperText ? `<span class="path-course-note">${this.escapeText(course.helperText)}</span>` : ''}
-              </div>
-              <div class="path-course-actions">
-                <div class="course-status ${course.statusClass}">
-                  ${this.escapeText(course.statusLabel)}
+
+          <div class="learning-progress-section-list">
+            <div class="learning-progress-section-heading">
+              <h3>${this.escapeText(uiCopy.activityDetails)}</h3>
+            </div>
+            ${sections.length === 0 ? this.renderActivityEmptyState({
+              icon: '<svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>',
+              title: uiCopy.noCoursesTitle,
+              hint: uiCopy.noCoursesHint
+            }) : sections.map(section => `
+              <section class="learning-progress-section">
+                <div class="learning-progress-section-head">
+                  <div>
+                    <h4>${this.escapeText(section.sectionTitle)}</h4>
+                    ${section.summary ? `<p>${this.escapeText(section.summary)}</p>` : ''}
+                  </div>
+                  <span class="learning-progress-section-count">${section.activities.length}</span>
                 </div>
-                ${course.canOpen ? `
-                  <button type="button" class="${course.isCurrent ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'}" onclick="MoodleUI.openCourse(${this.toInlineActionValue(course.courseId)})">
-                    ${this.escapeText(course.actionLabel)}
-                  </button>
-                ` : ''}
-              </div>
-            </div>
-            `;
-            })()}
-          `).join('')}
-        </div>
-        </div>
-        ${report.totalEnrolled ? `
-          <div class="path-report-grid">
-            <div class="path-summary-card">
-              <label>${t('moodlePaths.totalEnrolled')}</label>
-              <strong>${report.totalEnrolled}</strong>
-            </div>
-            <div class="path-summary-card">
-              <label>${t('moodlePaths.completionRateLabel')}</label>
-              <strong>${report.completionRate ? Math.round(report.completionRate) + '%' : '—'}</strong>
-            </div>
+                <div class="learning-progress-activity-list">
+                  ${section.activities.map(activity => {
+                    const launchActivityId = activity.launchActivityId || activity.activityId;
+                    const openAction = activity.isBrokenLink || !launchActivityId
+                      ? `showToast(${this.toInlineActionValue(I18n.getLocale() === 'en' ? 'This activity link needs repair before it can be opened.' : '這個活動連結需要先修復，才能開啟。')})`
+                      : `MoodleUI.openActivity(${this.toInlineActionValue(activity.type)}, ${this.toInlineActionValue(launchActivityId)}, ${this.toInlineActionValue(courseId)})`;
+                    return `
+                      <article class="learning-progress-activity-row">
+                        <div class="learning-progress-activity-main">
+                          <div class="learning-progress-activity-seq">${this.escapeText(activity.sequenceLabel)}</div>
+                          <div class="learning-progress-activity-copy">
+                            <div class="learning-progress-activity-meta">
+                              <span class="learning-progress-type-chip">${this.escapeText(activityTypeLabels[activity.type] || activity.type || '—')}</span>
+                              <span class="learning-progress-status-chip ${activity.statusClass}">${this.escapeText(activity.statusLabel)}</span>
+                            </div>
+                            <h5>${this.escapeText(activity.name || activity.title || t('common.unnamed'))}</h5>
+                            ${activity.description ? `<p>${this.escapeText(this.truncateText(activity.description, 180))}</p>` : ''}
+                          </div>
+                        </div>
+                        <div class="learning-progress-activity-stats">
+                          <div class="learning-progress-activity-stat">
+                            <label>${this.escapeText(uiCopy.totalTime)}</label>
+                            <strong>${this.escapeText(this.formatLearningProgressTime(activity.totalTimeSpent))}</strong>
+                          </div>
+                          <div class="learning-progress-activity-stat">
+                            <label>${this.escapeText(uiCopy.lastStudied)}</label>
+                            <strong>${this.escapeText(this.formatLearningProgressLastAccess(activity.lastAccessedAt))}</strong>
+                            ${activity.lastAccessedAt ? `<small>${this.escapeText(this.formatLearningProgressLastAccess(activity.lastAccessedAt, { includeDateTime: true }))}</small>` : ''}
+                          </div>
+                          <div class="learning-progress-activity-stat">
+                            <label>${this.escapeText(uiCopy.overallProgress)}</label>
+                            <strong>${activity.progressPercentage}%</strong>
+                          </div>
+                        </div>
+                        <div class="learning-progress-activity-actions">
+                          <button type="button" class="btn-secondary btn-sm" onclick="${openAction}">
+                            ${this.escapeText(uiCopy.openActivity)}
+                          </button>
+                        </div>
+                      </article>
+                    `;
+                  }).join('')}
+                </div>
+              </section>
+            `).join('')}
           </div>
-        ` : ''}
-        </div>`;
+        </div>
+      `;
       this.applyDynamicUiMetrics(container);
     } catch (error) {
-      console.error('View learning path detail error:', error);
+      console.error('View learning progress detail error:', error);
       container.innerHTML = `<div class="error">${t('common.loadFailed')}</div>`;
     }
-  },
-
-  async openCreateLearningPathModal() {
-    let courseOptions = '';
-    try {
-      const courses = await this.getRoleScopedCourses({ manageOnly: true });
-      courses.forEach(c => {
-        courseOptions += `<option value="${c.courseId || c.id}">${c.title || c.name}</option>`;
-      });
-    } catch (e) { /* ignore */ }
-
-    const modal = document.createElement('div');
-    modal.id = 'createLearningPathModal';
-    modal.className = 'modal-overlay active';
-    modal.innerHTML = `
-      <div class="modal-content modal-lg">
-        <div class="modal-header">
-          <h3>${t('moodlePaths.createTitle')}</h3>
-          <button onclick="MoodleUI.closeModal('createLearningPathModal')" class="modal-close">&times;</button>
-        </div>
-        <div class="modal-body">
-          <div class="form-group">
-            <label>${t('moodlePaths.nameLabel')} *</label>
-            <input type="text" id="lpName" placeholder="${t('moodlePaths.namePlaceholder')}">
-          </div>
-          <div class="form-group">
-            <label>${t('common.description')}</label>
-            <textarea id="lpDescription" rows="2" placeholder="${t('moodlePaths.descPlaceholder')}"></textarea>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label>${t('moodleNewQuestion.diffLabel')}</label>
-              <select id="lpDifficulty">
-                <option value="beginner">${t('moodlePaths.beginner')}</option>
-                <option value="intermediate">${t('moodlePaths.intermediate')}</option>
-                <option value="advanced">${t('moodlePaths.advanced')}</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>${t('moodlePaths.estimatedDuration')}</label>
-              <input type="text" id="lpDuration" placeholder="${t('moodlePaths.durationPlaceholder')}">
-            </div>
-          </div>
-          <div class="form-group">
-            <label>${t('moodlePaths.selectCourses')}</label>
-            <select id="lpCourses" class="multi-select-tall" multiple>
-              ${courseOptions}
-            </select>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button onclick="MoodleUI.closeModal('createLearningPathModal')" class="btn-secondary">${t('common.cancel')}</button>
-          <button onclick="MoodleUI.saveLearningPath()" class="btn-primary">${t('common.create')}</button>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(modal);
-    modal.onclick = (e) => { if (e.target === modal) this.closeModal('createLearningPathModal'); };
-  },
-
-  async saveLearningPath() {
-    const name = document.getElementById('lpName')?.value?.trim();
-    if (!name) { showToast(t('common.nameRequired')); return; }
-    const select = document.getElementById('lpCourses');
-    const courseIds = select ? Array.from(select.selectedOptions).map(o => o.value) : [];
-    try {
-      const result = await API.learningPaths.create({
-        name,
-        description: document.getElementById('lpDescription')?.value || '',
-        difficulty: document.getElementById('lpDifficulty')?.value || 'beginner',
-        duration: document.getElementById('lpDuration')?.value || '',
-        courseIds
-      });
-      if (result.success) {
-        showToast(t('moodlePaths.created'));
-        this.closeModal('createLearningPathModal');
-        this.openLearningPaths();
-      } else { showToast(result.error || t('common.createFailed')); }
-    } catch (error) { showToast(t('moodlePaths.createError')); }
-  },
-
-  async enrollLearningPath(pathId) {
-    try {
-      const result = await API.learningPaths.enroll(pathId);
-      if (result.success) { showToast(t('moodlePaths.enrollSuccess')); this.viewLearningPathDetail(pathId); }
-      else { showToast(result.error || t('common.enrollFailed')); }
-    } catch (error) { showToast(t('moodleEnroll.failed')); }
-  },
-
-  async deleteLearningPath(pathId) {
-    const confirmed = await showConfirmDialog({
-      message: t('moodlePaths.confirmDelete'),
-      confirmLabel: t('common.delete'),
-      tone: 'danger'
-    });
-    if (!confirmed) return;
-    try {
-      const result = await API.learningPaths.delete(pathId);
-      if (result.success) { showToast(t('common.deleted')); this.openLearningPaths(); }
-      else { showToast(result.error || t('common.deleteFailed')); }
-    } catch (error) { showToast(t('common.deleteFailed')); }
   },
 
   /**

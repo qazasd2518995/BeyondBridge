@@ -6454,11 +6454,11 @@
                         </svg>
                         <span data-i18n="sidebar.notifications">通知中心</span>
                     </a>
-                    <a href="#" class="nav-item" onclick="showView('learningPaths'); MoodleUI.openLearningPaths();">
+                    <a href="#" class="nav-item" onclick="showView('learningProgress'); MoodleUI.openLearningProgress();">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
                         </svg>
-                        <span data-i18n="sidebar.learningPaths">學習路徑</span>
+                        <span data-i18n="sidebar.learningProgress">學習進度</span>
                     </a>
                     <a href="#" class="nav-item" onclick="showView('badges'); MoodleUI.openBadges();">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -7787,7 +7787,7 @@
                 <div id="auditLogsContent"></div>
             </div>
 
-            <!-- 學習路徑視圖 -->
+            <!-- 學習進度視圖 -->
             <div class="dashboard" id="learningPathsView" hidden>
                 <div id="learningPathsContent"></div>
             </div>
@@ -12130,7 +12130,7 @@
             rolesManagement: '/platform/roles',
             courseCategories: '/platform/course-categories',
             auditLogs: '/platform/audit-logs',
-            learningPaths: '/platform/learning-paths',
+            learningProgress: '/platform/learning-progress',
             badges: '/platform/badges',
             scormManager: '/platform/scorm',
             ltiManager: '/platform/lti',
@@ -12147,7 +12147,9 @@
                     map[relativePath] = viewName;
                 }
                 return map;
-            }, {})
+            }, {
+                'learning-paths': 'learningProgress'
+            })
         );
 
         function getDefaultPlatformPathForView(viewName) {
@@ -12285,7 +12287,7 @@
                 rolesManagement: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.openRolesManagement === 'function' ? MoodleUI.openRolesManagement() : null,
                 courseCategories: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.openCourseCategories === 'function' ? MoodleUI.openCourseCategories() : null,
                 auditLogs: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.openAuditLogs === 'function' ? MoodleUI.openAuditLogs() : null,
-                learningPaths: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.openLearningPaths === 'function' ? MoodleUI.openLearningPaths() : null,
+                learningProgress: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.openLearningProgress === 'function' ? MoodleUI.openLearningProgress() : null,
                 badges: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.openBadges === 'function' ? MoodleUI.openBadges() : null,
                 scormManager: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.openScormManager === 'function' ? MoodleUI.openScormManager() : null,
                 ltiManager: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.openLtiManager === 'function' ? MoodleUI.openLtiManager() : null,
@@ -12319,6 +12321,7 @@
         function resolvePrimaryViewName(viewName) {
             const user = getCurrentPlatformUser();
             if (viewName === 'discussions') return 'moodleForums';
+            if (viewName === 'learningPaths') return 'learningProgress';
             if (viewName === 'dashboard' && user && isTeachingRole(user) && !isStudentRole(user)) {
                 return 'teacherDashboard';
             }
@@ -12376,6 +12379,7 @@
                 'rolesManagement': 'rolesManagementView',
                 'courseCategories': 'courseCategoriesView',
                 'auditLogs': 'auditLogsView',
+                'learningProgress': 'learningPathsView',
                 'learningPaths': 'learningPathsView',
                 'badges': 'badgesView',
                 'scormManager': 'scormManagerView',

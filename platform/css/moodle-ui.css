@@ -9827,6 +9827,393 @@
   }
 }
 
+/* ==================== 學習進度樣式 ==================== */
+
+.learning-progress-shell,
+.learning-progress-detail {
+  padding: 1.5rem;
+}
+
+.learning-progress-hero,
+.learning-progress-detail-hero {
+  background:
+    radial-gradient(circle at top right, rgba(111, 127, 93, 0.16), transparent 34%),
+    linear-gradient(135deg, rgba(248, 250, 245, 0.98), rgba(240, 244, 236, 0.96));
+  border: 1px solid rgba(111, 127, 93, 0.16);
+  border-radius: 24px;
+  padding: 1.5rem;
+  box-shadow: 0 20px 40px rgba(37, 45, 33, 0.08);
+}
+
+.learning-progress-hero {
+  margin-bottom: 1.5rem;
+}
+
+.learning-progress-detail-hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.learning-progress-hero-copy h2,
+.learning-progress-detail-copy h2 {
+  margin: 0.4rem 0 0.75rem;
+  font-size: 2rem;
+  line-height: 1.1;
+  color: var(--olive-800);
+}
+
+.learning-progress-hero-copy p,
+.learning-progress-detail-copy p {
+  margin: 0;
+  max-width: 760px;
+  color: var(--gray-600);
+  line-height: 1.7;
+}
+
+.learning-progress-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  background: rgba(87, 109, 72, 0.12);
+  color: var(--olive-700);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.learning-progress-note {
+  margin-top: 0.95rem;
+  padding: 0.85rem 1rem;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--gray-600);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.learning-progress-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.9rem;
+  margin-top: 1.25rem;
+}
+
+.learning-progress-summary-card {
+  padding: 1rem 1.05rem;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+.learning-progress-summary-card label,
+.learning-progress-metric label,
+.learning-progress-activity-stat label {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: var(--gray-500);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.learning-progress-summary-card strong,
+.learning-progress-metric strong,
+.learning-progress-activity-stat strong {
+  display: block;
+  font-size: 1.05rem;
+  color: var(--olive-800);
+  font-weight: 700;
+}
+
+.learning-progress-course-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1rem;
+}
+
+.learning-progress-course-card {
+  background: white;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 22px;
+  padding: 1.2rem;
+  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.05);
+}
+
+.learning-progress-course-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.learning-progress-course-title {
+  font-size: 1.16rem;
+  font-weight: 700;
+  color: var(--olive-800);
+}
+
+.learning-progress-course-desc {
+  margin: 0.45rem 0 0;
+  color: var(--gray-600);
+  font-size: 0.92rem;
+  line-height: 1.65;
+}
+
+.learning-progress-status-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.learning-progress-status-chip.completed {
+  background: rgba(16, 185, 129, 0.14);
+  color: #047857;
+}
+
+.learning-progress-status-chip.in-progress {
+  background: rgba(87, 109, 72, 0.14);
+  color: var(--olive-700);
+}
+
+.learning-progress-status-chip.not-started {
+  background: rgba(148, 163, 184, 0.16);
+  color: var(--gray-500);
+}
+
+.learning-progress-course-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.learning-progress-metric {
+  padding: 0.9rem 0.95rem;
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(248, 250, 245, 0.92), rgba(243, 246, 239, 0.92));
+  border: 1px solid rgba(111, 127, 93, 0.1);
+}
+
+.learning-progress-course-bar,
+.learning-progress-detail-progress {
+  margin-bottom: 1rem;
+}
+
+.learning-progress-course-actions,
+.learning-progress-detail-actions,
+.learning-progress-activity-actions {
+  display: flex;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.learning-progress-detail-actions {
+  justify-content: flex-end;
+}
+
+.learning-progress-section-list {
+  margin-top: 1.4rem;
+}
+
+.learning-progress-section-heading {
+  margin-bottom: 1rem;
+}
+
+.learning-progress-section-heading h3 {
+  margin: 0;
+  font-size: 1.3rem;
+  color: var(--olive-800);
+}
+
+.learning-progress-section {
+  background: white;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 22px;
+  padding: 1.15rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+}
+
+.learning-progress-section-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.learning-progress-section-head h4 {
+  margin: 0;
+  font-size: 1.08rem;
+  color: var(--olive-800);
+}
+
+.learning-progress-section-head p {
+  margin: 0.4rem 0 0;
+  color: var(--gray-600);
+  line-height: 1.6;
+}
+
+.learning-progress-section-count {
+  min-width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  background: rgba(87, 109, 72, 0.12);
+  color: var(--olive-700);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+.learning-progress-activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.learning-progress-activity-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(248, 250, 245, 0.95), rgba(244, 246, 241, 0.9));
+  border: 1px solid rgba(111, 127, 93, 0.08);
+}
+
+.learning-progress-activity-main {
+  display: flex;
+  gap: 0.9rem;
+  align-items: flex-start;
+}
+
+.learning-progress-activity-seq {
+  min-width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  background: rgba(87, 109, 72, 0.12);
+  color: var(--olive-700);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+.learning-progress-activity-copy h5 {
+  margin: 0.35rem 0 0;
+  font-size: 1rem;
+  color: var(--olive-800);
+}
+
+.learning-progress-activity-copy p {
+  margin: 0.4rem 0 0;
+  color: var(--gray-600);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.learning-progress-activity-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.learning-progress-type-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.1);
+  color: #1d4ed8;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.learning-progress-activity-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.learning-progress-activity-stat {
+  padding: 0.85rem 0.9rem;
+  border-radius: 16px;
+  background: white;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.learning-progress-activity-stat small {
+  display: block;
+  margin-top: 0.35rem;
+  color: var(--gray-500);
+  line-height: 1.5;
+}
+
+@media (max-width: 1100px) {
+  .learning-progress-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .learning-progress-activity-row {
+    grid-template-columns: 1fr;
+  }
+
+  .learning-progress-detail-actions {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 768px) {
+  .learning-progress-shell,
+  .learning-progress-detail {
+    padding: 1rem;
+  }
+
+  .learning-progress-hero,
+  .learning-progress-detail-hero,
+  .learning-progress-section,
+  .learning-progress-course-card {
+    padding: 1rem;
+    border-radius: 18px;
+  }
+
+  .learning-progress-detail-hero,
+  .learning-progress-course-head,
+  .learning-progress-section-head {
+    flex-direction: column;
+  }
+
+  .learning-progress-summary-grid,
+  .learning-progress-course-metrics,
+  .learning-progress-activity-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .learning-progress-activity-main {
+    flex-direction: column;
+  }
+
+  .learning-progress-activity-seq {
+    min-width: 44px;
+    height: 44px;
+  }
+}
+
 /* ==================== 審計日誌樣式 ==================== */
 
 .audit-logs-page {
