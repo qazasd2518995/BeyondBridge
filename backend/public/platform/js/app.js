@@ -95,6 +95,9 @@ const App = {
   showLogin() {
     document.getElementById('loginView').hidden = false;
     document.getElementById('appContainer').hidden = true;
+    if (window.PlatformRouter?.renderAuthScreen) {
+      window.PlatformRouter.renderAuthScreen();
+    }
   },
 
   /**
@@ -104,10 +107,19 @@ const App = {
     document.getElementById('loginView').hidden = true;
     this.updateUserUI();
     this.updateSidebarByRole();
-    if (typeof window.showView === 'function') {
-      window.showView('dashboard');
-    }
     document.getElementById('appContainer').hidden = false;
+    if (window.PlatformRouter?.applyCurrentRoute) {
+      window.PlatformRouter.applyCurrentRoute({ replace: true }).catch((error) => {
+        console.error('Apply platform route error:', error);
+        if (typeof window.showView === 'function') {
+          window.showView('dashboard', { replaceHistory: true });
+        }
+      });
+      return;
+    }
+    if (typeof window.showView === 'function') {
+      window.showView('dashboard', { replaceHistory: true });
+    }
   },
 
   /**
@@ -1754,7 +1766,7 @@ const App = {
         if (result.data.user.isAdmin || result.data.user.role === 'admin') {
           showToast(t('toast.adminRedirect'));
           setTimeout(() => {
-            window.location.href = 'admin/index.html';
+            window.location.href = '/admin';
           }, 1000);
           return true;
         }
@@ -1892,15 +1904,153 @@ const App = {
   /**
    * 開啟討論詳情
    */
+  closeDiscussionDetailModal() {
+    if (typeof window.removeDiscussionModal === 'function') {
+      window.removeDiscussionModal('legacyDiscussionDetailModal');
+      return;
+    }
+
+    document.getElementById('legacyDiscussionDetailModal')?.remove();
+  },
+
+  renderDiscussionReplies(replies = []) {
+    const items = Array.isArray(replies) ? replies : [];
+    if (items.length === 0) {
+      return typeof window.renderDiscussionState === 'function'
+        ? window.renderDiscussionState(
+            I18n.getLocale() === 'en'
+              ? 'No replies yet. You can be the first to respond.'
+              : '目前還沒有回覆，你可以成為第一個回應的人。'
+          )
+        : `<div class="empty-state"><p>${this.escapeText(I18n.getLocale() === 'en' ? 'No replies yet.' : '目前還沒有回覆。')}</p></div>`;
+    }
+
+    return `
+      <div class="discussion-list">
+        ${items.map((reply) => {
+          const authorName = this.escapeText(reply.userDisplayName || reply.authorName || t('discussion.anonymous'));
+          const initial = this.escapeText((reply.userDisplayName || reply.authorName || t('discussion.anonymous')).trim().charAt(0) || '匿');
+          const content = this.escapeText(reply.content || '').replace(/\n/g, '<br>');
+          const date = this.escapeText(this.formatLocaleDate(reply.createdAt));
+          const toneClass = typeof window.getDiscussionToneClass === 'function'
+            ? window.getDiscussionToneClass(reply.userDisplayName || reply.authorName || '')
+            : '';
+
+          return `
+            <article class="discussion-card ${toneClass}">
+              <div class="discussion-avatar">${initial}</div>
+              <div class="discussion-content">
+                <div class="discussion-meta">
+                  <span>${authorName}</span>
+                  <span class="discussion-meta-separator">•</span>
+                  <span>${date}</span>
+                </div>
+                <p class="discussion-preview">${content || this.escapeText(t('discussion.noExcerpt'))}</p>
+              </div>
+            </article>
+          `;
+        }).join('')}
+      </div>
+    `;
+  },
+
   async openDiscussion(postId) {
+    if (!postId) return;
+    this.closeDiscussionDetailModal();
+
     try {
-      showView('moodleForums');
-      if (typeof MoodleUI !== 'undefined' && typeof MoodleUI.loadForums === 'function') {
-        await MoodleUI.loadForums();
+      const result = await API.discussions.get(postId);
+      const discussion = result.success ? result.data : null;
+      if (!discussion) {
+        showToast(result.message || t('toast.discussionLoadFailed'));
+        return;
       }
-      showToast('已導向新版討論區，請從課程論壇查看完整討論。');
+
+      const isEnglish = I18n.getLocale() === 'en';
+      const safeTitle = this.escapeText(discussion.title || t('discussion.untitled'));
+      const safeAuthorName = this.escapeText(discussion.userDisplayName || discussion.authorName || t('discussion.anonymous'));
+      const safeCreatedAt = this.escapeText(this.formatLocaleDate(discussion.createdAt));
+      const safeContent = this.escapeText(discussion.content || '').replace(/\n/g, '<br>');
+      const tags = Array.isArray(discussion.tags) ? discussion.tags.filter(Boolean) : [];
+      const discussionId = discussion.postId || discussion.id || postId;
+      const discussionIdArg = this.inlineActionValue(discussionId);
+      const overlay = document.createElement('div');
+
+      overlay.id = 'legacyDiscussionDetailModal';
+      overlay.className = 'modal-overlay active';
+      overlay.innerHTML = `
+        <div class="modal active discussion-modal" role="dialog" aria-modal="true" aria-labelledby="legacyDiscussionDetailModalTitle">
+          <div class="modal-header">
+            <h2 id="legacyDiscussionDetailModalTitle">${isEnglish ? 'Discussion detail' : '討論詳情'}</h2>
+            <button type="button" class="modal-close" aria-label="${this.escapeText(t('discussion.modalClose'))}">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <div class="discussion-modal-intro">
+              <div class="discussion-modal-intro-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8"/><path d="M8 13h6"/></svg>
+              </div>
+              <div>
+                <div class="discussion-modal-intro-title">${safeTitle}</div>
+                <p class="discussion-modal-intro-copy">${isEnglish ? 'This preserves the original legacy discussion thread and replies.' : '這裡保留舊版討論主題與其原始回覆內容。'}</p>
+              </div>
+            </div>
+
+            <div class="discussion-modal-grid">
+              <div class="bridge-form-group">
+                <label class="bridge-form-label">${isEnglish ? 'Author' : '發佈者'}</label>
+                <div>${safeAuthorName}</div>
+              </div>
+              <div class="bridge-form-group">
+                <label class="bridge-form-label">${isEnglish ? 'Published at' : '發佈時間'}</label>
+                <div>${safeCreatedAt}</div>
+              </div>
+              <div class="bridge-form-group">
+                <label class="bridge-form-label">${isEnglish ? 'Replies' : '回覆數'}</label>
+                <div>${this.escapeText(String(discussion.replyCount || 0))}</div>
+              </div>
+              <div class="bridge-form-group">
+                <label class="bridge-form-label">${isEnglish ? 'Views' : '瀏覽數'}</label>
+                <div>${this.escapeText(String(discussion.viewCount || 0))}</div>
+              </div>
+            </div>
+
+            ${tags.length > 0 ? `
+              <div class="bridge-form-group">
+                <label class="bridge-form-label">${isEnglish ? 'Tags' : '標籤'}</label>
+                <div class="discussion-tags">
+                  ${tags.map((tag) => `<span class="tag">${this.escapeText(tag)}</span>`).join('')}
+                </div>
+              </div>
+            ` : ''}
+
+            <div class="bridge-form-group">
+              <label class="bridge-form-label">${isEnglish ? 'Content' : '內容'}</label>
+              <p class="discussion-preview">${safeContent || this.escapeText(t('discussion.noExcerpt'))}</p>
+            </div>
+
+            <div class="bridge-form-group">
+              <label class="bridge-form-label">${isEnglish ? 'Replies' : '回覆內容'}</label>
+              ${this.renderDiscussionReplies(discussion.replies)}
+            </div>
+          </div>
+          <div class="modal-footer">
+            <div class="discussion-modal-note">${isEnglish ? 'Need the newer learning-community workflow? Jump to the new forum hub from here.' : '如果你要改走新版課程論壇，也可以直接從這裡切換。'}</div>
+            <button type="button" class="btn-secondary" onclick="App.closeDiscussionDetailModal()">${this.escapeText(t('common.cancel'))}</button>
+            <button type="button" class="btn-secondary" onclick="App.closeDiscussionDetailModal(); openReplyModal(${discussionIdArg});">${this.escapeText(t('discussion.replyAction'))}</button>
+            <button type="button" class="btn-primary" onclick="App.closeDiscussionDetailModal(); showView('moodleForums'); if (typeof MoodleUI !== 'undefined' && typeof MoodleUI.loadForums === 'function') { MoodleUI.loadForums(); }">${this.escapeText(t('discussion.openForumAction'))}</button>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(overlay);
+      if (typeof window.attachDiscussionModalBehavior === 'function') {
+        window.attachDiscussionModalBehavior(overlay, () => this.closeDiscussionDetailModal(), '.btn-primary');
+      }
+      overlay.querySelector('.modal-close')?.addEventListener('click', () => this.closeDiscussionDetailModal());
     } catch (error) {
-      console.error('Open discussion redirect error:', error);
+      console.error('Open discussion detail error:', error);
       showToast(t('toast.discussionLoadFailed'));
     }
   },
@@ -2008,32 +2158,46 @@ const App = {
   /**
    * 渲染諮詢項目
    */
-  renderConsultationItem(consultation) {
+  getConsultationTypeLabel(requestType) {
     const typeMap = {
-      'custom_material': t('app.typeCustomMaterial'),
-      'training': t('app.typeTraining'),
-      'technical': t('app.typeTechnical'),
-      'licensing': t('app.typeLicensing'),
-      'other': t('app.typeOther')
+      custom_material: t('app.typeCustomMaterial'),
+      training: t('app.typeTraining'),
+      technical: t('app.typeTechnical'),
+      licensing: t('app.typeLicensing'),
+      other: t('app.typeOther')
     };
 
+    return typeMap[requestType] || requestType || t('support.chatTitle');
+  },
+
+  getConsultationStatusMeta(status) {
+    const isEnglish = I18n.getLocale() === 'en';
     const statusMap = {
-      'pending': { text: t('app.statusPending'), class: 'warning' },
-      'reviewing': { text: t('app.statusReviewing'), class: 'info' },
-      'quoted': { text: t('app.statusQuoted'), class: 'primary' },
-      'accepted': { text: t('app.statusAccepted'), class: 'success' },
-      'in_progress': { text: t('app.statusInProgress'), class: 'info' },
-      'completed': { text: t('app.statusCompleted'), class: 'success' },
-      'cancelled': { text: t('app.statusCancelled'), class: 'danger' }
+      pending: { text: t('app.statusPending'), class: 'warning' },
+      reviewing: { text: t('app.statusReviewing'), class: 'info' },
+      quoted: { text: t('app.statusQuoted'), class: 'primary' },
+      accepted: { text: t('app.statusAccepted'), class: 'success' },
+      rejected: { text: isEnglish ? 'Rejected' : '已拒絕', class: 'danger' },
+      in_progress: { text: t('app.statusInProgress'), class: 'info' },
+      completed: { text: t('app.statusCompleted'), class: 'success' },
+      cancelled: { text: t('app.statusCancelled'), class: 'danger' }
     };
 
-    const status = statusMap[consultation.status] || statusMap['pending'];
-    const type = typeMap[consultation.requestType] || consultation.requestType;
+    return statusMap[status] || {
+      text: status || (isEnglish ? 'Pending' : '待處理'),
+      class: 'warning'
+    };
+  },
+
+  renderConsultationItem(consultation) {
+    const status = this.getConsultationStatusMeta(consultation.status);
+    const type = this.getConsultationTypeLabel(consultation.requestType);
     const date = this.formatLocaleDate(consultation.createdAt);
-    const title = escapeHtml(consultation.title || t('support.chatTitle'));
+    const title = this.escapeText(consultation.title || t('support.chatTitle'));
+    const consultationId = consultation.consultationId || consultation.id || '';
 
     return `
-      <button type="button" class="consultation-item" onclick="App.openConsultation('${consultation.consultationId}')">
+      <button type="button" class="consultation-item" onclick="App.openConsultation(${this.inlineActionValue(consultationId)})">
         <div class="consultation-header">
           <h3>${title}</h3>
           <span class="status-badge ${status.class}">${status.text}</span>
@@ -2056,15 +2220,220 @@ const App = {
   /**
    * 開啟諮詢詳情
    */
-  async openConsultation(consultationId) {
+  closeConsultationDetailModal() {
+    if (typeof window.removeDiscussionModal === 'function') {
+      window.removeDiscussionModal('legacyConsultationDetailModal');
+      return;
+    }
+
+    document.getElementById('legacyConsultationDetailModal')?.remove();
+  },
+
+  renderConsultationNotes(notes = [], emptyMessage = '') {
+    const items = Array.isArray(notes) ? notes : [];
+    if (items.length === 0) {
+      return typeof window.renderDiscussionState === 'function'
+        ? window.renderDiscussionState(emptyMessage || (I18n.getLocale() === 'en' ? 'No notes yet.' : '目前沒有備註。'))
+        : `<div class="empty-state"><p>${this.escapeText(emptyMessage || (I18n.getLocale() === 'en' ? 'No notes yet.' : '目前沒有備註。'))}</p></div>`;
+    }
+
+    return `
+      <div class="discussion-list">
+        ${items.map((note) => `
+          <article class="discussion-card">
+            <div class="discussion-content">
+              <div class="discussion-meta">
+                <span>${this.escapeText(note.createdBy || note.userDisplayName || (I18n.getLocale() === 'en' ? 'System note' : '系統備註'))}</span>
+                <span class="discussion-meta-separator">•</span>
+                <span>${this.escapeText(this.formatLocaleDate(note.createdAt))}</span>
+              </div>
+              <p class="discussion-preview">${this.escapeText(note.content || '').replace(/\n/g, '<br>')}</p>
+            </div>
+          </article>
+        `).join('')}
+      </div>
+    `;
+  },
+
+  async openConsultationSupport() {
+    this.closeConsultationDetailModal();
+
     try {
       showView('consultations');
       if (window.ChatModule && typeof window.ChatModule.loadRooms === 'function') {
         await window.ChatModule.loadRooms();
       }
-      showToast('已導向客服中心，可從左側對話紀錄繼續處理。');
+      if (window.ChatModule && typeof window.ChatModule.checkStatus === 'function') {
+        await window.ChatModule.checkStatus();
+      }
     } catch (error) {
-      console.error('Open consultation redirect error:', error);
+      console.error('Open consultation support error:', error);
+    }
+  },
+
+  async openConsultation(consultationId) {
+    if (!consultationId) return;
+    this.closeConsultationDetailModal();
+
+    try {
+      const result = await API.consultations.get(consultationId);
+      const consultation = result.success ? result.data : null;
+      if (!consultation) {
+        showToast(result.message || t('toast.consultationFailed'));
+        return;
+      }
+
+      const isEnglish = I18n.getLocale() === 'en';
+      const status = this.getConsultationStatusMeta(consultation.status);
+      const type = this.getConsultationTypeLabel(consultation.requestType);
+      const createdAt = this.escapeText(this.formatLocaleDate(consultation.createdAt));
+      const budget = consultation.estimatedBudget
+        ? `NT$ ${Number(consultation.estimatedBudget).toLocaleString()}`
+        : (isEnglish ? 'Not specified' : '未填寫');
+      const quoteAmount = consultation.quote?.amount !== undefined && consultation.quote?.amount !== null
+        ? `NT$ ${Number(consultation.quote.amount).toLocaleString()}`
+        : null;
+      const consultationIdArg = this.inlineActionValue(consultation.consultationId || consultationId);
+      const overlay = document.createElement('div');
+
+      overlay.id = 'legacyConsultationDetailModal';
+      overlay.className = 'modal-overlay active';
+      overlay.innerHTML = `
+        <div class="modal active discussion-modal" role="dialog" aria-modal="true" aria-labelledby="legacyConsultationDetailModalTitle">
+          <div class="modal-header">
+            <h2 id="legacyConsultationDetailModalTitle">${isEnglish ? 'Consultation detail' : '諮詢詳情'}</h2>
+            <button type="button" class="modal-close" aria-label="${this.escapeText(t('discussion.modalClose'))}">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <div class="discussion-modal-intro">
+              <div class="discussion-modal-intro-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 10h8"/><path d="M8 14h5"/></svg>
+              </div>
+              <div>
+                <div class="discussion-modal-intro-title">${this.escapeText(consultation.title || t('support.chatTitle'))}</div>
+                <p class="discussion-modal-intro-copy">${isEnglish ? 'Review the request scope, internal notes, quote status, and then continue in the support center if needed.' : '先看清楚需求內容、目前狀態與報價，再決定是否要前往客服中心繼續處理。'}</p>
+              </div>
+            </div>
+
+            <div class="discussion-modal-grid">
+              <div class="bridge-form-group">
+                <label class="bridge-form-label">${isEnglish ? 'Request type' : '需求類型'}</label>
+                <div>${this.escapeText(type)}</div>
+              </div>
+              <div class="bridge-form-group">
+                <label class="bridge-form-label">${isEnglish ? 'Status' : '處理狀態'}</label>
+                <div><span class="status-badge ${status.class}">${this.escapeText(status.text)}</span></div>
+              </div>
+              <div class="bridge-form-group">
+                <label class="bridge-form-label">${isEnglish ? 'Submitted at' : '申請時間'}</label>
+                <div>${createdAt}</div>
+              </div>
+              <div class="bridge-form-group">
+                <label class="bridge-form-label">${isEnglish ? 'Estimated budget' : '預估預算'}</label>
+                <div>${this.escapeText(budget)}</div>
+              </div>
+            </div>
+
+            <div class="bridge-form-group">
+              <label class="bridge-form-label">${isEnglish ? 'Description' : '需求說明'}</label>
+              <p class="discussion-preview">${this.escapeText(consultation.description || '').replace(/\n/g, '<br>') || this.escapeText(isEnglish ? 'No description provided.' : '未填寫需求說明。')}</p>
+            </div>
+
+            ${(consultation.subject || consultation.gradeLevel || consultation.preferredContactTime || consultation.contactPhone) ? `
+              <div class="discussion-modal-grid">
+                ${consultation.subject ? `
+                  <div class="bridge-form-group">
+                    <label class="bridge-form-label">${isEnglish ? 'Subject' : '科目'}</label>
+                    <div>${this.escapeText(consultation.subject)}</div>
+                  </div>
+                ` : ''}
+                ${consultation.gradeLevel ? `
+                  <div class="bridge-form-group">
+                    <label class="bridge-form-label">${isEnglish ? 'Grade level' : '年級'}</label>
+                    <div>${this.escapeText(consultation.gradeLevel)}</div>
+                  </div>
+                ` : ''}
+                ${consultation.preferredContactTime ? `
+                  <div class="bridge-form-group">
+                    <label class="bridge-form-label">${isEnglish ? 'Preferred contact time' : '偏好聯繫時段'}</label>
+                    <div>${this.escapeText(consultation.preferredContactTime)}</div>
+                  </div>
+                ` : ''}
+                ${consultation.contactPhone ? `
+                  <div class="bridge-form-group">
+                    <label class="bridge-form-label">${isEnglish ? 'Contact phone' : '聯絡電話'}</label>
+                    <div>${this.escapeText(consultation.contactPhone)}</div>
+                  </div>
+                ` : ''}
+              </div>
+            ` : ''}
+
+            ${consultation.quote ? `
+              <div class="bridge-form-group">
+                <label class="bridge-form-label">${isEnglish ? 'Quote summary' : '報價摘要'}</label>
+                <div class="discussion-list">
+                  <article class="discussion-card">
+                    <div class="discussion-content">
+                      <div class="discussion-meta">
+                        <span>${this.escapeText(quoteAmount || (isEnglish ? 'Quoted' : '已提供報價'))}</span>
+                        ${consultation.quote?.validUntil ? `<span class="discussion-meta-separator">•</span><span>${this.escapeText(this.formatLocaleDate(consultation.quote.validUntil))}</span>` : ''}
+                      </div>
+                      <p class="discussion-preview">${this.escapeText(consultation.quote.description || consultation.quote.notes || (isEnglish ? 'No additional quote notes.' : '目前沒有額外報價說明。')).replace(/\n/g, '<br>')}</p>
+                    </div>
+                  </article>
+                </div>
+              </div>
+            ` : ''}
+
+            ${Array.isArray(consultation.attachments) && consultation.attachments.length > 0 ? `
+              <div class="bridge-form-group">
+                <label class="bridge-form-label">${isEnglish ? 'Attachments' : '附件'}</label>
+                <div class="discussion-tags">
+                  ${consultation.attachments.map((attachment) => `<span class="tag">${this.escapeText(attachment.fileName || attachment.name || attachment.url || 'attachment')}</span>`).join('')}
+                </div>
+              </div>
+            ` : ''}
+
+            <div class="bridge-form-group">
+              <label class="bridge-form-label">${isEnglish ? 'Admin notes' : '管理端備註'}</label>
+              ${this.renderConsultationNotes(
+                consultation.adminNotes,
+                isEnglish ? 'No admin notes yet.' : '目前沒有管理端備註。'
+              )}
+            </div>
+
+            <div class="bridge-form-group">
+              <label class="bridge-form-label">${isEnglish ? 'Your notes' : '你的備註'}</label>
+              ${this.renderConsultationNotes(
+                consultation.userNotes,
+                isEnglish ? 'No user notes yet.' : '目前沒有補充備註。'
+              )}
+            </div>
+          </div>
+          <div class="modal-footer">
+            <div class="discussion-modal-note">${isEnglish ? 'This keeps the old consultation record readable while support chat remains in the service center.' : '這個視窗負責保留舊版諮詢案件明細；客服對話則維持在客服中心處理。'}</div>
+            <button type="button" class="btn-secondary" onclick="App.closeConsultationDetailModal()">${this.escapeText(t('common.cancel'))}</button>
+            ${consultation.status === 'quoted' ? `
+              <button type="button" class="btn-secondary" onclick="App.rejectQuote(${consultationIdArg}, true)">${isEnglish ? 'Reject quote' : '婉拒報價'}</button>
+              <button type="button" class="btn-secondary" onclick="App.acceptQuote(${consultationIdArg}, true)">${isEnglish ? 'Accept quote' : '接受報價'}</button>
+            ` : ''}
+            ${['pending', 'reviewing'].includes(consultation.status) ? `
+              <button type="button" class="btn-secondary" onclick="App.cancelConsultation(${consultationIdArg}, true)">${isEnglish ? 'Cancel request' : '取消申請'}</button>
+            ` : ''}
+            <button type="button" class="btn-primary" onclick="App.openConsultationSupport(${consultationIdArg})">${isEnglish ? 'Open support center' : '前往客服中心'}</button>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(overlay);
+      if (typeof window.attachDiscussionModalBehavior === 'function') {
+        window.attachDiscussionModalBehavior(overlay, () => this.closeConsultationDetailModal(), '.btn-primary');
+      }
+      overlay.querySelector('.modal-close')?.addEventListener('click', () => this.closeConsultationDetailModal());
+    } catch (error) {
+      console.error('Open consultation detail error:', error);
       showToast(t('toast.consultationFailed'));
     }
   },
@@ -2093,12 +2462,15 @@ const App = {
   /**
    * 接受報價
    */
-  async acceptQuote(consultationId) {
+  async acceptQuote(consultationId, reopenDetail = false) {
     try {
       const result = await API.consultations.acceptQuote(consultationId);
       if (result.success) {
         showToast(t('toast.quoteAccepted'));
         await this.loadConsultations();
+        if (reopenDetail) {
+          await this.openConsultation(consultationId);
+        }
         return true;
       } else {
         showToast(result.message || t('toast.operationFailed'));
@@ -2106,6 +2478,62 @@ const App = {
       }
     } catch (error) {
       console.error('Accept quote error:', error);
+      showToast(t('toast.operationFailed'));
+      return false;
+    }
+  },
+
+  async rejectQuote(consultationId, reopenDetail = false) {
+    const confirmMessage = I18n.getLocale() === 'en'
+      ? 'Reject this quote?'
+      : '確定要婉拒這筆報價嗎？';
+    if (typeof window !== 'undefined' && !window.confirm(confirmMessage)) {
+      return false;
+    }
+
+    try {
+      const result = await API.consultations.rejectQuote(consultationId);
+      if (result.success) {
+        showToast(I18n.getLocale() === 'en' ? 'Quote rejected.' : '已婉拒報價。');
+        await this.loadConsultations();
+        if (reopenDetail) {
+          await this.openConsultation(consultationId);
+        }
+        return true;
+      }
+
+      showToast(result.message || t('toast.operationFailed'));
+      return false;
+    } catch (error) {
+      console.error('Reject quote error:', error);
+      showToast(t('toast.operationFailed'));
+      return false;
+    }
+  },
+
+  async cancelConsultation(consultationId, reopenDetail = false) {
+    const confirmMessage = I18n.getLocale() === 'en'
+      ? 'Cancel this consultation request?'
+      : '確定要取消這筆諮詢申請嗎？';
+    if (typeof window !== 'undefined' && !window.confirm(confirmMessage)) {
+      return false;
+    }
+
+    try {
+      const result = await API.consultations.cancel(consultationId);
+      if (result.success) {
+        showToast(I18n.getLocale() === 'en' ? 'Consultation request cancelled.' : '已取消諮詢申請。');
+        await this.loadConsultations();
+        if (reopenDetail) {
+          await this.openConsultation(consultationId);
+        }
+        return true;
+      }
+
+      showToast(result.message || t('toast.operationFailed'));
+      return false;
+    } catch (error) {
+      console.error('Cancel consultation error:', error);
       showToast(t('toast.operationFailed'));
       return false;
     }

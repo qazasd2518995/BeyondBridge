@@ -15,6 +15,51 @@ const App = {
   consultationsCache: [],
   discussionsCache: [],
 
+  getCurrentUser() {
+    return this.currentUser || API.getCurrentUser();
+  },
+
+  syncCurrentUserState(user) {
+    if (!user) return null;
+    this.currentUser = user;
+    API.setCurrentUser(user);
+    return user;
+  },
+
+  isAdminUser(user = this.getCurrentUser()) {
+    return !!(user && (user.isAdmin || user.role === 'admin'));
+  },
+
+  isStudentUser(user = this.getCurrentUser()) {
+    return !!(user && user.role === 'student');
+  },
+
+  isTeachingUser(user = this.getCurrentUser()) {
+    if (!user) return false;
+    if (this.isAdminUser(user)) return true;
+    return ['manager', 'coursecreator', 'educator', 'trainer', 'creator', 'teacher', 'assistant'].includes(user.role);
+  },
+
+  clampProgressValue(value) {
+    if (window.PlatformUIRuntime?.clampProgressValue) {
+      return window.PlatformUIRuntime.clampProgressValue(value);
+    }
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return 0;
+    return Math.max(0, Math.min(100, numeric));
+  },
+
+  applyProgressData(root = document) {
+    if (window.PlatformUIRuntime?.applyProgressWidths) {
+      window.PlatformUIRuntime.applyProgressWidths(root);
+      return;
+    }
+    if (!root || typeof root.querySelectorAll !== 'function') return;
+    root.querySelectorAll('[data-progress-width]').forEach((node) => {
+      node.style.width = `${this.clampProgressValue(node.dataset.progressWidth)}%`;
+    });
+  },
+
   /**
    * 初始化應用程式
    */
@@ -27,8 +72,7 @@ const App = {
         // 驗證 token 有效性
         const result = await API.auth.me();
         if (result.success) {
-          this.currentUser = result.data;
-          API.setCurrentUser(result.data);
+          this.syncCurrentUserState(result.data);
           this.showApp();
           await this.loadDashboardData();
           // 觸發登入事件，通知聊天系統初始化
@@ -49,18 +93,33 @@ const App = {
    * 顯示登入頁面
    */
   showLogin() {
-    document.getElementById('loginView').style.display = 'grid';
-    document.getElementById('appContainer').style.display = 'none';
+    document.getElementById('loginView').hidden = false;
+    document.getElementById('appContainer').hidden = true;
+    if (window.PlatformRouter?.renderAuthScreen) {
+      window.PlatformRouter.renderAuthScreen();
+    }
   },
 
   /**
    * 顯示主應用程式
    */
   showApp() {
-    document.getElementById('loginView').style.display = 'none';
-    document.getElementById('appContainer').style.display = 'flex';
+    document.getElementById('loginView').hidden = true;
     this.updateUserUI();
     this.updateSidebarByRole();
+    document.getElementById('appContainer').hidden = false;
+    if (window.PlatformRouter?.applyCurrentRoute) {
+      window.PlatformRouter.applyCurrentRoute({ replace: true }).catch((error) => {
+        console.error('Apply platform route error:', error);
+        if (typeof window.showView === 'function') {
+          window.showView('dashboard', { replaceHistory: true });
+        }
+      });
+      return;
+    }
+    if (typeof window.showView === 'function') {
+      window.showView('dashboard', { replaceHistory: true });
+    }
   },
 
   /**
@@ -70,27 +129,27 @@ const App = {
     const user = this.currentUser || API.getCurrentUser();
     if (!user) return;
 
-    const isStudent = user.role === 'student';
+    const isStudent = this.isStudentUser(user);
     const sidebar = document.querySelector('.sidebar-nav');
     if (!sidebar) return;
 
     // 定義建橋者（教師/教育者）側邊欄 - 優化版
     const educatorSidebar = `
       <div class="nav-section">
-        <div class="nav-section-title">教學中心</div>
+        <div class="nav-section-title">${t('nav.teachingCenter')}</div>
         <a href="#" class="nav-item active" data-view="dashboard" onclick="navigateTo(this, 'dashboard')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
             <polyline points="9,22 9,12 15,12 15,22"/>
           </svg>
-          教學儀表板
+          ${t('nav.dashboard')}
         </a>
         <a href="#" class="nav-item" data-view="moodleCourses" onclick="showView('moodleCourses'); MoodleUI.loadCourses();">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/>
             <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>
           </svg>
-          我的課程
+          ${t('nav.myCourses')}
         </a>
         <a href="#" class="nav-item" data-view="classes" onclick="navigateTo(this, 'classes')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -99,25 +158,25 @@ const App = {
             <path d="M23 21v-2a4 4 0 00-3-3.87"/>
             <path d="M16 3.13a4 4 0 010 7.75"/>
           </svg>
-          我的學生
+          ${t('nav.myStudents')}
         </a>
         <a href="#" class="nav-item" data-view="moodleCalendar" onclick="showView('moodleCalendar'); MoodleUI.loadCalendar();">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
             <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
           </svg>
-          教學行事曆
+          ${t('nav.calendar')}
         </a>
         <a href="#" class="nav-item" data-view="moodleNotifications" onclick="showView('moodleNotifications'); MoodleUI.loadNotifications();">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
             <path d="M13.73 21a2 2 0 01-3.46 0"/>
           </svg>
-          通知中心
+          ${t('nav.notifications')}
         </a>
       </div>
       <div class="nav-section">
-        <div class="nav-section-title">教學活動</div>
+        <div class="nav-section-title">${t('nav.teachingActivities')}</div>
         <a href="#" class="nav-item" data-view="moodleAssignments" onclick="showView('moodleAssignments'); MoodleUI.loadAssignments();">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
@@ -125,7 +184,7 @@ const App = {
             <line x1="12" y1="18" x2="12" y2="12"/>
             <line x1="9" y1="15" x2="15" y2="15"/>
           </svg>
-          作業管理
+          ${t('nav.assignments')}
         </a>
         <a href="#" class="nav-item" data-view="moodleQuizzes" onclick="showView('moodleQuizzes'); MoodleUI.loadQuizzes();">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -133,7 +192,7 @@ const App = {
             <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/>
             <line x1="12" y1="17" x2="12.01" y2="17"/>
           </svg>
-          測驗管理
+          ${t('nav.quizzes')}
         </a>
         <a href="#" class="nav-item" data-view="questionBank" onclick="showView('questionBank'); MoodleUI.openQuestionBank();">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -141,23 +200,23 @@ const App = {
             <path d="M9 9h6M9 13h3"/>
             <circle cx="16" cy="13" r="1"/>
           </svg>
-          題庫管理
+          ${t('nav.questionBank')}
         </a>
         <a href="#" class="nav-item" data-view="moodleForums" onclick="showView('moodleForums'); MoodleUI.loadForums();">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
           </svg>
-          討論區管理
+          ${t('nav.forums')}
         </a>
       </div>
       <div class="nav-section">
-        <div class="nav-section-title">評量與成績</div>
+        <div class="nav-section-title">${t('nav.gradesAndAssessment')}</div>
         <a href="#" class="nav-item" data-view="moodleGradebook" onclick="showView('moodleGradebook'); MoodleUI.loadGradebook();">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
             <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
           </svg>
-          成績簿
+          ${t('nav.gradebook')}
         </a>
         <a href="#" class="nav-item" data-view="rubrics" onclick="showView('rubrics'); MoodleUI.openRubricsManager();">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -167,32 +226,32 @@ const App = {
             <path d="M9 3v18"/>
             <path d="M15 3v18"/>
           </svg>
-          評分標準
+          ${t('nav.rubrics')}
         </a>
         <a href="#" class="nav-item" data-view="badges" onclick="showView('badges'); MoodleUI.openBadges();">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="8" r="6"/>
             <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/>
           </svg>
-          徽章頒發
+          ${t('nav.badges')}
         </a>
-        <a href="#" class="nav-item" data-view="gradebookManagement" onclick="showView('gradebookManagement'); MoodleUI.openGradebookManagement();">
+        <a href="#" class="nav-item" data-view="teacherAnalytics" onclick="showView('teacherAnalytics'); MoodleUI.openTeacherAnalytics();">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="20" x2="18" y2="10"/>
             <line x1="12" y1="20" x2="12" y2="4"/>
             <line x1="6" y1="20" x2="6" y2="14"/>
           </svg>
-          學習分析
+          ${t('nav.analytics')}
         </a>
       </div>
       <div class="nav-section">
-        <div class="nav-section-title">教學資源</div>
+        <div class="nav-section-title">${t('nav.resources')}</div>
         <a href="#" class="nav-item" data-view="library" onclick="navigateTo(this, 'library')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M4 19.5A2.5 2.5 0 016.5 17H20"/>
             <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>
           </svg>
-          教材庫
+          ${t('nav.library')}
         </a>
         <a href="#" class="nav-item" data-view="licenses" onclick="navigateTo(this, 'licenses')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -202,23 +261,23 @@ const App = {
             <line x1="16" y1="17" x2="8" y2="17"/>
             <polyline points="10,9 9,9 8,9"/>
           </svg>
-          授權管理
+          ${t('nav.licenses')}
         </a>
         <a href="#" class="nav-item" data-view="moodleFiles" onclick="showView('moodleFiles');">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>
           </svg>
-          檔案管理
+          ${t('nav.myResources')}
         </a>
       </div>
       <div class="nav-section">
-        <div class="nav-section-title">課程設定</div>
+        <div class="nav-section-title">${t('nav.courseSettings')}</div>
         <a href="#" class="nav-item" data-view="courseCompletionSettings" onclick="showView('courseCompletionSettings'); MoodleUI.openCourseCompletionSettings();">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
             <polyline points="22,4 12,14.01 9,11.01"/>
           </svg>
-          完成條件
+          ${t('nav.completionConditions')}
         </a>
         <a href="#" class="nav-item" data-view="learningPaths" onclick="showView('learningPaths'); MoodleUI.openLearningPaths();">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -227,7 +286,7 @@ const App = {
             <path d="M6 20v-6"/>
             <path d="M18 10l-6-6-6 6"/>
           </svg>
-          學習路徑
+          ${t('nav.learningPaths')}
         </a>
         <a href="#" class="nav-item" data-view="courses" onclick="navigateTo(this, 'courses')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -235,7 +294,7 @@ const App = {
             <polyline points="2,17 12,22 22,17"/>
             <polyline points="2,12 12,17 22,12"/>
           </svg>
-          班級管理
+          ${t('nav.classManagement')}
         </a>
         <a href="#" class="nav-item" data-view="groupsManager" onclick="showView('groupsManager');">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -244,17 +303,17 @@ const App = {
             <path d="M23 21v-2a4 4 0 00-3-3.87"/>
             <path d="M16 3.13a4 4 0 010 7.75"/>
           </svg>
-          分組管理
+          ${t('nav.groupManagement')}
         </a>
       </div>
       <div class="nav-section">
-        <div class="nav-section-title">設定</div>
+        <div class="nav-section-title">${t('nav.settings')}</div>
         <a href="#" class="nav-item" data-view="settings" onclick="navigateTo(this, 'settings')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="3"/>
             <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
           </svg>
-          個人設定
+          ${t('nav.personalSettings')}
         </a>
         <a href="#" class="nav-item" data-view="logout" onclick="navigateTo(this, 'logout')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -262,7 +321,17 @@ const App = {
             <polyline points="16,17 21,12 16,7"/>
             <line x1="21" y1="12" x2="9" y2="12"/>
           </svg>
-          登出
+          ${t('nav.logout')}
+        </a>
+      </div>
+      <div class="nav-section sidebar-locale-section">
+        <a href="#" class="nav-item sidebar-locale-link" onclick="event.preventDefault(); I18n.setLocale(I18n.getLocale() === 'zh-TW' ? 'en' : 'zh-TW');">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="sidebar-locale-icon">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="2" y1="12" x2="22" y2="12"/>
+            <path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
+          </svg>
+          ${t('lang.toggle')}
         </a>
       </div>
     `;
@@ -270,38 +339,38 @@ const App = {
     // 定義探橋者（學生）側邊欄 - 簡化版
     const studentSidebar = `
       <div class="nav-section">
-        <div class="nav-section-title">我的學習</div>
+        <div class="nav-section-title">${t('nav.learningCenter')}</div>
         <a href="#" class="nav-item active" data-view="dashboard" onclick="navigateTo(this, 'dashboard')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
             <polyline points="9,22 9,12 15,12 15,22"/>
           </svg>
-          學習儀表板
+          ${t('nav.learnerDashboard')}
         </a>
         <a href="#" class="nav-item" data-view="moodleCourses" onclick="showView('moodleCourses'); MoodleUI.loadCourses();">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/>
             <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>
           </svg>
-          我的課程
+          ${t('nav.enrolledCourses')}
         </a>
         <a href="#" class="nav-item" data-view="moodleCalendar" onclick="showView('moodleCalendar'); MoodleUI.loadCalendar();">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
             <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
           </svg>
-          學習行事曆
+          ${t('nav.learnerCalendar')}
         </a>
         <a href="#" class="nav-item" data-view="moodleNotifications" onclick="showView('moodleNotifications'); MoodleUI.loadNotifications();">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
             <path d="M13.73 21a2 2 0 01-3.46 0"/>
           </svg>
-          通知中心
+          ${t('nav.learnerNotifications')}
         </a>
       </div>
       <div class="nav-section">
-        <div class="nav-section-title">學習任務</div>
+        <div class="nav-section-title">${t('nav.learningTasks')}</div>
         <a href="#" class="nav-item" data-view="moodleAssignments" onclick="showView('moodleAssignments'); MoodleUI.loadAssignments();">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
@@ -309,7 +378,7 @@ const App = {
             <line x1="12" y1="18" x2="12" y2="12"/>
             <line x1="9" y1="15" x2="15" y2="15"/>
           </svg>
-          待交作業
+          ${t('nav.pendingAssignments')}
         </a>
         <a href="#" class="nav-item" data-view="moodleQuizzes" onclick="showView('moodleQuizzes'); MoodleUI.loadQuizzes();">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -317,30 +386,23 @@ const App = {
             <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/>
             <line x1="12" y1="17" x2="12.01" y2="17"/>
           </svg>
-          待考測驗
+          ${t('nav.pendingQuizzes')}
         </a>
         <a href="#" class="nav-item" data-view="moodleForums" onclick="showView('moodleForums'); MoodleUI.loadForums();">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
           </svg>
-          課程討論
+          ${t('nav.classDiscussions')}
         </a>
       </div>
       <div class="nav-section">
-        <div class="nav-section-title">學習成果</div>
-        <a href="#" class="nav-item" data-view="moodleGradebook" onclick="showView('moodleGradebook'); MoodleUI.loadGradebook();">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
-            <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
-          </svg>
-          我的成績
-        </a>
+        <div class="nav-section-title">${t('nav.learningOutcomes')}</div>
         <a href="#" class="nav-item" data-view="badges" onclick="showView('badges'); MoodleUI.openBadges();">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="8" r="6"/>
             <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/>
           </svg>
-          我的徽章
+          ${t('nav.myBadges')}
         </a>
         <a href="#" class="nav-item" data-view="learningPaths" onclick="showView('learningPaths'); MoodleUI.openLearningPaths();">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -349,35 +411,17 @@ const App = {
             <path d="M6 20v-6"/>
             <path d="M18 10l-6-6-6 6"/>
           </svg>
-          學習進度
+          ${t('nav.learningProgress')}
         </a>
       </div>
       <div class="nav-section">
-        <div class="nav-section-title">學習社群</div>
-        <a href="#" class="nav-item" data-view="studentClasses" onclick="navigateTo(this, 'studentClasses')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
-            <circle cx="9" cy="7" r="4"/>
-            <path d="M23 21v-2a4 4 0 00-3-3.87"/>
-            <path d="M16 3.13a4 4 0 010 7.75"/>
-          </svg>
-          我的班級
-        </a>
-        <a href="#" class="nav-item" data-view="moodleFiles" onclick="showView('moodleFiles');">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>
-          </svg>
-          我的檔案
-        </a>
-      </div>
-      <div class="nav-section">
-        <div class="nav-section-title">設定</div>
+        <div class="nav-section-title">${t('nav.settings')}</div>
         <a href="#" class="nav-item" data-view="settings" onclick="navigateTo(this, 'settings')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="3"/>
             <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
           </svg>
-          個人設定
+          ${t('nav.personalSettings')}
         </a>
         <a href="#" class="nav-item" data-view="logout" onclick="navigateTo(this, 'logout')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -385,7 +429,17 @@ const App = {
             <polyline points="16,17 21,12 16,7"/>
             <line x1="21" y1="12" x2="9" y2="12"/>
           </svg>
-          登出
+          ${t('nav.logout')}
+        </a>
+      </div>
+      <div class="nav-section sidebar-locale-section">
+        <a href="#" class="nav-item sidebar-locale-link" onclick="event.preventDefault(); I18n.setLocale(I18n.getLocale() === 'zh-TW' ? 'en' : 'zh-TW');">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="sidebar-locale-icon">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="2" y1="12" x2="22" y2="12"/>
+            <path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
+          </svg>
+          ${t('lang.toggle')}
         </a>
       </div>
     `;
@@ -393,20 +447,55 @@ const App = {
     // 管理員專用區塊
     const adminSection = `
       <div class="nav-section">
-        <div class="nav-section-title">系統管理</div>
+        <div class="nav-section-title">${t('nav.systemAdmin')}</div>
         <a href="#" class="nav-item" data-view="rolesManagement" onclick="showView('rolesManagement'); MoodleUI.openRolesManagement();">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/>
             <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
           </svg>
-          角色權限
+          ${t('nav.rolesPermissions')}
         </a>
         <a href="#" class="nav-item" data-view="courseCategories" onclick="showView('courseCategories'); MoodleUI.openCourseCategories();">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>
             <path d="M12 11v6M9 14h6"/>
           </svg>
-          課程類別
+          ${t('nav.courseCategories')}
+        </a>
+        <a href="#" class="nav-item" data-view="auditLogs" onclick="showView('auditLogs'); MoodleUI.openAuditLogs();">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+            <path d="M14 2v6h6"/>
+            <path d="M16 13H8M16 17H8M10 9H8"/>
+          </svg>
+          ${t('admin.nav.auditLogs')}
+        </a>
+        <a href="#" class="nav-item" data-view="scormManager" onclick="showView('scormManager'); MoodleUI.openScormManager();">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+            <line x1="12" y1="22.08" x2="12" y2="12"/>
+          </svg>
+          ${t('admin.nav.scorm')}
+        </a>
+        <a href="#" class="nav-item" data-view="ltiManager" onclick="showView('ltiManager'); MoodleUI.openLtiManager();">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="18" cy="5" r="3"/>
+            <circle cx="6" cy="12" r="3"/>
+            <circle cx="18" cy="19" r="3"/>
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+          </svg>
+          ${t('admin.nav.lti')}
+        </a>
+        <a href="#" class="nav-item" data-view="h5pManager" onclick="showView('h5pManager'); MoodleUI.openH5pManager();">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+            <line x1="8" y1="21" x2="16" y2="21"/>
+            <line x1="12" y1="17" x2="12" y2="21"/>
+            <path d="M7 8h2v6H7zM11 8h2v6h-2zM15 8h2v6h-2"/>
+          </svg>
+          ${t('admin.nav.h5p')}
         </a>
         <a href="#" class="nav-item" onclick="window.location.href='/admin';">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -415,12 +504,12 @@ const App = {
             <rect x="14" y="12" width="7" height="9"/>
             <rect x="3" y="16" width="7" height="5"/>
           </svg>
-          管理後台
+          ${t('nav.adminPanel')}
         </a>
       </div>
     `;
 
-    const isAdmin = user.role === 'admin' || user.isAdmin;
+    const isAdmin = this.isAdminUser(user);
 
     if (isStudent) {
       sidebar.innerHTML = studentSidebar;
@@ -428,6 +517,35 @@ const App = {
       // 教師側邊欄，如果是管理員則添加系統管理區塊
       sidebar.innerHTML = isAdmin ? (educatorSidebar + adminSection) : educatorSidebar;
     }
+  },
+
+  /**
+   * 更新用戶介面資訊
+   */
+  renderProfileAvatar(container, user, fallbackText) {
+    if (!container) return;
+
+    const label = fallbackText || t('app.user');
+    const initial = (label || t('app.user')).trim().charAt(0) || t('app.user').charAt(0);
+    const avatarUrl = user?.avatarUrl;
+
+    container.replaceChildren();
+    container.classList.toggle('has-image', Boolean(avatarUrl));
+
+    if (avatarUrl) {
+      const image = document.createElement('img');
+      image.className = 'profile-avatar-image';
+      image.alt = label;
+      image.src = avatarUrl;
+      image.addEventListener('error', () => {
+        container.classList.remove('has-image');
+        container.textContent = initial;
+      }, { once: true });
+      container.appendChild(image);
+      return;
+    }
+
+    container.textContent = initial;
   },
 
   /**
@@ -442,20 +560,24 @@ const App = {
     const userRole = document.querySelector('.user-role');
     const userAvatar = document.querySelector('.user-avatar');
 
-    if (userName) userName.textContent = user.displayName || user.displayNameZh || '用戶';
+    if (userName) userName.textContent = user.displayName || user.displayNameZh || t('app.user');
     if (userRole) {
       const roleMap = {
-        'educator': '建橋者',
-        'trainer': '橋樑工匠',
-        'creator': '知識建築師',
-        'admin': '橋樑守護者',
-        'student': '探橋者'
+        'educator': t('role.educator'),
+        'trainer': t('role.trainer'),
+        'creator': t('role.creator'),
+        'manager': t('role.manager'),
+        'coursecreator': t('role.coursecreator'),
+        'teacher': t('role.teacher'),
+        'assistant': t('role.assistant'),
+        'admin': t('role.admin'),
+        'student': t('role.student')
       };
-      userRole.textContent = roleMap[user.role] || user.role || '旅人';
+      userRole.textContent = roleMap[user.role] || user.role || t('role.default');
     }
     if (userAvatar) {
-      const initial = (user.displayNameZh || user.displayName || '用')[0];
-      userAvatar.textContent = initial;
+      const avatarLabel = user.displayNameZh || user.displayName || t('app.user');
+      this.renderProfileAvatar(userAvatar, user, avatarLabel);
     }
 
     // 更新設定頁面
@@ -499,25 +621,26 @@ const App = {
     if (notifyEmail) notifyEmail.checked = notifications.email === true;
 
     // 更新頂部 banner
-    const profileBanner = settingsView.querySelector('.card-body');
-    if (profileBanner) {
-      const initial = (user.displayNameZh || user.displayName || '用')[0];
-      const avatarDiv = profileBanner.querySelector('div[style*="width: 80px"]');
-      if (avatarDiv) avatarDiv.textContent = initial;
+    const heroInitial = document.getElementById('settingsProfileInitial');
+    const heroName = document.getElementById('settingsProfileName');
+    const heroEmail = document.getElementById('settingsProfileEmail');
+    const heroTier = document.getElementById('settingsHeroTier');
+    const heroJoinDate = document.getElementById('settingsHeroJoinDate');
+    const heroLicense = document.getElementById('settingsHeroLicense');
 
-      const nameH2 = profileBanner.querySelector('h2');
-      if (nameH2) nameH2.textContent = user.displayName || user.displayNameZh || '用戶';
-
-      const emailP = profileBanner.querySelector('p');
-      if (emailP) emailP.textContent = user.email || '';
-
-      // 更新會員資訊
-      const infoSpans = profileBanner.querySelectorAll('div[style*="display: flex; gap: 1.5rem"] span');
-      if (infoSpans.length >= 3) {
-        infoSpans[0].innerHTML = `<strong>會員等級:</strong> ${user.subscriptionTier === 'professional' ? '專業版' : user.subscriptionTier === 'basic' ? '基本版' : '免費版'}`;
-        infoSpans[1].innerHTML = `<strong>加入日期:</strong> ${user.createdAt ? new Date(user.createdAt).toLocaleDateString('zh-TW') : '-'}`;
-        infoSpans[2].innerHTML = `<strong>授權額度:</strong> ${user.licenseUsed || 0}/${user.licenseQuota || 0}`;
-      }
+    if (heroInitial) {
+      this.renderProfileAvatar(heroInitial, user, user.displayName || user.displayNameZh || t('app.user'));
+    }
+    if (heroName) heroName.textContent = user.displayName || user.displayNameZh || t('app.user');
+    if (heroEmail) heroEmail.textContent = user.email || '';
+    if (heroTier) {
+      heroTier.innerHTML = `<span class="settings-hero-meta-label">${t('settings.memberLevel')}</span><strong class="settings-hero-meta-value">${user.subscriptionTier === 'professional' ? t('settings.tierPro') : user.subscriptionTier === 'basic' ? t('settings.tierBasic') : t('settings.tierFree')}</strong>`;
+    }
+    if (heroJoinDate) {
+      heroJoinDate.innerHTML = `<span class="settings-hero-meta-label">${t('settings.joinDate')}</span><strong class="settings-hero-meta-value">${this.formatLocaleDate(user.createdAt)}</strong>`;
+    }
+    if (heroLicense) {
+      heroLicense.innerHTML = `<span class="settings-hero-meta-label">${t('settings.licenseQuota')}</span><strong class="settings-hero-meta-value">${user.licenseUsed || 0}/${user.licenseQuota || 0}</strong>`;
     }
   },
 
@@ -534,18 +657,16 @@ const App = {
 
       const result = await API.users.update(user.userId, { preferences });
       if (result.success) {
-        const updatedUser = { ...user, preferences };
-        API.setCurrentUser(updatedUser);
-        this.currentUser = updatedUser;
-        showToast('通知設定已更新！');
+        const updatedUser = this.syncCurrentUserState({ ...user, preferences });
+        showToast(t('toast.notificationUpdated'));
         return true;
       } else {
-        showToast(result.message || '更新失敗');
+        showToast(result.message || t('toast.updateFailed'));
         return false;
       }
     } catch (error) {
       console.error('Update notification settings error:', error);
-      showToast('更新失敗');
+      showToast(t('toast.updateFailed'));
       return false;
     }
   },
@@ -556,7 +677,7 @@ const App = {
   async loadDashboardData() {
     try {
       const user = API.getCurrentUser();
-      const isStudent = user && user.role === 'student';
+      const isStudent = this.isStudentUser(user);
 
       // 並行載入各項資料
       const promises = [
@@ -582,7 +703,7 @@ const App = {
       await Promise.all(promises);
 
       // 根據角色顯示/隱藏儀表板區塊
-      const isTeacher = user && (user.role === 'educator' || user.role === 'trainer' || user.role === 'creator');
+      const isTeacher = this.isTeachingUser(user);
       this.updateDashboardLayout(isStudent, isTeacher);
 
       // 教師專屬數據載入
@@ -605,19 +726,19 @@ const App = {
 
     // 根據角色顯示對應的儀表板
     if (isTeacher) {
-      if (studentDashboard) studentDashboard.style.display = 'none';
-      if (teacherDashboard) teacherDashboard.style.display = 'block';
+      if (studentDashboard) studentDashboard.hidden = true;
+      if (teacherDashboard) teacherDashboard.hidden = false;
     } else {
-      if (studentDashboard) studentDashboard.style.display = 'block';
-      if (teacherDashboard) teacherDashboard.style.display = 'none';
+      if (studentDashboard) studentDashboard.hidden = false;
+      if (teacherDashboard) teacherDashboard.hidden = true;
     }
 
     // 學生專屬區塊
     if (urgentSection) {
-      urgentSection.style.display = isStudent ? 'block' : 'none';
+      urgentSection.hidden = !isStudent;
     }
     if (achievementsCard) {
-      achievementsCard.style.display = isStudent ? 'block' : 'none';
+      achievementsCard.hidden = !isStudent;
     }
   },
 
@@ -639,17 +760,24 @@ const App = {
       // 處理作業截止日期
       if (assignmentsRes.success && assignmentsRes.data) {
         assignmentsRes.data.forEach(assignment => {
-          if (assignment.dueDate) {
-            const dueDate = new Date(assignment.dueDate);
-            if (dueDate > now && dueDate <= sevenDaysLater && assignment.status !== 'submitted') {
-              deadlines.push({
-                type: 'assignment',
-                title: assignment.title,
-                dueDate: dueDate,
-                courseTitle: assignment.courseTitle,
-                id: assignment.assignmentId
-              });
-            }
+          if (!assignment.dueDate) return;
+
+          const dueDate = new Date(assignment.dueDate);
+          const submitted = Boolean(
+            assignment.submitted === true ||
+            assignment.submissionStatus?.submitted === true ||
+            assignment.submission?.submitted === true ||
+            assignment.submission?.submittedAt
+          );
+
+          if (dueDate > now && dueDate <= sevenDaysLater && !submitted) {
+            deadlines.push({
+              type: 'assignment',
+              title: assignment.title,
+              dueDate,
+              courseTitle: assignment.courseTitle || assignment.courseName || '',
+              id: assignment.assignmentId
+            });
           }
         });
       }
@@ -657,17 +785,24 @@ const App = {
       // 處理測驗截止日期
       if (quizzesRes.success && quizzesRes.data) {
         quizzesRes.data.forEach(quiz => {
-          if (quiz.endDate || quiz.dueDate) {
-            const dueDate = new Date(quiz.endDate || quiz.dueDate);
-            if (dueDate > now && dueDate <= sevenDaysLater && quiz.status !== 'completed') {
-              deadlines.push({
-                type: 'quiz',
-                title: quiz.title,
-                dueDate: dueDate,
-                courseTitle: quiz.courseTitle,
-                id: quiz.quizId
-              });
-            }
+          const dueDateValue = quiz.closeDate || quiz.endDate || quiz.dueDate;
+          if (!dueDateValue) return;
+
+          const dueDate = new Date(dueDateValue);
+          const completed = Boolean(
+            quiz.completed === true ||
+            quiz.userStatus?.lastAttemptAt ||
+            (quiz.userStatus?.bestScore !== undefined && quiz.userStatus?.bestScore !== null)
+          );
+
+          if (dueDate > now && dueDate <= sevenDaysLater && !completed) {
+            deadlines.push({
+              type: 'quiz',
+              title: quiz.title,
+              dueDate,
+              courseTitle: quiz.courseTitle || quiz.courseName || '',
+              id: quiz.quizId
+            });
           }
         });
       }
@@ -689,53 +824,54 @@ const App = {
     const deadlineCount = document.querySelector('.deadline-count');
 
     if (deadlineCount) {
-      deadlineCount.textContent = `${deadlines.length} 項`;
+      deadlineCount.textContent = `${deadlines.length} ${t('app.items')}`;
     }
 
     if (!deadlineList) return;
 
     if (deadlines.length === 0) {
-      deadlineList.innerHTML = `
-        <div class="empty-state" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width: 48px; height: 48px; margin-bottom: 0.5rem; opacity: 0.5;">
-            <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
-            <polyline points="22,4 12,14.01 9,11.01"/>
-          </svg>
-          <p>太棒了！近期沒有待完成的任務</p>
-        </div>
-      `;
+      deadlineList.innerHTML = this.renderDashboardEmptyState(t('dashboard.noUrgentTasks'));
       return;
     }
 
     deadlineList.innerHTML = deadlines.slice(0, 5).map(item => {
       const daysLeft = Math.ceil((item.dueDate - new Date()) / (1000 * 60 * 60 * 24));
       const urgencyClass = daysLeft <= 2 ? 'urgent' : daysLeft <= 4 ? 'warning' : 'normal';
-      const icon = item.type === 'assignment' ?
-        `<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>` :
-        `<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>`;
+      const toneClass = urgencyClass === 'urgent' ? 'tone-terracotta' : urgencyClass === 'warning' ? 'tone-sand' : 'tone-olive';
+      const icon = item.type === 'assignment'
+        ? `<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14,2 14,8 20,8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line>`
+        : `<circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line>`;
+      const viewName = item.type === 'assignment' ? 'moodleAssignments' : 'moodleQuizzes';
+      const loadCall = item.type === 'assignment' ? 'loadAssignments' : 'loadQuizzes';
+      const typeLabel = item.type === 'assignment' ? t('app.assignment') : t('app.quiz');
+      const safeTitle = this.escapeText(item.title || typeLabel);
+      const safeCourseTitle = item.courseTitle ? this.escapeText(item.courseTitle) : '';
+      const dayLabel = daysLeft === 0 ? t('app.today') : daysLeft === 1 ? t('app.tomorrow') : t('app.daysLater', { days: daysLeft });
+      const dueDateLabel = this.formatLocaleMonthDay(item.dueDate);
+      const metaItems = [
+        safeCourseTitle ? `<span class="dashboard-row-meta-item">${safeCourseTitle}</span>` : '',
+        `<span class="dashboard-row-meta-item">${this.escapeText(typeLabel)}</span>`
+      ].filter(Boolean).join('');
 
       return `
-        <div class="deadline-item" style="display: flex; align-items: center; padding: 0.75rem; border-radius: 8px; background: var(--surface-light); margin-bottom: 0.5rem; cursor: pointer;" onclick="showView('moodle${item.type === 'assignment' ? 'Assignments' : 'Quizzes'}');">
-          <div class="deadline-icon ${urgencyClass}" style="width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-right: 0.75rem; background: ${urgencyClass === 'urgent' ? 'var(--terracotta-light)' : urgencyClass === 'warning' ? 'var(--sand-light)' : 'var(--olive-light)'};">
-            <svg viewBox="0 0 24 24" fill="none" stroke="${urgencyClass === 'urgent' ? 'var(--terracotta)' : urgencyClass === 'warning' ? 'var(--sand)' : 'var(--olive)'}" stroke-width="2" style="width: 18px; height: 18px;">
+        <button type="button" class="dashboard-row-card interactive" onclick="showView('${viewName}'); if (typeof MoodleUI !== 'undefined' && MoodleUI.${loadCall}) { MoodleUI.${loadCall}(); }">
+          <div class="dashboard-row-icon ${toneClass}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               ${icon}
             </svg>
           </div>
-          <div class="deadline-info" style="flex: 1;">
-            <div class="deadline-title" style="font-weight: 500; margin-bottom: 2px;">${item.title}</div>
-            <div class="deadline-meta" style="font-size: 0.75rem; color: var(--text-secondary);">
-              ${item.courseTitle || ''} ・ ${item.type === 'assignment' ? '作業' : '測驗'}
+          <div class="dashboard-row-body">
+            <div class="dashboard-row-kicker">${this.escapeText(typeLabel)}</div>
+            <div class="dashboard-row-title">${safeTitle}</div>
+            <div class="dashboard-row-meta">
+              ${metaItems}
             </div>
           </div>
-          <div class="deadline-due" style="text-align: right;">
-            <div class="days-left" style="font-weight: 600; color: ${urgencyClass === 'urgent' ? 'var(--terracotta)' : urgencyClass === 'warning' ? 'var(--sand)' : 'var(--olive)'};">
-              ${daysLeft === 0 ? '今天' : daysLeft === 1 ? '明天' : `${daysLeft} 天後`}
-            </div>
-            <div class="due-date" style="font-size: 0.7rem; color: var(--text-secondary);">
-              ${item.dueDate.toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' })}
-            </div>
+          <div class="dashboard-row-side">
+            <div class="dashboard-row-emphasis ${toneClass}">${this.escapeText(dayLabel)}</div>
+            <div class="dashboard-row-note">${this.escapeText(dueDateLabel)}</div>
           </div>
-        </div>
+        </button>
       `;
     }).join('');
   },
@@ -747,7 +883,8 @@ const App = {
     try {
       const result = await API.badges.getUserBadges(userId);
       if (result.success && result.data) {
-        this.updateRecentBadgesUI(result.data.slice(0, 4));
+        const badges = Array.isArray(result.data) ? result.data : (result.data.badges || []);
+        this.updateRecentBadgesUI(badges.slice(0, 4));
       }
     } catch (error) {
       console.error('Load recent badges error:', error);
@@ -768,31 +905,30 @@ const App = {
     if (!badgesList) return;
 
     if (badges.length === 0) {
-      badgesList.innerHTML = `
-        <div class="empty-state" style="text-align: center; padding: 2rem; color: var(--text-secondary); grid-column: 1/-1;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width: 48px; height: 48px; margin-bottom: 0.5rem; opacity: 0.5;">
-            <circle cx="12" cy="8" r="6"/>
-            <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/>
-          </svg>
-          <p>完成課程和作業來獲得徽章！</p>
-        </div>
-      `;
+      badgesList.innerHTML = this.renderDashboardEmptyState(t('dashboard.earnBadges'), {
+        iconMarkup: `
+          <circle cx="12" cy="8" r="6"></circle>
+          <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"></path>
+        `
+      });
       return;
     }
 
-    const badgeColors = ['#FFD700', '#C0C0C0', '#CD7F32', '#4CAF50', '#2196F3', '#9C27B0'];
+    const badgeTones = ['tone-gold', 'tone-silver', 'tone-copper', 'tone-success', 'tone-blue', 'tone-olive'];
 
-    badgesList.innerHTML = badges.map((badge, index) => `
-      <div class="badge-item" style="text-align: center; padding: 0.75rem; background: var(--surface-light); border-radius: 8px;">
-        <div class="badge-icon" style="width: 48px; height: 48px; margin: 0 auto 0.5rem; background: ${badgeColors[index % badgeColors.length]}20; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="${badgeColors[index % badgeColors.length]}" stroke-width="2" style="width: 24px; height: 24px;">
-            <circle cx="12" cy="8" r="6"/>
-            <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/>
+    badgesList.innerHTML = `<div class="dashboard-badge-grid">${badges.map((badge, index) => `
+      <div class="dashboard-badge-card">
+        <div class="dashboard-badge-icon ${badgeTones[index % badgeTones.length]}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="8" r="6"></circle>
+            <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"></path>
           </svg>
         </div>
-        <div class="badge-name" style="font-size: 0.75rem; font-weight: 500;">${badge.name || badge.badgeName || '徽章'}</div>
+        <div class="dashboard-badge-caption">${this.escapeText(I18n.getLocale() === 'en' ? 'Recently earned' : '最近獲得')}</div>
+        <div class="dashboard-badge-name">${this.escapeText(badge.name || badge.badgeName || t('app.badge'))}</div>
+        <div class="dashboard-badge-meta">${this.escapeText(badge.courseName || badge.issuerName || (I18n.getLocale() === 'en' ? 'Achievement' : '成就徽章'))}</div>
       </div>
-    `).join('');
+    `).join('')}</div>`;
   },
 
   /**
@@ -839,66 +975,65 @@ const App = {
    */
   async loadTeacherDashboardData() {
     try {
-      // 並行載入所有教師相關數據
-      const [coursesRes, assignmentsRes, quizzesRes, forumsRes] = await Promise.all([
-        API.courses.list(),
-        API.assignments.list(),
-        API.quizzes.list(),
-        API.forums.list()
+      const [dashboardRes, coursesRes, alertsRes] = await Promise.all([
+        API.teachers.getDashboard(),
+        API.courses.getMyCourses('instructor'),
+        API.teachers.getAlerts()
       ]);
 
-      // 計算待處理事項
-      let pendingAssignments = 0;
-      let pendingQuizzes = 0;
-      let pendingForums = 0;
-
-      if (assignmentsRes.success && assignmentsRes.data) {
-        pendingAssignments = assignmentsRes.data.filter(a => a.pendingGrading > 0 || a.status === 'pending').length;
+      if (!dashboardRes.success) {
+        throw new Error(dashboardRes.message || 'Load teacher dashboard failed');
       }
 
-      if (quizzesRes.success && quizzesRes.data) {
-        pendingQuizzes = quizzesRes.data.filter(q => q.pendingReview > 0 || q.status === 'pending').length;
+      const dashboard = dashboardRes.data || {};
+      const courseStats = Array.isArray(dashboard.courses) ? dashboard.courses : [];
+      const myCourses = coursesRes.success && Array.isArray(coursesRes.data) ? coursesRes.data : [];
+      const statsMap = new Map(courseStats.map(course => [course.courseId, course]));
+      let mergedCourses = myCourses.map(course => ({ ...course, ...(statsMap.get(course.courseId) || {}) }));
+      if (mergedCourses.length === 0 && courseStats.length > 0) {
+        mergedCourses = courseStats;
       }
 
-      if (forumsRes.success && forumsRes.data) {
-        pendingForums = forumsRes.data.filter(f => f.unrepliedPosts > 0).length;
-      }
+      const setText = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = String(value ?? 0);
+      };
 
-      // 更新待處理事項 UI
-      const pendingAssignmentsEl = document.getElementById('pendingAssignments');
-      const pendingQuizzesEl = document.getElementById('pendingQuizzes');
-      const pendingForumsEl = document.getElementById('pendingForums');
+      const pendingAssignments = Number(dashboard.pendingAssignments) || 0;
+      const pendingQuizzes = Number(dashboard.pendingQuizzes) || 0;
+      const pendingForums = Number(dashboard.unrepliedPosts) || 0;
+      const pendingNotifications = Number(dashboard.pendingNotifications) || 0;
+      const totalStudents = Number(dashboard.totalStudents) || 0;
+      const totalCourses = Number(dashboard.totalCourses) || mergedCourses.length || 0;
+      const avgProgress = Number(dashboard.avgProgress) || 0;
+      const weeklySubmissions = Number(dashboard.weeklySubmissions) || 0;
+      const pendingGrading = pendingAssignments + pendingQuizzes;
 
-      if (pendingAssignmentsEl) pendingAssignmentsEl.textContent = pendingAssignments;
-      if (pendingQuizzesEl) pendingQuizzesEl.textContent = pendingQuizzes;
-      if (pendingForumsEl) pendingForumsEl.textContent = pendingForums;
+      setText('pendingAssignments', pendingAssignments);
+      setText('pendingQuizzes', pendingQuizzes);
+      setText('pendingForums', pendingForums);
+      setText('pendingNotifications', pendingNotifications);
 
-      // 更新統計卡片
-      if (coursesRes.success && coursesRes.data) {
-        const courses = coursesRes.data;
-        const totalStudents = courses.reduce((sum, c) => sum + (c.studentCount || 0), 0);
-        const avgProgress = courses.length > 0 ?
-          Math.round(courses.reduce((sum, c) => sum + (c.avgProgress || 0), 0) / courses.length) : 0;
+      setText('teacherTotalStudents', totalStudents);
+      setText('teacherActiveCourses', totalCourses);
+      setText('teacherAvgProgress', `${avgProgress}%`);
+      setText('teacherWeeklySubmissions', weeklySubmissions);
 
-        const totalStudentsEl = document.getElementById('teacherTotalStudents');
-        const activeCoursesEl = document.getElementById('teacherActiveCourses');
-        const avgProgressEl = document.getElementById('teacherAvgProgress');
+      setText('teacherPendingGrading', pendingGrading);
+      setText('teacherStudentCount', totalStudents);
+      setText('teacherCourseCount', totalCourses);
 
-        if (totalStudentsEl) totalStudentsEl.textContent = totalStudents;
-        if (activeCoursesEl) activeCoursesEl.textContent = courses.length;
-        if (avgProgressEl) avgProgressEl.textContent = `${avgProgress}%`;
+      this.updateTeacherCourseList(mergedCourses);
+      this.updateGradingQueueUI(dashboard.gradingQueue || []);
+      this.updateRecentSubmissionsUI(dashboard.recentSubmissions || []);
 
-        // 更新課程列表
-        this.updateTeacherCourseList(courses);
-      }
-
-      // 載入學生警示和最近提交
-      await Promise.all([
-        this.loadStudentAlerts(),
-        this.loadRecentSubmissions()
-      ]);
+      const allAlerts = alertsRes.success && Array.isArray(alertsRes.data) ? alertsRes.data : [];
+      this.updateStudentAlertsUI(allAlerts.slice(0, 5), allAlerts.length);
     } catch (error) {
       console.error('Load teacher dashboard data error:', error);
+      this.updateGradingQueueUI([]);
+      this.updateStudentAlertsUI([]);
+      this.updateRecentSubmissionsUI([]);
     }
   },
 
@@ -910,54 +1045,47 @@ const App = {
     if (!courseList) return;
 
     if (courses.length === 0) {
-      courseList.innerHTML = `
-        <div class="empty-state" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width: 48px; height: 48px; margin-bottom: 0.5rem; opacity: 0.5;">
-            <polygon points="12,2 2,7 12,12 22,7"/>
-            <polyline points="2,17 12,22 22,17"/>
-            <polyline points="2,12 12,17 22,12"/>
-          </svg>
-          <p>尚未建立任何課程</p>
-          <a href="#" onclick="MoodleUI.showCreateCourseModal();" style="color: var(--olive); text-decoration: underline;">建立第一個課程</a>
-        </div>
-      `;
+      courseList.innerHTML = this.renderDashboardEmptyState(t('teacher.noCourses'), {
+        iconMarkup: `
+          <polygon points="12,2 2,7 12,12 22,7"></polygon>
+          <polyline points="2,17 12,22 22,17"></polyline>
+          <polyline points="2,12 12,17 22,12"></polyline>
+        `,
+        actionHtml: `<a href="#" class="empty-state-link" onclick="MoodleUI.showCreateCourseModal();">${this.escapeText(t('teacher.createFirstCourse'))}</a>`
+      });
       return;
     }
 
-    const colors = [
-      { bg: 'var(--olive-light)', color: 'var(--olive)' },
-      { bg: 'var(--terracotta-light)', color: 'var(--terracotta)' },
-      { bg: 'var(--sand-light)', color: 'var(--sand)' },
-      { bg: '#E3F2FD', color: '#1976D2' }
-    ];
+    const tones = ['tone-olive', 'tone-terracotta', 'tone-sand', 'tone-blue'];
 
-    courseList.innerHTML = courses.slice(0, 4).map((course, index) => {
-      const colorSet = colors[index % colors.length];
+    courseList.innerHTML = `<div class="dashboard-stack">${courses.slice(0, 4).map((course, index) => {
+      const toneClass = tones[index % tones.length];
+      const avgProgress = course.avgProgress ?? course.averageProgress ?? 0;
+      const pendingGrading = Number(course.pendingGrading || course.pendingAssignments || 0);
+      const safeTitle = this.escapeText(course.title || course.courseTitle || t('app.course'));
+      const metaItems = [
+        `<span class="dashboard-row-meta-item">${this.escapeText(String(course.studentCount || 0))} ${this.escapeText(t('app.students'))}</span>`,
+        `<span class="dashboard-row-meta-item">${this.escapeText(t('app.avgProgress'))} ${this.escapeText(String(avgProgress))}%</span>`
+      ].join('');
       return `
-        <div class="teacher-course-item" style="display: flex; align-items: center; padding: 0.75rem; border-radius: 8px; background: var(--surface-light); margin-bottom: 0.5rem; cursor: pointer;" onclick="App.openCourse('${course.courseId}');">
-          <div class="course-icon" style="width: 40px; height: 40px; border-radius: 8px; background: ${colorSet.bg}; display: flex; align-items: center; justify-content: center; margin-right: 0.75rem; flex-shrink: 0;">
-            <svg viewBox="0 0 24 24" fill="none" stroke="${colorSet.color}" stroke-width="2" style="width: 20px; height: 20px;">
-              <polygon points="12,2 2,7 12,12 22,7"/>
-              <polyline points="2,17 12,22 22,17"/>
-              <polyline points="2,12 12,17 22,12"/>
+        <button type="button" class="dashboard-row-card interactive" onclick="if (typeof MoodleUI !== 'undefined' && MoodleUI.openCourse) { MoodleUI.openCourse(${this.inlineActionValue(course.courseId)}); }">
+          <div class="dashboard-row-icon ${toneClass}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="12,2 2,7 12,12 22,7"></polygon>
+              <polyline points="2,17 12,22 22,17"></polyline>
+              <polyline points="2,12 12,17 22,12"></polyline>
             </svg>
           </div>
-          <div class="course-info" style="flex: 1; min-width: 0;">
-            <div class="course-title" style="font-weight: 500; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${course.title || course.courseTitle || '課程'}</div>
-            <div class="course-meta" style="font-size: 0.75rem; color: var(--text-secondary);">
-              ${course.studentCount || 0} 位學生 ・ 平均進度 ${course.avgProgress || 0}%
-            </div>
+          <div class="dashboard-row-body">
+            <div class="dashboard-row-title">${safeTitle}</div>
+            <div class="dashboard-row-meta">${metaItems}</div>
           </div>
-          <div class="course-stats" style="text-align: right;">
-            ${course.pendingGrading > 0 ? `
-              <span style="background: var(--terracotta-light); color: var(--terracotta); padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: 500;">
-                ${course.pendingGrading} 待批改
-              </span>
-            ` : ''}
+          <div class="dashboard-row-side">
+            ${pendingGrading > 0 ? `<span class="dashboard-row-badge tone-terracotta">${this.escapeText(String(pendingGrading))} ${this.escapeText(t('app.pendingGrading'))}</span>` : `<span class="dashboard-row-badge tone-olive">${this.escapeText(t('teacher.pendingGrading'))}: 0</span>`}
           </div>
-        </div>
+        </button>
       `;
-    }).join('');
+    }).join('')}</div>`;
   },
 
   /**
@@ -965,18 +1093,11 @@ const App = {
    */
   async loadStudentAlerts() {
     try {
-      // 從 API 獲取學生預警
       const result = await API.teachers.getAlerts();
-
-      let alerts = [];
-      if (result.success && result.data) {
-        alerts = result.data.slice(0, 5); // 只顯示前 5 項
-      }
-
-      this.updateStudentAlertsUI(alerts);
+      const allAlerts = result.success && Array.isArray(result.data) ? result.data : [];
+      this.updateStudentAlertsUI(allAlerts.slice(0, 5), allAlerts.length);
     } catch (error) {
       console.error('Load student alerts error:', error);
-      // 發生錯誤時顯示空列表
       this.updateStudentAlertsUI([]);
     }
   },
@@ -984,27 +1105,19 @@ const App = {
   /**
    * 更新學生警示 UI
    */
-  updateStudentAlertsUI(alerts) {
+  updateStudentAlertsUI(alerts, totalCount = alerts.length) {
     const alertsList = document.getElementById('studentAlertsList');
     const alertCount = document.getElementById('studentAlertCount');
 
     if (alertCount) {
-      alertCount.textContent = `${alerts.length} 項`;
-      alertCount.style.display = alerts.length > 0 ? 'inline-block' : 'none';
+      alertCount.textContent = `${totalCount} ${t('app.items')}`;
+      alertCount.hidden = totalCount <= 0;
     }
 
     if (!alertsList) return;
 
     if (alerts.length === 0) {
-      alertsList.innerHTML = `
-        <div class="empty-state" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width: 48px; height: 48px; margin-bottom: 0.5rem; opacity: 0.5;">
-            <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
-            <polyline points="22,4 12,14.01 9,11.01"/>
-          </svg>
-          <p>太好了！目前沒有需要關注的學生</p>
-        </div>
-      `;
+      alertsList.innerHTML = this.renderDashboardEmptyState(t('teacher.noStudentAlerts'));
       return;
     }
 
@@ -1015,24 +1128,95 @@ const App = {
       declining: { icon: '<polyline points="23,6 13.5,15.5 8.5,10.5 1,18"/><polyline points="17,6 23,6 23,12"/>', color: 'var(--terracotta)', bg: 'var(--terracotta-light)' }
     };
 
-    alertsList.innerHTML = alerts.map(alert => {
+    alertsList.innerHTML = `<div class="dashboard-stack">${alerts.map(alert => {
       const config = alertTypes[alert.type] || alertTypes.behind;
+      const toneClass = alert.type === 'missing'
+        ? 'tone-sand'
+        : alert.type === 'inactive'
+          ? 'tone-blue'
+          : 'tone-terracotta';
+      const safeStudentName = this.escapeText(alert.studentName || t('app.user'));
+      const safeMessage = this.escapeText(alert.message || '');
+      const safeCourseTitle = alert.courseTitle ? this.escapeText(alert.courseTitle) : '';
+      const actionHtml = alert.alertId
+        ? `<button type="button" class="dashboard-row-action" onclick="event.stopPropagation(); App.dismissTeacherAlert(${this.inlineActionValue(alert.alertId)})">${this.escapeText(t('admin.dashboard.handleNow') || 'Handle')}</button>`
+        : '';
       return `
-        <div class="alert-item" style="display: flex; align-items: center; padding: 0.75rem; border-radius: 8px; background: var(--surface-light); margin-bottom: 0.5rem;">
-          <div class="alert-icon" style="width: 36px; height: 36px; border-radius: 8px; background: ${config.bg}; display: flex; align-items: center; justify-content: center; margin-right: 0.75rem;">
-            <svg viewBox="0 0 24 24" fill="none" stroke="${config.color}" stroke-width="2" style="width: 18px; height: 18px;">
+        <div class="dashboard-row-card">
+          <div class="dashboard-row-icon ${toneClass}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               ${config.icon}
             </svg>
           </div>
-          <div class="alert-info" style="flex: 1;">
-            <div class="alert-student" style="font-weight: 500; margin-bottom: 2px;">${alert.studentName}</div>
-            <div class="alert-message" style="font-size: 0.75rem; color: var(--text-secondary);">
-              ${alert.message}${alert.courseTitle ? ` - ${alert.courseTitle}` : ''}
+          <div class="dashboard-row-body">
+            <div class="dashboard-row-title">${safeStudentName}</div>
+            <div class="dashboard-row-meta">
+              <span class="dashboard-row-meta-item">${safeMessage}</span>
+              ${safeCourseTitle ? `<span class="dashboard-row-meta-item">${safeCourseTitle}</span>` : ''}
             </div>
+          </div>
+          <div class="dashboard-row-side">
+            ${actionHtml}
           </div>
         </div>
       `;
-    }).join('');
+    }).join('')}</div>`;
+  },
+
+  async dismissTeacherAlert(alertId) {
+    if (!alertId) return;
+    try {
+      const result = await API.teachers.dismissAlert(alertId);
+      if (result.success) {
+        await this.loadStudentAlerts();
+      } else {
+        showToast(result.message || t('toast.operationFailed'));
+      }
+    } catch (error) {
+      console.error('Dismiss teacher alert error:', error);
+      showToast(t('toast.operationFailed'));
+    }
+  },
+
+  updateGradingQueueUI(queue) {
+    const queueList = document.getElementById('gradingQueueList');
+    if (!queueList) return;
+
+    if (!Array.isArray(queue) || queue.length === 0) {
+      queueList.innerHTML = this.renderDashboardEmptyState(t('teacher.noGradingTasks'));
+      return;
+    }
+
+    queueList.innerHTML = `<div class="dashboard-stack">${queue.slice(0, 5).map(item => {
+      const safeTitle = this.escapeText(item.assignmentTitle || t('app.assignment'));
+      const safeStudentName = this.escapeText(item.studentName || t('app.user'));
+      const safeSubmittedAt = this.escapeText(this.formatTimeAgo(item.submittedAt));
+      const actionHtml = item.assignmentId ? `
+        <button type="button" class="dashboard-row-action" onclick="showView('moodleAssignments'); if (typeof MoodleUI !== 'undefined' && MoodleUI.openAssignment) { MoodleUI.openAssignment(${this.inlineActionValue(item.assignmentId)}); }">
+          ${this.escapeText(t('moodleAssignment.gradeBtn') || 'Grade')}
+        </button>
+      ` : '';
+      return `
+        <div class="dashboard-row-card">
+          <div class="dashboard-row-icon tone-olive">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 11l3 3L22 4"></path>
+              <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>
+            </svg>
+          </div>
+          <div class="dashboard-row-body">
+            <div class="dashboard-row-title">${safeTitle}</div>
+            <div class="dashboard-row-meta">
+              <span class="dashboard-row-meta-item">${safeStudentName}</span>
+              <span class="dashboard-row-meta-item">${safeSubmittedAt}</span>
+            </div>
+          </div>
+          <div class="dashboard-row-side">
+            ${actionHtml}
+          </div>
+        </div>
+      `;
+    }).join('')}</div>`;
   },
 
   /**
@@ -1040,26 +1224,14 @@ const App = {
    */
   async loadRecentSubmissions() {
     try {
-      const result = await API.assignments.list();
-      let submissions = [];
-
-      if (result.success && result.data) {
-        // 從作業中提取最近提交
-        submissions = result.data
-          .filter(a => a.submissions && a.submissions.length > 0)
-          .flatMap(a => a.submissions.map(s => ({
-            studentName: s.studentName || '學生',
-            assignmentTitle: a.title,
-            submittedAt: s.submittedAt || s.createdAt,
-            status: s.status
-          })))
-          .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt))
-          .slice(0, 5);
-      }
-
+      const result = await API.teachers.getDashboard();
+      const submissions = result.success && Array.isArray(result.data?.recentSubmissions)
+        ? result.data.recentSubmissions
+        : [];
       this.updateRecentSubmissionsUI(submissions);
     } catch (error) {
       console.error('Load recent submissions error:', error);
+      this.updateRecentSubmissionsUI([]);
     }
   },
 
@@ -1082,34 +1254,41 @@ const App = {
     if (!submissionsList) return;
 
     if (submissions.length === 0) {
-      submissionsList.innerHTML = `
-        <div class="empty-state" style="text-align: center; padding: 1.5rem; color: var(--text-secondary);">
-          <p>尚無新的提交記錄</p>
-        </div>
-      `;
+      submissionsList.innerHTML = this.renderDashboardEmptyState(t('teacher.noSubmissions'), { compact: true });
       return;
     }
 
-    submissionsList.innerHTML = submissions.map(sub => {
+    submissionsList.innerHTML = `<div class="dashboard-stack">${submissions.map(sub => {
       const timeAgo = this.formatTimeAgo(sub.submittedAt);
-      const statusColor = sub.status === 'graded' ? 'var(--success)' :
-                         sub.status === 'pending' ? 'var(--sand)' : 'var(--text-secondary)';
+      const toneClass = sub.status === 'graded' ? 'tone-olive' :
+        (sub.status === 'pending' || sub.status === 'submitted') ? 'tone-sand' : 'tone-blue';
+      const statusDotTone = sub.status === 'graded' ? 'tone-olive' :
+        (sub.status === 'pending' || sub.status === 'submitted') ? 'tone-sand' : 'tone-blue';
+      const assignmentTitle = sub.assignmentTitle || sub.title || t('app.assignment');
+      const safeStudentName = this.escapeText(sub.studentName || t('app.user'));
+      const safeAssignmentTitle = this.escapeText(assignmentTitle);
+      const safeTimeAgo = this.escapeText(timeAgo);
+      const initial = this.escapeText((sub.studentName || '?').trim().charAt(0) || '?');
+      const statusTitle = sub.status === 'graded' ? t('app.statusCompleted') : t('app.pendingGrading');
 
       return `
-        <div class="submission-item" style="display: flex; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid var(--gray-100);">
-          <div class="submission-avatar" style="width: 32px; height: 32px; border-radius: 50%; background: var(--olive-light); display: flex; align-items: center; justify-content: center; margin-right: 0.75rem; font-size: 0.75rem; font-weight: 600; color: var(--olive);">
-            ${(sub.studentName || '?')[0]}
+        <div class="dashboard-row-card">
+          <div class="dashboard-avatar">
+            ${initial}
           </div>
-          <div class="submission-info" style="flex: 1; min-width: 0;">
-            <div style="font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-              <strong>${sub.studentName}</strong> 提交了 <span style="color: var(--olive);">${sub.assignmentTitle}</span>
+          <div class="dashboard-row-body">
+            <div class="dashboard-row-title">${safeStudentName} ${this.escapeText(t('app.submitted'))} ${safeAssignmentTitle}</div>
+            <div class="dashboard-row-meta">
+              <span class="dashboard-row-meta-item">${safeTimeAgo}</span>
             </div>
-            <div style="font-size: 0.7rem; color: var(--text-secondary);">${timeAgo}</div>
           </div>
-          <div style="width: 8px; height: 8px; border-radius: 50%; background: ${statusColor};" title="${sub.status === 'graded' ? '已批改' : '待批改'}"></div>
+          <div class="dashboard-row-side">
+            <span class="dashboard-row-badge ${toneClass}">${this.escapeText(statusTitle)}</span>
+            <span class="dashboard-status-dot ${statusDotTone}" title="${this.escapeText(statusTitle)}"></span>
+          </div>
         </div>
       `;
-    }).join('');
+    }).join('')}</div>`;
   },
 
   /**
@@ -1137,6 +1316,7 @@ const App = {
       const inProgress = this.coursesCache.filter(c => c.progress < 100).slice(0, 3);
       if (inProgress.length > 0) {
         courseList.innerHTML = inProgress.map(course => this.renderCourseItem(course)).join('');
+        this.applyProgressData(courseList);
       }
     }
 
@@ -1144,6 +1324,7 @@ const App = {
     const coursesGrid = document.querySelector('#coursesView .course-list');
     if (coursesGrid) {
       coursesGrid.innerHTML = this.coursesCache.map(course => this.renderCourseItem(course)).join('');
+      this.applyProgressData(coursesGrid);
     }
   },
 
@@ -1151,16 +1332,11 @@ const App = {
    * 渲染課程項目
    */
   renderCourseItem(course) {
-    const colors = [
-      'linear-gradient(135deg, var(--olive) 0%, var(--olive-light) 100%)',
-      'linear-gradient(135deg, var(--terracotta) 0%, var(--terracotta-light) 100%)',
-      'linear-gradient(135deg, var(--success) 0%, var(--sage) 100%)'
-    ];
-    const colorIndex = Math.abs(course.courseId?.charCodeAt(0) || 0) % colors.length;
+    const toneClass = this.getToneClass(course.courseId || course.category || course.title);
 
     return `
-      <div class="course-item" onclick="App.openCourse('${course.courseId}')">
-        <div class="course-thumbnail" style="background: ${colors[colorIndex]}">
+      <button type="button" class="course-item" onclick="App.openCourse('${course.courseId}')">
+        <div class="course-thumbnail ${toneClass}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polygon points="12,2 2,7 12,12 22,7"/>
             <polyline points="2,17 12,22 22,17"/>
@@ -1168,16 +1344,16 @@ const App = {
           </svg>
         </div>
         <div class="course-info">
-          <h3 class="course-title">${course.title || course.courseTitle || '課程'}</h3>
-          <p class="course-meta">${course.unitCount || '?'} 個單元 ・ 共 ${Math.round((course.totalDuration || 0) / 60)} 小時</p>
+          <h3 class="course-title">${course.title || course.courseTitle || t('app.course')}</h3>
+          <p class="course-meta">${course.unitCount || '?'} ${t('app.units')} ・ ${t('app.totalHours', {hours: Math.round((course.totalDuration || 0) / 60)})}</p>
           <div class="course-progress">
             <div class="progress-bar">
-              <div class="progress-fill" style="width: ${course.progress || 0}%"></div>
+              <div class="progress-fill" data-progress-width="${this.clampProgressValue(course.progress || 0)}"></div>
             </div>
             <span class="progress-text">${course.progress || 0}%</span>
           </div>
         </div>
-      </div>
+      </button>
     `;
   },
 
@@ -1220,11 +1396,11 @@ const App = {
     const config = iconMap[activity.action] || iconMap['default'];
     const timeAgo = this.formatTimeAgo(activity.createdAt);
 
-    let text = activity.details?.description || '進行了操作';
+    let text = activity.details?.description || t('app.performedAction');
     if (activity.action === 'course_progress') {
-      text = `完成了 <strong>${activity.details?.courseTitle || '課程'}</strong> 第 ${activity.details?.unitId || '?'} 單元`;
+      text = `${t('app.completed')} <strong>${activity.details?.courseTitle || t('app.course')}</strong> ${t('app.unit')} ${activity.details?.unitId || '?'}`;
     } else if (activity.action === 'license_acquired') {
-      text = `新增授權：<strong>${activity.details?.resourceTitle || '教材'}</strong>`;
+      text = `${t('app.newLicense')}：<strong>${activity.details?.resourceTitle || t('app.course')}</strong>`;
     }
 
     return `
@@ -1280,9 +1456,9 @@ const App = {
    */
   renderLicenseCard(license) {
     const statusMap = {
-      'active': { text: '使用中', class: 'success' },
-      'pending': { text: '待審核', class: 'warning' },
-      'expired': { text: '已過期', class: 'danger' }
+      'active': { text: t('app.statusActive'), class: 'success' },
+      'pending': { text: t('app.statusPendingReview'), class: 'warning' },
+      'expired': { text: t('app.statusExpired'), class: 'danger' }
     };
     const status = statusMap[license.status] || statusMap['pending'];
     const daysLeft = this.getDaysUntil(license.expiryDate);
@@ -1290,17 +1466,17 @@ const App = {
     return `
       <div class="license-card">
         <div class="license-header">
-          <h3>${license.resourceTitle || '教材'}</h3>
+          <h3>${license.resourceTitle || t('app.course')}</h3>
           <span class="license-status ${status.class}">${status.text}</span>
         </div>
         <div class="license-body">
-          <p><strong>授權類型：</strong>${license.licenseType === 'institutional' ? '機構授權' : '個人授權'}</p>
-          <p><strong>到期日期：</strong>${license.expiryDate || '-'}</p>
-          ${daysLeft !== null ? `<p><strong>剩餘天數：</strong>${daysLeft} 天</p>` : ''}
+          <p><strong>${t('app.licenseType')}</strong>${license.licenseType === 'institutional' ? t('app.institutionalLicense') : t('app.personalLicense')}</p>
+          <p><strong>${t('app.expiryDate')}</strong>${license.expiryDate || '-'}</p>
+          ${daysLeft !== null ? `<p><strong>${t('app.daysLeft')}</strong>${daysLeft} ${t('app.days')}</p>` : ''}
         </div>
         ${license.status === 'active' && daysLeft <= 30 ? `
         <div class="license-footer">
-          <button class="btn btn-outline" onclick="App.renewLicense('${license.licenseId}')">續約授權</button>
+          <button class="btn btn-outline" onclick="App.renewLicense('${license.licenseId}')">${t('app.renewLicense')}</button>
         </div>
         ` : ''}
       </div>
@@ -1322,7 +1498,7 @@ const App = {
    * 格式化時間差
    */
   formatTimeAgo(dateStr) {
-    if (!dateStr) return '剛剛';
+    if (!dateStr) return t('app.justNow');
     const date = new Date(dateStr);
     const now = new Date();
     const diff = now - date;
@@ -1331,11 +1507,11 @@ const App = {
     const hours = Math.floor(diff / 3600000);
     const days = Math.floor(diff / 86400000);
 
-    if (minutes < 1) return '剛剛';
-    if (minutes < 60) return `${minutes} 分鐘前`;
-    if (hours < 24) return `${hours} 小時前`;
-    if (days < 7) return `${days} 天前`;
-    return date.toLocaleDateString('zh-TW');
+    if (minutes < 1) return t('app.justNow');
+    if (minutes < 60) return t('app.minutesAgo', {n: minutes});
+    if (hours < 24) return t('app.hoursAgo', {n: hours});
+    if (days < 7) return t('app.daysAgo', {n: days});
+    return date.toLocaleDateString(I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW');
   },
 
   /**
@@ -1355,16 +1531,16 @@ const App = {
     try {
       const result = await API.licenses.renew(licenseId);
       if (result.success) {
-        showToast('續約申請已提交');
+        showToast(t('toast.renewSubmitted'));
         // 重新載入授權列表
         const user = API.getCurrentUser();
         if (user) await this.loadUserLicenses(user.userId);
       } else {
-        showToast(result.message || '續約失敗');
+        showToast(result.message || t('toast.renewFailed'));
       }
     } catch (error) {
       console.error('Renew license error:', error);
-      showToast('續約失敗');
+      showToast(t('toast.renewFailed'));
     }
   },
 
@@ -1394,7 +1570,7 @@ const App = {
     banner.className = 'announcement-banner';
     banner.innerHTML = `
       <div class="announcement-content">
-        <span class="announcement-badge">${announcement.priority === 'urgent' ? '緊急' : '公告'}</span>
+        <span class="announcement-badge">${announcement.priority === 'urgent' ? t('app.urgent') : t('app.announcement')}</span>
         <span class="announcement-text">${announcement.title}</span>
       </div>
       <button class="announcement-close" onclick="App.dismissAnnouncement('${announcement.announcementId}')">
@@ -1463,10 +1639,10 @@ const App = {
    */
   renderResourceCard(resource) {
     const typeMap = {
-      'video': '影音',
-      'interactive': '互動',
-      'document': '講義',
-      'quiz': '測驗'
+      'video': t('app.resourceTypeVideo'),
+      'interactive': t('app.resourceTypeInteractive'),
+      'document': t('app.resourceTypeDocument'),
+      'quiz': t('app.resourceTypeQuiz')
     };
 
     const typeIcons = {
@@ -1478,9 +1654,22 @@ const App = {
 
     const tags = resource.tags || [];
     const initial = (resource.creatorName || 'U')[0].toUpperCase();
+    const categoryMap = {
+      language: I18n.getLocale() === 'en' ? 'Language' : '語言',
+      wellness: I18n.getLocale() === 'en' ? 'Wellness' : '心靈成長',
+      culture: I18n.getLocale() === 'en' ? 'Culture' : '文化',
+      technology: I18n.getLocale() === 'en' ? 'Technology' : '科技'
+    };
+    const gradeMap = {
+      elementary: I18n.getLocale() === 'en' ? 'Elementary' : '國小',
+      junior: I18n.getLocale() === 'en' ? 'Junior high' : '國中',
+      senior: I18n.getLocale() === 'en' ? 'Senior high' : '高中'
+    };
+    const eyebrow = categoryMap[resource.category] || (typeMap[resource.type] || resource.type);
+    const supportingMeta = [gradeMap[resource.gradeLevel], resource.contentType].filter(Boolean).join(' · ');
 
     return `
-      <div class="resource-card" onclick="App.openResourceModal('${resource.resourceId}')">
+      <button type="button" class="resource-card" onclick="App.openResourceModal('${resource.resourceId}')">
         <div class="resource-cover">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             ${typeIcons[resource.type] || typeIcons['document']}
@@ -1488,23 +1677,30 @@ const App = {
           <span class="resource-type-badge">${typeMap[resource.type] || resource.type}</span>
         </div>
         <div class="resource-content">
+          <div class="resource-eyebrow-row">
+            <span class="resource-eyebrow">${this.escapeText(eyebrow || '')}</span>
+            ${supportingMeta ? `<span class="resource-support-pill">${this.escapeText(supportingMeta)}</span>` : ''}
+          </div>
           <h3 class="resource-title">${resource.title}</h3>
           <p class="resource-desc">${resource.description || ''}</p>
           <div class="resource-tags">
             ${tags.slice(0, 3).map(t => `<span class="tag">${t}</span>`).join('')}
           </div>
           <div class="resource-footer">
-            <div class="resource-author">
-              <div class="resource-author-avatar">${initial}</div>
-              <span class="resource-author-name">${resource.creatorName || '未知作者'}</span>
+            <div class="resource-footer-stack">
+              <div class="resource-author">
+                <div class="resource-author-avatar">${initial}</div>
+                <span class="resource-author-name">${resource.creatorName || t('app.unknownAuthor')}</span>
+              </div>
+              <div class="resource-stats">
+                <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>${this.formatNumber(resource.viewCount)}</span>
+                <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>${resource.averageRating || '-'}</span>
+              </div>
             </div>
-            <div class="resource-stats">
-              <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>${this.formatNumber(resource.viewCount)}</span>
-              <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>${resource.averageRating || '-'}</span>
-            </div>
+            <span class="resource-open-link">${I18n.getLocale() === 'en' ? 'View resource' : '查看教材'}</span>
           </div>
         </div>
-      </div>
+      </button>
     `;
   },
 
@@ -1512,40 +1708,19 @@ const App = {
    * 打開資源詳情 Modal
    */
   async openResourceModal(resourceId) {
-    const resource = this.resourcesCache.find(r => r.resourceId === resourceId);
-    if (!resource) return;
+    const resource = this.resourcesCache.find((item) => String(item.resourceId || item.id) === String(resourceId));
+    if (!resource) {
+      showToast(t('app.loadFailed'));
+      return;
+    }
 
-    const typeMap = {
-      'video': '影音',
-      'interactive': '互動',
-      'document': '講義',
-      'quiz': '測驗'
-    };
-
-    const tags = resource.tags || [];
+    if (typeof window.showResourceModalForResource === 'function') {
+      window.showResourceModalForResource(resource);
+      return;
+    }
 
     document.getElementById('modalTitle').textContent = resource.title;
-    document.getElementById('modalBody').innerHTML = `
-      <div style="margin-bottom: 1rem;">
-        <span class="tag" style="background: var(--olive); color: var(--cream);">${typeMap[resource.type] || resource.type}</span>
-        ${tags.map(t => `<span class="tag">${t}</span>`).join(' ')}
-      </div>
-      <p style="margin-bottom: 1rem; color: var(--gray-500);">${resource.description || ''}</p>
-      <div style="display: flex; gap: 2rem; margin-bottom: 1rem;">
-        <div><strong>作者：</strong>${resource.creatorName || '未知'}</div>
-        <div><strong>觀看：</strong>${this.formatNumber(resource.viewCount)}</div>
-        <div><strong>評分：</strong>${resource.averageRating || '-'}</div>
-      </div>
-      <div style="background: var(--gray-100); padding: 1rem; border-radius: 8px;">
-        <h4 style="margin-bottom: 0.5rem;">教材內容</h4>
-        <ul style="margin-left: 1.5rem; color: var(--gray-500);">
-          <li>${resource.unitCount || '多'} 個教學單元</li>
-          <li>含練習題與解答</li>
-          <li>可下載 PDF 講義</li>
-          <li>附互動測驗</li>
-        </ul>
-      </div>
-    `;
+    document.getElementById('modalBody').innerHTML = `<div class="empty-state"><p>${this.escapeText(resource.description || '')}</p></div>`;
     document.getElementById('modalOverlay').classList.add('active');
     document.getElementById('resourceModal').classList.add('active');
   },
@@ -1571,7 +1746,7 @@ const App = {
     const statValues = document.querySelectorAll('.stat-value');
     if (statValues.length >= 4) {
       statValues[0].textContent = stats.coursesInProgress || '0';
-      statValues[1].textContent = (stats.licensesActive || '0') + '個';
+      statValues[1].textContent = (stats.licensesActive || '0') + ' ' + t('app.licenseUnit');
       statValues[2].textContent = (stats.completionRate || '0') + '%';
       statValues[3].textContent = (stats.totalHours || '0') + 'h';
     }
@@ -1589,9 +1764,9 @@ const App = {
 
         // 如果是管理員，跳轉到管理後台
         if (result.data.user.isAdmin || result.data.user.role === 'admin') {
-          showToast('歡迎回來，管理員！正在跳轉到管理後台...');
+          showToast(t('toast.adminRedirect'));
           setTimeout(() => {
-            window.location.href = 'admin/index.html';
+            window.location.href = '/admin';
           }, 1000);
           return true;
         }
@@ -1599,17 +1774,17 @@ const App = {
         // 一般用戶顯示主應用程式
         this.showApp();
         await this.loadDashboardData();
-        showToast('登入成功！');
+        showToast(t('toast.loginSuccess'));
         // 觸發登入事件，通知聊天系統初始化
         window.dispatchEvent(new CustomEvent('userLoggedIn'));
         return true;
       } else {
-        showToast(result.message || '登入失敗，請檢查帳號密碼');
+        showToast(result.message || t('toast.loginFailed'));
         return false;
       }
     } catch (error) {
       console.error('Login error:', error);
-      showToast('登入失敗，請稍後再試');
+      showToast(t('toast.loginError'));
       return false;
     }
   },
@@ -1625,15 +1800,15 @@ const App = {
         this.currentUser = result.data.user;
         this.showApp();
         await this.loadDashboardData();
-        showToast('註冊成功！');
+        showToast(t('toast.registerSuccess'));
         return true;
       } else {
-        showToast(result.message || '註冊失敗');
+        showToast(result.message || t('toast.registerFailed'));
         return false;
       }
     } catch (error) {
       console.error('Register error:', error);
-      showToast('註冊失敗，請稍後再試');
+      showToast(t('toast.registerError'));
       return false;
     }
   },
@@ -1650,7 +1825,7 @@ const App = {
 
     this.currentUser = null;
     this.showLogin();
-    showToast('已登出系統');
+    showToast(t('toast.loggedOut'));
   },
 
   /**
@@ -1688,7 +1863,7 @@ const App = {
     const discussionList = document.querySelector('#discussionsView .discussion-list');
     if (discussionList) {
       if (this.discussionsCache.length === 0) {
-        discussionList.innerHTML = '<div class="empty-state"><p>還沒有任何討論，成為第一個發起討論的人！</p></div>';
+        discussionList.innerHTML = `<div class="empty-state"><p>${t('app.noDiscussions')}</p></div>`;
       } else {
         discussionList.innerHTML = this.discussionsCache.map(post => this.renderDiscussionItem(post)).join('');
       }
@@ -1704,42 +1879,179 @@ const App = {
     const initial = (post.userDisplayName || 'U')[0];
 
     return `
-      <div class="discussion-item" onclick="App.openDiscussion('${post.postId}')">
+      <button type="button" class="discussion-item" onclick="App.openDiscussion('${post.postId}')">
         <div class="discussion-avatar">${initial}</div>
         <div class="discussion-content">
           <h3 class="discussion-title">${post.title}</h3>
           <p class="discussion-preview">${(post.content || '').substring(0, 100)}...</p>
           <div class="discussion-meta">
-            <span class="discussion-author">${post.userDisplayName || '匿名用戶'}</span>
+            <span class="discussion-author">${post.userDisplayName || t('app.anonymous')}</span>
             <span class="discussion-time">${timeAgo}</span>
             <div class="discussion-stats">
-              <span>${post.replyCount || 0} 回覆</span>
-              <span>${post.likeCount || 0} 讚</span>
-              <span>${post.viewCount || 0} 觀看</span>
+              <span>${post.replyCount || 0} ${t('app.replies')}</span>
+              <span>${post.likeCount || 0} ${t('app.likes')}</span>
+              <span>${post.viewCount || 0} ${t('app.views')}</span>
             </div>
           </div>
           <div class="discussion-tags">
             ${tags.map(t => `<span class="tag">${t}</span>`).join('')}
           </div>
         </div>
-      </div>
+      </button>
     `;
   },
 
   /**
    * 開啟討論詳情
    */
+  closeDiscussionDetailModal() {
+    if (typeof window.removeDiscussionModal === 'function') {
+      window.removeDiscussionModal('legacyDiscussionDetailModal');
+      return;
+    }
+
+    document.getElementById('legacyDiscussionDetailModal')?.remove();
+  },
+
+  renderDiscussionReplies(replies = []) {
+    const items = Array.isArray(replies) ? replies : [];
+    if (items.length === 0) {
+      return typeof window.renderDiscussionState === 'function'
+        ? window.renderDiscussionState(
+            I18n.getLocale() === 'en'
+              ? 'No replies yet. You can be the first to respond.'
+              : '目前還沒有回覆，你可以成為第一個回應的人。'
+          )
+        : `<div class="empty-state"><p>${this.escapeText(I18n.getLocale() === 'en' ? 'No replies yet.' : '目前還沒有回覆。')}</p></div>`;
+    }
+
+    return `
+      <div class="discussion-list">
+        ${items.map((reply) => {
+          const authorName = this.escapeText(reply.userDisplayName || reply.authorName || t('discussion.anonymous'));
+          const initial = this.escapeText((reply.userDisplayName || reply.authorName || t('discussion.anonymous')).trim().charAt(0) || '匿');
+          const content = this.escapeText(reply.content || '').replace(/\n/g, '<br>');
+          const date = this.escapeText(this.formatLocaleDate(reply.createdAt));
+          const toneClass = typeof window.getDiscussionToneClass === 'function'
+            ? window.getDiscussionToneClass(reply.userDisplayName || reply.authorName || '')
+            : '';
+
+          return `
+            <article class="discussion-card ${toneClass}">
+              <div class="discussion-avatar">${initial}</div>
+              <div class="discussion-content">
+                <div class="discussion-meta">
+                  <span>${authorName}</span>
+                  <span class="discussion-meta-separator">•</span>
+                  <span>${date}</span>
+                </div>
+                <p class="discussion-preview">${content || this.escapeText(t('discussion.noExcerpt'))}</p>
+              </div>
+            </article>
+          `;
+        }).join('')}
+      </div>
+    `;
+  },
+
   async openDiscussion(postId) {
+    if (!postId) return;
+    this.closeDiscussionDetailModal();
+
     try {
       const result = await API.discussions.get(postId);
-      if (result.success) {
-        const post = result.data;
-        // 這裡可以顯示討論詳情 Modal 或導航到詳情頁
-        alert(`討論：${post.title}\n\n${post.content}\n\n回覆數：${post.replyCount || 0}`);
+      const discussion = result.success ? result.data : null;
+      if (!discussion) {
+        showToast(result.message || t('toast.discussionLoadFailed'));
+        return;
       }
+
+      const isEnglish = I18n.getLocale() === 'en';
+      const safeTitle = this.escapeText(discussion.title || t('discussion.untitled'));
+      const safeAuthorName = this.escapeText(discussion.userDisplayName || discussion.authorName || t('discussion.anonymous'));
+      const safeCreatedAt = this.escapeText(this.formatLocaleDate(discussion.createdAt));
+      const safeContent = this.escapeText(discussion.content || '').replace(/\n/g, '<br>');
+      const tags = Array.isArray(discussion.tags) ? discussion.tags.filter(Boolean) : [];
+      const discussionId = discussion.postId || discussion.id || postId;
+      const discussionIdArg = this.inlineActionValue(discussionId);
+      const overlay = document.createElement('div');
+
+      overlay.id = 'legacyDiscussionDetailModal';
+      overlay.className = 'modal-overlay active';
+      overlay.innerHTML = `
+        <div class="modal active discussion-modal" role="dialog" aria-modal="true" aria-labelledby="legacyDiscussionDetailModalTitle">
+          <div class="modal-header">
+            <h2 id="legacyDiscussionDetailModalTitle">${isEnglish ? 'Discussion detail' : '討論詳情'}</h2>
+            <button type="button" class="modal-close" aria-label="${this.escapeText(t('discussion.modalClose'))}">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <div class="discussion-modal-intro">
+              <div class="discussion-modal-intro-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8"/><path d="M8 13h6"/></svg>
+              </div>
+              <div>
+                <div class="discussion-modal-intro-title">${safeTitle}</div>
+                <p class="discussion-modal-intro-copy">${isEnglish ? 'This preserves the original legacy discussion thread and replies.' : '這裡保留舊版討論主題與其原始回覆內容。'}</p>
+              </div>
+            </div>
+
+            <div class="discussion-modal-grid">
+              <div class="bridge-form-group">
+                <label class="bridge-form-label">${isEnglish ? 'Author' : '發佈者'}</label>
+                <div>${safeAuthorName}</div>
+              </div>
+              <div class="bridge-form-group">
+                <label class="bridge-form-label">${isEnglish ? 'Published at' : '發佈時間'}</label>
+                <div>${safeCreatedAt}</div>
+              </div>
+              <div class="bridge-form-group">
+                <label class="bridge-form-label">${isEnglish ? 'Replies' : '回覆數'}</label>
+                <div>${this.escapeText(String(discussion.replyCount || 0))}</div>
+              </div>
+              <div class="bridge-form-group">
+                <label class="bridge-form-label">${isEnglish ? 'Views' : '瀏覽數'}</label>
+                <div>${this.escapeText(String(discussion.viewCount || 0))}</div>
+              </div>
+            </div>
+
+            ${tags.length > 0 ? `
+              <div class="bridge-form-group">
+                <label class="bridge-form-label">${isEnglish ? 'Tags' : '標籤'}</label>
+                <div class="discussion-tags">
+                  ${tags.map((tag) => `<span class="tag">${this.escapeText(tag)}</span>`).join('')}
+                </div>
+              </div>
+            ` : ''}
+
+            <div class="bridge-form-group">
+              <label class="bridge-form-label">${isEnglish ? 'Content' : '內容'}</label>
+              <p class="discussion-preview">${safeContent || this.escapeText(t('discussion.noExcerpt'))}</p>
+            </div>
+
+            <div class="bridge-form-group">
+              <label class="bridge-form-label">${isEnglish ? 'Replies' : '回覆內容'}</label>
+              ${this.renderDiscussionReplies(discussion.replies)}
+            </div>
+          </div>
+          <div class="modal-footer">
+            <div class="discussion-modal-note">${isEnglish ? 'Need the newer learning-community workflow? Jump to the new forum hub from here.' : '如果你要改走新版課程論壇，也可以直接從這裡切換。'}</div>
+            <button type="button" class="btn-secondary" onclick="App.closeDiscussionDetailModal()">${this.escapeText(t('common.cancel'))}</button>
+            <button type="button" class="btn-secondary" onclick="App.closeDiscussionDetailModal(); openReplyModal(${discussionIdArg});">${this.escapeText(t('discussion.replyAction'))}</button>
+            <button type="button" class="btn-primary" onclick="App.closeDiscussionDetailModal(); showView('moodleForums'); if (typeof MoodleUI !== 'undefined' && typeof MoodleUI.loadForums === 'function') { MoodleUI.loadForums(); }">${this.escapeText(t('discussion.openForumAction'))}</button>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(overlay);
+      if (typeof window.attachDiscussionModalBehavior === 'function') {
+        window.attachDiscussionModalBehavior(overlay, () => this.closeDiscussionDetailModal(), '.btn-primary');
+      }
+      overlay.querySelector('.modal-close')?.addEventListener('click', () => this.closeDiscussionDetailModal());
     } catch (error) {
-      console.error('Open discussion error:', error);
-      showToast('載入討論失敗');
+      console.error('Open discussion detail error:', error);
+      showToast(t('toast.discussionLoadFailed'));
     }
   },
 
@@ -1750,16 +2062,16 @@ const App = {
     try {
       const result = await API.discussions.create({ title, content, tags });
       if (result.success) {
-        showToast('討論發布成功！');
+        showToast(t('toast.discussionPosted'));
         await this.loadDiscussions();
         return true;
       } else {
-        showToast(result.message || '發布失敗');
+        showToast(result.message || t('toast.discussionPostFailed'));
         return false;
       }
     } catch (error) {
       console.error('Create discussion error:', error);
-      showToast('發布失敗');
+      showToast(t('toast.discussionPostFailed'));
       return false;
     }
   },
@@ -1771,15 +2083,15 @@ const App = {
     try {
       const result = await API.discussions.reply(postId, content);
       if (result.success) {
-        showToast('回覆成功！');
+        showToast(t('toast.replySuccess'));
         return true;
       } else {
-        showToast(result.message || '回覆失敗');
+        showToast(result.message || t('toast.replyFailed'));
         return false;
       }
     } catch (error) {
       console.error('Reply to discussion error:', error);
-      showToast('回覆失敗');
+      showToast(t('toast.replyFailed'));
       return false;
     }
   },
@@ -1812,11 +2124,16 @@ const App = {
   /**
    * 載入諮詢列表
    */
-  async loadConsultations() {
+  async loadConsultations(filters = {}) {
     try {
       const result = await API.consultations.list();
       if (result.success) {
-        this.consultationsCache = result.data || [];
+        const items = Array.isArray(result.data) ? result.data : [];
+        if (filters.status && filters.status !== 'all') {
+          this.consultationsCache = items.filter(item => item?.status === filters.status);
+        } else {
+          this.consultationsCache = items;
+        }
         this.updateConsultationsUI();
       }
     } catch (error) {
@@ -1831,7 +2148,7 @@ const App = {
     const consultationList = document.querySelector('#consultationsView .consultation-list');
     if (consultationList) {
       if (this.consultationsCache.length === 0) {
-        consultationList.innerHTML = '<div class="empty-state"><p>您還沒有諮詢記錄</p></div>';
+        consultationList.innerHTML = `<div class="empty-state"><p>${t('app.noConsultations')}</p></div>`;
       } else {
         consultationList.innerHTML = this.consultationsCache.map(c => this.renderConsultationItem(c)).join('');
       }
@@ -1841,58 +2158,283 @@ const App = {
   /**
    * 渲染諮詢項目
    */
-  renderConsultationItem(consultation) {
+  getConsultationTypeLabel(requestType) {
     const typeMap = {
-      'custom_material': '客製化教材',
-      'training': '教育訓練',
-      'technical': '技術支援',
-      'licensing': '授權諮詢',
-      'other': '其他'
+      custom_material: t('app.typeCustomMaterial'),
+      training: t('app.typeTraining'),
+      technical: t('app.typeTechnical'),
+      licensing: t('app.typeLicensing'),
+      other: t('app.typeOther')
     };
 
+    return typeMap[requestType] || requestType || t('support.chatTitle');
+  },
+
+  getConsultationStatusMeta(status) {
+    const isEnglish = I18n.getLocale() === 'en';
     const statusMap = {
-      'pending': { text: '待處理', class: 'warning' },
-      'reviewing': { text: '審核中', class: 'info' },
-      'quoted': { text: '已報價', class: 'primary' },
-      'accepted': { text: '已接受', class: 'success' },
-      'in_progress': { text: '進行中', class: 'info' },
-      'completed': { text: '已完成', class: 'success' },
-      'cancelled': { text: '已取消', class: 'danger' }
+      pending: { text: t('app.statusPending'), class: 'warning' },
+      reviewing: { text: t('app.statusReviewing'), class: 'info' },
+      quoted: { text: t('app.statusQuoted'), class: 'primary' },
+      accepted: { text: t('app.statusAccepted'), class: 'success' },
+      rejected: { text: isEnglish ? 'Rejected' : '已拒絕', class: 'danger' },
+      in_progress: { text: t('app.statusInProgress'), class: 'info' },
+      completed: { text: t('app.statusCompleted'), class: 'success' },
+      cancelled: { text: t('app.statusCancelled'), class: 'danger' }
     };
 
-    const status = statusMap[consultation.status] || statusMap['pending'];
-    const type = typeMap[consultation.requestType] || consultation.requestType;
-    const date = new Date(consultation.createdAt).toLocaleDateString('zh-TW');
+    return statusMap[status] || {
+      text: status || (isEnglish ? 'Pending' : '待處理'),
+      class: 'warning'
+    };
+  },
+
+  renderConsultationItem(consultation) {
+    const status = this.getConsultationStatusMeta(consultation.status);
+    const type = this.getConsultationTypeLabel(consultation.requestType);
+    const date = this.formatLocaleDate(consultation.createdAt);
+    const title = this.escapeText(consultation.title || t('support.chatTitle'));
+    const consultationId = consultation.consultationId || consultation.id || '';
 
     return `
-      <div class="consultation-item" onclick="App.openConsultation('${consultation.consultationId}')">
+      <button type="button" class="consultation-item" onclick="App.openConsultation(${this.inlineActionValue(consultationId)})">
         <div class="consultation-header">
-          <h3>${consultation.title}</h3>
+          <h3>${title}</h3>
           <span class="status-badge ${status.class}">${status.text}</span>
         </div>
         <div class="consultation-body">
-          <p><strong>類型：</strong>${type}</p>
-          <p><strong>申請日期：</strong>${date}</p>
-          ${consultation.quote?.amount ? `<p><strong>報價：</strong>NT$ ${consultation.quote.amount.toLocaleString()}</p>` : ''}
+          <div class="consultation-meta">
+            <span class="consultation-meta-pill">${t('app.type')} ${type}</span>
+            <span class="consultation-meta-pill">${t('app.applicationDate')} ${date}</span>
+            ${consultation.quote?.amount ? `<span class="consultation-meta-pill">${t('app.quote')} NT$ ${consultation.quote.amount.toLocaleString()}</span>` : ''}
+          </div>
+          <div class="consultation-footer">
+            <span class="chat-room-kind">諮詢服務</span>
+            <span class="consultation-link">前往對話 →</span>
+          </div>
         </div>
-      </div>
+      </button>
     `;
   },
 
   /**
    * 開啟諮詢詳情
    */
-  async openConsultation(consultationId) {
+  closeConsultationDetailModal() {
+    if (typeof window.removeDiscussionModal === 'function') {
+      window.removeDiscussionModal('legacyConsultationDetailModal');
+      return;
+    }
+
+    document.getElementById('legacyConsultationDetailModal')?.remove();
+  },
+
+  renderConsultationNotes(notes = [], emptyMessage = '') {
+    const items = Array.isArray(notes) ? notes : [];
+    if (items.length === 0) {
+      return typeof window.renderDiscussionState === 'function'
+        ? window.renderDiscussionState(emptyMessage || (I18n.getLocale() === 'en' ? 'No notes yet.' : '目前沒有備註。'))
+        : `<div class="empty-state"><p>${this.escapeText(emptyMessage || (I18n.getLocale() === 'en' ? 'No notes yet.' : '目前沒有備註。'))}</p></div>`;
+    }
+
+    return `
+      <div class="discussion-list">
+        ${items.map((note) => `
+          <article class="discussion-card">
+            <div class="discussion-content">
+              <div class="discussion-meta">
+                <span>${this.escapeText(note.createdBy || note.userDisplayName || (I18n.getLocale() === 'en' ? 'System note' : '系統備註'))}</span>
+                <span class="discussion-meta-separator">•</span>
+                <span>${this.escapeText(this.formatLocaleDate(note.createdAt))}</span>
+              </div>
+              <p class="discussion-preview">${this.escapeText(note.content || '').replace(/\n/g, '<br>')}</p>
+            </div>
+          </article>
+        `).join('')}
+      </div>
+    `;
+  },
+
+  async openConsultationSupport() {
+    this.closeConsultationDetailModal();
+
     try {
-      const result = await API.consultations.get(consultationId);
-      if (result.success) {
-        const c = result.data;
-        // 這裡可以顯示詳情 Modal
-        alert(`諮詢：${c.title}\n\n說明：${c.description}\n\n狀態：${c.status}`);
+      showView('consultations');
+      if (window.ChatModule && typeof window.ChatModule.loadRooms === 'function') {
+        await window.ChatModule.loadRooms();
+      }
+      if (window.ChatModule && typeof window.ChatModule.checkStatus === 'function') {
+        await window.ChatModule.checkStatus();
       }
     } catch (error) {
-      console.error('Open consultation error:', error);
-      showToast('載入諮詢詳情失敗');
+      console.error('Open consultation support error:', error);
+    }
+  },
+
+  async openConsultation(consultationId) {
+    if (!consultationId) return;
+    this.closeConsultationDetailModal();
+
+    try {
+      const result = await API.consultations.get(consultationId);
+      const consultation = result.success ? result.data : null;
+      if (!consultation) {
+        showToast(result.message || t('toast.consultationFailed'));
+        return;
+      }
+
+      const isEnglish = I18n.getLocale() === 'en';
+      const status = this.getConsultationStatusMeta(consultation.status);
+      const type = this.getConsultationTypeLabel(consultation.requestType);
+      const createdAt = this.escapeText(this.formatLocaleDate(consultation.createdAt));
+      const budget = consultation.estimatedBudget
+        ? `NT$ ${Number(consultation.estimatedBudget).toLocaleString()}`
+        : (isEnglish ? 'Not specified' : '未填寫');
+      const quoteAmount = consultation.quote?.amount !== undefined && consultation.quote?.amount !== null
+        ? `NT$ ${Number(consultation.quote.amount).toLocaleString()}`
+        : null;
+      const consultationIdArg = this.inlineActionValue(consultation.consultationId || consultationId);
+      const overlay = document.createElement('div');
+
+      overlay.id = 'legacyConsultationDetailModal';
+      overlay.className = 'modal-overlay active';
+      overlay.innerHTML = `
+        <div class="modal active discussion-modal" role="dialog" aria-modal="true" aria-labelledby="legacyConsultationDetailModalTitle">
+          <div class="modal-header">
+            <h2 id="legacyConsultationDetailModalTitle">${isEnglish ? 'Consultation detail' : '諮詢詳情'}</h2>
+            <button type="button" class="modal-close" aria-label="${this.escapeText(t('discussion.modalClose'))}">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <div class="discussion-modal-intro">
+              <div class="discussion-modal-intro-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 10h8"/><path d="M8 14h5"/></svg>
+              </div>
+              <div>
+                <div class="discussion-modal-intro-title">${this.escapeText(consultation.title || t('support.chatTitle'))}</div>
+                <p class="discussion-modal-intro-copy">${isEnglish ? 'Review the request scope, internal notes, quote status, and then continue in the support center if needed.' : '先看清楚需求內容、目前狀態與報價，再決定是否要前往客服中心繼續處理。'}</p>
+              </div>
+            </div>
+
+            <div class="discussion-modal-grid">
+              <div class="bridge-form-group">
+                <label class="bridge-form-label">${isEnglish ? 'Request type' : '需求類型'}</label>
+                <div>${this.escapeText(type)}</div>
+              </div>
+              <div class="bridge-form-group">
+                <label class="bridge-form-label">${isEnglish ? 'Status' : '處理狀態'}</label>
+                <div><span class="status-badge ${status.class}">${this.escapeText(status.text)}</span></div>
+              </div>
+              <div class="bridge-form-group">
+                <label class="bridge-form-label">${isEnglish ? 'Submitted at' : '申請時間'}</label>
+                <div>${createdAt}</div>
+              </div>
+              <div class="bridge-form-group">
+                <label class="bridge-form-label">${isEnglish ? 'Estimated budget' : '預估預算'}</label>
+                <div>${this.escapeText(budget)}</div>
+              </div>
+            </div>
+
+            <div class="bridge-form-group">
+              <label class="bridge-form-label">${isEnglish ? 'Description' : '需求說明'}</label>
+              <p class="discussion-preview">${this.escapeText(consultation.description || '').replace(/\n/g, '<br>') || this.escapeText(isEnglish ? 'No description provided.' : '未填寫需求說明。')}</p>
+            </div>
+
+            ${(consultation.subject || consultation.gradeLevel || consultation.preferredContactTime || consultation.contactPhone) ? `
+              <div class="discussion-modal-grid">
+                ${consultation.subject ? `
+                  <div class="bridge-form-group">
+                    <label class="bridge-form-label">${isEnglish ? 'Subject' : '科目'}</label>
+                    <div>${this.escapeText(consultation.subject)}</div>
+                  </div>
+                ` : ''}
+                ${consultation.gradeLevel ? `
+                  <div class="bridge-form-group">
+                    <label class="bridge-form-label">${isEnglish ? 'Grade level' : '年級'}</label>
+                    <div>${this.escapeText(consultation.gradeLevel)}</div>
+                  </div>
+                ` : ''}
+                ${consultation.preferredContactTime ? `
+                  <div class="bridge-form-group">
+                    <label class="bridge-form-label">${isEnglish ? 'Preferred contact time' : '偏好聯繫時段'}</label>
+                    <div>${this.escapeText(consultation.preferredContactTime)}</div>
+                  </div>
+                ` : ''}
+                ${consultation.contactPhone ? `
+                  <div class="bridge-form-group">
+                    <label class="bridge-form-label">${isEnglish ? 'Contact phone' : '聯絡電話'}</label>
+                    <div>${this.escapeText(consultation.contactPhone)}</div>
+                  </div>
+                ` : ''}
+              </div>
+            ` : ''}
+
+            ${consultation.quote ? `
+              <div class="bridge-form-group">
+                <label class="bridge-form-label">${isEnglish ? 'Quote summary' : '報價摘要'}</label>
+                <div class="discussion-list">
+                  <article class="discussion-card">
+                    <div class="discussion-content">
+                      <div class="discussion-meta">
+                        <span>${this.escapeText(quoteAmount || (isEnglish ? 'Quoted' : '已提供報價'))}</span>
+                        ${consultation.quote?.validUntil ? `<span class="discussion-meta-separator">•</span><span>${this.escapeText(this.formatLocaleDate(consultation.quote.validUntil))}</span>` : ''}
+                      </div>
+                      <p class="discussion-preview">${this.escapeText(consultation.quote.description || consultation.quote.notes || (isEnglish ? 'No additional quote notes.' : '目前沒有額外報價說明。')).replace(/\n/g, '<br>')}</p>
+                    </div>
+                  </article>
+                </div>
+              </div>
+            ` : ''}
+
+            ${Array.isArray(consultation.attachments) && consultation.attachments.length > 0 ? `
+              <div class="bridge-form-group">
+                <label class="bridge-form-label">${isEnglish ? 'Attachments' : '附件'}</label>
+                <div class="discussion-tags">
+                  ${consultation.attachments.map((attachment) => `<span class="tag">${this.escapeText(attachment.fileName || attachment.name || attachment.url || 'attachment')}</span>`).join('')}
+                </div>
+              </div>
+            ` : ''}
+
+            <div class="bridge-form-group">
+              <label class="bridge-form-label">${isEnglish ? 'Admin notes' : '管理端備註'}</label>
+              ${this.renderConsultationNotes(
+                consultation.adminNotes,
+                isEnglish ? 'No admin notes yet.' : '目前沒有管理端備註。'
+              )}
+            </div>
+
+            <div class="bridge-form-group">
+              <label class="bridge-form-label">${isEnglish ? 'Your notes' : '你的備註'}</label>
+              ${this.renderConsultationNotes(
+                consultation.userNotes,
+                isEnglish ? 'No user notes yet.' : '目前沒有補充備註。'
+              )}
+            </div>
+          </div>
+          <div class="modal-footer">
+            <div class="discussion-modal-note">${isEnglish ? 'This keeps the old consultation record readable while support chat remains in the service center.' : '這個視窗負責保留舊版諮詢案件明細；客服對話則維持在客服中心處理。'}</div>
+            <button type="button" class="btn-secondary" onclick="App.closeConsultationDetailModal()">${this.escapeText(t('common.cancel'))}</button>
+            ${consultation.status === 'quoted' ? `
+              <button type="button" class="btn-secondary" onclick="App.rejectQuote(${consultationIdArg}, true)">${isEnglish ? 'Reject quote' : '婉拒報價'}</button>
+              <button type="button" class="btn-secondary" onclick="App.acceptQuote(${consultationIdArg}, true)">${isEnglish ? 'Accept quote' : '接受報價'}</button>
+            ` : ''}
+            ${['pending', 'reviewing'].includes(consultation.status) ? `
+              <button type="button" class="btn-secondary" onclick="App.cancelConsultation(${consultationIdArg}, true)">${isEnglish ? 'Cancel request' : '取消申請'}</button>
+            ` : ''}
+            <button type="button" class="btn-primary" onclick="App.openConsultationSupport(${consultationIdArg})">${isEnglish ? 'Open support center' : '前往客服中心'}</button>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(overlay);
+      if (typeof window.attachDiscussionModalBehavior === 'function') {
+        window.attachDiscussionModalBehavior(overlay, () => this.closeConsultationDetailModal(), '.btn-primary');
+      }
+      overlay.querySelector('.modal-close')?.addEventListener('click', () => this.closeConsultationDetailModal());
+    } catch (error) {
+      console.error('Open consultation detail error:', error);
+      showToast(t('toast.consultationFailed'));
     }
   },
 
@@ -1903,16 +2445,16 @@ const App = {
     try {
       const result = await API.consultations.create(data);
       if (result.success) {
-        showToast('諮詢請求已提交！');
+        showToast(t('toast.consultationSubmitted'));
         await this.loadConsultations();
         return true;
       } else {
-        showToast(result.message || '提交失敗');
+        showToast(result.message || t('toast.submitFailed'));
         return false;
       }
     } catch (error) {
       console.error('Create consultation error:', error);
-      showToast('提交失敗');
+      showToast(t('toast.submitFailed'));
       return false;
     }
   },
@@ -1920,20 +2462,79 @@ const App = {
   /**
    * 接受報價
    */
-  async acceptQuote(consultationId) {
+  async acceptQuote(consultationId, reopenDetail = false) {
     try {
       const result = await API.consultations.acceptQuote(consultationId);
       if (result.success) {
-        showToast('已接受報價！');
+        showToast(t('toast.quoteAccepted'));
         await this.loadConsultations();
+        if (reopenDetail) {
+          await this.openConsultation(consultationId);
+        }
         return true;
       } else {
-        showToast(result.message || '操作失敗');
+        showToast(result.message || t('toast.operationFailed'));
         return false;
       }
     } catch (error) {
       console.error('Accept quote error:', error);
-      showToast('操作失敗');
+      showToast(t('toast.operationFailed'));
+      return false;
+    }
+  },
+
+  async rejectQuote(consultationId, reopenDetail = false) {
+    const confirmMessage = I18n.getLocale() === 'en'
+      ? 'Reject this quote?'
+      : '確定要婉拒這筆報價嗎？';
+    if (typeof window !== 'undefined' && !window.confirm(confirmMessage)) {
+      return false;
+    }
+
+    try {
+      const result = await API.consultations.rejectQuote(consultationId);
+      if (result.success) {
+        showToast(I18n.getLocale() === 'en' ? 'Quote rejected.' : '已婉拒報價。');
+        await this.loadConsultations();
+        if (reopenDetail) {
+          await this.openConsultation(consultationId);
+        }
+        return true;
+      }
+
+      showToast(result.message || t('toast.operationFailed'));
+      return false;
+    } catch (error) {
+      console.error('Reject quote error:', error);
+      showToast(t('toast.operationFailed'));
+      return false;
+    }
+  },
+
+  async cancelConsultation(consultationId, reopenDetail = false) {
+    const confirmMessage = I18n.getLocale() === 'en'
+      ? 'Cancel this consultation request?'
+      : '確定要取消這筆諮詢申請嗎？';
+    if (typeof window !== 'undefined' && !window.confirm(confirmMessage)) {
+      return false;
+    }
+
+    try {
+      const result = await API.consultations.cancel(consultationId);
+      if (result.success) {
+        showToast(I18n.getLocale() === 'en' ? 'Consultation request cancelled.' : '已取消諮詢申請。');
+        await this.loadConsultations();
+        if (reopenDetail) {
+          await this.openConsultation(consultationId);
+        }
+        return true;
+      }
+
+      showToast(result.message || t('toast.operationFailed'));
+      return false;
+    } catch (error) {
+      console.error('Cancel consultation error:', error);
+      showToast(t('toast.operationFailed'));
       return false;
     }
   },
@@ -1980,6 +2581,17 @@ const App = {
    * 載入班級列表
    */
   async loadClasses() {
+    const user = API.getCurrentUser();
+    // 優先使用 index.html 的橋隊渲染流程（目前主頁面的實際容器結構）
+    if (this.isStudentUser(user) && typeof window.loadStudentClasses === 'function') {
+      await window.loadStudentClasses();
+      return;
+    }
+    if (!this.isStudentUser(user) && typeof window.loadClasses === 'function') {
+      await window.loadClasses();
+      return;
+    }
+
     try {
       const result = await API.classes.list();
       if (result.success) {
@@ -1996,13 +2608,13 @@ const App = {
    */
   updateClassesUI() {
     const user = API.getCurrentUser();
-    const isStudent = user?.role === 'student';
+    const isStudent = this.isStudentUser(user);
 
     // 教師班級視圖
     const teacherView = document.querySelector('#classesView .class-grid');
     if (teacherView && !isStudent) {
       if (this.classesCache.length === 0) {
-        teacherView.innerHTML = '<div class="empty-state"><p>您還沒有建立任何班級</p></div>';
+        teacherView.innerHTML = `<div class="empty-state"><p>${t('app.noClasses')}</p></div>`;
       } else {
         teacherView.innerHTML = this.classesCache.map(c => this.renderClassCard(c, false)).join('');
       }
@@ -2012,7 +2624,7 @@ const App = {
     const studentView = document.querySelector('#studentClassesView .class-grid');
     if (studentView && isStudent) {
       if (this.classesCache.length === 0) {
-        studentView.innerHTML = '<div class="empty-state"><p>您還沒有加入任何班級</p></div>';
+        studentView.innerHTML = `<div class="empty-state"><p>${t('app.noEnrolledClasses')}</p></div>`;
       } else {
         studentView.innerHTML = this.classesCache.map(c => this.renderClassCard(c, true)).join('');
       }
@@ -2023,30 +2635,31 @@ const App = {
    * 渲染班級卡片
    */
   renderClassCard(classInfo, isStudent) {
+    const className = classInfo.name || classInfo.className || '班級';
     const memberCount = classInfo.members?.length || classInfo.memberCount || 0;
-    const initial = (classInfo.className || 'C')[0];
+    const initial = className[0];
 
     return `
-      <div class="class-card" onclick="App.openClassDetail('${classInfo.classId}')">
+      <button type="button" class="class-card" onclick="App.openClassDetail('${classInfo.classId}')">
         <div class="class-card-header">
           <div class="class-avatar">${initial}</div>
           <div class="class-info">
-            <h3>${classInfo.className}</h3>
-            <p>${classInfo.description || '暫無描述'}</p>
+            <h3>${className}</h3>
+            <p>${classInfo.description || t('app.noDescription')}</p>
           </div>
         </div>
         <div class="class-card-body">
           <div class="class-stats">
-            <span>${memberCount} 位成員</span>
-            ${!isStudent ? `<span>邀請碼: ${classInfo.inviteCode}</span>` : ''}
+            <span>${memberCount} ${t('app.members')}</span>
+            ${!isStudent ? `<span>${t('app.inviteCode')}: ${classInfo.inviteCode}</span>` : ''}
           </div>
         </div>
         ${!isStudent ? `
         <div class="class-card-footer">
-          <button class="btn btn-sm" onclick="event.stopPropagation(); App.copyInviteCode('${classInfo.inviteCode}')">複製邀請碼</button>
+          <button class="btn btn-sm" onclick="event.stopPropagation(); App.copyInviteCode('${classInfo.inviteCode}')">${t('app.copyInviteCode')}</button>
         </div>
         ` : ''}
-      </div>
+      </button>
     `;
   },
 
@@ -2055,18 +2668,18 @@ const App = {
    */
   async createClass(className, description = '') {
     try {
-      const result = await API.classes.create({ className, description });
+      const result = await API.classes.create({ name: className, description });
       if (result.success) {
-        showToast('班級建立成功！');
+        showToast(t('toast.classCreated'));
         await this.loadClasses();
         return result.data;
       } else {
-        showToast(result.message || '建立失敗');
+        showToast(result.message || t('toast.classCreateFailed'));
         return null;
       }
     } catch (error) {
       console.error('Create class error:', error);
-      showToast('建立失敗');
+      showToast(t('toast.classCreateFailed'));
       return null;
     }
   },
@@ -2078,16 +2691,16 @@ const App = {
     try {
       const result = await API.classes.joinByCode(inviteCode);
       if (result.success) {
-        showToast('成功加入班級！');
+        showToast(t('toast.classJoined'));
         await this.loadClasses();
         return true;
       } else {
-        showToast(result.message || '加入失敗');
+        showToast(result.message || t('toast.classJoinFailed'));
         return false;
       }
     } catch (error) {
       console.error('Join class error:', error);
-      showToast('加入失敗');
+      showToast(t('toast.classJoinFailed'));
       return false;
     }
   },
@@ -2102,11 +2715,11 @@ const App = {
         this.currentClass = result.data;
         this.showClassDetailView();
       } else {
-        showToast('載入班級詳情失敗');
+        showToast(t('toast.classLoadFailed'));
       }
     } catch (error) {
       console.error('Open class detail error:', error);
-      showToast('載入班級詳情失敗');
+      showToast(t('toast.classLoadFailed'));
     }
   },
 
@@ -2124,10 +2737,11 @@ const App = {
     // 更新班級詳情內容
     const header = classDetail.querySelector('.class-detail-header');
     if (header) {
+      const className = c.name || c.className || '班級';
       header.innerHTML = `
-        <h2>${c.className}</h2>
+        <h2>${className}</h2>
         <p>${c.description || ''}</p>
-        ${isOwner ? `<p>邀請碼: <strong>${c.inviteCode}</strong></p>` : ''}
+        ${isOwner ? `<p>${t('app.inviteCode')}: <strong>${c.inviteCode}</strong></p>` : ''}
       `;
     }
 
@@ -2136,7 +2750,7 @@ const App = {
     if (memberList) {
       const members = c.members || [];
       if (members.length === 0) {
-        memberList.innerHTML = '<p class="empty-state">還沒有成員加入</p>';
+        memberList.innerHTML = `<p class="empty-state">${t('app.noMembers')}</p>`;
       } else {
         memberList.innerHTML = members.map(m => this.renderMemberItem(m, isOwner, c.classId)).join('');
       }
@@ -2150,18 +2764,21 @@ const App = {
    * 渲染成員項目
    */
   renderMemberItem(member, isOwner, classId) {
-    const initial = (member.displayName || member.email || 'U')[0];
-    const joinDate = member.joinedAt ? new Date(member.joinedAt).toLocaleDateString('zh-TW') : '';
+    const memberName = member.displayName || member.userName || member.email || member.userEmail || 'Unknown';
+    const memberEmail = member.email || member.userEmail || '';
+    const initial = memberName[0];
+    const joinDate = member.joinedAt ? this.formatLocaleDate(member.joinedAt) : '';
 
     return `
       <div class="member-item">
         <div class="member-avatar">${initial}</div>
         <div class="member-info">
-          <span class="member-name">${member.displayName || member.email}</span>
+          <span class="member-name">${memberName}</span>
+          ${memberEmail ? `<span class="member-email">${memberEmail}</span>` : ''}
           <span class="member-joined">${joinDate}</span>
         </div>
         ${isOwner && member.userId !== this.currentUser?.userId ? `
-        <button class="btn btn-sm btn-danger" onclick="App.removeMember('${classId}', '${member.userId}')">移除</button>
+        <button class="btn btn-sm btn-danger" onclick="App.removeMember('${classId}', '${member.userId}')">${t('app.remove')}</button>
         ` : ''}
       </div>
     `;
@@ -2171,19 +2788,24 @@ const App = {
    * 移除班級成員
    */
   async removeMember(classId, userId) {
-    if (!confirm('確定要移除此成員嗎？')) return;
+    const confirmed = await showConfirmDialog({
+      message: t('confirm.removeMember'),
+      confirmLabel: t('common.delete'),
+      tone: 'danger'
+    });
+    if (!confirmed) return;
 
     try {
       const result = await API.classes.removeMember(classId, userId);
       if (result.success) {
-        showToast('成員已移除');
+        showToast(t('toast.memberRemoved'));
         await this.openClassDetail(classId);
       } else {
-        showToast(result.message || '移除失敗');
+        showToast(result.message || t('toast.memberRemoveFailed'));
       }
     } catch (error) {
       console.error('Remove member error:', error);
-      showToast('移除失敗');
+      showToast(t('toast.memberRemoveFailed'));
     }
   },
 
@@ -2192,9 +2814,9 @@ const App = {
    */
   copyInviteCode(code) {
     navigator.clipboard.writeText(code).then(() => {
-      showToast('邀請碼已複製！');
+      showToast(t('toast.inviteCodeCopied'));
     }).catch(() => {
-      showToast('複製失敗，請手動複製');
+      showToast(t('toast.copyFailed'));
     });
   },
 
@@ -2202,20 +2824,25 @@ const App = {
    * 刪除班級
    */
   async deleteClass(classId) {
-    if (!confirm('確定要刪除此班級嗎？此操作無法復原。')) return;
+    const confirmed = await showConfirmDialog({
+      message: t('confirm.deleteClass'),
+      confirmLabel: t('common.delete'),
+      tone: 'danger'
+    });
+    if (!confirmed) return;
 
     try {
       const result = await API.classes.delete(classId);
       if (result.success) {
-        showToast('班級已刪除');
+        showToast(t('toast.classDeleted'));
         await this.loadClasses();
         navigateTo(document.querySelector('[data-view="classes"]'), 'classes');
       } else {
-        showToast(result.message || '刪除失敗');
+        showToast(result.message || t('toast.classDeleteFailed'));
       }
     } catch (error) {
       console.error('Delete class error:', error);
-      showToast('刪除失敗');
+      showToast(t('toast.classDeleteFailed'));
     }
   },
 
@@ -2232,19 +2859,17 @@ const App = {
       const result = await API.users.update(user.userId, data);
       if (result.success) {
         // 更新本地用戶資料
-        const updatedUser = { ...user, ...data };
-        API.setCurrentUser(updatedUser);
-        this.currentUser = updatedUser;
+        const updatedUser = this.syncCurrentUserState({ ...user, ...data });
         this.updateUserUI();
-        showToast('資料更新成功！');
+        showToast(t('toast.profileUpdated'));
         return true;
       } else {
-        showToast(result.message || '更新失敗');
+        showToast(result.message || t('toast.updateFailed'));
         return false;
       }
     } catch (error) {
       console.error('Update profile error:', error);
-      showToast('更新失敗');
+      showToast(t('toast.updateFailed'));
       return false;
     }
   },
@@ -2256,15 +2881,15 @@ const App = {
     try {
       const result = await API.auth.changePassword(currentPassword, newPassword);
       if (result.success) {
-        showToast('密碼變更成功！');
+        showToast(t('toast.passwordChanged'));
         return true;
       } else {
-        showToast(result.message || '密碼變更失敗');
+        showToast(result.message || t('toast.passwordChangeFailed'));
         return false;
       }
     } catch (error) {
       console.error('Change password error:', error);
-      showToast('密碼變更失敗');
+      showToast(t('toast.passwordChangeFailed'));
       return false;
     }
   },
@@ -2289,7 +2914,7 @@ const App = {
       }
     } catch (error) {
       console.error('Load quizzes error:', error);
-      showToast('載入測驗失敗');
+      showToast(t('toast.quizLoadFailed'));
     }
     return false;
   },
@@ -2303,19 +2928,19 @@ const App = {
 
     if (this.quizzesCache.length === 0) {
       container.innerHTML = `
-        <div style="text-align: center; padding: 3rem; color: var(--gray-500);">
-          <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" style="margin: 0 auto 1rem;">
+        <div class="empty-state quiz-empty-state">
+          <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5">
             <circle cx="12" cy="12" r="10"/>
             <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/>
             <line x1="12" y1="17" x2="12.01" y2="17"/>
           </svg>
-          <p>目前沒有可用的測驗</p>
+          <p>${t('app.noQuizzesAvailable')}</p>
         </div>
       `;
       return;
     }
 
-    container.innerHTML = this.quizzesCache.map(quiz => this.renderQuizItem(quiz)).join('');
+    container.innerHTML = `<div class="quiz-list-shell">${this.quizzesCache.map((quiz) => this.renderQuizItem(quiz)).join('')}</div>`;
 
     // 更新統計
     this.updateQuizStats();
@@ -2325,53 +2950,9 @@ const App = {
    * 渲染單個測驗項目
    */
   renderQuizItem(quiz) {
-    const statusColors = {
-      'not_started': 'var(--olive)',
-      'in_progress': 'var(--terracotta)',
-      'completed': 'var(--gray-400)'
-    };
-    const statusLabels = {
-      'not_started': '開始測驗',
-      'in_progress': '繼續測驗',
-      'completed': '查看結果'
-    };
-    const statusIcons = {
-      'not_started': '<path d="M5 3l14 9-14 9V3z"/>',
-      'in_progress': '<polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>',
-      'completed': '<polyline points="20 6 9 17 4 12"/>'
-    };
-
-    const color = statusColors[quiz.userStatus] || statusColors['not_started'];
-    const label = statusLabels[quiz.userStatus] || statusLabels['not_started'];
-    const icon = statusIcons[quiz.userStatus] || statusIcons['not_started'];
-
-    return `
-      <div class="quiz-item" style="background: var(--white); border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.06); display: flex; justify-content: space-between; align-items: center;">
-        <div style="flex: 1;">
-          <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem; color: var(--charcoal);">${quiz.title}</h3>
-          <p style="color: var(--gray-500); font-size: 0.9rem; margin-bottom: 0.75rem;">${quiz.description || ''}</p>
-          <div style="display: flex; gap: 1.5rem; font-size: 0.85rem; color: var(--gray-500);">
-            <span><strong>${quiz.questionCount || 0}</strong> 題</span>
-            ${quiz.timeLimit ? `<span><strong>${quiz.timeLimit}</strong> 分鐘</span>` : ''}
-            <span>通過分數: <strong>${quiz.passingScore || 60}</strong>%</span>
-            ${quiz.attempts > 0 ? `<span>已作答 <strong>${quiz.attempts}</strong> 次</span>` : ''}
-            ${quiz.bestScore !== undefined && quiz.bestScore > 0 ? `<span>最高分: <strong>${quiz.bestScore}</strong>%</span>` : ''}
-          </div>
-        </div>
-        <div style="display: flex; align-items: center; gap: 1rem;">
-          ${quiz.userStatus === 'completed' ? `
-            <div style="text-align: center;">
-              <div style="font-size: 1.5rem; font-weight: 700; color: ${quiz.bestScore >= (quiz.passingScore || 60) ? 'var(--success)' : 'var(--terracotta)'};">${quiz.bestScore}%</div>
-              <div style="font-size: 0.75rem; color: var(--gray-500);">最高分數</div>
-            </div>
-          ` : ''}
-          <button onclick="App.startQuiz('${quiz.quizId}')" style="padding: 0.75rem 1.5rem; background: ${color}; color: var(--cream); border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 0.5rem;">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">${icon}</svg>
-            ${label}
-          </button>
-        </div>
-      </div>
-    `;
+    return this.renderQuizRowCard(quiz, {
+      buttonAction: `App.startQuiz(${this.inlineActionValue(quiz.quizId || quiz.id || '')})`
+    });
   },
 
   /**
@@ -2395,11 +2976,25 @@ const App = {
     // 更新統計卡片
     const statsContainer = document.querySelector('.quiz-stats');
     if (statsContainer) {
-      const cards = statsContainer.querySelectorAll('.stat-card');
-      if (cards[0]) cards[0].querySelector('div[style*="font-size: 1.75rem"]').textContent = stats.total;
-      if (cards[1]) cards[1].querySelector('div[style*="font-size: 1.75rem"]').textContent = stats.completed;
-      if (cards[2]) cards[2].querySelector('div[style*="font-size: 1.75rem"]').textContent = stats.inProgress;
-      if (cards[3]) cards[3].querySelector('div[style*="font-size: 1.75rem"]').textContent = stats.avgScore + '%';
+      const structuredStats = statsContainer.querySelectorAll('[data-quiz-stat]');
+      if (structuredStats.length > 0) {
+        structuredStats.forEach((node) => {
+          const statKey = node.getAttribute('data-quiz-stat');
+          if (statKey === 'avgScore') {
+            node.textContent = `${stats.avgScore}%`;
+            return;
+          }
+          if (statKey && Object.prototype.hasOwnProperty.call(stats, statKey)) {
+            node.textContent = stats[statKey];
+          }
+        });
+      } else {
+        const cards = statsContainer.querySelectorAll('.stat-card');
+        if (cards[0]) cards[0].querySelector('div[style*="font-size: 1.75rem"]').textContent = stats.total;
+        if (cards[1]) cards[1].querySelector('div[style*="font-size: 1.75rem"]').textContent = stats.completed;
+        if (cards[2]) cards[2].querySelector('div[style*="font-size: 1.75rem"]').textContent = stats.inProgress;
+        if (cards[3]) cards[3].querySelector('div[style*="font-size: 1.75rem"]').textContent = stats.avgScore + '%';
+      }
     }
   },
 
@@ -2410,7 +3005,7 @@ const App = {
     try {
       const result = await API.quizzes.get(quizId);
       if (!result.success) {
-        showToast(result.message || '載入測驗失敗');
+        showToast(result.message || t('toast.quizLoadFailed'));
         return;
       }
 
@@ -2421,7 +3016,7 @@ const App = {
       this.showQuizModal();
     } catch (error) {
       console.error('Start quiz error:', error);
-      showToast('載入測驗失敗');
+      showToast(t('toast.quizLoadFailed'));
     }
   },
 
@@ -2438,23 +3033,34 @@ const App = {
 
     const modal = document.createElement('div');
     modal.id = 'quizModal';
-    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:10000;display:flex;align-items:center;justify-content:center;';
+    modal.className = 'quiz-modal-overlay';
+    modal.addEventListener('click', (event) => {
+      if (event.target === modal) {
+        this.closeQuiz();
+      }
+    });
 
     modal.innerHTML = `
-      <div style="width:95%;max-width:800px;max-height:90vh;background:var(--cream);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;">
-        <div style="padding:1.5rem 2rem;border-bottom:1px solid var(--gray-200);display:flex;justify-content:space-between;align-items:center;">
-          <div>
-            <h2 style="margin:0;font-size:1.25rem;">${quiz.title}</h2>
-            <p style="margin:0.25rem 0 0;font-size:0.85rem;color:var(--gray-500);">${quiz.questionCount} 題 | 通過分數 ${quiz.passingScore || 60}%</p>
+      <div class="quiz-modal-shell" role="dialog" aria-modal="true" aria-labelledby="quizModalTitle" onclick="event.stopPropagation()">
+        <div class="quiz-modal-header">
+          <div class="quiz-modal-copy">
+            <h2 id="quizModalTitle" class="quiz-modal-title">${this.escapeText(quiz.title)}</h2>
+            <p class="quiz-modal-subtitle">${this.escapeText(`${quiz.questionCount || 0} ${t('app.questions')} | ${t('app.passingScore')} ${quiz.passingScore || 60}%`)}</p>
           </div>
-          <div id="quizTimer" style="font-size:1.5rem;font-weight:700;color:var(--olive);">00:00</div>
+          <div class="quiz-modal-timer">
+            <div class="quiz-modal-timer-label">${this.escapeText(t('app.timeSpent'))}</div>
+            <div id="quizTimer" class="quiz-modal-timer-value">00:00</div>
+          </div>
         </div>
-        <div id="quizContent" style="flex:1;overflow-y:auto;padding:2rem;">
+        <div id="quizContent" class="quiz-modal-content">
           ${this.renderQuizQuestions(quiz.questions)}
         </div>
-        <div style="padding:1rem 2rem;border-top:1px solid var(--gray-200);display:flex;justify-content:space-between;">
-          <button onclick="App.closeQuiz()" style="padding:0.75rem 1.5rem;background:var(--gray-200);border:none;border-radius:8px;cursor:pointer;">離開測驗</button>
-          <button onclick="App.submitQuiz()" style="padding:0.75rem 2rem;background:var(--olive);color:var(--cream);border:none;border-radius:8px;cursor:pointer;font-weight:500;">提交答案</button>
+        <div class="quiz-modal-footer">
+          <div class="quiz-modal-subtitle">${this.escapeText(I18n.getLocale() === 'en' ? 'You can leave now and reopen the quiz later.' : '可先離開測驗，之後再回來繼續作答。')}</div>
+          <div class="quiz-modal-actions">
+            <button type="button" class="quiz-modal-btn secondary" onclick="App.closeQuiz()">${this.escapeText(t('app.leaveQuiz'))}</button>
+            <button type="button" class="quiz-modal-btn primary" onclick="App.submitQuiz()">${this.escapeText(t('app.submitAnswers'))}</button>
+          </div>
         </div>
       </div>
     `;
@@ -2469,19 +3075,19 @@ const App = {
    * 渲染測驗題目
    */
   renderQuizQuestions(questions) {
-    return questions.map((q, index) => `
-      <div class="quiz-question" style="margin-bottom:2rem;padding-bottom:2rem;border-bottom:1px solid var(--gray-200);">
-        <div style="display:flex;align-items:flex-start;gap:1rem;margin-bottom:1rem;">
-          <span style="background:var(--olive);color:var(--cream);width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:0.9rem;flex-shrink:0;">${index + 1}</span>
-          <div style="flex:1;">
-            <p style="margin:0;font-size:1rem;line-height:1.6;">${q.question}</p>
-            ${q.imageUrl ? `<img src="${q.imageUrl}" style="max-width:100%;margin-top:1rem;border-radius:8px;">` : ''}
+    return (questions || []).map((q, index) => `
+      <section class="quiz-question-card">
+        <div class="quiz-question-head">
+          <span class="quiz-question-number">${index + 1}</span>
+          <div class="quiz-question-copy">
+            <p class="quiz-question-text">${this.escapeText(q.question)}</p>
+            ${q.imageUrl ? `<img src="${this.escapeText(q.imageUrl)}" alt="" class="quiz-question-image">` : ''}
           </div>
         </div>
-        <div style="padding-left:2.5rem;">
+        <div>
           ${q.type === 'multiple_choice' ? this.renderMultipleChoice(q, index) : this.renderTextAnswer(q, index)}
         </div>
-      </div>
+      </section>
     `).join('');
   },
 
@@ -2492,12 +3098,10 @@ const App = {
     const options = question.options || [];
     return `
       <div class="quiz-options">
-        ${options.map((opt, optIndex) => `
-          <label style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem 1rem;border:2px solid var(--gray-200);border-radius:8px;margin-bottom:0.5rem;cursor:pointer;transition:all 0.2s;"
-                 onmouseover="this.style.borderColor='var(--olive-light)'"
-                 onmouseout="if(!this.querySelector('input').checked)this.style.borderColor='var(--gray-200)'">
-            <input type="radio" name="q_${questionIndex}" value="${opt}" onchange="App.recordAnswer('${question.questionId}', '${opt}')" style="width:18px;height:18px;accent-color:var(--olive);">
-            <span>${opt}</span>
+        ${options.map((opt) => `
+          <label class="quiz-option">
+            <input class="quiz-option-input" type="radio" name="q_${questionIndex}" value="${this.escapeText(opt)}" onchange="App.recordAnswer(${this.inlineActionValue(question.questionId)}, ${this.inlineActionValue(opt)})">
+            <span class="quiz-option-text">${this.escapeText(opt)}</span>
           </label>
         `).join('')}
       </div>
@@ -2509,9 +3113,11 @@ const App = {
    */
   renderTextAnswer(question, questionIndex) {
     return `
-      <textarea placeholder="請輸入您的答案..."
-                onchange="App.recordAnswer('${question.questionId}', this.value)"
-                style="width:100%;padding:0.75rem 1rem;border:2px solid var(--gray-200);border-radius:8px;font-size:1rem;resize:vertical;min-height:80px;"></textarea>
+      <div class="quiz-answer-field">
+        <textarea class="quiz-answer-textarea"
+                  placeholder="${this.escapeText(t('app.enterAnswer'))}"
+                  onchange="App.recordAnswer(${this.inlineActionValue(question.questionId)}, this.value)"></textarea>
+      </div>
     `;
   },
 
@@ -2545,10 +3151,10 @@ const App = {
         const limitSeconds = this.currentQuiz.timeLimit * 60;
         if (elapsed >= limitSeconds) {
           clearInterval(this.quizTimerInterval);
-          showToast('時間到！自動提交測驗');
+          showToast(t('toast.timeUp'));
           this.submitQuiz();
         } else if (elapsed >= limitSeconds - 60 && elapsed < limitSeconds - 59) {
-          showToast('還剩 1 分鐘！');
+          showToast(t('toast.oneMinuteLeft'));
         }
       }
     }, 1000);
@@ -2578,7 +3184,11 @@ const App = {
     // 檢查是否有未作答的題目
     const unanswered = this.currentQuiz.questions.length - this.quizAnswers.length;
     if (unanswered > 0) {
-      if (!confirm(`還有 ${unanswered} 題未作答，確定要提交嗎？`)) {
+      const confirmed = await showConfirmDialog({
+        message: t('confirm.unansweredQuiz', {n: unanswered}),
+        confirmLabel: t('app.submitAnswers')
+      });
+      if (!confirmed) {
         return;
       }
     }
@@ -2595,11 +3205,11 @@ const App = {
         // 重新載入測驗列表
         this.loadQuizzes();
       } else {
-        showToast(result.message || '提交失敗');
+        showToast(result.message || t('toast.quizSubmitFailed'));
       }
     } catch (error) {
       console.error('Submit quiz error:', error);
-      showToast('提交失敗');
+      showToast(t('toast.quizSubmitFailed'));
     }
   },
 
@@ -2614,41 +3224,71 @@ const App = {
     if (!content) return;
 
     const passed = result.passed;
-    const passColor = passed ? 'var(--success)' : 'var(--terracotta)';
+    const resultToneClass = passed ? 'is-passed' : 'is-failed';
+    const timeLabel = `${Math.floor(result.timeSpent / 60)}:${String(result.timeSpent % 60).padStart(2, '0')}`;
 
     content.innerHTML = `
-      <div style="text-align:center;padding:2rem 0;">
-        <div style="width:120px;height:120px;border-radius:50%;background:${passColor};color:white;display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0 auto 1.5rem;">
-          <div style="font-size:2.5rem;font-weight:700;">${result.score}%</div>
-        </div>
-        <h2 style="margin-bottom:0.5rem;color:${passColor};">${passed ? '恭喜通過！' : '繼續加油！'}</h2>
-        <p style="color:var(--gray-500);margin-bottom:2rem;">答對 ${result.correctCount}/${result.totalQuestions} 題 | 用時 ${Math.floor(result.timeSpent / 60)}:${String(result.timeSpent % 60).padStart(2, '0')}</p>
-
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;max-width:400px;margin:0 auto 2rem;">
-          <div style="background:var(--gray-100);padding:1rem;border-radius:8px;">
-            <div style="font-size:1.5rem;font-weight:700;color:var(--olive);">${result.earnedPoints}</div>
-            <div style="font-size:0.8rem;color:var(--gray-500);">得分</div>
+      <div class="quiz-result-shell">
+        <div class="quiz-result-hero">
+          <div class="quiz-result-score-ring ${resultToneClass}">
+            <div class="quiz-result-score-value">${result.score}%</div>
           </div>
-          <div style="background:var(--gray-100);padding:1rem;border-radius:8px;">
-            <div style="font-size:1.5rem;font-weight:700;color:var(--charcoal);">${result.totalPoints}</div>
-            <div style="font-size:0.8rem;color:var(--gray-500);">滿分</div>
-          </div>
-          <div style="background:var(--gray-100);padding:1rem;border-radius:8px;">
-            <div style="font-size:1.5rem;font-weight:700;color:var(--terracotta);">${result.bestScore}%</div>
-            <div style="font-size:0.8rem;color:var(--gray-500);">最高分</div>
+          <div class="quiz-result-hero-copy">
+            <div class="quiz-result-kicker">${this.escapeText(I18n.getLocale() === 'en' ? 'Quiz review' : '測驗結果')}</div>
+            <div class="quiz-result-title ${resultToneClass}">${this.escapeText(passed ? t('app.congratsPassed') : t('app.keepTrying'))}</div>
+            <div class="quiz-result-copy">${this.escapeText(`${t('app.correctAnswers', {correct: result.correctCount, total: result.totalQuestions})} | ${t('app.timeSpent')} ${timeLabel}`)}</div>
+            <div class="quiz-result-tags">
+              <span class="quiz-result-tag">${this.escapeText(`${result.correctCount}/${result.totalQuestions} ${I18n.getLocale() === 'en' ? 'correct' : '答對'}`)}</span>
+              <span class="quiz-result-tag">${this.escapeText(`${t('app.bestScore')} ${result.bestScore}%`)}</span>
+            </div>
           </div>
         </div>
 
-        <h3 style="text-align:left;margin-bottom:1rem;">題目詳解</h3>
-        <div style="text-align:left;">
+        <div class="quiz-result-metrics">
+          <div class="quiz-result-metric">
+            <div class="quiz-result-metric-kicker">${this.escapeText(I18n.getLocale() === 'en' ? 'Earned' : '本次得分')}</div>
+            <div class="quiz-result-metric-value">${result.earnedPoints}</div>
+            <div class="quiz-result-metric-label">${this.escapeText(t('app.score'))}</div>
+          </div>
+          <div class="quiz-result-metric">
+            <div class="quiz-result-metric-kicker">${this.escapeText(I18n.getLocale() === 'en' ? 'Total' : '滿分')}</div>
+            <div class="quiz-result-metric-value">${result.totalPoints}</div>
+            <div class="quiz-result-metric-label">${this.escapeText(t('app.fullScore'))}</div>
+          </div>
+          <div class="quiz-result-metric">
+            <div class="quiz-result-metric-kicker">${this.escapeText(I18n.getLocale() === 'en' ? 'Personal best' : '最佳成績')}</div>
+            <div class="quiz-result-metric-value">${result.bestScore}%</div>
+            <div class="quiz-result-metric-label">${this.escapeText(t('app.bestScore'))}</div>
+          </div>
+        </div>
+
+          <div class="quiz-result-details">
+            <div class="quiz-result-details-head">
+              <div class="quiz-result-details-kicker">${this.escapeText(I18n.getLocale() === 'en' ? 'Answer review' : '作答檢視')}</div>
+              <div class="quiz-result-details-title">${this.escapeText(t('app.answerDetail'))}</div>
+            </div>
           ${result.results.map((r, i) => `
-            <div style="padding:1rem;margin-bottom:0.5rem;background:${r.isCorrect ? 'rgba(74,124,89,0.1)' : 'rgba(193,122,94,0.1)'};border-radius:8px;border-left:4px solid ${r.isCorrect ? 'var(--success)' : 'var(--terracotta)'};">
-              <div style="font-weight:500;margin-bottom:0.5rem;">${i + 1}. ${r.question}</div>
-              <div style="font-size:0.9rem;color:var(--gray-600);">
-                您的答案: <span style="color:${r.isCorrect ? 'var(--success)' : 'var(--terracotta)'};">${r.userAnswer || '未作答'}</span>
-                ${!r.isCorrect ? `<br>正確答案: <span style="color:var(--success);">${r.correctAnswer}</span>` : ''}
-                ${r.explanation ? `<br><em style="color:var(--gray-500);">${r.explanation}</em>` : ''}
+            <div class="quiz-result-item ${r.isCorrect ? 'is-correct' : 'is-incorrect'}">
+              <div class="quiz-result-item-head">
+                <span class="quiz-result-item-index">${i + 1}</span>
+                <div class="quiz-result-item-copy">
+                  <div class="quiz-result-item-title">${this.escapeText(r.question)}</div>
+                  <span class="quiz-result-item-status">${this.escapeText(r.isCorrect ? (I18n.getLocale() === 'en' ? 'Correct' : '答對') : (I18n.getLocale() === 'en' ? 'Needs review' : '需再複習'))}</span>
+                </div>
               </div>
+              <div class="quiz-result-answer-grid">
+                <div class="quiz-result-answer-card ${r.isCorrect ? 'user-answer is-correct' : 'user-answer is-incorrect'}">
+                  <span class="quiz-result-answer-label">${this.escapeText(t('app.yourAnswer'))}</span>
+                  <strong class="${r.isCorrect ? 'correct' : 'incorrect'}">${this.escapeText(r.userAnswer || t('app.notAnswered'))}</strong>
+                </div>
+                ${!r.isCorrect ? `
+                  <div class="quiz-result-answer-card correct-answer">
+                    <span class="quiz-result-answer-label">${this.escapeText(t('app.correctAnswer'))}</span>
+                    <strong class="correct">${this.escapeText(r.correctAnswer)}</strong>
+                  </div>
+                ` : ''}
+              </div>
+              ${r.explanation ? `<div class="quiz-result-explanation"><span class="quiz-result-answer-label">${this.escapeText(I18n.getLocale() === 'en' ? 'Explanation' : '補充說明')}</span><p>${this.escapeText(r.explanation)}</p></div>` : ''}
             </div>
           `).join('')}
         </div>
@@ -2656,13 +3296,241 @@ const App = {
     `;
 
     // 更新底部按鈕
-    const footer = modal.querySelector('div[style*="border-top"]');
+    const footer = modal.querySelector('.quiz-modal-footer');
     if (footer) {
       footer.innerHTML = `
-        <button onclick="App.closeQuiz()" style="padding:0.75rem 1.5rem;background:var(--gray-200);border:none;border-radius:8px;cursor:pointer;">關閉</button>
-        <button onclick="App.startQuiz('${this.currentQuiz.quizId}')" style="padding:0.75rem 2rem;background:var(--olive);color:var(--cream);border:none;border-radius:8px;cursor:pointer;font-weight:500;">再試一次</button>
+        <div class="quiz-modal-subtitle">${this.escapeText(I18n.getLocale() === 'en' ? 'You can review the results now or retake the quiz.' : '你可以先查看結果，或立即重新作答一次。')}</div>
+        <div class="quiz-modal-actions">
+          <button type="button" class="quiz-modal-btn secondary" onclick="App.closeQuiz()">${this.escapeText(t('app.close'))}</button>
+          <button type="button" class="quiz-modal-btn primary" onclick="App.startQuiz(${this.inlineActionValue(this.currentQuiz.quizId)})">${this.escapeText(t('app.retake'))}</button>
+        </div>
       `;
     }
+  },
+
+  escapeText(value) {
+    if (typeof window.escapeHtml === 'function') return window.escapeHtml(value);
+    if (value === null || value === undefined) return '';
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  },
+
+  truncateText(value, maxLength = 160) {
+    if (value === null || value === undefined) return '';
+    const normalized = String(value).replace(/\s+/g, ' ').trim();
+    if (!normalized) return '';
+    if (normalized.length <= maxLength) return normalized;
+    return `${normalized.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`;
+  },
+
+  inlineActionValue(value) {
+    return `'${String(value || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
+  },
+
+  formatLocaleDate(dateValue) {
+    if (!dateValue) return '-';
+    const parsed = new Date(dateValue);
+    if (Number.isNaN(parsed.getTime())) return '-';
+    return parsed.toLocaleDateString(I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW');
+  },
+
+  formatLocaleMonthDay(dateValue) {
+    if (!dateValue) return '-';
+    const parsed = dateValue instanceof Date ? dateValue : new Date(dateValue);
+    if (Number.isNaN(parsed.getTime())) return '-';
+    return parsed.toLocaleDateString(I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW', {
+      month: 'short',
+      day: 'numeric'
+    });
+  },
+
+  renderDashboardEmptyState(message, options = {}) {
+    const iconMarkup = options.iconMarkup || `
+      <path d="M22 11.08V12a10 10 0 11-5.93-9.14"></path>
+      <polyline points="22,4 12,14.01 9,11.01"></polyline>
+    `;
+    const compactClass = options.compact ? ' compact' : '';
+    const actionHtml = options.actionHtml || '';
+    return `
+      <div class="empty-state${compactClass}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          ${iconMarkup}
+        </svg>
+        <p>${this.escapeText(message || '')}</p>
+        ${actionHtml}
+      </div>
+    `;
+  },
+
+  formatFileSize(byteValue) {
+    const bytes = Number(byteValue);
+    if (!Number.isFinite(bytes) || bytes <= 0) return '--';
+    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const unitIndex = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+    const normalized = bytes / (1024 ** unitIndex);
+    const precision = normalized >= 100 ? 0 : normalized >= 10 ? 1 : 2;
+    return `${normalized.toFixed(precision)} ${units[unitIndex]}`;
+  },
+
+  getToneClass(seedValue) {
+    const tones = ['tone-olive', 'tone-terracotta', 'tone-success', 'tone-blue'];
+    const seed = String(seedValue || 'default');
+    const hash = Array.from(seed).reduce((total, char) => total + char.charCodeAt(0), 0);
+    return tones[Math.abs(hash) % tones.length];
+  },
+
+  getLocalizedCategoryLabel(category) {
+    const normalized = String(category || '').trim();
+    if (!normalized) return t('app.noCategory');
+    const fallbackLabels = {
+      language: I18n.getLocale() === 'en' ? 'Language' : '語言',
+      wellness: I18n.getLocale() === 'en' ? 'Wellness' : '身心成長',
+      culture: I18n.getLocale() === 'en' ? 'Culture' : '文化',
+      stem: 'STEM',
+      arts: I18n.getLocale() === 'en' ? 'Arts' : '藝術',
+      business: I18n.getLocale() === 'en' ? 'Business' : '商業',
+      technology: I18n.getLocale() === 'en' ? 'Technology' : '科技'
+    };
+    if (typeof window !== 'undefined' && window.categoryLabels) {
+      return window.categoryLabels[String(normalized).toLowerCase()] || fallbackLabels[String(normalized).toLowerCase()] || normalized;
+    }
+    return fallbackLabels[String(normalized).toLowerCase()] || normalized;
+  },
+
+  isInternalCourseIdentifier(value) {
+    const normalized = String(value || '').trim();
+    if (!normalized) return false;
+    return /^(course|crs|cls)_[a-z0-9]{6,}$/i.test(normalized) || /^COURSE#/i.test(normalized);
+  },
+
+  getDisplayCourseCode(course = {}) {
+    const title = String(course.title || course.name || '').trim().toLowerCase();
+    const candidates = [course.courseCode, course.code, course.shortName, course.shortname];
+    for (const candidate of candidates) {
+      const normalized = String(candidate || '').trim();
+      if (!normalized) continue;
+      if (this.isInternalCourseIdentifier(normalized)) continue;
+      if (normalized.toLowerCase() === title) continue;
+      return normalized;
+    }
+    return '';
+  },
+
+  getLicenseStatusMeta(status) {
+    const normalizedStatus = String(status || '').toLowerCase();
+    if (normalizedStatus === 'active') {
+      return { label: t('app.licActive'), badgeClass: 'active' };
+    }
+    if (normalizedStatus === 'expired') {
+      return { label: t('app.licExpired'), badgeClass: 'warning' };
+    }
+    return {
+      label: normalizedStatus ? normalizedStatus.replace(/_/g, ' ') : '-',
+      badgeClass: 'pending'
+    };
+  },
+
+  getQuizStateMeta(quiz = {}) {
+    const rawStatus = String(quiz.userStatus || quiz.status || '').toLowerCase();
+    const attempts = Number(quiz.attempts || quiz.attemptCount || 0);
+    const hasAttempts = quiz.attempted === true || attempts > 0;
+    const hasScore = quiz.bestScore !== undefined && quiz.bestScore !== null && quiz.bestScore !== '';
+    const inProgressLabel = I18n.getLocale() === 'en' ? 'In Progress' : '進行中';
+
+    let state = 'not_started';
+    if (['completed', 'passed', 'submitted'].includes(rawStatus) || (quiz.completed === true) || (hasScore && rawStatus !== 'in_progress')) {
+      state = 'completed';
+    } else if (['in_progress', 'attempted', 'active'].includes(rawStatus) || hasAttempts) {
+      state = 'in_progress';
+    }
+
+    if (state === 'completed') {
+      return {
+        state,
+        badgeLabel: t('app.completedQuizzes'),
+        badgeClass: 'is-completed',
+        actionLabel: t('app.viewResults'),
+        actionIcon: '<polyline points="20 6 9 17 4 12"/>'
+      };
+    }
+
+    if (state === 'in_progress') {
+      return {
+        state,
+        badgeLabel: inProgressLabel,
+        badgeClass: 'is-progress',
+        actionLabel: t('app.continueQuiz'),
+        actionIcon: '<polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>'
+      };
+    }
+
+    return {
+      state: 'not_started',
+      badgeLabel: t('app.notAttempted'),
+      badgeClass: 'is-idle',
+      actionLabel: t('app.startQuiz'),
+      actionIcon: '<polygon points="5,3 19,12 5,21"/>'
+    };
+  },
+
+  renderQuizRowCard(quiz, options = {}) {
+    const quizId = quiz.quizId || quiz.id || '';
+    const title = this.escapeText(quiz.title || t('app.quiz'));
+    const description = this.escapeText((quiz.description || '').trim()) || (I18n.getLocale() === 'en'
+      ? 'Open this quiz to review the requirements, complete the questions, and track your best score.'
+      : '開啟這份測驗以查看要求、完成作答並追蹤自己的最佳成績。');
+    const questionCount = Number(quiz.questionCount || quiz.totalQuestions || 0);
+    const passingScore = Number(quiz.passingScore || 60);
+    const attempts = Number(quiz.attempts || quiz.attemptCount || 0);
+    const bestScore = quiz.bestScore !== undefined && quiz.bestScore !== null && quiz.bestScore !== ''
+      ? Number(quiz.bestScore)
+      : null;
+    const timeLimit = quiz.timeLimit || quiz.duration || null;
+    const state = this.getQuizStateMeta(quiz);
+    const rootAction = options.rootAction || '';
+    const buttonAction = options.buttonAction || `App.startQuiz(${this.inlineActionValue(quizId)})`;
+    const rootAttrs = rootAction
+      ? ` role="button" tabindex="0" onclick="${rootAction}" onkeypress="if(event.key === 'Enter' || event.key === ' '){ event.preventDefault(); ${rootAction}; }"`
+      : '';
+    const metaPills = [
+      questionCount > 0 ? `<span class="quiz-row-meta-pill"><strong>${questionCount}</strong> ${this.escapeText(t('app.questions'))}</span>` : '',
+      timeLimit ? `<span class="quiz-row-meta-pill">${this.escapeText(t('app.timeLimit', { n: timeLimit }))}</span>` : '',
+      `<span class="quiz-row-meta-pill">${this.escapeText(t('app.passingScore'))} <strong>${passingScore}%</strong></span>`,
+      attempts > 0 ? `<span class="quiz-row-meta-pill">${this.escapeText(t('app.attempted'))} <strong>${attempts}</strong> ${this.escapeText(t('app.times'))}</span>` : ''
+    ].filter(Boolean).join('');
+
+    const scoreMarkup = bestScore !== null && !Number.isNaN(bestScore)
+      ? `
+        <div class="quiz-row-score">
+          <div class="quiz-row-score-value ${bestScore >= passingScore ? 'tone-success' : 'tone-terracotta'}">${bestScore}%</div>
+          <div class="quiz-row-score-label">${this.escapeText(t('app.bestScore'))}</div>
+        </div>
+      `
+      : '';
+
+    return `
+      <article class="quiz-row-card${rootAction ? ' is-clickable' : ''}"${rootAttrs}>
+        <div class="quiz-row-main">
+          <div class="quiz-row-topline">
+            <h3 class="quiz-row-title">${title}</h3>
+            <span class="quiz-status-pill ${state.badgeClass}">${this.escapeText(state.badgeLabel)}</span>
+          </div>
+          <p class="quiz-row-desc">${description}</p>
+          <div class="quiz-row-meta">${metaPills}</div>
+        </div>
+        <div class="quiz-row-actions">
+          ${scoreMarkup}
+          <button type="button" class="quiz-launch-btn ${state.badgeClass}" onclick="event.stopPropagation(); ${buttonAction}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${state.actionIcon}</svg>
+            <span>${this.escapeText(options.buttonLabel || state.actionLabel)}</span>
+          </button>
+        </div>
+      </article>
+    `;
   },
 
   // ============================================================
@@ -2675,38 +3543,63 @@ const App = {
   async loadMyCoursesView() {
     const container = document.getElementById('myCoursesContent');
     if (!container) return;
-    container.innerHTML = '<div class="loading-indicator">載入中...</div>';
+    container.innerHTML = `<div class="loading-indicator">${t('common.loading')}</div>`;
     try {
-      const result = await API.courses.getMyCourses();
+      const user = API.getCurrentUser();
+      const role = this.isTeachingUser(user) ? 'instructor' : 'student';
+      const result = await API.courses.getMyCourses(role);
       const courses = result.success ? (result.data || []) : [];
       if (courses.length === 0) {
-        container.innerHTML = '<div class="empty-state"><p>尚未報名任何課程</p><button onclick="showView(\'moodleCourses\')" class="btn-primary">瀏覽課程</button></div>';
+        container.innerHTML = `<div class="empty-state"><p>${t('app.noCourses')}</p><button onclick="showView('moodleCourses')" class="btn-primary">${t('app.browseCourses')}</button></div>`;
         return;
       }
       container.innerHTML = `
         <div class="courses-grid">
-          ${courses.map(c => `
-            <div class="course-card" onclick="MoodleUI.openCourse('${c.courseId}')">
-              <div class="course-card-header" style="background: ${MoodleUI.getCourseGradient ? MoodleUI.getCourseGradient(c.category) : 'linear-gradient(135deg, var(--olive) 0%, var(--olive-light) 100%)'}">
-                <span class="course-category">${c.category || '未分類'}</span>
-                <h3>${c.title}</h3>
+          ${courses.map(c => {
+            const categoryLabel = this.getLocalizedCategoryLabel(c.category);
+            const codeLabel = this.getDisplayCourseCode(c);
+            const supportCode = [c.shortName, c.shortname]
+              .map((value) => String(value || '').trim())
+              .find((value) => value && value !== codeLabel && value.toLowerCase() !== String(c.title || '').trim().toLowerCase() && !this.isInternalCourseIdentifier(value)) || '';
+            const summary = this.escapeText(this.truncateText(c.description || c.summary || (I18n.getLocale() === 'en' ? 'Continue learning in this course workspace.' : '在這個課程工作區中持續學習與互動。'), 110));
+            const instructor = this.escapeText(c.instructorName || (I18n.getLocale() === 'en' ? 'Course instructor' : '課程教師'));
+            return `
+            <button type="button" class="course-card" onclick="MoodleUI.openCourse('${c.courseId}')">
+              <div class="course-card-cover ${this.getToneClass(c.category || c.courseId || c.title)}">
+                <div class="course-card-cover-top">
+                  <span class="course-category">${categoryLabel}</span>
+                  ${codeLabel ? `<span class="course-code-pill">${this.escapeText(codeLabel)}</span>` : ''}
+                </div>
+                <div class="course-card-cover-copy">
+                  <h3>${c.title}</h3>
+                  <p>${supportCode ? this.escapeText(supportCode) : instructor}</p>
+                </div>
               </div>
               <div class="course-card-body">
-                <p class="course-instructor">${c.instructorName || ''}</p>
+                <p class="course-card-summary">${summary}</p>
+                <div class="course-card-meta-row">
+                  <div class="course-card-meta-stack">
+                    <p class="course-instructor">${instructor}</p>
+                    ${codeLabel ? `<span class="course-support-meta">${this.escapeText(codeLabel)}</span>` : ''}
+                  </div>
+                  <span class="course-open-link">${I18n.getLocale() === 'en' ? 'Open course' : '進入課程'} →</span>
+                </div>
                 ${c.progress !== undefined ? `
                   <div class="progress-bar-container">
-                    <div class="progress-bar" style="width:${c.progress}%"></div>
+                    <div class="progress-bar" data-progress-width="${this.clampProgressValue(c.progress)}"></div>
                     <span class="progress-text">${c.progress}%</span>
                   </div>
                 ` : ''}
               </div>
-            </div>
-          `).join('')}
+            </button>
+          `;
+          }).join('')}
         </div>
       `;
+      this.applyProgressData(container);
     } catch (error) {
       console.error('loadMyCoursesView error:', error);
-      container.innerHTML = '<div class="error-state">載入課程失敗</div>';
+      container.innerHTML = `<div class="error-state">${t('app.loadCourseFailed')}</div>`;
     }
   },
 
@@ -2716,39 +3609,128 @@ const App = {
   async loadLicensesView() {
     const container = document.getElementById('licensesContent');
     if (!container) return;
-    container.innerHTML = '<div class="loading-indicator">載入中...</div>';
+    container.innerHTML = `<div class="loading-indicator">${t('common.loading')}</div>`;
     try {
       const result = await API.licenses.list();
       const licenses = result.success ? (result.data || []) : [];
+      const activeCount = licenses.filter((license) => license.status === 'active').length;
+      const expiredCount = licenses.filter((license) => license.status === 'expired').length;
+      const totalNote = I18n.getLocale() === 'en'
+        ? 'Licenses already assigned to platform resources.'
+        : '目前已分配到平台資源的授權數量。';
+      const activeNote = I18n.getLocale() === 'en'
+        ? 'Resources learners can still access right now.'
+        : '探橋者目前仍可使用的授權。';
+      const expiredNote = I18n.getLocale() === 'en'
+        ? 'Review these first if you need to reassign access.'
+        : '若要重新指派內容權限，優先檢查這些授權。';
+
       container.innerHTML = `
-        <div class="stats-row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem;margin-bottom:1.5rem;">
-          <div class="stat-card" style="background:var(--white);padding:1.5rem;border-radius:12px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.06);"><div class="stat-number" style="font-size:2rem;font-weight:700;color:var(--olive);">${licenses.length}</div><div class="stat-label" style="font-size:0.85rem;color:var(--gray-500);">總授權數</div></div>
-          <div class="stat-card" style="background:var(--white);padding:1.5rem;border-radius:12px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.06);"><div class="stat-number" style="font-size:2rem;font-weight:700;color:var(--olive);">${licenses.filter(l => l.status === 'active').length}</div><div class="stat-label" style="font-size:0.85rem;color:var(--gray-500);">有效授權</div></div>
-        </div>
-        <div class="card">
-          <div class="card-header">
-            <h2 class="card-title">授權清單</h2>
+        <section class="license-dashboard">
+          <div class="license-stats">
+            <article class="license-stat-card">
+              <div class="license-stat-copy">
+                <div class="license-stat-label">${this.escapeText(t('app.totalLicenses'))}</div>
+                <div class="license-stat-value">${licenses.length}</div>
+                <div class="license-stat-note">${this.escapeText(totalNote)}</div>
+              </div>
+              <div class="license-stat-icon tone-olive">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13V7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h7"/><path d="M18 8v8"/><path d="M9 12h3"/><path d="M17 21l5-5"/><path d="M17 16h5v5"/></svg>
+              </div>
+            </article>
+            <article class="license-stat-card">
+              <div class="license-stat-copy">
+                <div class="license-stat-label">${this.escapeText(t('app.activeLicenses'))}</div>
+                <div class="license-stat-value">${activeCount}</div>
+                <div class="license-stat-note">${this.escapeText(activeNote)}</div>
+              </div>
+              <div class="license-stat-icon tone-success">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/><path d="M12 3a9 9 0 1 1 0 18"/></svg>
+              </div>
+            </article>
+            <article class="license-stat-card">
+              <div class="license-stat-copy">
+                <div class="license-stat-label">${this.escapeText(t('app.licExpired'))}</div>
+                <div class="license-stat-value">${expiredCount}</div>
+                <div class="license-stat-note">${this.escapeText(expiredNote)}</div>
+              </div>
+              <div class="license-stat-icon tone-terracotta">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+              </div>
+            </article>
           </div>
-          <div class="card-body">
-            <table class="data-table">
-              <thead><tr><th>名稱</th><th>狀態</th><th>到期日</th></tr></thead>
-              <tbody>
-                ${licenses.map(l => `
-                  <tr>
-                    <td>${l.name || l.licenseId}</td>
-                    <td><span class="status-badge ${l.status === 'active' ? 'active' : l.status === 'expired' ? 'warning' : ''}">${l.status === 'active' ? '有效' : l.status === 'expired' ? '已過期' : l.status}</span></td>
-                    <td>${l.expiresAt ? new Date(l.expiresAt).toLocaleDateString('zh-TW') : '-'}</td>
-                  </tr>
-                `).join('')}
-                ${licenses.length === 0 ? '<tr><td colspan="3" style="text-align:center;padding:2rem;color:var(--gray-500);">尚無授權紀錄</td></tr>' : ''}
-              </tbody>
-            </table>
+
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">${t('app.licenseList')}</h2>
+            </div>
+            <div class="card-body card-body-flush">
+              ${licenses.length === 0 ? `
+                <div class="empty-state">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 13V7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h7"/><path d="M18 8v8"/><path d="M17 21l5-5"/><path d="M17 16h5v5"/></svg>
+                  <p>${t('app.noLicenses')}</p>
+                </div>
+              ` : `
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>${t('app.licName')}</th>
+                      <th>${t('app.licStatus')}</th>
+                      <th>${t('app.licExpiry')}</th>
+                      <th>${t('common.actions')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${licenses.map((license) => {
+                      const expiryDate = license.expiresAt || license.expiryDate || '';
+                      const licenseId = license.licenseId || license.id || '';
+                      const title = license.name || license.resourceTitle || license.licenseId || t('app.course');
+                      const typeLabel = license.licenseType === 'institutional'
+                        ? t('app.institutionalLicense')
+                        : license.licenseType === 'personal'
+                          ? t('app.personalLicense')
+                          : (license.licenseType || '-');
+                      const statusMeta = this.getLicenseStatusMeta(license.status);
+                      const daysLeft = this.getDaysUntil(expiryDate);
+                      const expiryNote = Number.isFinite(daysLeft)
+                        ? (daysLeft >= 0
+                          ? (I18n.getLocale() === 'en' ? `${daysLeft} days left` : `距離到期 ${daysLeft} 天`)
+                          : (I18n.getLocale() === 'en' ? `${Math.abs(daysLeft)} days overdue` : `已過期 ${Math.abs(daysLeft)} 天`))
+                        : '-';
+
+                      return `
+                        <tr>
+                          <td>
+                            <div class="license-table-stack">
+                              <div class="license-table-title">${this.escapeText(title)}</div>
+                              <div class="license-table-subtitle">${this.escapeText(typeLabel)}</div>
+                            </div>
+                          </td>
+                          <td><span class="status-badge ${statusMeta.badgeClass}">${this.escapeText(statusMeta.label)}</span></td>
+                          <td>
+                            <div class="license-table-stack">
+                              <div class="license-table-title">${this.escapeText(this.formatLocaleDate(expiryDate))}</div>
+                              <div class="license-table-note">${this.escapeText(expiryNote)}</div>
+                            </div>
+                          </td>
+                          <td>
+                            ${license.status === 'active' && licenseId
+                              ? `<button type="button" class="btn-sm license-table-action" onclick="App.renewLicense(${this.inlineActionValue(licenseId)})">${this.escapeText(t('app.renewLicense'))}</button>`
+                              : '<span class="license-table-note">-</span>'}
+                          </td>
+                        </tr>
+                      `;
+                    }).join('')}
+                  </tbody>
+                </table>
+              `}
+            </div>
           </div>
-        </div>
+        </section>
       `;
     } catch (error) {
       console.error('loadLicensesView error:', error);
-      container.innerHTML = '<div class="error-state">載入授權資料失敗</div>';
+      container.innerHTML = `<div class="error-state">${t('app.loadLicenseFailed')}</div>`;
     }
   },
 
@@ -2758,32 +3740,211 @@ const App = {
   async loadVideosView() {
     const container = document.getElementById('videosContent');
     if (!container) return;
-    container.innerHTML = '<div class="loading-indicator">載入中...</div>';
+    container.innerHTML = `<div class="loading-indicator">${t('common.loading')}</div>`;
     try {
+      if (typeof window.hydrateVideoProgressFromBackend === 'function') {
+        await window.hydrateVideoProgressFromBackend();
+      }
       const result = await API.resources.list({ type: 'video' });
       const videos = result.success ? (result.data || []) : [];
+      const escapeText = value => {
+        if (typeof window.escapeHtml === 'function') return window.escapeHtml(value);
+        if (value === null || value === undefined) return '';
+        return String(value)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      };
+      const inlineValue = value => `'${String(value || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
+      const compactNumber = value => {
+        const numericValue = Number(value);
+        if (!Number.isFinite(numericValue)) return '--';
+        return new Intl.NumberFormat(I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW', {
+          notation: numericValue >= 1000 ? 'compact' : 'standard',
+          maximumFractionDigits: numericValue >= 1000 ? 1 : 0
+        }).format(numericValue);
+      };
+
+      const normalizedVideos = videos.map(video => {
+        const videoId = video.resourceId || video.id || video.videoId || '';
+        const existingMeta = typeof videoData !== 'undefined' && videoData[videoId] ? videoData[videoId] : {};
+        const contentUrl = video.contentUrl || video.videoUrl || video.url || '';
+        const youtubeId = (typeof getYouTubeId === 'function' && contentUrl) ? getYouTubeId(contentUrl) : null;
+        const progress = Math.max(0, Math.min(100, Number(video.progress ?? video.userProgress ?? existingMeta.progress ?? 0) || 0));
+        const category = video.category || video.subject || (Array.isArray(video.tags) && video.tags[0]) || '影音橋段';
+        const author = video.creatorName || video.authorName || video.author || existingMeta.author || t('app.unknownAuthor');
+        const viewsValue = video.viewCount ?? video.views ?? existingMeta.views ?? null;
+        const duration = video.duration || video.length || existingMeta.duration || '--:--';
+        const description = video.description || video.summary || existingMeta.description || '';
+
+        if (typeof videoData !== 'undefined' && videoId) {
+          videoData[videoId] = {
+            ...existingMeta,
+            title: video.title || existingMeta.title || t('video.untitled'),
+            author,
+            duration,
+            views: viewsValue !== null && viewsValue !== undefined ? compactNumber(viewsValue) : (existingMeta.views || '--'),
+            youtubeId: youtubeId || existingMeta.youtubeId || null,
+            description,
+            progress
+          };
+        }
+
+        return {
+          ...video,
+          videoId,
+          contentUrl,
+          youtubeId,
+          progress,
+          category,
+          author,
+          duration,
+          description,
+          viewsLabel: viewsValue !== null && viewsValue !== undefined ? compactNumber(viewsValue) : '--'
+        };
+      });
+
+      const startedCount = normalizedVideos.filter(video => video.progress > 0).length;
+      const completedCount = normalizedVideos.filter(video => video.progress >= 100).length;
+
       container.innerHTML = `
-        <div class="video-stats" style="margin-bottom:1rem;">
-          <span style="color:var(--gray-500);">${videos.length} 部影片</span>
-        </div>
-        <div class="videos-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1.5rem;">
-          ${videos.map(v => `
-            <div class="video-card" style="background:var(--white);border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);cursor:pointer;" onclick="openVideoPlayer && openVideoPlayer('${v.resourceId || ''}')">
-              <div class="video-thumbnail" style="position:relative;aspect-ratio:16/9;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);display:flex;align-items:center;justify-content:center;">
-                <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="#f5f0e8" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polygon points="10,8 16,12 10,16" fill="#f5f0e8"/></svg>
+        <section class="video-library-shell">
+          <div class="video-library-header">
+            <div class="video-library-copy">
+              <span class="video-library-count">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23,7 16,12 23,17"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                <span>${normalizedVideos.length} ${t('app.videoCount')}</span>
+              </span>
+              <h2 class="video-library-title">${t('sidebar.videos') || '影音橋段'}</h2>
+              <p class="video-library-subtitle">把影片列表收斂成同一套平台語言，保留進度、作者與分類資訊，點進去會直接接到新版 viewer shell。</p>
+            </div>
+          </div>
+
+          <div class="video-library-stats">
+            <div class="video-library-stat">
+              <div class="video-library-stat-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23,7 16,12 23,17"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
               </div>
-              <div class="video-info" style="padding:1rem;">
-                <h4 style="font-size:1rem;font-weight:600;margin-bottom:0.5rem;">${v.title}</h4>
-                <p style="font-size:0.85rem;color:var(--gray-500);">${v.description || ''}</p>
+              <div>
+                <div class="video-library-stat-value">${normalizedVideos.length}</div>
+                <div class="video-library-stat-label">可用影片</div>
               </div>
             </div>
-          `).join('')}
-          ${videos.length === 0 ? '<div class="empty-state" style="text-align:center;padding:3rem;color:var(--gray-500);grid-column:1/-1;"><p>尚無影片資源</p></div>' : ''}
-        </div>
+            <div class="video-library-stat">
+              <div class="video-library-stat-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </div>
+              <div>
+                <div class="video-library-stat-value">${startedCount}</div>
+                <div class="video-library-stat-label">已開始學習</div>
+              </div>
+            </div>
+            <div class="video-library-stat">
+              <div class="video-library-stat-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <div>
+                <div class="video-library-stat-value">${completedCount}</div>
+                <div class="video-library-stat-label">已完成</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="video-library-toolbar">
+            <div class="bridge-form-group flush">
+              <label class="bridge-form-label" for="videoSearch">搜尋影片</label>
+              <input id="videoSearch" type="text" class="bridge-form-control" placeholder="搜尋標題或作者" oninput="filterVideos()">
+            </div>
+            <div class="bridge-form-group flush">
+              <label class="bridge-form-label" for="videoCategory">分類</label>
+              <select id="videoCategory" class="bridge-form-control" onchange="filterVideos()">
+                <option value="">全部分類</option>
+                ${Array.from(new Set(normalizedVideos.map(video => video.category).filter(Boolean))).map(category => `<option value="${escapeText(category)}">${escapeText(category)}</option>`).join('')}
+              </select>
+            </div>
+            <div class="bridge-form-group flush">
+              <label class="bridge-form-label" for="videoDuration">學習狀態</label>
+              <select id="videoDuration" class="bridge-form-control" onchange="filterVideos()">
+                <option value="">全部狀態</option>
+                <option value="not_started">尚未開始</option>
+                <option value="in_progress">學習中</option>
+                <option value="completed">已完成</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="videoGrid" class="video-library-grid">
+            ${normalizedVideos.map(video => `
+              <article
+                class="video-card video-library-card"
+                data-video-id="${escapeText(video.videoId)}"
+                data-title="${escapeText((video.title || '').toLowerCase())}"
+                data-author="${escapeText((video.author || '').toLowerCase())}"
+                data-category="${escapeText(video.category || '')}"
+                data-progress="${video.progress}"
+                onclick="openVideoPlayer && openVideoPlayer(${inlineValue(video.videoId)}, ${video.contentUrl ? inlineValue(video.contentUrl) : 'undefined'})">
+                <div class="video-library-thumb">
+                  <div class="video-library-play">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10,8 16,12 10,16" fill="currentColor"/></svg>
+                  </div>
+                  <div class="video-library-thumb-meta">
+                    <span class="video-library-chip">${escapeText(video.category || '影音橋段')}</span>
+                    <span class="video-library-duration">${escapeText(video.duration || '--:--')}</span>
+                  </div>
+                </div>
+                <div class="video-library-body">
+                  <div>
+                    <h3 class="video-library-card-title">${escapeText(video.title || t('video.untitled'))}</h3>
+                    <p class="video-library-card-desc">${escapeText((video.description || '').trim() ? (String(video.description).replace(/\s+/g, ' ').trim().slice(0, 120) + (String(video.description).replace(/\s+/g, ' ').trim().length > 120 ? '...' : '')) : t('video.noDescription'))}</p>
+                  </div>
+                  <div class="video-library-card-meta">
+                    <span class="video-library-meta-item">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                      <span>${escapeText(video.author)}</span>
+                    </span>
+                    <span class="video-library-meta-item">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+                      <span>${escapeText(t('video.viewsLabel', { count: video.viewsLabel }))}</span>
+                    </span>
+                  </div>
+                  <div class="video-library-progress-block">
+                    <div class="video-library-progress-head">
+                      <span>${t('video.progressTitle')}</span>
+                      <span>${video.progress}%</span>
+                    </div>
+                    <div class="video-progress">
+                      <div class="video-progress-fill" data-progress-width="${this.clampProgressValue(video.progress)}"></div>
+                    </div>
+                  </div>
+                  <div class="video-library-card-actions">
+                    <button type="button" class="video-library-card-action secondary" onclick="event.stopPropagation(); addToPlaylist(${inlineValue(video.videoId)})">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                      <span>${t('video.watchLater')}</span>
+                    </button>
+                    <button type="button" class="video-library-card-action primary" onclick="event.stopPropagation(); openVideoPlayer && openVideoPlayer(${inlineValue(video.videoId)}, ${video.contentUrl ? inlineValue(video.contentUrl) : 'undefined'})">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5,3 19,12 5,21"/></svg>
+                      <span>${t('video.playNow')}</span>
+                    </button>
+                  </div>
+                </div>
+              </article>
+            `).join('')}
+            ${normalizedVideos.length === 0 ? `
+              <div class="discussion-state full-span">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="23,7 16,12 23,17"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                <div class="discussion-state-title">${t('app.noVideos')}</div>
+                <div class="discussion-state-copy">${t('video.noVideosCopy')}</div>
+              </div>
+            ` : ''}
+          </div>
+        </section>
       `;
+      this.applyProgressData(container);
     } catch (error) {
       console.error('loadVideosView error:', error);
-      container.innerHTML = '<div class="error-state">載入影片失敗</div>';
+      container.innerHTML = `<div class="error-state">${t('app.loadVideoFailed')}</div>`;
     }
   },
 
@@ -2793,38 +3954,76 @@ const App = {
   async loadQuizzesListView() {
     const container = document.getElementById('quizzesListContent');
     if (!container) return;
-    container.innerHTML = '<div class="loading-indicator">載入中...</div>';
+    container.innerHTML = `<div class="loading-indicator">${t('common.loading')}</div>`;
     try {
       const result = await API.quizzes.list();
       const quizzes = result.success ? (result.data || []) : [];
-      const completed = quizzes.filter(q => q.status === 'completed' || q.attempted).length;
+      const completed = quizzes.filter((quiz) => this.getQuizStateMeta(quiz).state === 'completed').length;
+      const inProgress = quizzes.filter((quiz) => this.getQuizStateMeta(quiz).state === 'in_progress').length;
+      const idleCount = quizzes.length - completed - inProgress;
+      const summaryTotalNote = I18n.getLocale() === 'en'
+        ? 'Every quiz currently visible in this learning workspace.'
+        : '目前在這個探橋空間可查看的所有測驗。';
+      const summaryCompletedNote = I18n.getLocale() === 'en'
+        ? 'Quizzes already submitted and ready for result review.'
+        : '已提交並可回看結果的測驗。';
+      const summaryIdleNote = I18n.getLocale() === 'en'
+        ? 'Quizzes learners have not started yet.'
+        : '探橋者尚未開始作答的測驗。';
+
       container.innerHTML = `
-        <div class="stats-row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem;margin-bottom:1.5rem;">
-          <div class="stat-card" style="background:var(--white);padding:1.5rem;border-radius:12px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.06);"><div style="font-size:2rem;font-weight:700;color:var(--olive);">${quizzes.length}</div><div style="font-size:0.85rem;color:var(--gray-500);">總測驗</div></div>
-          <div class="stat-card" style="background:var(--white);padding:1.5rem;border-radius:12px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.06);"><div style="font-size:2rem;font-weight:700;color:var(--terracotta);">${completed}</div><div style="font-size:0.85rem;color:var(--gray-500);">已完成</div></div>
-        </div>
-        <div class="quiz-list">
-          ${quizzes.map(q => `
-            <div class="quiz-item" style="background:var(--white);border-radius:12px;padding:1.5rem;margin-bottom:1rem;box-shadow:0 2px 8px rgba(0,0,0,0.06);display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="typeof MoodleUI !== 'undefined' && MoodleUI.openQuiz && MoodleUI.openQuiz('${q.quizId}')">
-              <div class="quiz-info">
-                <h4 style="font-size:1.1rem;font-weight:600;margin-bottom:0.25rem;">${q.title}</h4>
-                <p style="font-size:0.85rem;color:var(--gray-500);">${q.description || ''}</p>
-                <div class="quiz-meta" style="display:flex;gap:0.75rem;margin-top:0.5rem;font-size:0.8rem;color:var(--gray-400);">
-                  ${q.timeLimit ? `<span>時限: ${q.timeLimit} 分鐘</span>` : ''}
-                  ${q.questionCount ? `<span>${q.questionCount} 題</span>` : ''}
+        <section class="quiz-shell">
+          <div class="quiz-summary-grid">
+            <article class="quiz-summary-card">
+              <div class="quiz-summary-copy">
+                <div class="quiz-summary-label">${this.escapeText(t('app.totalQuizzes'))}</div>
+                <div class="quiz-summary-value">${quizzes.length}</div>
+                <div class="quiz-summary-note">${this.escapeText(summaryTotalNote)}</div>
+              </div>
+              <div class="quiz-summary-icon tone-olive">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.82 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              </div>
+            </article>
+            <article class="quiz-summary-card">
+              <div class="quiz-summary-copy">
+                <div class="quiz-summary-label">${this.escapeText(t('app.completedQuizzes'))}</div>
+                <div class="quiz-summary-value">${completed}</div>
+                <div class="quiz-summary-note">${this.escapeText(summaryCompletedNote)}</div>
+              </div>
+              <div class="quiz-summary-icon tone-success">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/><path d="M12 3a9 9 0 1 1 0 18"/></svg>
+              </div>
+            </article>
+            <article class="quiz-summary-card">
+              <div class="quiz-summary-copy">
+                <div class="quiz-summary-label">${this.escapeText(t('app.notAttempted'))}</div>
+                <div class="quiz-summary-value">${idleCount}</div>
+                <div class="quiz-summary-note">${this.escapeText(summaryIdleNote)}</div>
+              </div>
+              <div class="quiz-summary-icon tone-terracotta">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
+              </div>
+            </article>
+          </div>
+
+          <div class="quiz-list-shell">
+            ${quizzes.length === 0
+              ? `
+                <div class="empty-state quiz-empty-state">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.82 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                  <p>${t('app.noQuizzes')}</p>
                 </div>
-              </div>
-              <div class="quiz-status">
-                ${q.attempted ? '<span class="status-badge active" style="background:var(--olive-light);color:var(--olive);padding:4px 12px;border-radius:20px;font-size:0.8rem;">已作答</span>' : '<span class="status-badge" style="background:var(--gray-100);color:var(--gray-500);padding:4px 12px;border-radius:20px;font-size:0.8rem;">未作答</span>'}
-              </div>
-            </div>
-          `).join('')}
-          ${quizzes.length === 0 ? '<div class="empty-state" style="text-align:center;padding:3rem;color:var(--gray-500);"><p>尚無測驗</p></div>' : ''}
-        </div>
+              `
+              : quizzes.map((quiz) => this.renderQuizRowCard(quiz, {
+                  rootAction: `typeof MoodleUI !== 'undefined' && MoodleUI.openQuiz && MoodleUI.openQuiz(${this.inlineActionValue(quiz.quizId || quiz.id || '')})`,
+                  buttonAction: `typeof MoodleUI !== 'undefined' && MoodleUI.openQuiz && MoodleUI.openQuiz(${this.inlineActionValue(quiz.quizId || quiz.id || '')})`
+                })).join('')}
+          </div>
+        </section>
       `;
     } catch (error) {
       console.error('loadQuizzesListView error:', error);
-      container.innerHTML = '<div class="error-state">載入測驗失敗</div>';
+      container.innerHTML = `<div class="error-state">${t('toast.quizLoadFailed')}</div>`;
     }
   },
 
@@ -2834,215 +4033,354 @@ const App = {
   async loadDiscussionsListView() {
     const container = document.getElementById('discussionsListContent');
     if (!container) return;
-    container.innerHTML = '<div class="loading-indicator">載入中...</div>';
+    container.innerHTML = `<div class="loading-indicator">${t('common.loading')}</div>`;
     try {
       const result = await API.discussions.list();
       const posts = result.success ? (result.data || []) : [];
+      const toInlineActionValue = value => `'${String(value || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
+      const renderState = typeof window.renderDiscussionState === 'function'
+        ? window.renderDiscussionState
+        : (message, variant = 'empty') => `<div class="discussion-state${variant === 'error' ? ' is-error' : ''}"><div class="discussion-state-title">${variant === 'error' ? t('common.error') : t('app.noDiscussions')}</div><div class="discussion-state-copy">${message}</div></div>`;
+      const renderCard = typeof window.renderDiscussionCard === 'function'
+        ? window.renderDiscussionCard
+        : post => `<article class="discussion-card"><div class="discussion-content"><h3 class="discussion-title">${post.title || ''}</h3></div></article>`;
+
       container.innerHTML = `
-        <div class="discussions-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-          <span style="color:var(--gray-500);">${posts.length} 則討論</span>
-          <button onclick="typeof MoodleUI !== 'undefined' && MoodleUI.showCreateDiscussionForm ? MoodleUI.showCreateDiscussionForm() : (typeof openNewPostModal === 'function' ? openNewPostModal() : showToast('功能開發中'))" class="btn-primary" style="padding:0.75rem 1.5rem;background:var(--olive);color:var(--cream);border:none;border-radius:8px;cursor:pointer;font-weight:500;display:flex;align-items:center;gap:0.5rem;">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            發起討論
-          </button>
-        </div>
-        <div class="discussions-list">
-          ${posts.map(p => {
-            const avatarColors = ['var(--olive)', 'var(--terracotta)', '#6366f1', '#059669', '#1976D2'];
-            const colorIndex = (p.authorName || '').charCodeAt(0) % avatarColors.length || 0;
-            return `
-            <div class="discussion-card" style="background:var(--white);border-radius:12px;padding:1.5rem;margin-bottom:1rem;box-shadow:0 2px 8px rgba(0,0,0,0.06);cursor:pointer;display:flex;gap:1rem;" onclick="typeof MoodleUI !== 'undefined' && MoodleUI.openDiscussion && MoodleUI.openDiscussion('${p.id || p.postId}')">
-              <div class="discussion-avatar" style="width:48px;height:48px;background:${avatarColors[colorIndex]};border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--cream);font-weight:600;flex-shrink:0;">${(p.authorName || '匿')[0]}</div>
-              <div class="discussion-content" style="flex:1;">
-                <h4 style="font-size:1.1rem;font-weight:600;margin-bottom:0.25rem;">${p.title}</h4>
-                <p style="color:var(--gray-600);margin-bottom:0.75rem;line-height:1.6;font-size:0.9rem;">${(p.content || '').substring(0, 100)}${(p.content || '').length > 100 ? '...' : ''}</p>
-                <div class="discussion-meta" style="display:flex;gap:1rem;font-size:0.8rem;color:var(--gray-400);">
-                  <span>${p.authorName || '匿名'}</span>
-                  <span>${p.createdAt ? new Date(p.createdAt).toLocaleDateString('zh-TW') : ''}</span>
-                  <span>${p.replyCount || 0} 回覆</span>
-                  <span>${p.likeCount || 0} 讚</span>
-                </div>
-              </div>
+        <section class="discussions-shell">
+          <div class="discussions-header">
+            <div class="discussions-header-copy">
+              <span class="discussion-count-pill">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                <span>${posts.length} ${t('app.discussionCount')}</span>
+              </span>
+              <h2 class="discussions-title">${t('sidebar.discussions')}</h2>
+              <p class="discussions-subtitle">這裡整理平台上的最新主題摘要。你可以直接發布新討論，或前往課程論壇查看完整脈絡與回覆。</p>
             </div>
-          `}).join('')}
-          ${posts.length === 0 ? '<div class="empty-state" style="text-align:center;padding:3rem;color:var(--gray-500);"><p>尚無討論</p></div>' : ''}
-        </div>
+            <div class="discussions-header-actions">
+              <button type="button" class="btn-secondary discussion-header-btn" onclick="showView('moodleForums'); if (typeof MoodleUI !== 'undefined' && typeof MoodleUI.loadForums === 'function') { MoodleUI.loadForums(); }">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                <span>${t('sidebar.forums')}</span>
+              </button>
+              <button type="button" class="btn-primary discussion-header-btn" onclick="openNewPostModal()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span>${t('app.startDiscussion')}</span>
+              </button>
+            </div>
+          </div>
+          <div class="discussion-list">
+            ${posts.length === 0
+              ? renderState('目前還沒有可顯示的主題。你可以先發起一則討論，或前往課程論壇查看更完整的社群交流。')
+              : posts.map(post => renderCard(post, {
+                  openAction: `App.openDiscussion(${toInlineActionValue(post.id || post.postId || '')})`,
+                  replyAction: (post.id || post.postId) ? `toggleReplies(${toInlineActionValue(post.id || post.postId)})` : ''
+                })).join('')}
+          </div>
+        </section>
       `;
     } catch (error) {
       console.error('loadDiscussionsListView error:', error);
-      container.innerHTML = '<div class="error-state">載入討論失敗</div>';
+      container.innerHTML = typeof window.renderDiscussionState === 'function'
+        ? window.renderDiscussionState(t('toast.discussionLoadFailed'), 'error')
+        : `<div class="error-state">${t('toast.discussionLoadFailed')}</div>`;
     }
   },
 
   async loadFilesView() {
     const container = document.getElementById('filesContent');
     if (!container) return;
-    container.innerHTML = '<div class="loading-indicator" style="text-align:center;padding:2rem;color:var(--gray-500);">載入中...</div>';
+    container.innerHTML = `
+      <section class="management-shell">
+        <div class="bridge-state">
+          <div class="bridge-state-title">${this.escapeText(t('common.loading'))}</div>
+        </div>
+      </section>
+    `;
     try {
       const result = await API.files.list();
       const files = result.success ? (result.data || []) : [];
+      const locale = I18n.getLocale();
+      const fileSummary = locale === 'en'
+        ? `${files.length} file${files.length === 1 ? '' : 's'} in your library`
+        : `目前共有 ${files.length} 份檔案可管理`;
+
       container.innerHTML = `
-        <div style="padding:1.5rem">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
-            <h2>我的檔案</h2>
-            <button onclick="document.getElementById('fileUploadInput').click()" class="btn-primary">上傳檔案</button>
-            <input type="file" id="fileUploadInput" style="display:none" onchange="App.handleFileUpload(this)">
+        <section class="management-shell">
+          <div class="management-header">
+            <div class="management-heading">
+              <div class="management-title">${this.escapeText(t('app.myFiles'))}</div>
+              <div class="management-copy">${this.escapeText(fileSummary)}</div>
+            </div>
+            <div class="management-inline-actions">
+              <button type="button" onclick="document.getElementById('fileUploadInput').click()" class="bridge-primary-btn">${this.escapeText(t('app.uploadFile'))}</button>
+              <input type="file" id="fileUploadInput" class="file-upload-input" onchange="App.handleFileUpload(this)">
+            </div>
           </div>
-          <div class="files-list">
-            ${files.map(f => `
-              <div class="file-item" style="display:flex;align-items:center;padding:12px;border-bottom:1px solid #eee;gap:12px">
-                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
-                <div style="flex:1">
-                  <div style="font-weight:500">${f.fileName || f.name || 'file'}</div>
-                  <div style="font-size:0.85rem;color:var(--gray-500)">${f.size ? (f.size / 1024).toFixed(1) + ' KB' : ''} ${f.createdAt ? '・' + new Date(f.createdAt).toLocaleDateString('zh-TW') : ''}</div>
+          <div class="management-list">
+            ${files.map(file => {
+              const fileId = file.fileId || file.id || '';
+              const fileName = this.escapeText(file.fileName || file.filename || file.name || 'file');
+              const fileSize = this.escapeText(this.formatFileSize(file.size));
+              const createdAt = this.escapeText(this.formatLocaleDate(file.createdAt));
+              const deleteAction = fileId
+                ? `<button type="button" onclick="App.deleteFile(${this.inlineActionValue(fileId)})" class="btn-sm btn-danger">${this.escapeText(t('app.delete'))}</button>`
+                : '';
+              return `
+                <article class="management-card">
+                  <div class="file-row">
+                    <div class="file-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path>
+                        <polyline points="14,2 14,8 20,8"></polyline>
+                      </svg>
+                    </div>
+                    <div class="file-content">
+                      <div class="file-title">${fileName}</div>
+                      <div class="file-meta">
+                        <span class="file-meta-item">${fileSize}</span>
+                        <span class="file-meta-item">${createdAt}</span>
+                      </div>
+                    </div>
+                    <div class="file-actions">
+                      ${deleteAction}
+                    </div>
+                  </div>
+                </article>
+              `;
+            }).join('')}
+            ${files.length === 0 ? `
+              <div class="management-card management-empty">
+                <div class="empty-state">
+                  <p>${this.escapeText(t('app.noFiles'))}</p>
                 </div>
-                <button onclick="App.deleteFile('${f.fileId || f.id}')" class="btn-sm btn-danger">刪除</button>
               </div>
-            `).join('')}
-            ${files.length === 0 ? '<div class="empty-state" style="text-align:center;padding:3rem;color:var(--gray-500)"><p>尚無檔案</p></div>' : ''}
+            ` : ''}
           </div>
-        </div>
+        </section>
       `;
     } catch (error) {
       console.error('loadFilesView error:', error);
-      container.innerHTML = '<div class="error-state">載入檔案失敗</div>';
+      container.innerHTML = `
+        <section class="management-shell">
+          <div class="bridge-state-error">${this.escapeText(t('app.loadFilesFailed'))}</div>
+        </section>
+      `;
     }
   },
 
   async handleFileUpload(input) {
     if (!input.files || !input.files[0]) return;
     try {
-      showToast('上傳中...');
+      showToast(t('toast.uploading'));
       const result = await API.files.upload(input.files[0]);
       if (result.success) {
-        showToast('上傳成功');
+        showToast(t('toast.uploadSuccess'));
         this.loadFilesView();
       } else {
-        showToast(result.message || '上傳失敗');
+        showToast(result.message || t('toast.uploadFailed'));
       }
     } catch (error) {
-      showToast('上傳失敗');
+      showToast(t('toast.uploadFailed'));
     }
     input.value = '';
   },
 
   async deleteFile(fileId) {
-    if (!confirm('確定要刪除此檔案嗎？')) return;
+    const confirmed = await showConfirmDialog({
+      message: t('confirm.deleteFile'),
+      confirmLabel: t('common.delete'),
+      tone: 'danger'
+    });
+    if (!confirmed) return;
     try {
       const result = await API.files.delete(fileId);
       if (result.success) {
-        showToast('檔案已刪除');
+        showToast(t('toast.fileDeleted'));
         this.loadFilesView();
       } else {
-        showToast(result.message || '刪除失敗');
+        showToast(result.message || t('toast.fileDeleteFailed'));
       }
     } catch (error) {
-      showToast('刪除失敗');
+      showToast(t('toast.fileDeleteFailed'));
     }
   },
 
   async loadGroupsManagerView() {
     const container = document.getElementById('groupsManagerContent');
     if (!container) return;
-    container.innerHTML = '<div class="loading-indicator" style="text-align:center;padding:2rem;color:var(--gray-500);">載入中...</div>';
+    container.innerHTML = `
+      <section class="management-shell">
+        <div class="bridge-state">
+          <div class="bridge-state-title">${this.escapeText(t('common.loading'))}</div>
+        </div>
+      </section>
+    `;
     try {
-      const user = API.getCurrentUser();
-      const coursesResult = await API.courses.getMyCourses();
+      const coursesResult = await API.courses.getMyCourses('instructor');
       const courses = coursesResult.success ? (coursesResult.data || []) : [];
-      const teacherCourses = courses.filter(c => c.instructorId === user?.userId || c.role === 'teacher');
+      const teacherCourses = courses;
+      const locale = I18n.getLocale();
+      const untitledCourseLabel = locale === 'en' ? 'Untitled Course' : '未命名課程';
 
       if (teacherCourses.length === 0) {
-        container.innerHTML = '<div class="empty-state" style="text-align:center;padding:3rem;color:var(--gray-500)"><p>您目前沒有管理中的課程</p></div>';
+        container.innerHTML = `
+          <section class="management-shell">
+            <div class="empty-state">
+              <p>${this.escapeText(t('app.noManagedCourses'))}</p>
+            </div>
+          </section>
+        `;
         return;
       }
 
       container.innerHTML = `
-        <div style="padding:1.5rem">
-          <h2>課程分組管理</h2>
-          <p style="color:var(--gray-500);margin-bottom:1rem">選擇課程以管理其分組</p>
-          <div class="course-select-list">
-            ${teacherCourses.map(c => `
-              <div class="course-select-card" onclick="App.openCourseGroups('${c.courseId}')" style="padding:16px;border:1px solid #eee;border-radius:8px;margin-bottom:8px;cursor:pointer;transition:background 0.2s" onmouseover="this.style.background='#f9f9f9'" onmouseout="this.style.background=''">
-                <strong>${c.title}</strong>
-                <span style="color:var(--gray-500);margin-left:8px">${c.shortName || ''}</span>
-              </div>
+        <section class="management-shell">
+          <div class="management-header">
+            <div class="management-heading">
+              <div class="management-title">${this.escapeText(t('app.groupManagement'))}</div>
+              <div class="management-copy">${this.escapeText(t('app.selectCourseToManageGroups'))}</div>
+            </div>
+            <div class="management-copy">${this.escapeText(locale === 'en' ? `${teacherCourses.length} course${teacherCourses.length === 1 ? '' : 's'}` : `可管理 ${teacherCourses.length} 門課程`)}</div>
+          </div>
+          <div class="course-picker-grid">
+            ${teacherCourses.map(course => `
+              <button type="button" class="management-card interactive course-picker-card" onclick="App.openCourseGroups(${this.inlineActionValue(course.courseId)})">
+                <span class="course-picker-info">
+                  <span class="course-picker-title">${this.escapeText(course.title || untitledCourseLabel)}</span>
+                  <span class="course-picker-subtitle">${this.escapeText(course.shortName || course.courseId || '')}</span>
+                </span>
+                <span class="course-picker-arrow" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M5 12h14"></path>
+                    <path d="m12 5 7 7-7 7"></path>
+                  </svg>
+                </span>
+              </button>
             `).join('')}
           </div>
-        </div>
+        </section>
       `;
     } catch (error) {
       console.error('loadGroupsManagerView error:', error);
-      container.innerHTML = '<div class="error-state">載入失敗</div>';
+      container.innerHTML = `
+        <section class="management-shell">
+          <div class="bridge-state-error">${this.escapeText(t('app.loadFailed'))}</div>
+        </section>
+      `;
     }
   },
 
   async openCourseGroups(courseId) {
     const container = document.getElementById('groupsManagerContent');
     if (!container) return;
-    container.innerHTML = '<div class="loading-indicator" style="text-align:center;padding:2rem">載入中...</div>';
+    container.innerHTML = `
+      <section class="management-shell">
+        <div class="bridge-state">
+          <div class="bridge-state-title">${this.escapeText(t('common.loading'))}</div>
+        </div>
+      </section>
+    `;
     try {
       const result = await API.courseGroups.list(courseId);
       const groups = result.success ? (result.data || []) : [];
+      const course = Array.isArray(this.coursesCache)
+        ? this.coursesCache.find(item => item.courseId === courseId || item.id === courseId)
+        : null;
+      const locale = I18n.getLocale();
+      const groupSummary = locale === 'en'
+        ? `${groups.length} group${groups.length === 1 ? '' : 's'} in this course`
+        : `目前共有 ${groups.length} 個群組`;
+      const untitledGroupLabel = locale === 'en' ? 'Untitled Group' : '未命名群組';
+      const emptyGroupDescription = locale === 'en' ? 'No group description yet.' : '尚未提供群組說明。';
+
       container.innerHTML = `
-        <div style="padding:1.5rem">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
-            <div>
-              <button onclick="App.loadGroupsManagerView()" class="btn-secondary" style="margin-right:8px">← 返回</button>
-              <strong>分組管理</strong>
+        <section class="management-shell">
+          <div class="management-header">
+            <div class="management-heading">
+              <div class="management-title">${this.escapeText(course?.title || t('app.groupManagement'))}</div>
+              <div class="management-copy">${this.escapeText(groupSummary)}</div>
             </div>
-            <button onclick="App.createGroupPrompt('${courseId}')" class="btn-primary">新增分組</button>
+            <div class="management-inline-actions">
+              <button type="button" onclick="App.loadGroupsManagerView()" class="bridge-secondary-btn">← ${this.escapeText(t('app.back'))}</button>
+              <button type="button" onclick="App.createGroupPrompt(${this.inlineActionValue(courseId)})" class="bridge-primary-btn">${this.escapeText(t('app.addGroup'))}</button>
+            </div>
           </div>
-          <div class="groups-list">
-            ${groups.map(g => `
-              <div class="group-card" style="padding:16px;border:1px solid #eee;border-radius:8px;margin-bottom:8px">
-                <div style="display:flex;justify-content:space-between;align-items:center">
-                  <strong>${g.name}</strong>
-                  <div>
-                    <span style="color:var(--gray-500);margin-right:8px">${g.memberCount || 0} 名成員</span>
-                    <button onclick="App.deleteGroup('${courseId}', '${g.groupId}')" class="btn-sm btn-danger">刪除</button>
+          <div class="group-grid">
+            ${groups.map(group => {
+              const groupId = group.groupId || group.id || '';
+              return `
+              <article class="management-card">
+                <div class="group-card-surface">
+                  <div class="group-card-header">
+                    <div class="management-heading">
+                      <div class="group-card-title">${this.escapeText(group.name || untitledGroupLabel)}</div>
+                      <div class="group-card-description">${this.escapeText(group.description || emptyGroupDescription)}</div>
+                    </div>
+                    <span class="group-member-badge">${this.escapeText(String(group.memberCount || 0))} ${this.escapeText(t('app.memberCount'))}</span>
+                  </div>
+                  <div class="management-inline-actions">
+                    <button type="button" onclick="App.deleteGroup(${this.inlineActionValue(courseId)}, ${this.inlineActionValue(groupId)})" class="btn-sm btn-danger">${this.escapeText(t('app.delete'))}</button>
                   </div>
                 </div>
-                ${g.description ? `<p style="color:var(--gray-500);margin-top:4px">${g.description}</p>` : ''}
+              </article>
+            `;
+            }).join('')}
+            ${groups.length === 0 ? `
+              <div class="management-card management-empty">
+                <div class="empty-state">
+                  <p>${this.escapeText(t('app.noGroups'))}</p>
+                </div>
               </div>
-            `).join('')}
-            ${groups.length === 0 ? '<div class="empty-state" style="text-align:center;padding:2rem;color:var(--gray-500)"><p>尚無分組</p></div>' : ''}
+            ` : ''}
           </div>
-        </div>
+        </section>
       `;
     } catch (error) {
       console.error('openCourseGroups error:', error);
-      container.innerHTML = '<div class="error-state">載入分組失敗</div>';
+      container.innerHTML = `
+        <section class="management-shell">
+          <div class="bridge-state-error">${this.escapeText(t('app.loadGroupsFailed'))}</div>
+        </section>
+      `;
     }
   },
 
   async createGroupPrompt(courseId) {
-    const name = prompt('請輸入分組名稱：');
+    const name = await showPromptDialog({
+      title: t('app.addGroup'),
+      message: t('app.enterGroupName'),
+      confirmLabel: t('common.confirm')
+    });
     if (!name) return;
     try {
       const result = await API.courseGroups.create(courseId, { name });
       if (result.success) {
-        showToast('分組已建立');
+        showToast(t('toast.groupCreated'));
         this.openCourseGroups(courseId);
       } else {
-        showToast(result.message || '建立失敗');
+        showToast(result.message || t('toast.groupCreateFailed'));
       }
     } catch (error) {
-      showToast('建立分組失敗');
+      showToast(t('toast.groupCreateFailed'));
     }
   },
 
   async deleteGroup(courseId, groupId) {
-    if (!confirm('確定要刪除此分組嗎？')) return;
+    const confirmed = await showConfirmDialog({
+      message: t('confirm.deleteGroup'),
+      confirmLabel: t('common.delete'),
+      tone: 'danger'
+    });
+    if (!confirmed) return;
     try {
       const result = await API.courseGroups.delete(courseId, groupId);
       if (result.success) {
-        showToast('分組已刪除');
+        showToast(t('toast.groupDeleted'));
         this.openCourseGroups(courseId);
       } else {
-        showToast(result.message || '刪除失敗');
+        showToast(result.message || t('toast.groupDeleteFailed'));
       }
     } catch (error) {
-      showToast('刪除分組失敗');
+      showToast(t('toast.groupDeleteFailed'));
     }
   }
 };
@@ -3054,6 +4392,23 @@ document.addEventListener('DOMContentLoaded', () => {
     App.init();
   } else {
     console.error('API module not loaded');
+  }
+});
+
+// 監聽語言切換事件 → 重新渲染側邊欄和頁面標題
+window.addEventListener('localeChanged', () => {
+  if (typeof App !== 'undefined' && App.currentUser) {
+    App.updateSidebarByRole();
+    App.updateUserUI();
+  }
+  // 重新設定當前頁面標題
+  if (typeof showView === 'function' && typeof getPageTitle === 'function') {
+    const currentView = document.querySelector('.view-section[style*="display: block"]');
+    if (currentView) {
+      const viewName = currentView.id?.replace('View', '') || 'dashboard';
+      const titleEl = document.getElementById('pageTitle');
+      if (titleEl) titleEl.innerHTML = getPageTitle(viewName);
+    }
   }
 });
 

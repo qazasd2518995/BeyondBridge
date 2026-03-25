@@ -5,9 +5,6 @@
 (function() {
     'use strict';
 
-    // API 基礎 URL (與 api.js 同步)
-    const API_BASE_URL = 'http://localhost:3000';
-
     // 聊天狀態
     let socket = null;
     let currentChatId = null;
@@ -15,7 +12,6 @@
     let isConnected = false;
     let typingTimeout = null;
     let currentRating = 0;
-    let socketEnabled = false;
 
     // 檢查 token 是否有效
     function isValidToken() {
@@ -24,23 +20,29 @@
         return token && token !== 'null' && token !== 'undefined' && token.length > 10;
     }
 
+    function toggleHidden(target, hidden) {
+        const element = typeof target === 'string' ? document.getElementById(target) : target;
+        if (element) element.hidden = hidden;
+    }
+
+    function supportPlaceholder(message) {
+        return `
+            <div class="empty-state compact support-message-placeholder">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+                <p>${escapeHtml(message)}</p>
+            </div>
+        `;
+    }
+
     // 初始化聊天系統
     function initChat() {
         // 檢查是否已登入
         if (!isValidToken()) {
-            console.log('[Chat] 尚未登入，跳過聊天系統初始化');
+            console.log('[Chat] 尚未登入，跳過 WebSocket 連線');
             return;
         }
-
-        // 檢查 Socket.io 是否可用
-        if (typeof io === 'undefined') {
-            console.log('[Chat] Socket.io 不可用，聊天功能已停用');
-            updateAdminStatusUI(false, 0);
-            socketEnabled = false;
-            return;
-        }
-
-        socketEnabled = true;
 
         // 初始化 Socket.io 連線
         connectSocket();
@@ -54,11 +56,11 @@
 
     // 連接 WebSocket
     function connectSocket() {
-        if (!isValidToken() || !socketEnabled) return;
+        if (!isValidToken()) return;
         const token = localStorage.getItem('accessToken');
 
         try {
-            socket = io(API_BASE_URL, {
+            socket = io({
                 auth: { token },
                 transports: ['websocket', 'polling']
             });
@@ -135,7 +137,8 @@
                     appendSystemMessage('對話已結束');
                     const inputArea = document.getElementById('chatInputArea');
                     const statusEl = document.getElementById('chatWindowStatus');
-                    if (inputArea) inputArea.style.display = 'none';
+                    toggleHidden(inputArea, true);
+                    toggleHidden('typingIndicator', true);
                     if (statusEl) statusEl.textContent = '對話已結束';
                 }
                 loadChatRooms();
@@ -175,41 +178,40 @@
 
     // 檢查客服在線狀態
     async function checkAdminStatus() {
-        if (!socketEnabled) return;
         try {
-            const response = await fetch(`${API_BASE_URL}/api/chat/status`);
+            const response = await fetch('/api/chat/status');
             const result = await response.json();
             if (result.success) {
                 updateAdminStatusUI(result.data.online, result.data.adminCount);
             }
         } catch (error) {
-            console.log('[Chat] 檢查客服狀態失敗，聊天服務可能未啟用');
+            console.error('[Chat] 檢查客服狀態失敗:', error);
         }
     }
 
     // 更新客服狀態 UI
     function updateAdminStatusUI(online, count) {
+        const badge = document.getElementById('chatAdminStatus');
         const dot = document.getElementById('chatStatusDot');
         const text = document.getElementById('chatStatusText');
 
+        if (badge) {
+            badge.classList.toggle('is-online', online);
+            badge.classList.toggle('is-offline', !online);
+        }
+
         if (dot && text) {
-            if (online) {
-                dot.style.background = 'var(--success)';
-                text.textContent = `客服在線 (${count})`;
-            } else {
-                dot.style.background = 'var(--gray-400)';
-                text.textContent = '客服離線';
-            }
+            text.textContent = online ? `客服在線 (${count})` : '客服離線';
         }
     }
 
     // 載入聊天室列表
     async function loadChatRooms() {
-        if (!isValidToken() || !socketEnabled) return; // 未登入或 Socket 未啟用時不載入
+        if (!isValidToken()) return; // 未登入時不載入
         const token = localStorage.getItem('accessToken');
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/chat/rooms`, {
+            const response = await fetch('/api/chat/rooms', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
@@ -238,30 +240,38 @@
         if (!container) return;
 
         if (chatRooms.length === 0) {
-            container.innerHTML = `
-                <div style="text-align: center; padding: 2rem 1rem; color: var(--gray-400);">
-                    <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1" style="margin-bottom: 0.5rem; opacity: 0.5;">
-                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                    </svg>
-                    <p style="font-size: 0.85rem;">尚無對話記錄</p>
-                </div>
-            `;
+            container.innerHTML = supportPlaceholder('尚無對話記錄');
             return;
         }
 
         container.innerHTML = chatRooms.map(room => {
             const isActive = room.chatId === currentChatId;
             const statusClass = room.status;
+            const statusTextMap = {
+                waiting: '等待接手',
+                active: '進行中',
+                closed: '已結束'
+            };
             const time = formatTime(room.lastMessageAt || room.createdAt);
+            const statusText = statusTextMap[statusClass] || '處理中';
+            const preview = escapeHtml(room.lastMessage || '尚無訊息，點擊繼續對話');
+            const topic = escapeHtml(room.topic || '客服對話');
 
             return `
                 <div class="chat-room-item ${isActive ? 'active' : ''}" onclick="window.ChatModule.openChat('${room.chatId}')">
-                    <div class="room-title">
-                        <span class="status-dot ${statusClass}"></span>
-                        <span>${room.topic || '客服對話'}</span>
+                    <div class="chat-room-item-top">
+                        <span class="chat-room-status ${statusClass}">
+                            <span class="status-dot"></span>
+                            <span>${statusText}</span>
+                        </span>
+                        <span class="room-time">${time}</span>
                     </div>
-                    <div class="room-preview">${room.lastMessage || '尚無訊息'}</div>
-                    <div class="room-time">${time}</div>
+                    <div class="room-title">${topic}</div>
+                    <div class="room-preview">${preview}</div>
+                    <div class="chat-room-item-footer">
+                        <span class="chat-room-kind">諮詢服務</span>
+                        <span class="chat-room-cta">繼續處理 →</span>
+                    </div>
                 </div>
             `;
         }).join('');
@@ -282,7 +292,7 @@
 
         try {
             const token = localStorage.getItem('accessToken');
-            const response = await fetch(`${API_BASE_URL}/api/chat/rooms`, {
+            const response = await fetch('/api/chat/rooms', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -323,10 +333,11 @@
         const chatInputArea = document.getElementById('chatInputArea');
         const chatMessages = document.getElementById('chatMessages');
 
-        if (chatWelcome) chatWelcome.style.display = 'none';
-        if (chatWindowHeader) chatWindowHeader.style.display = 'block';
-        if (chatInputArea) chatInputArea.style.display = 'block';
-        if (chatMessages) chatMessages.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--gray-400);">載入訊息中...</div>';
+        toggleHidden(chatWelcome, true);
+        toggleHidden(chatWindowHeader, false);
+        toggleHidden(chatInputArea, false);
+        toggleHidden('typingIndicator', true);
+        if (chatMessages) chatMessages.innerHTML = supportPlaceholder('載入訊息中...');
 
         // 更新列表選中狀態
         document.querySelectorAll('.chat-room-item').forEach(item => {
@@ -343,7 +354,7 @@
 
             if (room.status === 'closed') {
                 if (chatWindowStatus) chatWindowStatus.textContent = '對話已結束';
-                if (chatInputArea) chatInputArea.style.display = 'none';
+                toggleHidden(chatInputArea, true);
             } else if (room.status === 'waiting') {
                 if (chatWindowStatus) chatWindowStatus.textContent = '等待客服連線...';
             } else if (room.admins && room.admins.length > 0) {
@@ -391,7 +402,7 @@
         if (!container) return;
 
         if (!messages || messages.length === 0) {
-            container.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--gray-400);">尚無訊息，開始對話吧！</div>';
+            container.innerHTML = supportPlaceholder('尚無訊息，開始對話吧！');
             return;
         }
 
@@ -430,7 +441,7 @@
         if (!container) return;
 
         // 移除空訊息提示
-        const emptyHint = container.querySelector('div[style*="text-align: center"]');
+        const emptyHint = container.querySelector('.support-message-placeholder');
         if (emptyHint) {
             emptyHint.remove();
         }
@@ -505,24 +516,29 @@
         const userSpan = document.getElementById('typingUser');
 
         if (indicator && userSpan) {
-            indicator.style.display = isTyping ? 'block' : 'none';
+            indicator.hidden = !isTyping;
             userSpan.textContent = `${userName} 正在輸入...`;
         }
     }
 
     // 關閉聊天室
-    window.closeChatRoom = function() {
+    window.closeChatRoom = async function() {
         if (!currentChatId) return;
 
-        if (confirm('確定要結束這個對話嗎？')) {
-            if (socket && isConnected) {
-                socket.emit('chat:close', { chatId: currentChatId });
-            }
+        const confirmed = await showConfirmDialog({
+            message: '確定要結束這個對話嗎？',
+            confirmLabel: '結束對話',
+            tone: 'danger'
+        });
+        if (!confirmed) return;
 
-            // 顯示評分對話框
-            const ratingModal = document.getElementById('chatRatingModal');
-            if (ratingModal) ratingModal.style.display = 'flex';
+        if (socket && isConnected) {
+            socket.emit('chat:close', { chatId: currentChatId });
         }
+
+        // 顯示評分對話框
+        const ratingModal = document.getElementById('chatRatingModal');
+        if (ratingModal) ratingModal.classList.add('open');
     };
 
     // 設定評分
@@ -530,7 +546,7 @@
         currentRating = rating;
         document.querySelectorAll('.rating-star').forEach(star => {
             const starRating = parseInt(star.dataset.rating);
-            star.style.color = starRating <= rating ? 'var(--warning)' : 'var(--gray-300)';
+            star.classList.toggle('active', starRating <= rating);
         });
     };
 
@@ -572,11 +588,11 @@
     window.closeChatRatingModal = function() {
         const ratingModal = document.getElementById('chatRatingModal');
         const ratingComment = document.getElementById('ratingComment');
-        if (ratingModal) ratingModal.style.display = 'none';
+        if (ratingModal) ratingModal.classList.remove('open');
         currentRating = 0;
         if (ratingComment) ratingComment.value = '';
         document.querySelectorAll('.rating-star').forEach(star => {
-            star.style.color = 'var(--gray-300)';
+            star.classList.remove('active');
         });
     };
 
@@ -597,9 +613,11 @@
 
         if (room.status === 'closed') {
             if (statusEl) statusEl.textContent = '對話已結束';
-            if (inputArea) inputArea.style.display = 'none';
+            toggleHidden(inputArea, true);
+            toggleHidden('typingIndicator', true);
         } else if (room.status === 'waiting') {
             if (statusEl) statusEl.textContent = '等待客服連線...';
+            toggleHidden(inputArea, false);
         } else if (room.admins && room.admins.length > 0) {
             const activeAdmin = room.admins.find(a => a.isActive);
             if (statusEl) {
@@ -607,6 +625,7 @@
                     ? `${activeAdmin.adminName} 正在服務您`
                     : '客服服務中';
             }
+            toggleHidden(inputArea, false);
         }
     }
 
@@ -676,16 +695,25 @@
 
     // 視圖切換時重新載入
     const originalShowView = window.showView;
-    window.showView = function(viewName) {
-        if (typeof originalShowView === 'function') {
-            originalShowView(viewName);
-        }
+    window.showView = function(viewName, options = {}) {
+        const navigationResult = typeof originalShowView === 'function'
+            ? originalShowView(viewName, options)
+            : undefined;
 
-        // 只有登入後且 Socket.io 可用才載入聊天資料
-        if (viewName === 'consultations' && isValidToken() && socketEnabled) {
+        const resolvedViewName = navigationResult?.viewName || viewName;
+
+        if (typeof originalShowView === 'function') {
+            // 只有登入後才載入聊天資料
+            if (resolvedViewName === 'consultations' && isValidToken()) {
+                loadChatRooms();
+                checkAdminStatus();
+            }
+        } else if (viewName === 'consultations' && isValidToken()) {
             loadChatRooms();
             checkAdminStatus();
         }
+
+        return navigationResult;
     };
 
     // 暴露公開方法

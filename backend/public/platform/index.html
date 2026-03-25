@@ -11329,6 +11329,71 @@
             display: none;
         }
 
+        .auth-helper-row {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            margin-top: 1rem;
+        }
+
+        .auth-link-btn {
+            padding: 0;
+            border: none;
+            background: none;
+            color: var(--terracotta);
+            font-family: 'Noto Sans TC', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: color 0.2s ease, opacity 0.2s ease;
+        }
+
+        .auth-link-btn:hover {
+            color: var(--terracotta-dark);
+        }
+
+        .auth-panel-heading {
+            margin-bottom: 1.5rem;
+        }
+
+        .auth-panel-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            padding: 0.2rem 0.7rem;
+            border-radius: 999px;
+            background: rgba(26, 107, 74, 0.1);
+            color: var(--olive-deep);
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .auth-panel-title {
+            margin: 0 0 0.55rem;
+            font-family: var(--font-heading);
+            font-size: 1.6rem;
+            color: var(--olive-deep);
+        }
+
+        .auth-panel-description,
+        .auth-token-note {
+            margin: 0;
+            color: var(--gray-500);
+            font-size: 0.9rem;
+            line-height: 1.65;
+        }
+
+        .auth-token-note {
+            margin-bottom: 1.25rem;
+        }
+
+        .auth-back-link {
+            margin-top: 1rem;
+            text-align: center;
+        }
+
         /* Error message */
         .login-error {
             background: rgba(239, 68, 68, 0.08);
@@ -11345,6 +11410,13 @@
         }
 
         .login-error.show { display: block; }
+
+        .login-error.is-success {
+            background: rgba(34, 197, 94, 0.08);
+            border-color: rgba(34, 197, 94, 0.2);
+            border-left-color: #22C55E;
+            color: #15803D;
+        }
 
         @keyframes shake {
             0%, 100% { transform: translateX(0); }
@@ -11619,6 +11691,9 @@
                         <input type="password" id="loginPassword" name="password" data-i18n-placeholder="login.passwordPlaceholder" placeholder="請輸入密碼" autocomplete="current-password" required>
                     </div>
                     <button type="submit" class="login-btn" data-i18n="login.submit">踏上橋樑</button>
+                    <div class="auth-helper-row">
+                        <button type="button" class="auth-link-btn" onclick="showForgotPasswordForm()">忘記密碼？</button>
+                    </div>
                 </form>
 
                 <!-- Register Form (Student Only) -->
@@ -11653,6 +11728,43 @@
                     </div>
 
                     <button type="submit" class="login-btn" data-i18n="register.submit">開始探索</button>
+                </form>
+
+                <form id="forgotPasswordForm" class="login-form hidden" onsubmit="handleForgotPasswordRequest(event)" hidden>
+                    <div class="auth-panel-heading">
+                        <span class="auth-panel-eyebrow">帳號協助</span>
+                        <h3 class="auth-panel-title">寄送重設連結</h3>
+                        <p class="auth-panel-description">輸入你註冊時使用的 Email，我們會寄送一封 1 小時內有效的重設密碼連結。</p>
+                    </div>
+                    <div class="form-group">
+                        <label for="forgotPasswordEmail">帳號 Email</label>
+                        <input type="email" id="forgotPasswordEmail" name="forgotPasswordEmail" placeholder="your@email.com" autocomplete="email" inputmode="email" spellcheck="false" required>
+                    </div>
+                    <button type="submit" class="login-btn">寄送重設連結</button>
+                    <div class="auth-back-link">
+                        <button type="button" class="auth-link-btn" onclick="switchAuthTab('login')">返回登入</button>
+                    </div>
+                </form>
+
+                <form id="resetPasswordForm" class="login-form hidden" onsubmit="handleResetPassword(event)" hidden>
+                    <div class="auth-panel-heading">
+                        <span class="auth-panel-eyebrow">重設密碼</span>
+                        <h3 class="auth-panel-title">設定新密碼</h3>
+                        <p id="resetPasswordEmailHint" class="auth-token-note">正在驗證重設連結...</p>
+                    </div>
+                    <input type="hidden" id="resetPasswordToken" value="">
+                    <div class="form-group">
+                        <label for="resetPasswordNew">新密碼</label>
+                        <input type="password" id="resetPasswordNew" name="resetPasswordNew" placeholder="至少 8 個字元" autocomplete="new-password" minlength="8" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="resetPasswordConfirm">確認新密碼</label>
+                        <input type="password" id="resetPasswordConfirm" name="resetPasswordConfirm" placeholder="再次輸入新密碼" autocomplete="new-password" minlength="8" required>
+                    </div>
+                    <button type="submit" class="login-btn">更新密碼</button>
+                    <div class="auth-back-link">
+                        <button type="button" class="auth-link-btn" onclick="showForgotPasswordForm()">重新寄送重設信</button>
+                    </div>
                 </form>
             </div>
 
@@ -11992,6 +12104,218 @@
             return true;
         }
 
+        const PLATFORM_VIEW_PATHS = Object.freeze({
+            dashboard: '/platform',
+            teacherDashboard: '/platform',
+            library: '/platform/library',
+            courses: '/platform/my-courses',
+            licenses: '/platform/licenses',
+            videos: '/platform/videos',
+            quizzes: '/platform/legacy-quizzes',
+            consultations: '/platform/consultations',
+            classes: '/platform/classes',
+            studentClasses: '/platform/student-classes',
+            settings: '/platform/settings',
+            moodleCourses: '/platform/courses',
+            moodleAssignments: '/platform/assignments',
+            moodleQuizzes: '/platform/quizzes',
+            moodleForums: '/platform/forums',
+            moodleCalendar: '/platform/calendar',
+            moodleNotifications: '/platform/notifications',
+            moodleGradebook: '/platform/gradebook',
+            moodleFiles: '/platform/files',
+            gradebookManagement: '/platform/gradebook/manage',
+            teacherAnalytics: '/platform/analytics',
+            questionBank: '/platform/question-bank',
+            rolesManagement: '/platform/roles',
+            courseCategories: '/platform/course-categories',
+            auditLogs: '/platform/audit-logs',
+            learningPaths: '/platform/learning-paths',
+            badges: '/platform/badges',
+            scormManager: '/platform/scorm',
+            ltiManager: '/platform/lti',
+            h5pManager: '/platform/h5p',
+            rubrics: '/platform/rubrics',
+            groupsManager: '/platform/groups',
+            courseCompletionSettings: '/platform/course-completion'
+        });
+
+        const PLATFORM_PATH_TO_VIEW = Object.freeze(
+            Object.entries(PLATFORM_VIEW_PATHS).reduce((map, [viewName, path]) => {
+                const relativePath = path === '/platform' ? '' : path.replace(/^\/platform\//, '');
+                if (!(relativePath in map)) {
+                    map[relativePath] = viewName;
+                }
+                return map;
+            }, {})
+        );
+
+        function getDefaultPlatformPathForView(viewName) {
+            const normalizedView = resolvePrimaryViewName(viewName);
+            return PLATFORM_VIEW_PATHS[normalizedView] || null;
+        }
+
+        function updatePlatformHistory(path, { replace = false } = {}) {
+            if (!path || typeof window.history === 'undefined') return;
+
+            const targetUrl = new URL(path, window.location.origin);
+            const currentUrl = `${window.location.pathname}${window.location.search}`;
+            const nextUrl = `${targetUrl.pathname}${targetUrl.search}`;
+
+            if (currentUrl === nextUrl) return;
+
+            const method = replace ? 'replaceState' : 'pushState';
+            window.history[method]({ path: nextUrl }, '', nextUrl);
+        }
+
+        function getPlatformRoute() {
+            const url = new URL(window.location.href);
+            const trimmedPath = url.pathname.replace(/\/+$/, '') || '/platform';
+            const segments = trimmedPath.split('/').filter(Boolean);
+            const routeKey = segments[1] || '';
+            const subPath = segments.slice(1).join('/');
+            const decodedId = segments.length > 2 ? decodeURIComponent(segments.slice(2).join('/')) : '';
+
+            if (segments[0] !== 'platform') {
+                return { type: 'view', viewName: 'dashboard', path: '/platform' };
+            }
+
+            if (segments.length === 1) {
+                return { type: 'view', viewName: 'dashboard', path: '/platform' };
+            }
+
+            if (routeKey === 'forgot-password') {
+                return { type: 'auth', authMode: 'forgot', path: '/platform/forgot-password' };
+            }
+
+            if (routeKey === 'reset-password') {
+                return {
+                    type: 'auth',
+                    authMode: 'reset',
+                    token: url.searchParams.get('token') || '',
+                    path: `${url.pathname}${url.search}`
+                };
+            }
+
+            if (PLATFORM_PATH_TO_VIEW[subPath]) {
+                const viewName = PLATFORM_PATH_TO_VIEW[subPath];
+                return {
+                    type: 'view',
+                    viewName,
+                    path: PLATFORM_VIEW_PATHS[viewName]
+                };
+            }
+
+            switch (routeKey) {
+                case 'course':
+                    return { type: 'detail', entity: 'course', id: decodedId, path: url.pathname };
+                case 'assignment':
+                    return { type: 'detail', entity: 'assignment', id: decodedId, path: url.pathname };
+                case 'quiz':
+                    return { type: 'detail', entity: 'quiz', id: decodedId, path: url.pathname };
+                case 'forum':
+                    return { type: 'detail', entity: 'forum', id: decodedId, path: url.pathname };
+                default:
+                    return { type: 'view', viewName: 'dashboard', path: '/platform' };
+            }
+        }
+
+        function syncPlatformRoute(viewName, options = {}) {
+            if (options.syncRoute === false) return;
+            const path = options.path || getDefaultPlatformPathForView(viewName);
+            if (!path) return;
+            updatePlatformHistory(path, { replace: Boolean(options.replaceHistory) });
+        }
+
+        async function applyPlatformRoute({ replace = false } = {}) {
+            const route = getPlatformRoute();
+
+            if (route.type === 'auth') {
+                if (typeof App !== 'undefined' && typeof App.showLogin === 'function') {
+                    App.showLogin();
+                } else if (typeof renderAuthRouteFromLocation === 'function') {
+                    renderAuthRouteFromLocation();
+                }
+                return true;
+            }
+
+            if (typeof API === 'undefined' || !API.isLoggedIn()) {
+                return false;
+            }
+
+            if (route.type === 'detail' && route.id && typeof MoodleUI !== 'undefined') {
+                if (route.entity === 'course' && typeof MoodleUI.openCourse === 'function') {
+                    await MoodleUI.openCourse(route.id, { path: route.path, replaceHistory: replace });
+                    return true;
+                }
+                if (route.entity === 'assignment' && typeof MoodleUI.openAssignment === 'function') {
+                    await MoodleUI.openAssignment(route.id, { path: route.path, replaceHistory: replace });
+                    return true;
+                }
+                if (route.entity === 'quiz' && typeof MoodleUI.openQuiz === 'function') {
+                    await MoodleUI.openQuiz(route.id, { path: route.path, replaceHistory: replace });
+                    return true;
+                }
+                if (route.entity === 'forum' && typeof MoodleUI.openForum === 'function') {
+                    await MoodleUI.openForum(route.id, { path: route.path, replaceHistory: replace });
+                    return true;
+                }
+            }
+
+            const viewName = route.viewName || 'dashboard';
+            const result = showView(viewName, {
+                path: route.path,
+                replaceHistory: replace
+            });
+
+            if (result?.ok === false) return false;
+
+            const viewLoaders = {
+                library: () => typeof App !== 'undefined' && typeof App.loadResources === 'function' ? App.loadResources() : null,
+                moodleCourses: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.loadCourses === 'function' ? MoodleUI.loadCourses() : null,
+                moodleAssignments: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.loadAssignments === 'function' ? MoodleUI.loadAssignments() : null,
+                moodleQuizzes: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.loadQuizzes === 'function' ? MoodleUI.loadQuizzes() : null,
+                moodleForums: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.loadForums === 'function' ? MoodleUI.loadForums() : null,
+                moodleCalendar: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.loadCalendar === 'function' ? MoodleUI.loadCalendar() : null,
+                moodleNotifications: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.loadNotifications === 'function' ? MoodleUI.loadNotifications() : null,
+                moodleGradebook: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.loadGradebook === 'function' ? MoodleUI.loadGradebook() : null,
+                gradebookManagement: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.openGradebookManagement === 'function' ? MoodleUI.openGradebookManagement() : null,
+                teacherAnalytics: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.openTeacherAnalytics === 'function' ? MoodleUI.openTeacherAnalytics() : null,
+                questionBank: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.openQuestionBank === 'function' ? MoodleUI.openQuestionBank() : null,
+                rolesManagement: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.openRolesManagement === 'function' ? MoodleUI.openRolesManagement() : null,
+                courseCategories: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.openCourseCategories === 'function' ? MoodleUI.openCourseCategories() : null,
+                auditLogs: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.openAuditLogs === 'function' ? MoodleUI.openAuditLogs() : null,
+                learningPaths: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.openLearningPaths === 'function' ? MoodleUI.openLearningPaths() : null,
+                badges: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.openBadges === 'function' ? MoodleUI.openBadges() : null,
+                scormManager: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.openScormManager === 'function' ? MoodleUI.openScormManager() : null,
+                ltiManager: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.openLtiManager === 'function' ? MoodleUI.openLtiManager() : null,
+                h5pManager: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.openH5pManager === 'function' ? MoodleUI.openH5pManager() : null,
+                rubrics: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.openRubricsManager === 'function' ? MoodleUI.openRubricsManager() : null,
+                courseCompletionSettings: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.openCourseCompletionSettings === 'function' ? MoodleUI.openCourseCompletionSettings() : null
+            };
+
+            if (typeof viewLoaders[viewName] === 'function') {
+                await viewLoaders[viewName]();
+            }
+
+            return true;
+        }
+
+        window.PlatformRouter = {
+            getCurrentRoute: getPlatformRoute,
+            syncPath: updatePlatformHistory,
+            applyCurrentRoute: applyPlatformRoute,
+            renderAuthScreen: () => renderAuthRouteFromLocation()
+        };
+
+        window.addEventListener('popstate', () => {
+            if (window.PlatformRouter?.applyCurrentRoute) {
+                window.PlatformRouter.applyCurrentRoute({ replace: true }).catch((error) => {
+                    console.error('Apply popstate route error:', error);
+                });
+            }
+        });
+
         function resolvePrimaryViewName(viewName) {
             const user = getCurrentPlatformUser();
             if (viewName === 'discussions') return 'moodleForums';
@@ -12002,7 +12326,7 @@
         }
 
         // Show different views
-        function showView(viewName) {
+        function showView(viewName, options = {}) {
             viewName = resolvePrimaryViewName(viewName);
             if (viewName === 'logout') {
                 if (typeof App !== 'undefined') {
@@ -12095,6 +12419,8 @@
             if (viewLoaders[viewName] && typeof App !== 'undefined' && typeof App[viewLoaders[viewName]] === 'function') {
                 App[viewLoaders[viewName]]();
             }
+
+            syncPlatformRoute(viewName, options);
 
             return { ok: true, viewName, viewId, pageTitleView };
         }
@@ -14243,9 +14569,9 @@
 
         // 頁面切換時載入對應資料
         const originalShowView = showView;
-        showView = function(viewName) {
+        showView = function(viewName, options = {}) {
             const resolvedViewName = resolvePrimaryViewName(viewName);
-            const navigationResult = originalShowView(resolvedViewName);
+            const navigationResult = originalShowView(resolvedViewName, options);
             if (!navigationResult || navigationResult.ok === false || navigationResult.viewName === 'logout') {
                 return navigationResult;
             }
@@ -15715,7 +16041,7 @@
         });
 
         // Initialize - show dashboard (will be re-called after i18n loads)
-        showView('dashboard');
+        showView('dashboard', { syncRoute: false });
         // Mark initial view for re-render after i18n
         window._initialView = 'dashboard';
 
@@ -15724,77 +16050,190 @@
         // ===== Login/Register Functions =====
 
         function switchLoginTab(tab) {
-            const loginForm = document.getElementById('loginForm');
-            const registerForm = document.getElementById('registerForm');
-            const tabs = document.querySelectorAll('.login-tab');
+            switchAuthTab(tab);
+        }
+
+        function setAuthMessage(message = '', tone = 'error') {
             const errorDiv = document.getElementById('loginError');
+            if (!errorDiv) return;
 
-            errorDiv.classList.remove('show');
+            errorDiv.textContent = message || '';
+            errorDiv.classList.remove('show', 'is-success');
 
-            if (tab === 'login') {
-                loginForm.classList.remove('hidden');
-                registerForm.classList.add('hidden');
-                loginForm.hidden = false;
-                registerForm.hidden = true;
-                tabs[0].classList.add('active');
-                tabs[1].classList.remove('active');
-            } else {
-                loginForm.classList.add('hidden');
-                registerForm.classList.remove('hidden');
-                loginForm.hidden = true;
-                registerForm.hidden = false;
-                tabs[0].classList.remove('active');
-                tabs[1].classList.add('active');
+            if (message) {
+                errorDiv.classList.add('show');
+                if (tone === 'success') {
+                    errorDiv.classList.add('is-success');
+                }
             }
         }
 
-        // ===== 登入/註冊切換 =====
-        function switchAuthTab(tab) {
-            const loginForm = document.getElementById('loginForm');
-            const registerForm = document.getElementById('registerForm');
+        function isAuthRoutePath(pathname = window.location.pathname) {
+            return /^\/platform\/(forgot-password|reset-password)(?:\/|$)/.test(pathname);
+        }
+
+        function setAuthScreen(mode = 'login', options = {}) {
+            const normalizedMode = ['login', 'register', 'forgot', 'reset'].includes(mode) ? mode : 'login';
+            const tabsContainer = document.querySelector('.auth-tabs');
             const tabs = document.querySelectorAll('.auth-tab');
-            const errorDiv = document.getElementById('loginError');
+            const formMap = {
+                login: document.getElementById('loginForm'),
+                register: document.getElementById('registerForm'),
+                forgot: document.getElementById('forgotPasswordForm'),
+                reset: document.getElementById('resetPasswordForm')
+            };
 
-            errorDiv.classList.remove('show');
-            errorDiv.textContent = '';
+            Object.entries(formMap).forEach(([key, form]) => {
+                if (!form) return;
+                const isActive = key === normalizedMode;
+                form.hidden = !isActive;
+                form.classList.toggle('hidden', !isActive);
+            });
 
-            if (tab === 'login') {
-                loginForm.hidden = false;
-                registerForm.hidden = true;
-                loginForm.classList.remove('hidden');
-                registerForm.classList.add('hidden');
-                tabs[0].classList.add('active');
-                tabs[1].classList.remove('active');
-            } else {
-                loginForm.hidden = true;
-                registerForm.hidden = false;
-                loginForm.classList.add('hidden');
-                registerForm.classList.remove('hidden');
-                tabs[0].classList.remove('active');
-                tabs[1].classList.add('active');
+            if (tabsContainer) {
+                tabsContainer.hidden = normalizedMode === 'forgot' || normalizedMode === 'reset';
             }
+
+            tabs.forEach((tab, index) => {
+                const shouldBeActive = (normalizedMode === 'login' && index === 0) || (normalizedMode === 'register' && index === 1);
+                tab.classList.toggle('active', shouldBeActive);
+            });
+
+            if (!options.preserveMessage) {
+                setAuthMessage('');
+            }
+            if (options.message) {
+                setAuthMessage(options.message, options.tone || 'error');
+            }
+
+            if (options.prefillEmail) {
+                const forgotEmailInput = document.getElementById('forgotPasswordEmail');
+                if (forgotEmailInput) forgotEmailInput.value = options.prefillEmail;
+            }
+
+            if (normalizedMode === 'reset') {
+                const tokenInput = document.getElementById('resetPasswordToken');
+                const emailHint = document.getElementById('resetPasswordEmailHint');
+                if (tokenInput && typeof options.token === 'string') {
+                    tokenInput.value = options.token;
+                }
+                if (emailHint && options.emailHint) {
+                    emailHint.textContent = options.emailHint;
+                }
+            }
+
+            let nextPath = null;
+            if (normalizedMode === 'forgot') {
+                nextPath = '/platform/forgot-password';
+            } else if (normalizedMode === 'reset') {
+                nextPath = options.path || `/platform/reset-password${options.token ? `?token=${encodeURIComponent(options.token)}` : ''}`;
+            } else if (options.forceHomeRoute) {
+                nextPath = '/platform';
+            }
+
+            if (options.updateHistory !== false && nextPath) {
+                updatePlatformHistory(nextPath, { replace: Boolean(options.replaceHistory) });
+            }
+
+            window._authScreenMode = normalizedMode;
+        }
+
+        function switchAuthTab(tab) {
+            setAuthScreen(tab, {
+                forceHomeRoute: isAuthRoutePath()
+            });
+        }
+
+        function showForgotPasswordForm() {
+            setAuthScreen('forgot', {
+                prefillEmail: document.getElementById('loginEmail')?.value?.trim() || ''
+            });
+        }
+
+        async function startResetPasswordFlow(token, options = {}) {
+            if (!token) {
+                setAuthScreen('forgot', {
+                    updateHistory: options.updateHistory,
+                    replaceHistory: options.replaceHistory,
+                    message: '缺少重設密碼 token，請重新申請重設連結。'
+                });
+                return false;
+            }
+
+            setAuthScreen('reset', {
+                updateHistory: options.updateHistory,
+                replaceHistory: options.replaceHistory,
+                token,
+                emailHint: '正在驗證重設連結...',
+                preserveMessage: true
+            });
+
+            try {
+                const result = await API.auth.validatePasswordResetToken(token);
+                if (!result.success) {
+                    setAuthScreen('forgot', {
+                        forceHomeRoute: false,
+                        message: result.message || '重設密碼連結無效或已過期，請重新申請。',
+                        updateHistory: true,
+                        replaceHistory: true
+                    });
+                    return false;
+                }
+
+                setAuthScreen('reset', {
+                    updateHistory: options.updateHistory,
+                    replaceHistory: options.replaceHistory,
+                    token,
+                    emailHint: `這個連結綁定 ${result.data?.email || '你的帳號'}，請設定新密碼。`,
+                    preserveMessage: true
+                });
+                return true;
+            } catch (error) {
+                setAuthScreen('forgot', {
+                    forceHomeRoute: false,
+                    message: '重設密碼連結無效或已過期，請重新申請。',
+                    updateHistory: true,
+                    replaceHistory: true
+                });
+                return false;
+            }
+        }
+
+        async function renderAuthRouteFromLocation() {
+            const route = getPlatformRoute();
+            if (route.type === 'auth' && route.authMode === 'reset') {
+                return startResetPasswordFlow(route.token, {
+                    updateHistory: false,
+                    replaceHistory: true
+                });
+            }
+
+            if (route.type === 'auth' && route.authMode === 'forgot') {
+                setAuthScreen('forgot', { updateHistory: false });
+                return true;
+            }
+
+            setAuthScreen('login', { updateHistory: false });
+            return true;
         }
 
         async function handleLogin(e) {
             e.preventDefault();
             const email = document.getElementById('loginEmail').value;
             const password = document.getElementById('loginPassword').value;
-            const errorDiv = document.getElementById('loginError');
             const btn = e.target.querySelector('button');
 
             btn.disabled = true;
             btn.textContent = t('login.submitting');
-            errorDiv.classList.remove('show');
+            setAuthMessage('');
 
             try {
                 const success = await App.login(email, password);
                 if (!success) {
-                    errorDiv.textContent = t('login.error.invalid');
-                    errorDiv.classList.add('show');
+                    setAuthMessage(t('login.error.invalid'));
                 }
             } catch (error) {
-                errorDiv.textContent = t('login.error.network');
-                errorDiv.classList.add('show');
+                setAuthMessage(t('login.error.network'));
             }
 
             btn.disabled = false;
@@ -15803,14 +16242,12 @@
 
         async function handleRegister(e) {
             e.preventDefault();
-            const errorDiv = document.getElementById('loginError');
             const btn = e.target.querySelector('button');
 
             // 探橋者需要通行碼
             const inviteCode = document.getElementById('registerInviteCode').value.trim().toUpperCase();
             if (!inviteCode || inviteCode.length < 6) {
-                errorDiv.textContent = t('register.error.inviteCode');
-                errorDiv.classList.add('show');
+                setAuthMessage(t('register.error.inviteCode'));
                 return;
             }
 
@@ -15824,21 +16261,91 @@
 
             btn.disabled = true;
             btn.textContent = t('register.submitting');
-            errorDiv.classList.remove('show');
+            setAuthMessage('');
 
             try {
                 const success = await App.register(userData);
                 if (!success) {
-                    errorDiv.textContent = t('register.error.duplicate');
-                    errorDiv.classList.add('show');
+                    setAuthMessage(t('register.error.duplicate'));
                 }
             } catch (error) {
-                errorDiv.textContent = t('login.error.network');
-                errorDiv.classList.add('show');
+                setAuthMessage(t('login.error.network'));
             }
 
             btn.disabled = false;
             btn.textContent = t('register.submit');
+        }
+
+        async function handleForgotPasswordRequest(e) {
+            e.preventDefault();
+            const email = document.getElementById('forgotPasswordEmail').value.trim();
+            const btn = e.target.querySelector('button[type="submit"]');
+
+            btn.disabled = true;
+            btn.textContent = '寄送中...';
+            setAuthMessage('');
+
+            try {
+                const result = await API.auth.requestPasswordReset(email);
+                if (result.success) {
+                    setAuthMessage(result.message || '如果該 Email 存在，重設密碼連結已寄出。', 'success');
+                } else {
+                    setAuthMessage(result.message || '無法寄送重設密碼連結，請稍後再試。');
+                }
+            } catch (error) {
+                setAuthMessage('無法寄送重設密碼連結，請稍後再試。');
+            }
+
+            btn.disabled = false;
+            btn.textContent = '寄送重設連結';
+        }
+
+        async function handleResetPassword(e) {
+            e.preventDefault();
+            const token = document.getElementById('resetPasswordToken').value.trim();
+            const newPassword = document.getElementById('resetPasswordNew').value;
+            const confirmPassword = document.getElementById('resetPasswordConfirm').value;
+            const btn = e.target.querySelector('button[type="submit"]');
+
+            if (!token) {
+                setAuthMessage('重設密碼 token 遺失，請重新申請重設連結。');
+                return;
+            }
+
+            if (newPassword.length < 8) {
+                setAuthMessage('新密碼長度至少需要 8 個字元。');
+                return;
+            }
+
+            if (newPassword !== confirmPassword) {
+                setAuthMessage('兩次輸入的新密碼不一致。');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = '更新中...';
+            setAuthMessage('');
+
+            try {
+                const result = await API.auth.confirmPasswordReset(token, newPassword);
+                if (result.success) {
+                    document.getElementById('resetPasswordForm')?.reset();
+                    document.getElementById('resetPasswordToken').value = '';
+                    setAuthScreen('login', {
+                        forceHomeRoute: true,
+                        replaceHistory: true,
+                        message: result.message || '密碼已重設，請使用新密碼登入。',
+                        tone: 'success'
+                    });
+                } else {
+                    setAuthMessage(result.message || '重設密碼失敗，請重新申請重設連結。');
+                }
+            } catch (error) {
+                setAuthMessage('重設密碼失敗，請重新申請重設連結。');
+            }
+
+            btn.disabled = false;
+            btn.textContent = '更新密碼';
         }
     </script>
 
@@ -15866,7 +16373,7 @@
                 await I18n.init();
                 // i18n 載入完成後，重新渲染當前頁面標題
                 if (window._initialView) {
-                    showView(window._initialView);
+                    showView(window._initialView, { syncRoute: false });
                     delete window._initialView;
                 }
             }

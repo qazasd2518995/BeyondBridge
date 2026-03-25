@@ -695,16 +695,25 @@
 
     // 視圖切換時重新載入
     const originalShowView = window.showView;
-    window.showView = function(viewName) {
-        if (typeof originalShowView === 'function') {
-            originalShowView(viewName);
-        }
+    window.showView = function(viewName, options = {}) {
+        const navigationResult = typeof originalShowView === 'function'
+            ? originalShowView(viewName, options)
+            : undefined;
 
-        // 只有登入後才載入聊天資料
-        if (viewName === 'consultations' && isValidToken()) {
+        const resolvedViewName = navigationResult?.viewName || viewName;
+
+        if (typeof originalShowView === 'function') {
+            // 只有登入後才載入聊天資料
+            if (resolvedViewName === 'consultations' && isValidToken()) {
+                loadChatRooms();
+                checkAdminStatus();
+            }
+        } else if (viewName === 'consultations' && isValidToken()) {
             loadChatRooms();
             checkAdminStatus();
         }
+
+        return navigationResult;
     };
 
     // 暴露公開方法

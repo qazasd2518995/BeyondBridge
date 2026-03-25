@@ -715,7 +715,7 @@ const MoodleUI = {
   /**
    * 開啟課程頁面
    */
-  async openCourse(courseId) {
+  async openCourse(courseId, options = {}) {
     try {
       const result = await API.courses.get(courseId);
       if (!result.success) {
@@ -727,7 +727,10 @@ const MoodleUI = {
       this.currentCourse = course;
       this.currentCourseId = courseId;
       this.renderCoursePage(course);
-      showView('courseDetail');
+      showView('courseDetail', {
+        path: options.path || `/platform/course/${encodeURIComponent(courseId)}`,
+        replaceHistory: options.replaceHistory
+      });
     } catch (error) {
       console.error('Open course error:', error);
       showToast(t('moodleCourse.loadFailed'));
@@ -3839,7 +3842,7 @@ const MoodleUI = {
   /**
    * 開啟作業
    */
-  async openAssignment(assignmentId) {
+  async openAssignment(assignmentId, options = {}) {
     try {
       const result = await API.assignments.get(assignmentId);
       if (!result.success) {
@@ -3981,7 +3984,10 @@ const MoodleUI = {
         this.renderAssignmentDraftFiles();
       }
 
-      showView('assignmentDetail');
+      showView('assignmentDetail', {
+        path: options.path || `/platform/assignment/${encodeURIComponent(assignmentId)}`,
+        replaceHistory: options.replaceHistory
+      });
     } catch (error) {
       console.error('Open assignment error:', error);
       showToast(t('moodleAssignment.loadFailed'));
@@ -4871,7 +4877,7 @@ const MoodleUI = {
   /**
    * 開啟討論區
    */
-  async openForum(forumId) {
+  async openForum(forumId, options = {}) {
     try {
       const result = await API.forums.get(forumId);
       if (!result.success) {
@@ -5007,7 +5013,10 @@ const MoodleUI = {
         </section>
       `;
 
-      showView('forumDetail');
+      showView('forumDetail', {
+        path: options.path || `/platform/forum/${encodeURIComponent(forumId)}`,
+        replaceHistory: options.replaceHistory
+      });
     } catch (error) {
       console.error('Open forum error:', error);
       showToast(t('moodleForum.loadFailed'));
@@ -5437,7 +5446,7 @@ const MoodleUI = {
     `;
   },
 
-  async openQuizResults(quizId, { quiz: preloadedQuiz = null, course: preloadedCourse = null } = {}) {
+  async openQuizResults(quizId, { quiz: preloadedQuiz = null, course: preloadedCourse = null, path = null, replaceHistory = false } = {}) {
     try {
       let quiz = this.normalizeQuizState(preloadedQuiz || {});
       if (!quiz.quizId || !quiz.courseId || !quiz.title) {
@@ -5471,7 +5480,10 @@ const MoodleUI = {
       }
 
       this.renderTeacherQuizResultsPage(quiz, result.data || {}, course);
-      showView('quizAttempt');
+      showView('quizAttempt', {
+        path: path || `/platform/quiz/${encodeURIComponent(quizId)}`,
+        replaceHistory
+      });
     } catch (error) {
       console.error('Open quiz results error:', error);
       showToast(t('moodleQuiz.loadDetailFailed'));
@@ -5481,7 +5493,7 @@ const MoodleUI = {
   /**
    * 開啟測驗詳情
    */
-  async openQuiz(quizId) {
+  async openQuiz(quizId, options = {}) {
     try {
       const result = await API.quizzes.get(quizId);
       if (!result.success) {
@@ -5505,7 +5517,12 @@ const MoodleUI = {
       }
 
       if (this.isTeachingRole(user) && this.canTeachCourse(course, user)) {
-        await this.openQuizResults(quizId, { quiz, course });
+        await this.openQuizResults(quizId, {
+          quiz,
+          course,
+          path: options.path || `/platform/quiz/${encodeURIComponent(quizId)}`,
+          replaceHistory: options.replaceHistory
+        });
         return;
       }
 
@@ -5592,7 +5609,10 @@ const MoodleUI = {
         </div>
       `;
 
-      showView('quizAttempt');
+      showView('quizAttempt', {
+        path: options.path || `/platform/quiz/${encodeURIComponent(quizId)}`,
+        replaceHistory: options.replaceHistory
+      });
     } catch (error) {
       console.error('Open quiz error:', error);
       showToast(t('moodleQuiz.loadDetailFailed'));

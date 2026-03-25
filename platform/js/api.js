@@ -76,6 +76,7 @@ const API = {
     const config = {
       headers: {
         'Content-Type': 'application/json',
+        'X-Language': (typeof I18n !== 'undefined' && I18n.getLocale) ? I18n.getLocale() : 'zh-TW',
         ...options.headers
       },
       ...options
@@ -108,7 +109,7 @@ const API = {
         }
         // Token 無效，清除並跳轉登入
         this.clearTokens();
-        window.location.href = '#login';
+        window.location.href = '/platform';
         throw new Error('請重新登入');
       }
 
@@ -208,6 +209,34 @@ const API = {
         method: 'PUT',
         body: { currentPassword, newPassword }
       });
+    },
+
+    /**
+     * 請求寄送密碼重設信
+     */
+    async requestPasswordReset(email) {
+      return API.request('/auth/password/reset/request', {
+        method: 'POST',
+        body: { email }
+      });
+    },
+
+    /**
+     * 驗證密碼重設 token
+     */
+    async validatePasswordResetToken(token) {
+      const query = new URLSearchParams({ token }).toString();
+      return API.request(`/auth/password/reset/validate?${query}`);
+    },
+
+    /**
+     * 完成密碼重設
+     */
+    async confirmPasswordReset(token, newPassword) {
+      return API.request('/auth/password/reset/confirm', {
+        method: 'POST',
+        body: { token, newPassword }
+      });
     }
   },
 
@@ -238,6 +267,17 @@ const API = {
 
     async getActivities(userId, limit = 50) {
       return API.request(`/users/${userId}/activities?limit=${limit}`);
+    },
+
+    async getVideoProgress(userId) {
+      return API.request(`/users/${userId}/video-progress`);
+    },
+
+    async updateVideoProgress(userId, videoId, data) {
+      return API.request(`/users/${userId}/video-progress/${encodeURIComponent(videoId)}`, {
+        method: 'PUT',
+        body: data
+      });
     }
   },
 
@@ -300,8 +340,9 @@ const API = {
       });
     },
 
-    async getMyCourses() {
-      return API.request('/courses/my');
+    async getMyCourses(role = 'student') {
+      const qs = role ? `?role=${encodeURIComponent(role)}` : '';
+      return API.request(`/courses/my${qs}`);
     },
 
     async enroll(courseId, enrollmentKey = null) {
@@ -505,31 +546,210 @@ const API = {
 
     async getAnalytics() {
       return API.request('/admin/analytics/overview');
+    },
+
+    // 管理後台模組化 API（給 admin/index.html 使用）
+    analytics: {
+      async getOverview() {
+        return API.request('/admin/analytics/overview');
+      },
+
+      async getUserActivity(range = '30d', groupBy = 'day') {
+        const params = new URLSearchParams({ range, groupBy }).toString();
+        return API.request(`/admin/analytics/user-activity?${params}`);
+      }
+    },
+
+    automation: {
+      async getRules() {
+        return API.request('/admin/automation/rules');
+      },
+
+      async createRule(data) {
+        return API.request('/admin/automation/rules', {
+          method: 'POST',
+          body: data
+        });
+      },
+
+      async updateRule(ruleId, data) {
+        return API.request(`/admin/automation/rules/${ruleId}`, {
+          method: 'PUT',
+          body: data
+        });
+      },
+
+      async deleteRule(ruleId) {
+        return API.request(`/admin/automation/rules/${ruleId}`, {
+          method: 'DELETE'
+        });
+      },
+
+      async toggleRule(ruleId) {
+        return API.request(`/admin/automation/rules/${ruleId}/toggle`, {
+          method: 'PUT'
+        });
+      }
+    },
+
+    systemHealth: {
+      async get() {
+        return API.request('/admin/system/health');
+      },
+
+      async getErrors(filters = {}) {
+        const params = new URLSearchParams(filters).toString();
+        return API.request(`/admin/system/errors${params ? '?' + params : ''}`);
+      }
+    },
+
+    export: {
+      async users(data = {}) {
+        return API.request('/admin/export/users', {
+          method: 'POST',
+          body: data
+        });
+      },
+
+      async courses(data = {}) {
+        return API.request('/admin/export/courses', {
+          method: 'POST',
+          body: data
+        });
+      },
+
+      async licenses(data = {}) {
+        return API.request('/admin/export/licenses', {
+          method: 'POST',
+          body: data
+        });
+      }
     }
   },
 
   // ===== 班級 API =====
   classes: {
-    async list() {
-      return API.request('/classes');
+    normalizeMemberPayload(member = {}) {
+      const displayName = member.displayName || member.userName || member.name || '';
+      const email = member.email || member.userEmail || '';
+      return {
+        ...member,
+        displayName,
+        userName: member.userName || displayName,
+        email,
+        userEmail: member.userEmail || email
+      };
+    },
+
+    normalizeClassPayload(classData = {}) {
+      const classId = classData.classId || classData.id || '';
+      const name = classData.name || classData.className || '';
+      const members = Array.isArray(classData.members)
+        ? classData.members.map(member => this.normalizeMemberPayload(member))
+        : [];
+      const assignments = Array.isArray(classData.assignments) ? classData.assignments : [];
+
+      return {
+        ...classData,
+        classId,
+        id: classId,
+        name,
+        className: name,
+        description: classData.description || '',
+        subject: classData.subject || '',
+        teacherName: classData.teacherName || classData.instructorName || '',
+        members,
+        assignments,
+        memberCount: classData.memberCount ?? members.length,
+        assignmentCount: classData.assignmentCount ?? assignments.length
+      };
+    },
+
+    normalizeClassList(payload) {
+      if (!Array.isArray(payload)) return [];
+      return payload.map(cls => this.normalizeClassPayload(cls));
+    },
+
+    filterByScope(classes, options = {}) {
+      const user = API.getCurrentUser();
+      const scope = typeof options === 'string' ? options : options.scope;
+      const includeArchived = typeof options === 'object' && options.includeArchived === true;
+
+      let result = Array.isArray(classes) ? classes : [];
+
+      if (!includeArchived) {
+        result = result.filter(cls => cls.status !== 'archived');
+      }
+
+      if (!scope || !user) return result;
+
+      if (scope === 'owned') {
+        if (user.isAdmin) return result;
+        return result.filter(cls => cls.teacherId === user.userId);
+      }
+
+      if (scope === 'enrolled') {
+        if (user.isAdmin) return result;
+        return result.filter(cls => cls.isEnrolled === true || cls.teacherId !== user.userId);
+      }
+
+      return result;
+    },
+
+    async list(options = {}) {
+      const result = await API.request('/classes');
+      if (!result?.success) return result;
+
+      const normalized = this.normalizeClassList(result.data);
+      return {
+        ...result,
+        data: this.filterByScope(normalized, options)
+      };
     },
 
     async get(classId) {
-      return API.request(`/classes/${classId}`);
+      const result = await API.request(`/classes/${classId}`);
+      if (!result?.success) return result;
+      return {
+        ...result,
+        data: this.normalizeClassPayload(result.data || {})
+      };
     },
 
     async create(data) {
-      return API.request('/classes', {
+      const payload = { ...(data || {}) };
+      if (!payload.name && payload.className) {
+        payload.name = payload.className;
+      }
+      delete payload.className;
+
+      const result = await API.request('/classes', {
         method: 'POST',
-        body: data
+        body: payload
       });
+      if (!result?.success) return result;
+      return {
+        ...result,
+        data: this.normalizeClassPayload(result.data || {})
+      };
     },
 
     async update(classId, data) {
-      return API.request(`/classes/${classId}`, {
+      const payload = { ...(data || {}) };
+      if (!payload.name && payload.className) {
+        payload.name = payload.className;
+      }
+      delete payload.className;
+
+      const result = await API.request(`/classes/${classId}`, {
         method: 'PUT',
-        body: data
+        body: payload
       });
+      if (!result?.success) return result;
+      return {
+        ...result,
+        data: this.normalizeClassPayload(result.data || {})
+      };
     },
 
     async delete(classId) {
@@ -608,14 +828,16 @@ const API = {
     },
 
     async acceptQuote(consultationId) {
-      return API.request(`/consultations/${consultationId}/accept`, {
-        method: 'POST'
+      return API.request(`/consultations/${consultationId}`, {
+        method: 'PUT',
+        body: { action: 'accept_quote' }
       });
     },
 
     async rejectQuote(consultationId) {
-      return API.request(`/consultations/${consultationId}/reject`, {
-        method: 'POST'
+      return API.request(`/consultations/${consultationId}`, {
+        method: 'PUT',
+        body: { action: 'reject_quote' }
       });
     },
 
@@ -633,9 +855,12 @@ const API = {
     },
 
     async submitQuote(consultationId, quoteData) {
-      return API.request(`/consultations/admin/${consultationId}/quote`, {
-        method: 'POST',
-        body: quoteData
+      return API.request(`/consultations/admin/${consultationId}`, {
+        method: 'PUT',
+        body: {
+          quote: quoteData,
+          status: quoteData?.status || 'quoted'
+        }
       });
     }
   },
@@ -903,6 +1128,21 @@ const API = {
       });
     },
 
+    async updateItem(courseId, itemId, data) {
+      if (!courseId) return { success: false, error: 'MISSING_COURSE_ID' };
+      return API.request(`/gradebook/courses/${courseId}/items/${itemId}`, {
+        method: 'PUT',
+        body: data
+      });
+    },
+
+    async deleteItem(courseId, itemId) {
+      if (!courseId) return { success: false, error: 'MISSING_COURSE_ID' };
+      return API.request(`/gradebook/courses/${courseId}/items/${itemId}`, {
+        method: 'DELETE'
+      });
+    },
+
     async getSettings(courseId) {
       if (!courseId) return { success: false, error: 'MISSING_COURSE_ID' };
       return API.request(`/gradebook/courses/${courseId}/settings`);
@@ -918,7 +1158,35 @@ const API = {
 
     async exportGrades(courseId, format = 'csv') {
       if (!courseId) return { success: false, error: 'MISSING_COURSE_ID' };
-      return API.request(`/gradebook/courses/${courseId}/export?format=${format}`);
+      const endpoint = `${API.baseUrl}/gradebook/courses/${courseId}/export?format=${encodeURIComponent(format)}`;
+      const headers = {
+        'X-Language': (typeof I18n !== 'undefined' && I18n.getLocale) ? I18n.getLocale() : 'zh-TW'
+      };
+
+      if (API.accessToken) {
+        headers.Authorization = `Bearer ${API.accessToken}`;
+      }
+
+      const response = await fetch(endpoint, { headers });
+      const contentType = response.headers.get('content-type') || '';
+
+      if (contentType.includes('application/json')) {
+        return response.json();
+      }
+
+      const text = await response.text();
+      if (!response.ok) {
+        return {
+          success: false,
+          error: 'EXPORT_FAILED',
+          message: text || '匯出失敗'
+        };
+      }
+
+      return {
+        success: true,
+        data: format === 'csv' ? { csv: text } : { raw: text }
+      };
     }
   },
 
@@ -956,6 +1224,12 @@ const API = {
       return API.request(`/assignments/${assignmentId}/submit`, {
         method: 'POST',
         body: data
+      });
+    },
+
+    async withdraw(assignmentId) {
+      return API.request(`/assignments/${assignmentId}/submit`, {
+        method: 'DELETE'
       });
     },
 
@@ -1007,12 +1281,68 @@ const API = {
 
   // ===== 討論區 API =====
   forums: {
+    normalizeDiscussion(data = {}) {
+      const discussionId = data.discussionId || data.id || null;
+      return {
+        ...data,
+        id: discussionId,
+        discussionId,
+        title: data.title || data.subject || '',
+        subject: data.subject || data.title || '',
+        content: data.content || data.message || '',
+        message: data.message || data.content || '',
+        replyCount: Number(data.replyCount ?? data.postCount ?? 0),
+        lastReply: data.lastReply || data.lastReplyAt || data.latestReply?.createdAt || null
+      };
+    },
+
+    normalizeDiscussionPost(post = {}, depth = 0) {
+      const postId = post.postId || post.id || null;
+      const currentUser = API.getCurrentUser ? API.getCurrentUser() : null;
+      const likedBy = Array.isArray(post.likedBy) ? post.likedBy : [];
+      const replies = Array.isArray(post.replies) ? post.replies : [];
+
+      return {
+        ...post,
+        id: postId,
+        postId,
+        content: post.content || post.message || '',
+        message: post.message || post.content || '',
+        likes: Number(post.likes || 0),
+        liked: typeof post.liked === 'boolean'
+          ? post.liked
+          : !!(currentUser && likedBy.includes(currentUser.userId)),
+        replyDepth: depth,
+        replies: replies.map(reply => this.normalizeDiscussionPost(reply, depth + 1))
+      };
+    },
+
+    flattenDiscussionPosts(posts = [], depth = 0, flat = []) {
+      posts.forEach(post => {
+        const normalized = this.normalizeDiscussionPost(post, depth);
+        flat.push(normalized);
+        if (Array.isArray(normalized.replies) && normalized.replies.length > 0) {
+          this.flattenDiscussionPosts(normalized.replies, depth + 1, flat);
+        }
+      });
+      return flat;
+    },
+
     async list(courseId) {
       return API.request(courseId ? `/forums?courseId=${courseId}` : '/forums');
     },
 
     async get(forumId) {
-      return API.request(`/forums/${forumId}`);
+      const result = await API.request(`/forums/${forumId}`);
+      if (!result?.success || !result.data) return result;
+      const discussions = Array.isArray(result.data.discussions) ? result.data.discussions : [];
+      return {
+        ...result,
+        data: {
+          ...result.data,
+          discussions: discussions.map(discussion => this.normalizeDiscussion(discussion))
+        }
+      };
     },
 
     async create(data) {
@@ -1022,21 +1352,67 @@ const API = {
       });
     },
 
-    async createDiscussion(forumId, data) {
-      return API.request(`/forums/${forumId}/discussions`, {
-        method: 'POST',
+    async update(forumId, data) {
+      return API.request(`/forums/${forumId}`, {
+        method: 'PUT',
         body: data
       });
     },
 
+    async delete(forumId) {
+      return API.request(`/forums/${forumId}`, {
+        method: 'DELETE'
+      });
+    },
+
+    async createDiscussion(forumId, data) {
+      return API.request(`/forums/${forumId}/discussions`, {
+        method: 'POST',
+        body: {
+          ...data,
+          title: data?.title || data?.subject || '',
+          content: data?.content || data?.message || ''
+        }
+      });
+    },
+
     async getDiscussion(forumId, discussionId) {
-      return API.request(`/forums/${forumId}/discussions/${discussionId}`);
+      const result = await API.request(`/forums/${forumId}/discussions/${discussionId}`);
+      if (!result?.success || !result.data) return result;
+      const rootPosts = Array.isArray(result.data.posts) ? result.data.posts : [];
+      return {
+        ...result,
+        data: {
+          ...this.normalizeDiscussion(result.data),
+          posts: this.flattenDiscussionPosts(rootPosts)
+        }
+      };
+    },
+
+    async updateDiscussion(forumId, discussionId, data) {
+      return API.request(`/forums/${forumId}/discussions/${discussionId}`, {
+        method: 'PUT',
+        body: {
+          ...data,
+          title: data?.title || data?.subject || '',
+          content: data?.content || data?.message || ''
+        }
+      });
+    },
+
+    async deleteDiscussion(forumId, discussionId) {
+      return API.request(`/forums/${forumId}/discussions/${discussionId}`, {
+        method: 'DELETE'
+      });
     },
 
     async replyToDiscussion(forumId, discussionId, data) {
       return API.request(`/forums/${forumId}/discussions/${discussionId}/posts`, {
         method: 'POST',
-        body: data
+        body: {
+          ...data,
+          content: data?.content || data?.message || ''
+        }
       });
     },
 
@@ -1045,9 +1421,106 @@ const API = {
       return this.replyToDiscussion(forumId, discussionId, data);
     },
 
+    async updatePost(forumId, discussionId, postId, data) {
+      return API.request(`/forums/${forumId}/discussions/${discussionId}/posts/${postId}`, {
+        method: 'PUT',
+        body: {
+          ...data,
+          content: data?.content || data?.message || ''
+        }
+      });
+    },
+
+    async deletePost(forumId, discussionId, postId) {
+      return API.request(`/forums/${forumId}/discussions/${discussionId}/posts/${postId}`, {
+        method: 'DELETE'
+      });
+    },
+
     async likePost(forumId, discussionId, postId) {
       return API.request(`/forums/${forumId}/discussions/${discussionId}/posts/${postId}/like`, {
         method: 'POST'
+      });
+    },
+
+    async ratePost(forumId, discussionId, postId, rating) {
+      return API.request(`/forums/${forumId}/discussions/${discussionId}/posts/${postId}/rate`, {
+        method: 'POST',
+        body: { rating }
+      });
+    },
+
+    async getPostRatings(forumId, discussionId, postId) {
+      return API.request(`/forums/${forumId}/discussions/${discussionId}/posts/${postId}/ratings`);
+    },
+
+    async getSubscription(forumId) {
+      return API.request(`/forums/${forumId}/subscription`);
+    },
+
+    async subscribe(forumId, data = {}) {
+      return API.request(`/forums/${forumId}/subscribe`, {
+        method: 'POST',
+        body: data
+      });
+    },
+
+    async unsubscribe(forumId) {
+      return API.request(`/forums/${forumId}/subscribe`, {
+        method: 'DELETE'
+      });
+    },
+
+    async subscribeDiscussion(forumId, discussionId) {
+      return API.request(`/forums/${forumId}/discussions/${discussionId}/subscribe`, {
+        method: 'POST'
+      });
+    },
+
+    async unsubscribeDiscussion(forumId, discussionId) {
+      return API.request(`/forums/${forumId}/discussions/${discussionId}/subscribe`, {
+        method: 'DELETE'
+      });
+    },
+
+    async getUnread(forumId) {
+      return API.request(`/forums/${forumId}/unread`);
+    },
+
+    async markRead(forumId) {
+      return API.request(`/forums/${forumId}/mark-read`, {
+        method: 'POST'
+      });
+    },
+
+    async markDiscussionRead(forumId, discussionId) {
+      return API.request(`/forums/${forumId}/discussions/${discussionId}/mark-read`, {
+        method: 'POST'
+      });
+    },
+
+    async pinDiscussion(forumId, discussionId) {
+      return API.request(`/forums/${forumId}/discussions/${discussionId}/pin`, {
+        method: 'POST'
+      });
+    },
+
+    async unpinDiscussion(forumId, discussionId) {
+      return API.request(`/forums/${forumId}/discussions/${discussionId}/pin`, {
+        method: 'DELETE'
+      });
+    },
+
+    async lockDiscussion(forumId, discussionId, reason = '') {
+      return API.request(`/forums/${forumId}/discussions/${discussionId}/lock`, {
+        method: 'POST',
+        body: { reason }
+      });
+    },
+
+    async unlockDiscussion(forumId, discussionId) {
+      return API.request(`/forums/${forumId}/discussions/${discussionId}/lock`, {
+        method: 'DELETE'
       });
     }
   },
@@ -1157,18 +1630,25 @@ const API = {
       return API.request(`/files${params ? '?' + params : ''}`);
     },
 
-    async upload(file, folder = '') {
-      const formData = new FormData();
-      formData.append('file', file);
-      if (folder) formData.append('folder', folder);
+    async upload(file, folderOrOptions = '') {
+      const options = typeof folderOrOptions === 'string'
+        ? { folder: folderOrOptions }
+        : (folderOrOptions || {});
+      const dataUrl = await this.fileToBase64(file);
+      const content = String(dataUrl).includes(',') ? String(dataUrl).split(',')[1] : String(dataUrl);
 
-      return fetch(`${API.baseUrl}/files/upload`, {
+      return API.request('/files/upload', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${API.accessToken}`
-        },
-        body: formData
-      }).then(res => res.json());
+        body: {
+          filename: file.name,
+          contentType: file.type || 'application/octet-stream',
+          size: file.size,
+          content,
+          folder: options.folder || '',
+          courseId: options.courseId || null,
+          visibility: options.visibility || 'private'
+        }
+      });
     },
 
     async delete(fileId) {
@@ -1196,12 +1676,77 @@ const API = {
 
   // ===== 角色權限 API =====
   roles: {
+    normalizeRolePayload(role = {}) {
+      const id = role.id || role.roleId || role.shortName || '';
+      return {
+        ...role,
+        id,
+        roleId: id,
+        shortName: role.shortName || role.roleId || role.id || role.nameEn || '',
+        name: role.name || role.nameEn || id,
+        description: role.description || '',
+        capabilities: Array.isArray(role.capabilities) ? role.capabilities : [],
+        isSystem: !!role.isSystem,
+        userCount: role.userCount || 0,
+        createdAt: role.createdAt || null
+      };
+    },
+
+    normalizeRoleList(payload) {
+      if (Array.isArray(payload)) {
+        return payload.map(role => this.normalizeRolePayload(role));
+      }
+
+      if (payload && typeof payload === 'object') {
+        const systemRoles = Array.isArray(payload.systemRoles) ? payload.systemRoles : [];
+        const customRoles = Array.isArray(payload.customRoles) ? payload.customRoles : [];
+        return [...systemRoles, ...customRoles]
+          .map(role => this.normalizeRolePayload(role))
+          .sort((a, b) => (a.sortOrder || 999) - (b.sortOrder || 999));
+      }
+
+      return [];
+    },
+
+    normalizeCapabilities(payload) {
+      let capabilities = [];
+
+      if (Array.isArray(payload)) {
+        capabilities = payload;
+      } else if (payload && Array.isArray(payload.capabilities)) {
+        capabilities = payload.capabilities;
+      } else if (payload && payload.grouped && typeof payload.grouped === 'object') {
+        capabilities = Object.values(payload.grouped).flat();
+      }
+
+      return capabilities
+        .map(cap => {
+          const id = cap.id || cap.name || cap.capability || '';
+          return {
+            ...cap,
+            id,
+            name: cap.name || cap.nameEn || id
+          };
+        })
+        .filter(cap => !!cap.id);
+    },
+
     async list() {
-      return API.request('/roles');
+      const result = await API.request('/roles');
+      if (!result?.success) return result;
+      return {
+        ...result,
+        data: this.normalizeRoleList(result.data)
+      };
     },
 
     async get(roleId) {
-      return API.request(`/roles/${roleId}`);
+      const result = await API.request(`/roles/${roleId}`);
+      if (!result?.success) return result;
+      return {
+        ...result,
+        data: this.normalizeRolePayload(result.data || {})
+      };
     },
 
     async create(data) {
@@ -1225,20 +1770,41 @@ const API = {
     },
 
     async getCapabilities() {
-      return API.request('/roles/capabilities');
+      const result = await API.request('/roles/capabilities');
+      if (!result?.success) return result;
+      return {
+        ...result,
+        data: this.normalizeCapabilities(result.data)
+      };
     },
 
-    async assignRole(courseId, userId, role) {
+    async assignRole(userIdOrCourseId, roleIdOrUserId, contextOrRole = {}) {
+      // 相容舊版：assignRole(courseId, userId, role)
+      if (typeof contextOrRole === 'string') {
+        return this.setCourseRole(userIdOrCourseId, roleIdOrUserId, contextOrRole);
+      }
+
+      const userId = userIdOrCourseId;
+      const roleId = roleIdOrUserId;
+      const context = contextOrRole || {};
+
       return API.request('/roles/assignments', {
         method: 'POST',
-        body: { courseId, userId, role }
+        body: { userId, roleId, ...context }
       });
     },
 
-    async removeRole(courseId, userId) {
-      return API.request('/roles/assignments', {
-        method: 'DELETE',
-        body: { courseId, userId }
+    async setCourseRole(courseId, userId, role) {
+      return API.request(`/roles/course/${courseId}/user/${userId}`, {
+        method: 'PUT',
+        body: { role }
+      });
+    },
+
+    async removeRole(assignmentId, userId) {
+      const qs = userId ? `?userId=${encodeURIComponent(userId)}` : '';
+      return API.request(`/roles/assignments/${encodeURIComponent(assignmentId)}${qs}`, {
+        method: 'DELETE'
       });
     },
 
@@ -1254,13 +1820,24 @@ const API = {
 
   // ===== 題庫 API =====
   questionBank: {
+    buildQuery(params = {}) {
+      return new URLSearchParams(
+        Object.entries(params).filter(([, value]) =>
+          value !== undefined &&
+          value !== null &&
+          value !== ''
+        )
+      ).toString();
+    },
+
     async list(filters = {}) {
-      const params = new URLSearchParams(filters).toString();
+      const params = this.buildQuery(filters);
       return API.request(`/questionbank${params ? '?' + params : ''}`);
     },
 
-    async get(questionId) {
-      return API.request(`/questionbank/${questionId}`);
+    async get(questionId, filters = {}) {
+      const params = this.buildQuery(filters);
+      return API.request(`/questionbank/${questionId}${params ? '?' + params : ''}`);
     },
 
     async create(data) {
@@ -1283,8 +1860,9 @@ const API = {
       });
     },
 
-    async getCategories() {
-      return API.request('/questionbank/categories');
+    async getCategories(filters = {}) {
+      const params = this.buildQuery(filters);
+      return API.request(`/questionbank/categories${params ? '?' + params : ''}`);
     },
 
     async createCategory(data) {
@@ -1412,7 +1990,12 @@ const API = {
   gradebookEnhanced: {
     async getCategories(courseId) {
       if (!courseId) return { success: false, error: 'MISSING_COURSE_ID' };
-      return API.request(`/gradebook/courses/${courseId}/categories`);
+      const result = await API.request(`/gradebook/courses/${courseId}/categories`);
+      if (!result?.success) return result;
+      return {
+        ...result,
+        data: Array.isArray(result.data) ? result.data : (result.data?.categories || [])
+      };
     },
 
     async createCategory(courseId, data) {
@@ -1440,7 +2023,12 @@ const API = {
 
     async getSettings(courseId) {
       if (!courseId) return { success: false, error: 'MISSING_COURSE_ID' };
-      return API.request(`/gradebook/courses/${courseId}/settings`);
+      const result = await API.request(`/gradebook/courses/${courseId}/settings`);
+      if (!result?.success) return result;
+      return {
+        ...result,
+        data: result.data?.settings || result.data || {}
+      };
     },
 
     async updateSettings(courseId, data) {
@@ -1453,7 +2041,42 @@ const API = {
 
     async exportGrades(courseId, format = 'csv') {
       if (!courseId) return { success: false, error: 'MISSING_COURSE_ID' };
-      return API.request(`/gradebook/courses/${courseId}/export?format=${format}`);
+      const endpoint = `${API.baseUrl}/gradebook/courses/${courseId}/export?format=${encodeURIComponent(format)}`;
+      const headers = {
+        'X-Language': (typeof I18n !== 'undefined' && I18n.getLocale) ? I18n.getLocale() : 'zh-TW'
+      };
+
+      if (API.accessToken) {
+        headers.Authorization = `Bearer ${API.accessToken}`;
+      }
+
+      const response = await fetch(endpoint, { headers });
+      const contentType = response.headers.get('content-type') || '';
+
+      if (contentType.includes('application/json')) {
+        return response.json();
+      }
+
+      const text = await response.text();
+      if (!response.ok) {
+        return {
+          success: false,
+          error: 'EXPORT_FAILED',
+          message: text || '匯出失敗'
+        };
+      }
+
+      if (format === 'csv') {
+        return {
+          success: true,
+          data: { csv: text }
+        };
+      }
+
+      return {
+        success: true,
+        data: { raw: text }
+      };
     },
 
     async batchUpdateGrades(courseId, grades) {
@@ -1776,7 +2399,7 @@ const API = {
     async addMember(courseId, groupId, userId) {
       return API.request(`/courses/${courseId}/groups/${groupId}/members`, {
         method: 'POST',
-        body: { userId }
+        body: { userIds: [userId] }
       });
     },
 

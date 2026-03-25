@@ -109,7 +109,7 @@ const API = {
         }
         // Token 無效，清除並跳轉登入
         this.clearTokens();
-        window.location.href = '#login';
+        window.location.href = '/platform';
         throw new Error('請重新登入');
       }
 
@@ -208,6 +208,34 @@ const API = {
       return API.request('/auth/password', {
         method: 'PUT',
         body: { currentPassword, newPassword }
+      });
+    },
+
+    /**
+     * 請求寄送密碼重設信
+     */
+    async requestPasswordReset(email) {
+      return API.request('/auth/password/reset/request', {
+        method: 'POST',
+        body: { email }
+      });
+    },
+
+    /**
+     * 驗證密碼重設 token
+     */
+    async validatePasswordResetToken(token) {
+      const query = new URLSearchParams({ token }).toString();
+      return API.request(`/auth/password/reset/validate?${query}`);
+    },
+
+    /**
+     * 完成密碼重設
+     */
+    async confirmPasswordReset(token, newPassword) {
+      return API.request('/auth/password/reset/confirm', {
+        method: 'POST',
+        body: { token, newPassword }
       });
     }
   },
