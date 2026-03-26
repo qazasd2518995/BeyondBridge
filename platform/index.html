@@ -2028,6 +2028,93 @@
             white-space: nowrap;
         }
 
+        .course-group-summary {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+
+        .course-group-summary-copy {
+            color: var(--text-secondary);
+            font-size: 0.92rem;
+            line-height: 1.6;
+        }
+
+        .course-group-summary-badges {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            flex-wrap: wrap;
+        }
+
+        .course-group-members {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .course-group-member-chip {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.85rem;
+            padding: 0.8rem 0.95rem;
+            border-radius: 1rem;
+            background: rgba(248, 247, 243, 0.9);
+            border: 1px solid rgba(226, 232, 240, 0.9);
+        }
+
+        .course-group-member-copy {
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+        }
+
+        .course-group-member-copy strong {
+            color: var(--text-primary);
+            font-size: 0.95rem;
+        }
+
+        .course-group-member-copy span {
+            color: var(--text-secondary);
+            font-size: 0.82rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .course-group-inline-form {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .course-group-select {
+            min-width: min(320px, 100%);
+            flex: 1 1 240px;
+            height: 2.75rem;
+            border-radius: 0.95rem;
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            background: var(--white);
+            padding: 0 0.95rem;
+            color: var(--text-primary);
+            font: inherit;
+        }
+
+        .course-group-empty {
+            padding: 1.1rem 1.15rem;
+            border-radius: 1rem;
+            border: 1px dashed rgba(148, 163, 184, 0.5);
+            background: rgba(248, 247, 243, 0.72);
+            color: var(--text-secondary);
+            font-size: 0.92rem;
+        }
+
         .bridge-class-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -6472,14 +6559,6 @@
                 <!-- 教師專用功能區 -->
                 <div class="nav-section teacher-only-nav" id="teacherNavSection" hidden>
                     <div class="nav-section-title" data-i18n="sidebar.teachingMgmt">教學管理</div>
-                    <a href="#" class="nav-item" onclick="showView('questionBank'); MoodleUI.openQuestionBank();">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M4 4h16a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2z"/>
-                            <path d="M9 9h6M9 13h3"/>
-                            <circle cx="16" cy="13" r="1"/>
-                        </svg>
-                        <span data-i18n="sidebar.questionBank">題庫管理</span>
-                    </a>
                     <a href="#" class="nav-item" onclick="showView('gradebookManagement'); MoodleUI.openGradebookManagement();">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
@@ -6489,14 +6568,6 @@
                             <line x1="15" y1="3" x2="15" y2="21"/>
                         </svg>
                         <span data-i18n="sidebar.gradebookMgmt">成績簿管理</span>
-                    </a>
-                    <a href="#" class="nav-item" onclick="showView('rubrics'); MoodleUI.openRubricsManager();">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="3" y="3" width="18" height="18" rx="2"/>
-                            <path d="M3 9h18M9 3v18"/>
-                            <path d="M13 13l2 2 4-4"/>
-                        </svg>
-                        <span data-i18n="sidebar.rubrics">評分標準</span>
                     </a>
                     <a href="#" class="nav-item" onclick="showView('courseCompletionSettings'); MoodleUI.openCourseCompletionSettings();">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -7237,20 +7308,13 @@
 
             <!-- Classes View - 建橋者的橋隊管理 -->
             <div class="dashboard" id="classesView" hidden>
-                <!-- Classes Header -->
                 <div class="bridge-view-toolbar">
                     <div>
-                        <p class="bridge-view-description" data-i18n="classes.manageDescription">管理您搭建的橋隊與探橋者</p>
+                        <p class="bridge-view-description" data-i18n="classes.manageDescription">查看每門課程的學生名單與分組狀況</p>
                     </div>
-                    <button onclick="openCreateClassModal()" class="bridge-primary-btn">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                        <span data-i18n="classes.createNew">搭建新橋</span>
-                    </button>
                 </div>
 
-                <!-- Classes List -->
                 <div class="classes-list" id="classesListContainer">
-                    <!-- 橋隊卡片會由 JavaScript 動態載入 -->
                     <div class="bridge-state">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
                             <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
@@ -14713,14 +14777,14 @@
         // 載入橋隊列表
         async function loadClasses() {
             try {
-                const result = await API.classes.list('owned');
+                const result = await API.courses.getMyCourses('instructor');
                 if (result.success) {
                     classesCache = result.data || [];
                     renderClassesList();
                 }
             } catch (error) {
                 console.error('Load classes error:', error);
-                showToast('載入橋隊失敗');
+                showToast('載入課程失敗');
             }
         }
 
@@ -14739,10 +14803,10 @@
                             <path d="M16 3.13a4 4 0 010 7.75"/>
                         </svg>
                         <p class="bridge-state-title">
-                            您尚未搭建任何橋
+                            目前沒有可管理的課程
                         </p>
                         <p class="bridge-state-desc">
-                            點擊「搭建新橋」開始管理您的探橋者
+                            建立課程或指派授課後，就能在這裡查看學生與分組
                         </p>
                     </div>
                 `;
@@ -14751,43 +14815,53 @@
 
             container.innerHTML = `
                 <div class="bridge-class-grid">
-                    ${filtered.map(cls => `
-                        <button type="button" class="bridge-class-card" onclick="openClassDetail('${cls.classId}')">
-                            <div class="bridge-class-card-accent ${getClassColor(cls.subject)}">
+                    ${filtered.map((course) => {
+                        const courseId = course.courseId || course.id || '';
+                        const courseTitle = course.title || course.name || '未命名課程';
+                        const courseCategory = typeof MoodleUI !== 'undefined' && typeof MoodleUI.getLocalizedCourseCategory === 'function'
+                            ? MoodleUI.getLocalizedCourseCategory(course.category || course.primaryCategory)
+                            : (course.category || course.primaryCategory || '一般課程');
+                        const courseTeacher = course.instructorName || course.teacherName || '授課教師';
+                        const courseCode = course.shortName || course.code || course.courseCode || '';
+                        const courseSummary = course.summary || course.description || '查看這門課的學生名單、加入時間與分組。';
+                        const studentCount = Number(course.enrollmentCount || course.enrolledCount || course.participantCount || 0);
+                        return `
+                        <button type="button" class="bridge-class-card" onclick="MoodleUI.openCourseParticipantsWorkspace('${courseId}')">
+                            <div class="bridge-class-card-accent ${getClassColor(courseCategory)}">
                                 <div class="bridge-class-card-cover-top">
-                                    <span class="bridge-class-card-subject">${cls.subject || '一般課程'}</span>
-                                    ${cls.isEnrolled ? '<span class="bridge-class-enrolled">已加入</span>' : ''}
+                                    <span class="bridge-class-card-subject">${escapeHtml(courseCategory)}</span>
+                                    ${courseCode ? `<span class="bridge-class-enrolled">${escapeHtml(courseCode)}</span>` : ''}
                                 </div>
                                 <div class="bridge-class-card-cover-copy">
-                                    <p class="bridge-class-card-kicker">Bridge team</p>
-                                    <h3 class="bridge-class-card-title">${cls.name}</h3>
-                                    <p class="bridge-class-card-cover-note">${cls.teacherName || '建橋者'}</p>
+                                    <p class="bridge-class-card-kicker">Course roster</p>
+                                    <h3 class="bridge-class-card-title">${escapeHtml(courseTitle)}</h3>
+                                    <p class="bridge-class-card-cover-note">${escapeHtml(courseTeacher)}</p>
                                 </div>
                             </div>
                             <div class="bridge-class-card-body">
-                                <p class="bridge-class-card-desc">${cls.description || '尚無說明'}</p>
+                                <p class="bridge-class-card-desc">${escapeHtml(courseSummary)}</p>
                                 <div class="bridge-class-card-meta">
                                     <div class="bridge-class-stats">
                                         <span class="bridge-class-stat">
                                             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-                                            ${cls.memberCount || 0} 位探橋者
+                                            ${studentCount} 位學生
                                         </span>
                                         <span class="bridge-class-stat">
-                                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
-                                            ${cls.assignmentCount || 0} 項作業
+                                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+                                            ${courseCode ? escapeHtml(courseCode) : escapeHtml(courseCategory)}
                                         </span>
                                     </div>
                                     <div class="bridge-class-meta-right">
                                         <span class="bridge-class-teacher">
                                             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                                            ${cls.teacherName || '建橋者'}
+                                            ${escapeHtml(courseTeacher)}
                                         </span>
-                                        <span class="bridge-class-open-link">查看詳情 →</span>
+                                        <span class="bridge-class-open-link">查看學生 →</span>
                                     </div>
                                 </div>
                             </div>
                         </button>
-                    `).join('')}
+                    `;}).join('')}
                 </div>
             `;
         }
@@ -14888,11 +14962,30 @@
 
         function renderClassDetailContent(cls, classId, options = {}) {
             const isTeacher = Boolean(options.isTeacher);
+            const teacherMembersOnly = isTeacher && options.teacherMembersOnly !== false;
+            const canManageMembers = teacherMembersOnly
+                ? options.canManageMembers === true
+                : options.canManageMembers !== false;
             const backView = options.backView || (isTeacher ? 'classes' : 'studentClasses');
             const counts = getClassDetailCounts(cls);
             const assignments = Array.isArray(cls?.assignments) ? cls.assignments : [];
-            const subtitle = `${escapeHtml(cls?.subject || '一般課程')} · ${escapeHtml(cls?.teacherName || '建橋者')}`;
-            const statCards = [
+            const members = Array.isArray(cls?.members) ? cls.members : [];
+            const title = options.titleOverride || cls?.name || '未命名橋隊';
+            const kicker = options.kickerOverride || (isTeacher ? (teacherMembersOnly ? 'Student roster' : 'Teaching bridge') : 'Learning bridge');
+            const subtitle = options.subtitleOverride
+                ? escapeHtml(options.subtitleOverride)
+                : `${escapeHtml(cls?.subject || '一般課程')} · ${escapeHtml(cls?.teacherName || '建橋者')}`;
+            const extraPanelsHtml = typeof options.extraPanelsHtml === 'string' ? options.extraPanelsHtml : '';
+
+            const statCards = teacherMembersOnly ? [
+                {
+                    kicker: 'Learners',
+                    label: options.memberStatLabel || '學生數',
+                    value: counts.members,
+                    tone: 'tone-olive',
+                    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>'
+                }
+            ] : [
                 {
                     kicker: 'Members',
                     label: '橋隊成員',
@@ -14923,6 +15016,110 @@
                 }
             ];
 
+            const teacherActions = isTeacher ? `
+                <div class="bridge-detail-actions">
+                    ${!teacherMembersOnly && cls?.inviteCode ? `
+                    <div class="bridge-detail-chip">
+                        <div class="bridge-detail-chip-body">
+                            <span class="bridge-detail-chip-label">通行碼</span>
+                            <strong class="bridge-detail-chip-value">${escapeHtml(cls?.inviteCode || '------')}</strong>
+                        </div>
+                        <button type="button" class="bridge-detail-icon-btn is-subtle" onclick="copyInviteCode('${cls.inviteCode}')" aria-label="複製橋隊通行碼">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                        </button>
+                    </div>
+                    ` : ''}
+                    ${teacherMembersOnly ? '' : `
+                    <button type="button" class="bridge-primary-btn" onclick="openAddAssignmentModal('${classId}')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        <span>新增作業</span>
+                    </button>
+                    `}
+                </div>
+            ` : '';
+
+            const membersPanel = `
+                <section class="bridge-detail-panel">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="bridge-detail-panel-copy">
+                                <span class="bridge-detail-panel-kicker">${escapeHtml(options.memberPanelKicker || 'Learners')}</span>
+                                <h3 class="card-title">${escapeHtml(options.memberSectionTitle || (isTeacher ? '學生名單' : '橋隊成員'))}</h3>
+                                <p class="bridge-detail-panel-note">${escapeHtml(options.memberSectionNote || (isTeacher ? '查看這堂課的學生名單與加入時間。' : '查看目前加入此橋隊的探橋者名單。'))}</p>
+                            </div>
+                            <span class="bridge-detail-panel-badge">${counts.members} ${isTeacher ? '位學生' : '位成員'}</span>
+                        </div>
+                        <div class="card-body card-body-flush">
+                            ${renderMembersList(members, classId, {
+                                canManage: canManageMembers,
+                                emptyTitle: options.membersEmptyTitle,
+                                emptyNote: options.membersEmptyNote
+                            })}
+                        </div>
+                    </div>
+                </section>
+            `;
+
+            const teacherBody = teacherMembersOnly ? `
+                ${membersPanel}
+                ${extraPanelsHtml}
+            ` : `
+                <div class="bridge-detail-tabs" role="tablist" aria-label="橋隊詳情分頁">
+                    <button type="button" id="detail-tab-assignments" class="detail-tab active" role="tab" aria-selected="true" aria-controls="assignmentsPanel" onclick="switchDetailTab(this, 'assignments')">作業與建材</button>
+                    <button type="button" id="detail-tab-members" class="detail-tab" role="tab" aria-selected="false" aria-controls="membersPanel" onclick="switchDetailTab(this, 'members')">橋隊成員</button>
+                </div>
+
+                <section id="assignmentsPanel" class="bridge-detail-panel" role="tabpanel" aria-labelledby="detail-tab-assignments">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="bridge-detail-panel-copy">
+                                <span class="bridge-detail-panel-kicker">Assignments</span>
+                                <h3 class="card-title">作業與建材</h3>
+                                <p class="bridge-detail-panel-note">整理這個橋隊的教材、測驗與考試內容，讓探橋者知道接下來該完成什麼。</p>
+                            </div>
+                            <span class="bridge-detail-panel-badge">${assignments.length} 項內容</span>
+                        </div>
+                        <div class="card-body">
+                            ${renderAssignmentsList(assignments, true, classId)}
+                        </div>
+                    </div>
+                </section>
+
+                <section id="membersPanel" class="bridge-detail-panel" role="tabpanel" aria-labelledby="detail-tab-members" hidden>
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="bridge-detail-panel-copy">
+                                <span class="bridge-detail-panel-kicker">Learners</span>
+                                <h3 class="card-title">橋隊成員</h3>
+                                <p class="bridge-detail-panel-note">查看目前加入此橋隊的探橋者，並維護橋隊成員名單。</p>
+                            </div>
+                            <span class="bridge-detail-panel-badge">${counts.members} 位成員</span>
+                        </div>
+                        <div class="card-body card-body-flush">
+                            ${renderMembersList(members, classId, { canManage: true })}
+                        </div>
+                    </div>
+                </section>
+            `;
+
+            const studentBody = `
+                <section class="bridge-detail-panel">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="bridge-detail-panel-copy">
+                                <span class="bridge-detail-panel-kicker">Assignments</span>
+                                <h3 class="card-title">橋隊作業</h3>
+                                <p class="bridge-detail-panel-note">依照順序完成建橋者安排的教材、練習與測驗內容。</p>
+                            </div>
+                            <span class="bridge-detail-panel-badge">${assignments.length} 項待完成內容</span>
+                        </div>
+                        <div class="card-body">
+                            ${renderStudentAssignmentsList(assignments, classId)}
+                        </div>
+                    </div>
+                </section>
+            `;
+
             return `
                 <div class="bridge-detail-shell">
                     <div class="bridge-detail-header">
@@ -14931,30 +15128,12 @@
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
                             </button>
                             <div class="bridge-detail-title-stack">
-                                <span class="bridge-detail-kicker">${isTeacher ? 'Teaching bridge' : 'Learning bridge'}</span>
-                                <h2 class="bridge-detail-title">${escapeHtml(cls?.name || '未命名橋隊')}</h2>
+                                <span class="bridge-detail-kicker">${escapeHtml(kicker)}</span>
+                                <h2 class="bridge-detail-title">${escapeHtml(title)}</h2>
                                 <p class="bridge-detail-subtitle">${subtitle}</p>
                             </div>
                         </div>
-                        ${isTeacher ? `
-                            <div class="bridge-detail-actions">
-                                <div class="bridge-detail-chip">
-                                    <div class="bridge-detail-chip-body">
-                                        <span class="bridge-detail-chip-label">通行碼</span>
-                                        <strong class="bridge-detail-chip-value">${escapeHtml(cls?.inviteCode || '------')}</strong>
-                                    </div>
-                                    ${cls?.inviteCode ? `
-                                        <button type="button" class="bridge-detail-icon-btn is-subtle" onclick="copyInviteCode('${cls.inviteCode}')" aria-label="複製橋隊通行碼">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-                                        </button>
-                                    ` : ''}
-                                </div>
-                                <button type="button" class="bridge-primary-btn" onclick="openAddAssignmentModal('${classId}')">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                                    <span>新增作業</span>
-                                </button>
-                            </div>
-                        ` : ''}
+                        ${teacherActions}
                     </div>
 
                     <div class="bridge-detail-stats">
@@ -14970,60 +15149,7 @@
                         `).join('')}
                     </div>
 
-                    ${isTeacher ? `
-                        <div class="bridge-detail-tabs" role="tablist" aria-label="橋隊詳情分頁">
-                            <button type="button" id="detail-tab-assignments" class="detail-tab active" role="tab" aria-selected="true" aria-controls="assignmentsPanel" onclick="switchDetailTab(this, 'assignments')">作業與建材</button>
-                            <button type="button" id="detail-tab-members" class="detail-tab" role="tab" aria-selected="false" aria-controls="membersPanel" onclick="switchDetailTab(this, 'members')">橋隊成員</button>
-                        </div>
-
-                        <section id="assignmentsPanel" class="bridge-detail-panel" role="tabpanel" aria-labelledby="detail-tab-assignments">
-                            <div class="card">
-                                <div class="card-header">
-                                    <div class="bridge-detail-panel-copy">
-                                        <span class="bridge-detail-panel-kicker">Assignments</span>
-                                        <h3 class="card-title">作業與建材</h3>
-                                        <p class="bridge-detail-panel-note">整理這個橋隊的教材、測驗與考試內容，讓探橋者知道接下來該完成什麼。</p>
-                                    </div>
-                                    <span class="bridge-detail-panel-badge">${assignments.length} 項內容</span>
-                                </div>
-                                <div class="card-body">
-                                    ${renderAssignmentsList(assignments, true, classId)}
-                                </div>
-                            </div>
-                        </section>
-
-                        <section id="membersPanel" class="bridge-detail-panel" role="tabpanel" aria-labelledby="detail-tab-members" hidden>
-                            <div class="card">
-                                <div class="card-header">
-                                    <div class="bridge-detail-panel-copy">
-                                        <span class="bridge-detail-panel-kicker">Learners</span>
-                                        <h3 class="card-title">橋隊成員</h3>
-                                        <p class="bridge-detail-panel-note">查看目前加入此橋隊的探橋者，並維護橋隊成員名單。</p>
-                                    </div>
-                                    <span class="bridge-detail-panel-badge">${counts.members} 位成員</span>
-                                </div>
-                                <div class="card-body card-body-flush">
-                                    ${renderMembersList(Array.isArray(cls?.members) ? cls.members : [], classId)}
-                                </div>
-                            </div>
-                        </section>
-                    ` : `
-                        <section class="bridge-detail-panel">
-                            <div class="card">
-                                <div class="card-header">
-                                    <div class="bridge-detail-panel-copy">
-                                        <span class="bridge-detail-panel-kicker">Assignments</span>
-                                        <h3 class="card-title">橋隊作業</h3>
-                                        <p class="bridge-detail-panel-note">依照順序完成建橋者安排的教材、練習與測驗內容。</p>
-                                    </div>
-                                    <span class="bridge-detail-panel-badge">${assignments.length} 項待完成內容</span>
-                                </div>
-                                <div class="card-body">
-                                    ${renderStudentAssignmentsList(assignments, classId)}
-                                </div>
-                            </div>
-                        </section>
-                    `}
+                    ${isTeacher ? teacherBody : studentBody}
                 </div>
             `;
         }
@@ -15178,15 +15304,18 @@
         }
 
         // 渲染成員列表
-        function renderMembersList(members, classId) {
+        function renderMembersList(members, classId, options = {}) {
+            const canManage = options.canManage !== false && Boolean(classId);
+            const emptyTitle = options.emptyTitle || '尚無探橋者加入';
+            const emptyNote = options.emptyNote || '分享通行碼讓探橋者加入橋隊';
             if (members.length === 0) {
                 return `
                     <div class="empty-state">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
                             <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>
                         </svg>
-                        <p>尚無探橋者加入</p>
-                        <p class="empty-state-note">分享通行碼讓探橋者加入橋隊</p>
+                        <p>${escapeHtml(emptyTitle)}</p>
+                        <p class="empty-state-note">${escapeHtml(emptyNote)}</p>
                     </div>
                 `;
             }
@@ -15197,10 +15326,10 @@
                         <table class="bridge-members-table">
                             <thead>
                             <tr>
-                                <th>探橋者</th>
+                                <th>學生</th>
                                 <th>電子郵件</th>
                                 <th>加入日期</th>
-                                <th>操作</th>
+                                ${canManage ? '<th>操作</th>' : ''}
                             </tr>
                             </thead>
                             <tbody>
@@ -15214,9 +15343,11 @@
                                         </td>
                                         <td class="bridge-member-meta">${escapeHtml(member.userEmail || '-')}</td>
                                         <td class="bridge-member-meta">${escapeHtml(formatBridgeDate(member.joinedAt) || '-')}</td>
+                                        ${canManage ? `
                                         <td>
                                             <button type="button" class="bridge-member-remove" onclick="removeMember('${classId}', '${member.userId}')">移除</button>
                                         </td>
+                                        ` : ''}
                                     </tr>
                                 `).join('')}
                             </tbody>

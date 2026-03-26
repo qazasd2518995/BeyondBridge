@@ -110,6 +110,11 @@ const MoodleUI = {
     return result?.ok !== false;
   },
 
+  setSidebarActiveView(viewName) {
+    document.querySelectorAll('.nav-item').forEach((item) => item.classList.remove('active'));
+    document.querySelector(`.nav-item[data-view="${viewName}"]`)?.classList.add('active');
+  },
+
   canManageLearningPath(path, user = API.getCurrentUser()) {
     if (!path || !user) return false;
     if (user.isAdmin) return true;
@@ -1108,10 +1113,10 @@ const MoodleUI = {
       <!-- 課程導航標籤 -->
       <div class="course-nav-tabs">
         <button class="nav-tab active" data-course-tab="content" onclick="MoodleUI.switchCourseTab('content', this)">${t('moodleCourse.tabContent')}</button>
-        ${canViewParticipants ? `<button class="nav-tab" data-course-tab="participants" onclick="MoodleUI.switchCourseTab('participants', this)">${participantsTabLabel}</button>` : ''}
+        ${canViewParticipants ? `<button class="nav-tab" data-course-tab="participants" onclick="${canTeach ? `MoodleUI.openCourseParticipantsWorkspace(${this.toInlineActionValue(course.courseId)})` : `MoodleUI.switchCourseTab('participants', this)`}">${participantsTabLabel}</button>` : ''}
         <button class="nav-tab" data-course-tab="forums" onclick="MoodleUI.openCourseForums(${this.toInlineActionValue(course.courseId)})">${t('nav.classDiscussions')}</button>
-        <button class="nav-tab" data-course-tab="grades" onclick="MoodleUI.switchCourseTab('grades', this)">${t('moodleCourse.tabGrades')}</button>
-        ${canViewReports ? `<button class="nav-tab" data-course-tab="reports" onclick="MoodleUI.switchCourseTab('reports', this)">${t('moodleCourse.tabReports')}</button>` : ''}
+        <button class="nav-tab" data-course-tab="grades" onclick="${canTeach ? `MoodleUI.openCourseGradebookWorkspace(${this.toInlineActionValue(course.courseId)})` : `MoodleUI.switchCourseTab('grades', this)`}">${t('moodleCourse.tabGrades')}</button>
+        ${canViewReports ? `<button class="nav-tab" data-course-tab="reports" onclick="${canTeach ? `MoodleUI.openCourseReportsWorkspace(${this.toInlineActionValue(course.courseId)})` : `MoodleUI.switchCourseTab('reports', this)`}">${t('moodleCourse.tabReports')}</button>` : ''}
       </div>
 
       <!-- 課程內容區 -->
@@ -1316,8 +1321,296 @@ const MoodleUI = {
     }
   },
 
+  async openCourseParticipantsWorkspace(courseId = this.currentCourseId) {
+    if (!courseId) return;
+
+    const detailContent = document.getElementById('classDetailContent');
+    if (!detailContent) return;
+
+    try {
+      const [courseResult, participantsResult, groupOverviewResult] = await Promise.all([
+        API.courses.get(courseId),
+        API.courses.getParticipants(courseId),
+        API.courseGroups.getOverview(courseId).catch(() => ({ success: false, data: null }))
+      ]);
+
+      if (!courseResult.success || !courseResult.data) {
+        showToast(t('moodleCourse.loadFailed'));
+        return;
+      }
+
+      this.currentCourseId = courseId;
+      const course = this.normalizeCourseRecord(courseResult.data || {});
+      const allParticipants = participantsResult.success && Array.isArray(participantsResult.data)
+        ? participantsResult.data
+        : [];
+      const learnerRoles = new Set(['student', 'learner']);
+      const learnerMembers = allParticipants
+        .filter((participant) => learnerRoles.has(String(participant?.role || 'student').toLowerCase()))
+        .map((participant) => ({
+          userId: participant.userId || participant.id || '',
+          userName: participant.displayName || participant.userName || participant.name || (I18n.getLocale() === 'en' ? 'Learner' : '學員'),
+          userEmail: participant.email || participant.userEmail || '',
+          joinedAt: participant.enrolledAt || participant.joinedAt || null
+        }));
+
+      if (typeof window.renderClassDetailContent === 'function') {
+        const rosterRecord = {
+          name: course.title || course.name || t('moodleCourse.course'),
+          subject: this.getLocalizedCourseCategory(course.category),
+          teacherName: course.instructorName || course.teacherName || t('moodleCourse.teacher'),
+          members: learnerMembers,
+          memberCount: learnerMembers.length
+        };
+        const groupOverview = groupOverviewResult.success ? (groupOverviewResult.data || {}) : null;
+        const subtitleParts = [
+          rosterRecord.subject,
+          rosterRecord.teacherName,
+          course.shortName || course.code || course.courseCode || ''
+        ].filter(Boolean);
+
+        detailContent.innerHTML = window.renderClassDetailContent(rosterRecord, courseId, {
+          isTeacher: true,
+          backView: 'classes',
+          teacherMembersOnly: true,
+          canManageMembers: false,
+          titleOverride: rosterRecord.name,
+          subtitleOverride: subtitleParts.join(' · '),
+          kickerOverride: I18n.getLocale() === 'en' ? 'Student roster' : '學生名單',
+          memberSectionTitle: I18n.getLocale() === 'en' ? 'Student roster' : '學生名單',
+          memberSectionNote: I18n.getLocale() === 'en'
+            ? 'View the learners currently enrolled in this course from one unified workspace.'
+            : '在同一個工作區查看目前加入這門課的學生名單。',
+          membersEmptyTitle: I18n.getLocale() === 'en' ? 'No learners enrolled yet' : '目前還沒有學生加入',
+          membersEmptyNote: I18n.getLocale() === 'en'
+            ? 'Learners will appear here after they enroll in this course.'
+            : '學生加入這門課後，就會顯示在這裡。',
+          extraPanelsHtml: this.renderCourseGroupManagementSection(courseId, groupOverview)
+        });
+      } else {
+        detailContent.innerHTML = this.renderParticipantsList(learnerMembers);
+      }
+
+      this.setSidebarActiveView('classes');
+      showView('classDetail');
+    } catch (error) {
+      console.error('Open course participants workspace error:', error);
+      showToast(t('moodleParticipant.loadFailed'));
+    }
+  },
+
+  renderCourseGroupManagementSection(courseId, overview = null) {
+    const isEnglish = I18n.getLocale() === 'en';
+    if (!overview) {
+      return `
+        <section class="bridge-detail-panel">
+          <div class="card">
+            <div class="card-header">
+              <div class="bridge-detail-panel-copy">
+                <span class="bridge-detail-panel-kicker">${isEnglish ? 'Groups' : '分組'}</span>
+                <h3 class="card-title">${isEnglish ? 'Group management' : '分組管理'}</h3>
+                <p class="bridge-detail-panel-note">${isEnglish ? 'Group data is temporarily unavailable for this course.' : '這門課的分組資料目前暫時無法載入。'}</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      `;
+    }
+
+    const groups = Array.isArray(overview.groups) ? overview.groups : [];
+    const ungrouped = Array.isArray(overview.ungrouped) ? overview.ungrouped : [];
+    const selectOptions = ungrouped.map((student) => `
+      <option value="${this.escapeText(student.userId || '')}">
+        ${this.escapeText(student.displayName || (isEnglish ? 'Learner' : '學生'))}${student.email ? ` · ${this.escapeText(student.email)}` : ''}
+      </option>
+    `).join('');
+
+    return `
+      <section class="bridge-detail-panel">
+        <div class="card">
+          <div class="card-header">
+            <div class="bridge-detail-panel-copy">
+              <span class="bridge-detail-panel-kicker">${isEnglish ? 'Groups' : '分組'}</span>
+              <h3 class="card-title">${isEnglish ? 'Group management' : '分組管理'}</h3>
+              <p class="bridge-detail-panel-note">${isEnglish ? 'Create learner groups and assign students directly from this roster workspace.' : '直接在這個學生名單工作區建立群組並安排學生。'}</p>
+            </div>
+            <div class="management-inline-actions">
+              <span class="bridge-detail-panel-badge">${groups.length} ${isEnglish ? 'groups' : '個群組'}</span>
+              <button type="button" class="bridge-primary-btn" onclick="MoodleUI.createCourseGroupPrompt(${this.toInlineActionValue(courseId)})">
+                ${isEnglish ? 'Create group' : '新增群組'}
+              </button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="course-group-summary">
+              <div class="course-group-summary-copy">
+                ${isEnglish
+                  ? `Grouped ${overview.groupedStudents || 0} of ${overview.totalStudents || 0} learners.`
+                  : `已分組 ${overview.groupedStudents || 0} / ${overview.totalStudents || 0} 位學生。`}
+              </div>
+              <div class="course-group-summary-badges">
+                <span class="management-status-badge is-accent">${this.escapeText(`${overview.totalGroups || 0} ${isEnglish ? 'groups' : '群組'}`)}</span>
+                <span class="management-status-badge ${ungrouped.length > 0 ? 'is-warning' : 'is-success'}">${this.escapeText(`${ungrouped.length} ${isEnglish ? 'ungrouped' : '未分組'}`)}</span>
+              </div>
+            </div>
+
+            ${groups.length === 0 ? `
+              <div class="course-group-empty">${isEnglish ? 'No groups yet. Create your first group to start organizing this course roster.' : '目前還沒有群組，建立第一個群組後就能開始整理這門課的學生名單。'}</div>
+            ` : `
+              <div class="group-grid">
+                ${groups.map((group) => {
+                  const members = Array.isArray(group.members) ? group.members : [];
+                  const selectId = `course-group-select-${courseId}-${group.groupId}`;
+                  return `
+                    <article class="management-card group-card">
+                      <div class="group-card-surface">
+                        <div class="group-card-header">
+                          <div class="management-heading">
+                            <div class="group-card-title">${this.escapeText(group.name || (isEnglish ? 'Untitled group' : '未命名群組'))}</div>
+                            <div class="group-card-description">${this.escapeText(group.description || (isEnglish ? 'Use this group to cluster learners for discussions or collaborative work.' : '可用於討論、小組合作或課堂分流。'))}</div>
+                          </div>
+                          <span class="group-member-badge">${this.escapeText(`${members.length} ${isEnglish ? 'members' : '位成員'}`)}</span>
+                        </div>
+
+                        <div class="course-group-members">
+                          ${members.length ? members.map((member) => `
+                            <div class="course-group-member-chip">
+                              <div class="course-group-member-copy">
+                                <strong>${this.escapeText(member.displayName || (isEnglish ? 'Learner' : '學生'))}</strong>
+                                <span>${this.escapeText(member.email || '')}</span>
+                              </div>
+                              <button type="button" class="bridge-member-remove" onclick="MoodleUI.removeCourseGroupMember(${this.toInlineActionValue(courseId)}, ${this.toInlineActionValue(group.groupId)}, ${this.toInlineActionValue(member.userId)})">
+                                ${isEnglish ? 'Remove' : '移出'}
+                              </button>
+                            </div>
+                          `).join('') : `
+                            <div class="course-group-empty">${isEnglish ? 'No learners assigned to this group yet.' : '這個群組目前還沒有學生。'}</div>
+                          `}
+                        </div>
+
+                        <div class="management-inline-actions">
+                          ${ungrouped.length ? `
+                            <div class="course-group-inline-form">
+                              <select id="${this.escapeText(selectId)}" class="course-group-select">
+                                <option value="">${isEnglish ? 'Select an ungrouped learner' : '選擇未分組學生'}</option>
+                                ${selectOptions}
+                              </select>
+                              <button type="button" class="btn-sm" onclick="MoodleUI.addCourseGroupMember(${this.toInlineActionValue(courseId)}, ${this.toInlineActionValue(group.groupId)}, document.getElementById(${this.toInlineActionValue(selectId)})?.value)">
+                                ${isEnglish ? 'Add to group' : '加入群組'}
+                              </button>
+                            </div>
+                          ` : `
+                            <span class="management-status-badge is-success">${isEnglish ? 'All learners grouped' : '所有學生都已分組'}</span>
+                          `}
+                          <button type="button" class="btn-sm btn-danger" onclick="MoodleUI.deleteCourseGroup(${this.toInlineActionValue(courseId)}, ${this.toInlineActionValue(group.groupId)})">
+                            ${isEnglish ? 'Delete group' : '刪除群組'}
+                          </button>
+                        </div>
+                      </div>
+                    </article>
+                  `;
+                }).join('')}
+              </div>
+            `}
+          </div>
+        </div>
+      </section>
+    `;
+  },
+
+  async createCourseGroupPrompt(courseId) {
+    const isEnglish = I18n.getLocale() === 'en';
+    const name = await showPromptDialog({
+      title: isEnglish ? 'Create group' : '新增群組',
+      message: isEnglish ? 'Enter a group name for this course.' : '請輸入這門課的群組名稱。',
+      confirmLabel: isEnglish ? 'Create' : '建立'
+    });
+    if (!name) return;
+
+    try {
+      const result = await API.courseGroups.create(courseId, { name });
+      if (!result.success) {
+        showToast(result.message || (isEnglish ? 'Failed to create group.' : '建立群組失敗。'));
+        return;
+      }
+      showToast(isEnglish ? 'Group created.' : '群組已建立。');
+      await this.openCourseParticipantsWorkspace(courseId);
+    } catch (error) {
+      console.error('Create course group error:', error);
+      showToast(isEnglish ? 'Failed to create group.' : '建立群組失敗。');
+    }
+  },
+
+  async addCourseGroupMember(courseId, groupId, userId) {
+    const isEnglish = I18n.getLocale() === 'en';
+    if (!userId) {
+      showToast(isEnglish ? 'Select a learner first.' : '請先選擇學生。');
+      return;
+    }
+
+    try {
+      const result = await API.courseGroups.addMember(courseId, groupId, userId);
+      if (!result.success) {
+        showToast(result.message || (isEnglish ? 'Failed to add learner to this group.' : '加入群組失敗。'));
+        return;
+      }
+      showToast(isEnglish ? 'Learner added to group.' : '已加入群組。');
+      await this.openCourseParticipantsWorkspace(courseId);
+    } catch (error) {
+      console.error('Add course group member error:', error);
+      showToast(isEnglish ? 'Failed to add learner to this group.' : '加入群組失敗。');
+    }
+  },
+
+  async removeCourseGroupMember(courseId, groupId, userId) {
+    const isEnglish = I18n.getLocale() === 'en';
+    const confirmed = await showConfirmDialog({
+      message: isEnglish ? 'Remove this learner from the group?' : '要把這位學生移出群組嗎？',
+      confirmLabel: isEnglish ? 'Remove' : '移出',
+      tone: 'danger'
+    });
+    if (!confirmed) return;
+
+    try {
+      const result = await API.courseGroups.removeMember(courseId, groupId, userId);
+      if (!result.success) {
+        showToast(result.message || (isEnglish ? 'Failed to remove learner from this group.' : '移出群組失敗。'));
+        return;
+      }
+      showToast(isEnglish ? 'Learner removed from group.' : '已移出群組。');
+      await this.openCourseParticipantsWorkspace(courseId);
+    } catch (error) {
+      console.error('Remove course group member error:', error);
+      showToast(isEnglish ? 'Failed to remove learner from this group.' : '移出群組失敗。');
+    }
+  },
+
+  async deleteCourseGroup(courseId, groupId) {
+    const isEnglish = I18n.getLocale() === 'en';
+    const confirmed = await showConfirmDialog({
+      message: isEnglish ? 'Delete this group? Learners will become ungrouped.' : '要刪除這個群組嗎？刪除後學生會回到未分組狀態。',
+      confirmLabel: isEnglish ? 'Delete' : '刪除',
+      tone: 'danger'
+    });
+    if (!confirmed) return;
+
+    try {
+      const result = await API.courseGroups.delete(courseId, groupId);
+      if (!result.success) {
+        showToast(result.message || (isEnglish ? 'Failed to delete group.' : '刪除群組失敗。'));
+        return;
+      }
+      showToast(isEnglish ? 'Group deleted.' : '群組已刪除。');
+      await this.openCourseParticipantsWorkspace(courseId);
+    } catch (error) {
+      console.error('Delete course group error:', error);
+      showToast(isEnglish ? 'Failed to delete group.' : '刪除群組失敗。');
+    }
+  },
+
   async openCourseForums(courseId = this.currentCourseId) {
     const targetCourseId = courseId || this.currentCourseId || this.currentForumCourseId;
+    this.setSidebarActiveView('moodleForums');
     showView('moodleForums');
 
     if (targetCourseId) {
@@ -1326,6 +1619,19 @@ const MoodleUI = {
     }
 
     await this.loadForums();
+  },
+
+  async openCourseGradebookWorkspace(courseId = this.currentCourseId) {
+    const targetCourseId = courseId || this.currentCourseId;
+    this.setSidebarActiveView('moodleGradebook');
+    showView('moodleGradebook');
+    await this.loadGradebookForCourse(targetCourseId);
+  },
+
+  async openCourseReportsWorkspace(courseId = this.currentCourseId) {
+    const targetCourseId = courseId || this.currentCourseId;
+    this.setSidebarActiveView('teacherAnalytics');
+    await this.openTeacherAnalytics(targetCourseId);
   },
 
   /**
