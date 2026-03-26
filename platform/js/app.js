@@ -211,6 +211,15 @@ const App = {
           </svg>
           ${t('nav.gradebook')}
         </a>
+        <a href="#" class="nav-item" data-view="learningProgress" onclick="showView('learningProgress'); MoodleUI.openLearningProgress();">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 20V10"/>
+            <path d="M12 20V4"/>
+            <path d="M6 20v-6"/>
+            <path d="M18 10l-6-6-6 6"/>
+          </svg>
+          ${t('nav.learningProgress')}
+        </a>
         <a href="#" class="nav-item" data-view="badges" onclick="showView('badges'); MoodleUI.openBadges();">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="8" r="6"/>
@@ -245,18 +254,6 @@ const App = {
             <polyline points="10,9 9,9 8,9"/>
           </svg>
           ${t('nav.licenses')}
-        </a>
-      </div>
-      <div class="nav-section">
-        <div class="nav-section-title">${t('nav.courseSettings')}</div>
-        <a href="#" class="nav-item" data-view="learningProgress" onclick="showView('learningProgress'); MoodleUI.openLearningProgress();">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M18 20V10"/>
-            <path d="M12 20V4"/>
-            <path d="M6 20v-6"/>
-            <path d="M18 10l-6-6-6 6"/>
-          </svg>
-          ${t('nav.learningProgress')}
         </a>
       </div>
       <div class="nav-section">
@@ -358,13 +355,6 @@ const App = {
           </svg>
           ${t('nav.myGrades')}
         </a>
-        <a href="#" class="nav-item" data-view="badges" onclick="showView('badges'); MoodleUI.openBadges();">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="8" r="6"/>
-            <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/>
-          </svg>
-          ${t('nav.myBadges')}
-        </a>
         <a href="#" class="nav-item" data-view="learningProgress" onclick="showView('learningProgress'); MoodleUI.openLearningProgress();">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 20V10"/>
@@ -373,6 +363,13 @@ const App = {
             <path d="M18 10l-6-6-6 6"/>
           </svg>
           ${t('nav.learningProgress')}
+        </a>
+        <a href="#" class="nav-item" data-view="badges" onclick="showView('badges'); MoodleUI.openBadges();">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="8" r="6"/>
+            <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/>
+          </svg>
+          ${t('nav.myBadges')}
         </a>
       </div>
       <div class="nav-section">
