@@ -5849,27 +5849,39 @@ const MoodleUI = {
 
   // ==================== 成績簿系統 ====================
 
+  async populateGradebookCourseSelect(selectedCourseId = '') {
+    const courseSelect = document.getElementById('gradebookCourseSelect');
+    if (!courseSelect) return [];
+
+    const user = API.getCurrentUser();
+    const courses = await this.getRoleScopedCourses({
+      manageOnly: this.isTeachingRole(user)
+    });
+
+    courseSelect.innerHTML = `
+      <option value="">${t('moodleGradebook.selectCourse')}</option>
+      ${courses.map(c => `<option value="${c.courseId}">${c.title || c.name || t('moodleCourse.course')}</option>`).join('')}
+    `;
+
+    if (selectedCourseId && courses.some(course => course.courseId === selectedCourseId)) {
+      courseSelect.value = selectedCourseId;
+    } else {
+      courseSelect.value = '';
+    }
+
+    return courses;
+  },
+
   /**
    * 載入成績簿 (主入口)
    */
   async loadGradebook() {
     const container = document.getElementById('gradebookContent');
-    const courseSelect = document.getElementById('gradebookCourseSelect');
     if (!container) return;
 
     try {
-      const user = API.getCurrentUser();
-      const courses = await this.getRoleScopedCourses({
-        manageOnly: this.isTeachingRole(user)
-      });
-
-      // 更新課程選擇下拉選單
-      if (courseSelect) {
-        courseSelect.innerHTML = `
-          <option value="">${t('moodleGradebook.selectCourse')}</option>
-          ${courses.map(c => `<option value="${c.courseId}">${c.title || c.name || t('moodleCourse.course')}</option>`).join('')}
-        `;
-      }
+      this.currentGradebookCourseId = null;
+      await this.populateGradebookCourseSelect();
 
       // 預設顯示提示
       container.innerHTML = `
@@ -5899,9 +5911,11 @@ const MoodleUI = {
     const container = document.getElementById('gradebookContent');
     if (!container) return;
 
+    this.currentGradebookCourseId = courseId;
     container.innerHTML = `<div class="loading">${t('common.loading')}</div>`;
 
     try {
+      await this.populateGradebookCourseSelect(courseId);
       const user = API.getCurrentUser();
 
       // 取得課程資訊判斷是否為教師
