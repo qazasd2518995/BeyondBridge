@@ -173,6 +173,7 @@ const App = {
             <path d="M13.73 21a2 2 0 01-3.46 0"/>
           </svg>
           ${t('nav.notifications')}
+          <span class="nav-badge" id="notificationBadge" hidden>0</span>
         </a>
       </div>
       <div class="nav-section">
@@ -245,22 +246,9 @@ const App = {
           </svg>
           ${t('nav.licenses')}
         </a>
-        <a href="#" class="nav-item" data-view="moodleFiles" onclick="showView('moodleFiles');">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>
-          </svg>
-          ${t('nav.myResources')}
-        </a>
       </div>
       <div class="nav-section">
         <div class="nav-section-title">${t('nav.courseSettings')}</div>
-        <a href="#" class="nav-item" data-view="courseCompletionSettings" onclick="showView('courseCompletionSettings'); MoodleUI.openCourseCompletionSettings();">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
-            <polyline points="22,4 12,14.01 9,11.01"/>
-          </svg>
-          ${t('nav.completionConditions')}
-        </a>
         <a href="#" class="nav-item" data-view="learningProgress" onclick="showView('learningProgress'); MoodleUI.openLearningProgress();">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 20V10"/>
@@ -332,6 +320,7 @@ const App = {
             <path d="M13.73 21a2 2 0 01-3.46 0"/>
           </svg>
           ${t('nav.learnerNotifications')}
+          <span class="nav-badge" id="notificationBadge" hidden>0</span>
         </a>
       </div>
       <div class="nav-section">
@@ -853,13 +842,13 @@ const App = {
    */
   async loadRecentBadges(userId) {
     try {
-      const result = await API.badges.getUserBadges(userId);
+      const result = await API.certificates.getMy();
       if (result.success && result.data) {
-        const badges = Array.isArray(result.data) ? result.data : (result.data.badges || []);
-        this.updateRecentBadgesUI(badges.slice(0, 4));
+        const certificates = Array.isArray(result.data) ? result.data : (result.data.certificates || []);
+        this.updateRecentBadgesUI(certificates.slice(0, 4));
       }
     } catch (error) {
-      console.error('Load recent badges error:', error);
+      console.error('Load recent certificates error:', error);
     }
   },
 
@@ -897,8 +886,8 @@ const App = {
           </svg>
         </div>
         <div class="dashboard-badge-caption">${this.escapeText(I18n.getLocale() === 'en' ? 'Recently earned' : '最近獲得')}</div>
-        <div class="dashboard-badge-name">${this.escapeText(badge.name || badge.badgeName || t('app.badge'))}</div>
-        <div class="dashboard-badge-meta">${this.escapeText(badge.courseName || badge.issuerName || (I18n.getLocale() === 'en' ? 'Achievement' : '成就徽章'))}</div>
+        <div class="dashboard-badge-name">${this.escapeText(badge.certificateTitle || badge.name || badge.badgeName || t('app.badge'))}</div>
+        <div class="dashboard-badge-meta">${this.escapeText(badge.courseTitle || badge.courseName || badge.issuerName || (I18n.getLocale() === 'en' ? 'Certificate' : '課程證書'))}</div>
       </div>
     `).join('')}</div>`;
   },

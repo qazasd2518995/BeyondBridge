@@ -13773,6 +13773,550 @@ const MoodleUI = {
     }
   },
 
+  getCertificateThemePalette(theme = 'classic') {
+    const palettes = {
+      classic: {
+        accent: '#1f4e79',
+        accentSoft: 'rgba(31, 78, 121, 0.12)',
+        border: 'rgba(31, 78, 121, 0.24)',
+        surface: 'linear-gradient(135deg, #f9fcff 0%, #eef4fb 100%)'
+      },
+      sunrise: {
+        accent: '#b76e2b',
+        accentSoft: 'rgba(183, 110, 43, 0.12)',
+        border: 'rgba(183, 110, 43, 0.26)',
+        surface: 'linear-gradient(135deg, #fffaf2 0%, #fdf0dd 100%)'
+      },
+      forest: {
+        accent: '#2f6b4f',
+        accentSoft: 'rgba(47, 107, 79, 0.12)',
+        border: 'rgba(47, 107, 79, 0.24)',
+        surface: 'linear-gradient(135deg, #f6fcf8 0%, #e8f4ec 100%)'
+      },
+      ocean: {
+        accent: '#0f766e',
+        accentSoft: 'rgba(15, 118, 110, 0.12)',
+        border: 'rgba(15, 118, 110, 0.24)',
+        surface: 'linear-gradient(135deg, #f4fffe 0%, #e5f7f5 100%)'
+      }
+    };
+    return palettes[theme] || palettes.classic;
+  },
+
+  renderCertificatePreview(template = {}, courseTitle = '') {
+    const palette = this.getCertificateThemePalette(template.theme);
+    const issuedLabel = I18n.getLocale() === 'en' ? 'Issued for course completion' : '課程完成證書';
+    return `
+      <div class="certificate-preview-card" style="--certificate-accent:${palette.accent};--certificate-accent-soft:${palette.accentSoft};--certificate-border:${palette.border};--certificate-surface:${palette.surface};">
+        <div class="certificate-preview-kicker">${issuedLabel}</div>
+        <div class="certificate-preview-title">${this.escapeText(template.certificateTitle || courseTitle || (I18n.getLocale() === 'en' ? 'Certificate of Completion' : '課程結業證書'))}</div>
+        <div class="certificate-preview-subtitle">${this.escapeText(template.certificateSubtitle || 'Certificate of Completion')}</div>
+        <div class="certificate-preview-statement">${this.escapeText(template.statement || (I18n.getLocale() === 'en' ? 'Awarded to learners who meet the required course conditions.' : '頒發給完成指定課程條件的學員。'))}</div>
+        <div class="certificate-preview-signature">
+          <div>
+            <strong>${this.escapeText(template.issuerName || 'BeyondBridge')}</strong>
+            <span>${this.escapeText(template.issuerTitle || (I18n.getLocale() === 'en' ? 'Instructor' : '課程講師'))}</span>
+          </div>
+          <div class="certificate-preview-course">${this.escapeText(courseTitle || '')}</div>
+        </div>
+      </div>
+    `;
+  },
+
+  renderCertificateActivityChecklist(items = [], selectedIds = new Set()) {
+    if (!items.length) {
+      return `<div class="certificate-rule-empty">${I18n.getLocale() === 'en' ? 'No learning materials in this course yet.' : '這堂課目前還沒有教材內容。'}</div>`;
+    }
+
+    return `
+      <div class="certificate-rule-list">
+        ${items.map((item) => `
+          <label class="certificate-rule-item">
+            <input type="checkbox" class="certificate-material-checkbox" value="${this.escapeText(item.activityId)}" ${selectedIds.has(item.activityId) ? 'checked' : ''}>
+            <span class="certificate-rule-main">
+              <strong>${this.escapeText(item.title)}</strong>
+              <small>${this.escapeText(item.type)}</small>
+            </span>
+          </label>
+        `).join('')}
+      </div>
+    `;
+  },
+
+  renderCertificateScoreChecklist(items = [], selectedMap = new Map()) {
+    if (!items.length) {
+      return `<div class="certificate-rule-empty">${I18n.getLocale() === 'en' ? 'No assignments or quizzes in this course yet.' : '這堂課目前還沒有作業或測驗。'}</div>`;
+    }
+
+    return `
+      <div class="certificate-score-list">
+        ${items.map((item) => {
+          const selected = selectedMap.get(item.activityId);
+          return `
+            <div class="certificate-score-item">
+              <label class="certificate-rule-item">
+                <input type="checkbox" class="certificate-score-checkbox"
+                       value="${this.escapeText(item.activityId)}"
+                       data-activity-type="${this.escapeText(item.type)}"
+                       data-activity-title="${this.escapeText(item.title)}"
+                       ${selected ? 'checked' : ''}>
+                <span class="certificate-rule-main">
+                  <strong>${this.escapeText(item.title)}</strong>
+                  <small>${this.escapeText(item.type === 'quiz' ? (I18n.getLocale() === 'en' ? 'Quiz' : '測驗') : (I18n.getLocale() === 'en' ? 'Assignment' : '作業'))}</small>
+                </span>
+              </label>
+              <div class="certificate-score-threshold">
+                <span>${I18n.getLocale() === 'en' ? 'Minimum score' : '最低分數'}</span>
+                <input type="number"
+                       class="certificate-score-input"
+                       data-activity-id="${this.escapeText(item.activityId)}"
+                       min="0"
+                       max="100"
+                       value="${this.escapeText(String(selected?.minScore ?? 60))}">
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  },
+
+  buildCertificateRecordIndex(records = []) {
+    this.certificateRecordIndex = new Map();
+    records.forEach((record) => {
+      if (record?.certificateId) {
+        this.certificateRecordIndex.set(record.certificateId, record);
+      }
+    });
+  },
+
+  async openCertificates(courseId = null) {
+    const container = document.getElementById('badgesContent');
+    if (!container) return;
+    showView('badges');
+    container.innerHTML = `<div class="loading">${t('common.loading')}</div>`;
+
+    try {
+      const user = API.getCurrentUser();
+      if (this.isTeachingRole(user)) {
+        const courses = await this.getRoleScopedCourses({ manageOnly: true }).catch(() => []);
+        const safeCourses = Array.isArray(courses) ? courses : [];
+        const initialCourseId = courseId
+          || this.currentCertificateCourseId
+          || (safeCourses.find((course) => (course.courseId || course.id) === this.currentCourseId)?.courseId || this.currentCourseId)
+          || safeCourses[0]?.courseId
+          || safeCourses[0]?.id
+          || null;
+
+        if (!initialCourseId) {
+          container.innerHTML = this.renderActivityEmptyState({
+            icon: '<svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8"/><path d="M8 12h8"/><path d="M8 16h5"/></svg>',
+            title: I18n.getLocale() === 'en' ? 'No manageable courses yet' : '目前沒有可設定證書的課程',
+            hint: I18n.getLocale() === 'en' ? 'Create or own a course first, then configure automatic certificates here.' : '先建立或管理一門課程，再回到這裡設定自動頒發證書。'
+          });
+          return;
+        }
+
+        this.currentCertificateCourseId = initialCourseId;
+        const [settingsResult, recipientsResult] = await Promise.all([
+          API.certificates.getSettings(initialCourseId),
+          API.certificates.getRecipients(initialCourseId).catch(() => ({ success: false, data: [] }))
+        ]);
+
+        if (!settingsResult.success) {
+          container.innerHTML = `<div class="error">${this.escapeText(settingsResult.message || t('common.loadFailed'))}</div>`;
+          return;
+        }
+
+        const payload = settingsResult.data || {};
+        const settings = payload.settings || {};
+        const recipients = recipientsResult.success && Array.isArray(recipientsResult.data) ? recipientsResult.data : [];
+        this.buildCertificateRecordIndex(recipients);
+        this.renderCertificateTeacherWorkspace(container, {
+          courses: safeCourses,
+          payload,
+          recipients
+        });
+        return;
+      }
+
+      const result = await API.certificates.getMy();
+      const certificates = result.success && Array.isArray(result.data) ? result.data : [];
+      this.buildCertificateRecordIndex(certificates);
+      this.renderCertificateStudentWorkspace(container, certificates);
+    } catch (error) {
+      console.error('Open certificates error:', error);
+      container.innerHTML = `<div class="error">${t('common.loadFailed')}</div>`;
+    }
+  },
+
+  async openBadges(courseId = null) {
+    return this.openCertificates(courseId);
+  },
+
+  renderCertificateTeacherWorkspace(container, { courses, payload, recipients }) {
+    const settings = payload.settings || {};
+    const course = payload.course || {};
+    const activityGroups = payload.activityGroups || {};
+    const completionCriterion = (settings.criteria || []).find((criterion) => criterion.type === 'activity_completion');
+    const selectedMaterialIds = new Set(completionCriterion?.activityIds || []);
+    const scoreMap = new Map(
+      (settings.criteria || [])
+        .filter((criterion) => criterion.type === 'activity_score')
+        .map((criterion) => [criterion.activityId, criterion])
+    );
+    const durationCriterion = (settings.criteria || []).find((criterion) => criterion.type === 'duration');
+
+    container.innerHTML = `
+      <div class="badges-container certificate-workspace">
+        <div class="badges-header">
+          <div>
+            <h2>${I18n.getLocale() === 'en' ? 'Certificate Issuance' : '證書頒發'}</h2>
+            <p class="certificate-subtitle">${I18n.getLocale() === 'en' ? 'Configure the certificate template, choose course conditions, and automatically issue certificates to qualified learners.' : '設定證書樣板、選擇課程條件，並自動把證書頒發給達成條件的學生。'}</p>
+          </div>
+          <div class="certificate-course-switcher">
+            <label>${I18n.getLocale() === 'en' ? 'Course' : '課程'}</label>
+            <select id="certificateCourseSelect" onchange="MoodleUI.openCertificates(this.value)">
+              ${courses.map((item) => {
+                const id = item.courseId || item.id || '';
+                return `<option value="${this.escapeText(id)}" ${id === (course.courseId || course.id) ? 'selected' : ''}>${this.escapeText(item.title || item.name || t('moodleCourse.course'))}</option>`;
+              }).join('')}
+            </select>
+          </div>
+        </div>
+
+        <div class="certificate-editor-layout">
+          <div class="certificate-editor-panel">
+            <div class="certificate-settings-card">
+              <label class="switch-label">
+                <input type="checkbox" id="certificateEnabled" ${settings.enabled ? 'checked' : ''}>
+                <span class="switch-slider"></span>
+                ${I18n.getLocale() === 'en' ? 'Enable automatic certificate issuance' : '啟用自動頒發證書'}
+              </label>
+            </div>
+
+            <div class="certificate-settings-card">
+              <h3>${I18n.getLocale() === 'en' ? 'Certificate template' : '證書樣板'}</h3>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>${I18n.getLocale() === 'en' ? 'Theme' : '主題'}</label>
+                  <select id="certificateTheme" onchange="MoodleUI.refreshCertificatePreview()">
+                    ${[
+                      { value: 'classic', label: I18n.getLocale() === 'en' ? 'Classic Blue' : '經典藍' },
+                      { value: 'sunrise', label: I18n.getLocale() === 'en' ? 'Sunrise Gold' : '晨曦金' },
+                      { value: 'forest', label: I18n.getLocale() === 'en' ? 'Forest Green' : '森林綠' },
+                      { value: 'ocean', label: I18n.getLocale() === 'en' ? 'Ocean Teal' : '海洋綠' }
+                    ].map((option) => `<option value="${option.value}" ${option.value === (settings.template?.theme || 'classic') ? 'selected' : ''}>${this.escapeText(option.label)}</option>`).join('')}
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>${I18n.getLocale() === 'en' ? 'Certificate title' : '證書名稱'}</label>
+                  <input type="text" id="certificateTitle" value="${this.escapeText(settings.template?.certificateTitle || course.title || '')}" oninput="MoodleUI.refreshCertificatePreview()">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>${I18n.getLocale() === 'en' ? 'Subtitle' : '副標題'}</label>
+                <input type="text" id="certificateSubtitle" value="${this.escapeText(settings.template?.certificateSubtitle || 'Certificate of Completion')}" oninput="MoodleUI.refreshCertificatePreview()">
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>${I18n.getLocale() === 'en' ? 'Issuer' : '頒發者'}</label>
+                  <input type="text" id="certificateIssuerName" value="${this.escapeText(settings.template?.issuerName || course.instructorName || 'BeyondBridge')}" oninput="MoodleUI.refreshCertificatePreview()">
+                </div>
+                <div class="form-group">
+                  <label>${I18n.getLocale() === 'en' ? 'Issuer title' : '頒發者職稱'}</label>
+                  <input type="text" id="certificateIssuerTitle" value="${this.escapeText(settings.template?.issuerTitle || (I18n.getLocale() === 'en' ? 'Instructor' : '課程講師'))}" oninput="MoodleUI.refreshCertificatePreview()">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>${I18n.getLocale() === 'en' ? 'Award statement' : '證書敘述'}</label>
+                <textarea id="certificateStatement" rows="3" oninput="MoodleUI.refreshCertificatePreview()">${this.escapeText(settings.template?.statement || '')}</textarea>
+              </div>
+            </div>
+
+            <div class="certificate-settings-card">
+              <h3>${I18n.getLocale() === 'en' ? 'Completion conditions' : '取得條件'}</h3>
+              <p class="certificate-section-note">${I18n.getLocale() === 'en' ? 'Choose the learning materials learners must complete.' : '勾選學生必須完成的教材內容。'}</p>
+              <div class="certificate-rule-section">
+                <h4>${I18n.getLocale() === 'en' ? 'Learning materials' : '教材內容'}</h4>
+                ${this.renderCertificateActivityChecklist(activityGroups.materials || [], selectedMaterialIds)}
+              </div>
+              <div class="certificate-rule-section">
+                <h4>${I18n.getLocale() === 'en' ? 'Assignments and quizzes' : '作業與測驗'}</h4>
+                ${this.renderCertificateScoreChecklist([
+                  ...(activityGroups.assignments || []),
+                  ...(activityGroups.quizzes || [])
+                ], scoreMap)}
+              </div>
+              <div class="certificate-rule-section">
+                <h4>${I18n.getLocale() === 'en' ? 'Study time requirement' : '學習時數'}</h4>
+                <label class="certificate-duration-toggle">
+                  <input type="checkbox" id="certificateDurationEnabled" ${durationCriterion ? 'checked' : ''}>
+                  <span>${I18n.getLocale() === 'en' ? 'Require accumulated learning time' : '要求累積學習時間達標'}</span>
+                </label>
+                <div class="certificate-duration-input">
+                  <input type="number" id="certificateDurationMinutes" min="1" value="${this.escapeText(String(durationCriterion?.minMinutes || 60))}">
+                  <span>${I18n.getLocale() === 'en' ? 'minutes' : '分鐘'}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="certificate-actions">
+              <button class="btn-primary" onclick="MoodleUI.saveCertificateSettings()">${I18n.getLocale() === 'en' ? 'Save certificate settings' : '儲存證書設定'}</button>
+            </div>
+          </div>
+
+          <div class="certificate-preview-panel">
+            <div class="certificate-settings-card">
+              <h3>${I18n.getLocale() === 'en' ? 'Preview' : '預覽'}</h3>
+              <div id="certificatePreviewWrap">
+                ${this.renderCertificatePreview(settings.template || {}, course.title || '')}
+              </div>
+            </div>
+            <div class="certificate-settings-card">
+              <div class="section-title-row">
+                <h3>${I18n.getLocale() === 'en' ? 'Issued certificates' : '已頒發證書'}</h3>
+                <span class="badge-summary-pill">${recipients.length}</span>
+              </div>
+              ${recipients.length === 0 ? this.renderActivityEmptyState({
+                icon: '<svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8"/><path d="M8 12h8"/><path d="M8 16h5"/></svg>',
+                title: I18n.getLocale() === 'en' ? 'No certificates issued yet' : '目前還沒有已頒發的證書',
+                hint: I18n.getLocale() === 'en' ? 'Once learners satisfy these conditions, they will appear here automatically.' : '學生達成條件後，系統會自動把證書頒發並顯示在這裡。'
+              }) : `
+                <div class="badge-table-shell">
+                  <table class="rubric-table">
+                    <thead>
+                      <tr>
+                        <th>${I18n.getLocale() === 'en' ? 'Learner' : '學生'}</th>
+                        <th>${I18n.getLocale() === 'en' ? 'Issued at' : '頒發時間'}</th>
+                        <th>${I18n.getLocale() === 'en' ? 'Certificate no.' : '證書編號'}</th>
+                        <th>${t('common.actions')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${recipients.map((record) => `
+                        <tr>
+                          <td>${this.escapeText(record.recipientName || record.userId || '—')}</td>
+                          <td>${this.escapeText(this.formatDate(record.issuedAt, 'datetime'))}</td>
+                          <td>${this.escapeText(record.certificateNo || '—')}</td>
+                          <td class="table-action-cell">
+                            <button class="btn-sm" onclick="MoodleUI.downloadCertificate(${this.toInlineActionValue(record.certificateId)})">${I18n.getLocale() === 'en' ? 'Download' : '下載'}</button>
+                          </td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                </div>
+              `}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  renderCertificateStudentWorkspace(container, certificates = []) {
+    container.innerHTML = `
+      <div class="badges-container certificate-workspace">
+        <div class="badges-header">
+          <div>
+            <h2>${I18n.getLocale() === 'en' ? 'My Certificates' : '我的證書'}</h2>
+            <p class="certificate-subtitle">${I18n.getLocale() === 'en' ? 'Download the certificates that were automatically issued after you satisfied the course requirements.' : '這裡會顯示你完成課程條件後自動取得的證書，並可直接下載。'}</p>
+          </div>
+        </div>
+        ${certificates.length === 0 ? this.renderActivityEmptyState({
+          icon: '<svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8"/><path d="M8 12h8"/><path d="M8 16h5"/></svg>',
+          title: I18n.getLocale() === 'en' ? 'No certificates yet' : '目前還沒有證書',
+          hint: I18n.getLocale() === 'en' ? 'Complete course materials, quizzes, assignments, or study time requirements to receive certificates automatically.' : '完成課程教材、測驗、作業或學習時數條件後，系統會自動把證書發到這裡。'
+        }) : `
+          <div class="certificate-grid">
+            ${certificates.map((record) => `
+              <div class="certificate-card">
+                ${this.renderCertificatePreview({
+                  theme: record.theme,
+                  certificateTitle: record.certificateTitle,
+                  certificateSubtitle: record.certificateSubtitle,
+                  issuerName: record.issuerName,
+                  issuerTitle: record.issuerTitle,
+                  statement: record.statement
+                }, record.courseTitle)}
+                <div class="certificate-card-meta">
+                  <div>
+                    <strong>${this.escapeText(record.courseTitle || '')}</strong>
+                    <span>${this.escapeText(this.formatDate(record.issuedAt, 'date'))}</span>
+                  </div>
+                  <button class="btn-primary btn-sm" onclick="MoodleUI.downloadCertificate(${this.toInlineActionValue(record.certificateId)})">${I18n.getLocale() === 'en' ? 'Download certificate' : '下載證書'}</button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `}
+      </div>
+    `;
+  },
+
+  refreshCertificatePreview() {
+    const wrap = document.getElementById('certificatePreviewWrap');
+    const courseTitle = document.getElementById('certificateCourseSelect')?.selectedOptions?.[0]?.textContent || '';
+    if (!wrap) return;
+    wrap.innerHTML = this.renderCertificatePreview({
+      theme: document.getElementById('certificateTheme')?.value || 'classic',
+      certificateTitle: document.getElementById('certificateTitle')?.value || courseTitle,
+      certificateSubtitle: document.getElementById('certificateSubtitle')?.value || 'Certificate of Completion',
+      issuerName: document.getElementById('certificateIssuerName')?.value || 'BeyondBridge',
+      issuerTitle: document.getElementById('certificateIssuerTitle')?.value || '',
+      statement: document.getElementById('certificateStatement')?.value || ''
+    }, courseTitle);
+  },
+
+  collectCertificateCriteriaFromForm() {
+    const criteria = [];
+    const materialIds = Array.from(document.querySelectorAll('.certificate-material-checkbox:checked'))
+      .map((input) => input.value)
+      .filter(Boolean);
+
+    if (materialIds.length > 0) {
+      criteria.push({
+        type: 'activity_completion',
+        activityIds: materialIds
+      });
+    }
+
+    Array.from(document.querySelectorAll('.certificate-score-checkbox:checked')).forEach((input) => {
+      const activityId = input.value;
+      const scoreInput = Array.from(document.querySelectorAll('.certificate-score-input'))
+        .find((item) => item.dataset.activityId === activityId);
+      const minScore = Math.max(0, Math.min(100, parseInt(scoreInput?.value, 10) || 60));
+      criteria.push({
+        type: 'activity_score',
+        activityId,
+        activityType: input.dataset.activityType || 'assignment',
+        activityTitle: input.dataset.activityTitle || '',
+        minScore
+      });
+    });
+
+    if (document.getElementById('certificateDurationEnabled')?.checked) {
+      criteria.push({
+        type: 'duration',
+        minMinutes: Math.max(1, parseInt(document.getElementById('certificateDurationMinutes')?.value, 10) || 60)
+      });
+    }
+
+    return criteria;
+  },
+
+  async saveCertificateSettings() {
+    const courseId = document.getElementById('certificateCourseSelect')?.value || this.currentCertificateCourseId;
+    if (!courseId) {
+      showToast(I18n.getLocale() === 'en' ? 'Please select a course first.' : '請先選擇課程。');
+      return;
+    }
+
+    const enabled = !!document.getElementById('certificateEnabled')?.checked;
+    const criteria = this.collectCertificateCriteriaFromForm();
+
+    if (enabled && criteria.length === 0) {
+      showToast(I18n.getLocale() === 'en' ? 'Please configure at least one issuance rule.' : '請至少設定一項頒發條件。');
+      return;
+    }
+
+    const payload = {
+      enabled,
+      autoIssue: true,
+      template: {
+        theme: document.getElementById('certificateTheme')?.value || 'classic',
+        certificateTitle: document.getElementById('certificateTitle')?.value?.trim() || '',
+        certificateSubtitle: document.getElementById('certificateSubtitle')?.value?.trim() || '',
+        issuerName: document.getElementById('certificateIssuerName')?.value?.trim() || '',
+        issuerTitle: document.getElementById('certificateIssuerTitle')?.value?.trim() || '',
+        statement: document.getElementById('certificateStatement')?.value?.trim() || ''
+      },
+      criteria
+    };
+
+    try {
+      const result = await API.certificates.updateSettings(courseId, payload);
+      if (result.success) {
+        showToast(I18n.getLocale() === 'en' ? 'Certificate settings saved' : '證書設定已儲存');
+        await this.openCertificates(courseId);
+      } else {
+        showToast(result.message || t('common.saveFailed'));
+      }
+    } catch (error) {
+      console.error('Save certificate settings error:', error);
+      showToast(t('common.saveFailed'));
+    }
+  },
+
+  buildCertificateHtml(record) {
+    const palette = this.getCertificateThemePalette(record.theme);
+    const issuedAt = this.formatDate(record.issuedAt, 'date');
+
+    return `<!DOCTYPE html>
+<html lang="${this.escapeText(I18n.getLocale() || 'zh-TW')}">
+<head>
+  <meta charset="utf-8">
+  <title>${this.escapeText(record.certificateTitle || 'Certificate')}</title>
+  <style>
+    body { margin: 0; font-family: Georgia, 'Times New Roman', serif; background: #f4f5f7; color: #1f2933; }
+    .sheet { width: 1120px; max-width: calc(100vw - 48px); margin: 32px auto; padding: 56px; box-sizing: border-box; background: ${palette.surface}; border: 12px solid ${palette.accent}; border-radius: 28px; box-shadow: 0 24px 60px rgba(15, 23, 42, 0.12); }
+    .kicker { text-transform: uppercase; letter-spacing: 0.36em; font-size: 12px; color: ${palette.accent}; margin-bottom: 24px; }
+    .title { font-size: 56px; line-height: 1.08; margin: 0 0 12px; color: ${palette.accent}; }
+    .subtitle { font-size: 22px; color: #52606d; margin-bottom: 32px; }
+    .recipient { font-size: 44px; margin: 28px 0 12px; font-weight: 700; }
+    .statement { font-size: 20px; line-height: 1.8; max-width: 820px; }
+    .course { margin-top: 24px; font-size: 24px; font-weight: 600; }
+    .footer { display: flex; justify-content: space-between; gap: 24px; margin-top: 56px; padding-top: 24px; border-top: 1px solid ${palette.border}; }
+    .signature strong { display: block; font-size: 20px; margin-bottom: 6px; }
+    .signature span, .meta span { display: block; color: #52606d; font-size: 16px; margin-bottom: 4px; }
+  </style>
+</head>
+<body>
+  <div class="sheet">
+    <div class="kicker">${this.escapeText(I18n.getLocale() === 'en' ? 'BeyondBridge Certificate' : 'BeyondBridge 證書')}</div>
+    <h1 class="title">${this.escapeText(record.certificateTitle || '')}</h1>
+    <div class="subtitle">${this.escapeText(record.certificateSubtitle || '')}</div>
+    <div>${this.escapeText(I18n.getLocale() === 'en' ? 'This certifies that' : '茲證明')}</div>
+    <div class="recipient">${this.escapeText(record.recipientName || '')}</div>
+    <div class="statement">${this.escapeText(record.statement || '')}</div>
+    <div class="course">${this.escapeText(record.courseTitle || '')}</div>
+    <div class="footer">
+      <div class="signature">
+        <strong>${this.escapeText(record.issuerName || 'BeyondBridge')}</strong>
+        <span>${this.escapeText(record.issuerTitle || '')}</span>
+      </div>
+      <div class="meta">
+        <span>${this.escapeText(I18n.getLocale() === 'en' ? `Issued: ${issuedAt}` : `頒發日期：${issuedAt}`)}</span>
+        <span>${this.escapeText(I18n.getLocale() === 'en' ? `Certificate No.: ${record.certificateNo || ''}` : `證書編號：${record.certificateNo || ''}`)}</span>
+        <span>${this.escapeText(I18n.getLocale() === 'en' ? `Verify Code: ${record.verifyCode || ''}` : `驗證碼：${record.verifyCode || ''}`)}</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+  },
+
+  downloadCertificate(certificateId) {
+    const record = this.certificateRecordIndex instanceof Map
+      ? this.certificateRecordIndex.get(certificateId)
+      : null;
+    if (!record) {
+      showToast(I18n.getLocale() === 'en' ? 'Certificate not found.' : '找不到這張證書。');
+      return;
+    }
+
+    const blob = new Blob([this.buildCertificateHtml(record)], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `${record.certificateNo || record.certificateId || 'certificate'}.html`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+  },
+
   /**
    * 更新通知數量
    */

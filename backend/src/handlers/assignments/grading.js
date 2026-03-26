@@ -17,6 +17,7 @@ const db = require('../../utils/db');
 const { authMiddleware } = require('../../utils/auth');
 const { canManageCourse } = require('../../utils/course-access');
 const { invalidateGradebookSnapshots } = require('../../utils/gradebook-snapshots');
+const { syncCourseCertificates } = require('../../utils/certificates');
 const archiver = require('archiver');
 const path = require('path');
 const fs = require('fs').promises;
@@ -382,6 +383,11 @@ router.post('/:id/submissions/:studentId/grade', authMiddleware, async (req, res
         grades,
         overallGrade: Math.round(overallGrade * 100) / 100,
         updatedAt: now
+      });
+
+      await syncCourseCertificates(assignment.courseId, {
+        userId: studentId,
+        issuedBy: req.user.userId
       });
     }
 
@@ -984,6 +990,11 @@ router.post('/:id/bulk-grade', authMiddleware, async (req, res) => {
           grades: progressGrades,
           overallGrade: Math.round(overallGrade * 100) / 100,
           updatedAt: now
+        });
+
+        await syncCourseCertificates(assignment.courseId, {
+          userId: g.studentId,
+          issuedBy: req.user.userId
         });
       }
 

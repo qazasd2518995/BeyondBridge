@@ -50,6 +50,7 @@ const courseCompletionRoutes = require('./handlers/course-completion');
 // Moodle P1 功能路由
 const learningPathsRoutes = require('./handlers/learning-paths');
 const badgesRoutes = require('./handlers/badges');
+const certificatesRoutes = require('./handlers/certificates');
 const rubricsRoutes = require('./handlers/rubrics');
 
 // P2 功能路由
@@ -162,6 +163,7 @@ app.use('/api/course-completion', courseCompletionRoutes);
 // Moodle P1 功能路由
 app.use('/api/learning-paths', learningPathsRoutes);
 app.use('/api/badges', badgesRoutes);
+app.use('/api/certificates', certificatesRoutes);
 app.use('/api/rubrics', rubricsRoutes);
 
 // P2 功能路由
@@ -290,6 +292,7 @@ httpServer.listen(PORT, () => {
   console.log('  /api/course-completion → 課程完成追蹤');
   console.log('  /api/learning-paths → 學習路徑');
   console.log('  /api/badges        → 徽章系統');
+  console.log('  /api/certificates  → 證書系統');
   console.log('  /api/rubrics       → 評分標準');
   console.log('  /api/audit-logs    → 審計日誌');
   console.log('  /api/scorm         → SCORM 學習包');

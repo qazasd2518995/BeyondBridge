@@ -8,6 +8,7 @@ const router = express.Router();
 const db = require('../../utils/db');
 const { authMiddleware } = require('../../utils/auth');
 const { syncLearningPathCourseStatus } = require('../../utils/learning-path-progress');
+const { syncCourseCertificates } = require('../../utils/certificates');
 
 // ==================== 進度追蹤 ====================
 
@@ -212,6 +213,11 @@ router.put('/:id/progress', authMiddleware, async (req, res) => {
       timestamp: now
     });
 
+    await syncCourseCertificates(id, {
+      userId,
+      issuedBy: 'system'
+    });
+
     // 記錄活動日誌
     await db.logActivity(userId, 'course_progress', 'course', id, {
       unitId: updates.currentUnit,
@@ -286,6 +292,11 @@ router.post('/:id/activities/:activityId/complete', authMiddleware, async (req, 
       completed: updatedProgress?.status === 'completed',
       completedAt: updatedProgress?.completedAt || null,
       timestamp: now
+    });
+
+    await syncCourseCertificates(id, {
+      userId,
+      issuedBy: 'system'
     });
 
     res.json({

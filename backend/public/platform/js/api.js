@@ -2168,6 +2168,31 @@ const API = {
     }
   },
 
+  // ===== 證書 API =====
+  certificates: {
+    async getMy() {
+      return API.request('/certificates/my');
+    },
+
+    async getSettings(courseId) {
+      if (!courseId) return { success: false, error: 'MISSING_COURSE_ID' };
+      return API.request(`/certificates/courses/${courseId}/settings`);
+    },
+
+    async updateSettings(courseId, data) {
+      if (!courseId) return { success: false, error: 'MISSING_COURSE_ID' };
+      return API.request(`/certificates/courses/${courseId}/settings`, {
+        method: 'PUT',
+        body: data
+      });
+    },
+
+    async getRecipients(courseId) {
+      if (!courseId) return { success: false, error: 'MISSING_COURSE_ID' };
+      return API.request(`/certificates/courses/${courseId}/recipients`);
+    }
+  },
+
   // ===== 學習路徑 API =====
   learningPaths: {
     async list(filters = {}) {

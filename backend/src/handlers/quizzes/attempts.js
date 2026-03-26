@@ -9,6 +9,7 @@ const db = require('../../utils/db');
 const { authMiddleware } = require('../../utils/auth');
 const { canManageCourse } = require('../../utils/course-access');
 const { invalidateGradebookSnapshots } = require('../../utils/gradebook-snapshots');
+const { syncCourseCertificates } = require('../../utils/certificates');
 const {
   getQuiz,
   prepareQuestionsForStudent,
@@ -361,6 +362,11 @@ router.post('/:id/attempts/:attemptId/submit', authMiddleware, async (req, res) 
           grades,
           overallGrade: Math.round(overallGrade * 100) / 100,
           updatedAt: now
+        });
+
+        await syncCourseCertificates(quiz.courseId, {
+          userId,
+          issuedBy: 'system'
         });
       }
     }
