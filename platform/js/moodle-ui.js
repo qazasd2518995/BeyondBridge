@@ -1115,8 +1115,10 @@ const MoodleUI = {
         <button class="nav-tab active" data-course-tab="content" onclick="MoodleUI.switchCourseTab('content', this)">${t('moodleCourse.tabContent')}</button>
         ${canViewParticipants ? `<button class="nav-tab" data-course-tab="participants" onclick="${canTeach ? `MoodleUI.openCourseParticipantsWorkspace(${this.toInlineActionValue(course.courseId)})` : `MoodleUI.switchCourseTab('participants', this)`}">${participantsTabLabel}</button>` : ''}
         <button class="nav-tab" data-course-tab="forums" onclick="MoodleUI.openCourseForums(${this.toInlineActionValue(course.courseId)})">${t('nav.classDiscussions')}</button>
-        <button class="nav-tab" data-course-tab="grades" onclick="${canTeach ? `MoodleUI.openCourseGradebookWorkspace(${this.toInlineActionValue(course.courseId)})` : `MoodleUI.switchCourseTab('grades', this)`}">${t('moodleCourse.tabGrades')}</button>
-        ${canViewReports ? `<button class="nav-tab" data-course-tab="reports" onclick="${canTeach ? `MoodleUI.openCourseReportsWorkspace(${this.toInlineActionValue(course.courseId)})` : `MoodleUI.switchCourseTab('reports', this)`}">${t('moodleCourse.tabReports')}</button>` : ''}
+        <button class="nav-tab" data-course-tab="assignments" onclick="MoodleUI.openCourseAssignmentsWorkspace(${this.toInlineActionValue(course.courseId)})">${t('moodleCourse.tabAssignments')}</button>
+        <button class="nav-tab" data-course-tab="quizzes" onclick="MoodleUI.openCourseQuizzesWorkspace(${this.toInlineActionValue(course.courseId)})">${t('moodleCourse.tabQuizzes')}</button>
+        <button class="nav-tab" data-course-tab="grades" onclick="MoodleUI.openCourseGradebookWorkspace(${this.toInlineActionValue(course.courseId)})">${t('moodleCourse.tabGrades')}</button>
+        ${canViewReports ? `<button class="nav-tab" data-course-tab="analytics" onclick="MoodleUI.openCourseAnalyticsWorkspace(${this.toInlineActionValue(course.courseId)})">${t('moodleCourse.tabAnalytics')}</button>` : ''}
       </div>
 
       <!-- 課程內容區 -->
@@ -1316,7 +1318,7 @@ const MoodleUI = {
       await this.loadParticipants(this.currentCourseId);
     } else if (tab === 'grades' && this.currentCourseId) {
       await this.loadGrades(this.currentCourseId);
-    } else if (tab === 'reports' && this.currentCourseId) {
+    } else if ((tab === 'reports' || tab === 'analytics') && this.currentCourseId) {
       await this.loadCourseReports(this.currentCourseId);
     }
   },
@@ -1621,6 +1623,20 @@ const MoodleUI = {
     await this.loadForums();
   },
 
+  async openCourseAssignmentsWorkspace(courseId = this.currentCourseId) {
+    const targetCourseId = courseId || this.currentCourseId || this.currentAssignmentCourseId;
+    this.setSidebarActiveView('moodleAssignments');
+    showView('moodleAssignments');
+    await this.loadAssignments(targetCourseId);
+  },
+
+  async openCourseQuizzesWorkspace(courseId = this.currentCourseId) {
+    const targetCourseId = courseId || this.currentCourseId || this.currentQuizCourseId;
+    this.setSidebarActiveView('moodleQuizzes');
+    showView('moodleQuizzes');
+    await this.loadQuizzes(targetCourseId);
+  },
+
   async openCourseGradebookWorkspace(courseId = this.currentCourseId) {
     const targetCourseId = courseId || this.currentCourseId;
     this.setSidebarActiveView('moodleGradebook');
@@ -1628,10 +1644,14 @@ const MoodleUI = {
     await this.loadGradebookForCourse(targetCourseId);
   },
 
-  async openCourseReportsWorkspace(courseId = this.currentCourseId) {
+  async openCourseAnalyticsWorkspace(courseId = this.currentCourseId) {
     const targetCourseId = courseId || this.currentCourseId;
     this.setSidebarActiveView('teacherAnalytics');
     await this.openTeacherAnalytics(targetCourseId);
+  },
+
+  async openCourseReportsWorkspace(courseId = this.currentCourseId) {
+    await this.openCourseAnalyticsWorkspace(courseId);
   },
 
   /**
@@ -1955,7 +1975,37 @@ const MoodleUI = {
    * 渲染學生成績
    */
   renderStudentGrades(grades) {
-    if (!grades || grades.items?.length === 0) {
+    const normalizedGrades = Array.isArray(grades)
+      ? (grades[0] || null)
+      : grades;
+
+    const items = Array.isArray(normalizedGrades?.items)
+      ? normalizedGrades.items
+      : Array.isArray(normalizedGrades?.gradeItems)
+        ? normalizedGrades.gradeItems.map((item) => ({
+          name: item.name || item.title || t('moodleGrade.item'),
+          title: item.title || item.name || t('moodleGrade.item'),
+          type: item.type || 'manual',
+          score: item.score ?? item.grade ?? null,
+          maxScore: item.maxScore ?? item.maxGrade ?? null,
+          weight: item.weight ?? null,
+          feedback: item.feedback || '',
+          submitted: item.submitted || false,
+          graded: item.graded || false
+        }))
+        : [];
+
+    const totalScore = normalizedGrades?.totalScore
+      ?? normalizedGrades?.summary?.overallGrade
+      ?? '-';
+    const completedItems = normalizedGrades?.completedItems
+      ?? normalizedGrades?.summary?.completedItems
+      ?? items.filter(item => item.score !== null && item.score !== undefined).length;
+    const totalItems = normalizedGrades?.totalItems
+      ?? normalizedGrades?.summary?.totalItems
+      ?? items.length;
+
+    if (!normalizedGrades || items.length === 0) {
       return `<div class="empty-list">${t('moodleGrade.noGrades')}</div>`;
     }
 
@@ -1972,11 +2022,11 @@ const MoodleUI = {
         </div>
         <div class="grade-summary">
           <div class="summary-card">
-            <div class="summary-value">${grades.totalScore || '-'}</div>
+            <div class="summary-value">${totalScore}</div>
             <div class="summary-label">${t('moodleGrade.totalGrade')}</div>
           </div>
           <div class="summary-card">
-            <div class="summary-value">${grades.completedItems || 0}/${grades.totalItems || 0}</div>
+            <div class="summary-value">${completedItems}/${totalItems}</div>
             <div class="summary-label">${t('moodleGrade.completedItems')}</div>
           </div>
         </div>
@@ -2000,13 +2050,13 @@ const MoodleUI = {
                 </tr>
               </thead>
               <tbody>
-                ${(grades.items || []).map(item => `
+                ${items.map(item => `
                   <tr>
-                    <td>${item.name}</td>
+                    <td>${this.escapeText(item.name || item.title || t('moodleGrade.item'))}</td>
                     <td><span class="type-badge ${item.type}">${item.type === 'assignment' ? t('moodleGrade.typeAssignment') : item.type === 'quiz' ? t('moodleGrade.typeQuiz') : t('moodleGrade.typeOther')}</span></td>
-                    <td><strong>${item.score !== null ? item.score : '-'}</strong> / ${item.maxScore}</td>
+                    <td><strong>${item.score !== null && item.score !== undefined ? item.score : '-'}</strong> / ${item.maxScore ?? '-'}</td>
                     <td>${item.weight ? item.weight + '%' : '-'}</td>
-                    <td>${item.feedback || '-'}</td>
+                    <td>${this.escapeText(item.feedback || '-')}</td>
                   </tr>
                 `).join('')}
               </tbody>
