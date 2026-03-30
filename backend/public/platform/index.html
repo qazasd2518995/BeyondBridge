@@ -3387,21 +3387,32 @@
             color: var(--gray-700);
         }
 
-        .bridge-assignment-action.secondary:hover,
-        .bridge-member-remove:hover {
+        .bridge-assignment-action.secondary:hover {
             background: var(--gray-200);
             transform: translateY(-1px);
         }
 
         .bridge-assignment-action.danger,
         .bridge-member-remove {
-            background: rgba(26, 107, 74, 0.1);
-            color: var(--terracotta);
+            background: linear-gradient(180deg, rgba(255, 248, 244, 0.98) 0%, rgba(255, 238, 232, 0.95) 100%);
+            color: #9f4434;
+            border: 1px solid rgba(191, 90, 67, 0.18);
+            box-shadow: 0 10px 18px rgba(191, 90, 67, 0.12);
         }
 
         .bridge-assignment-action.danger:hover,
         .bridge-member-remove:hover {
-            background: rgba(26, 107, 74, 0.16);
+            background: linear-gradient(180deg, rgba(255, 243, 238, 1) 0%, rgba(255, 229, 220, 0.98) 100%);
+            color: #863324;
+            border-color: rgba(191, 90, 67, 0.24);
+            transform: translateY(-1px);
+            box-shadow: 0 12px 22px rgba(191, 90, 67, 0.16);
+        }
+
+        .bridge-assignment-action.danger:active,
+        .bridge-member-remove:active {
+            transform: translateY(0);
+            box-shadow: 0 6px 12px rgba(191, 90, 67, 0.14);
         }
 
         .bridge-assignment-action.icon-only {
