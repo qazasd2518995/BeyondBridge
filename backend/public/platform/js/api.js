@@ -776,6 +776,19 @@ const API = {
       return API.request(`/classes/course/${courseId}/invite-link`);
     },
 
+    async regenerateInviteCode(classId) {
+      return API.request(`/classes/${classId}/invite-code/regenerate`, {
+        method: 'POST'
+      });
+    },
+
+    async updateInviteCodeStatus(classId, status) {
+      return API.request(`/classes/${classId}/invite-code/status`, {
+        method: 'POST',
+        body: { status }
+      });
+    },
+
     async removeMember(classId, userId) {
       return API.request(`/classes/${classId}/members/${userId}`, {
         method: 'DELETE'

@@ -1431,6 +1431,8 @@ const MoodleUI = {
 
     const isEnglish = I18n.getLocale() === 'en';
     const inviteCode = this.escapeText(inviteLink.inviteCode);
+    const isActive = (inviteLink.status || 'active') === 'active';
+    const classId = inviteLink.classId || '';
 
     return `
       <section class="bridge-detail-panel">
@@ -1451,6 +1453,13 @@ const MoodleUI = {
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
                 </button>
               </div>
+              <span class="badge-status-pill ${isActive ? 'is-active' : 'is-draft'}">${this.escapeText(isActive ? (isEnglish ? 'Active' : '啟用中') : (isEnglish ? 'Inactive' : '已停用'))}</span>
+              <button type="button" class="bridge-secondary-btn" onclick="MoodleUI.regenerateCourseInviteCode(${this.toInlineActionValue(classId)}, ${this.toInlineActionValue(inviteLink.courseId || this.currentCourseId)})">
+                ${isEnglish ? 'Regenerate' : '重發通行碼'}
+              </button>
+              <button type="button" class="bridge-secondary-btn" onclick="MoodleUI.setCourseInviteCodeStatus(${this.toInlineActionValue(classId)}, ${this.toInlineActionValue(isActive ? 'inactive' : 'active')}, ${this.toInlineActionValue(inviteLink.courseId || this.currentCourseId)})">
+                ${isActive ? (isEnglish ? 'Disable' : '停用') : (isEnglish ? 'Enable' : '啟用')}
+              </button>
             </div>
           </div>
         </div>
@@ -1479,6 +1488,67 @@ const MoodleUI = {
     } catch (error) {
       console.error('Copy invite code error:', error);
       showToast(I18n.getLocale() === 'en' ? 'Failed to copy invite code' : '複製邀請碼失敗');
+    }
+  },
+
+  async regenerateCourseInviteCode(classId, courseId = this.currentCourseId) {
+    if (!classId || !courseId) return;
+
+    const confirmed = await showConfirmDialog({
+      message: I18n.getLocale() === 'en'
+        ? 'Generate a new invite code for this course? The old code will stop working.'
+        : '確定要為這堂課重發新的通行碼嗎？舊的通行碼將失效。',
+      confirmLabel: I18n.getLocale() === 'en' ? 'Regenerate' : '重發'
+    });
+    if (!confirmed) return;
+
+    try {
+      const result = await API.classes.regenerateInviteCode(classId);
+      if (!result?.success) {
+        showToast(result?.message || (I18n.getLocale() === 'en' ? 'Failed to update invite code' : '更新邀請碼失敗'));
+        return;
+      }
+
+      showToast(I18n.getLocale() === 'en' ? 'Invite code updated' : '通行碼已更新');
+      await this.openCourseParticipantsWorkspace(courseId);
+    } catch (error) {
+      console.error('Regenerate invite code error:', error);
+      showToast(I18n.getLocale() === 'en' ? 'Failed to update invite code' : '更新邀請碼失敗');
+    }
+  },
+
+  async setCourseInviteCodeStatus(classId, status, courseId = this.currentCourseId) {
+    if (!classId || !status || !courseId) return;
+
+    const isEnabling = status === 'active';
+    const confirmed = await showConfirmDialog({
+      message: isEnabling
+        ? (I18n.getLocale() === 'en'
+          ? 'Enable this invite code so learners can register again?'
+          : '確定要啟用這組通行碼，讓學生可以再次使用嗎？')
+        : (I18n.getLocale() === 'en'
+          ? 'Disable this invite code so new learners cannot use it?'
+          : '確定要停用這組通行碼，讓新學生無法再使用嗎？'),
+      confirmLabel: isEnabling
+        ? (I18n.getLocale() === 'en' ? 'Enable' : '啟用')
+        : (I18n.getLocale() === 'en' ? 'Disable' : '停用')
+    });
+    if (!confirmed) return;
+
+    try {
+      const result = await API.classes.updateInviteCodeStatus(classId, status);
+      if (!result?.success) {
+        showToast(result?.message || (I18n.getLocale() === 'en' ? 'Failed to update invite code status' : '更新通行碼狀態失敗'));
+        return;
+      }
+
+      showToast(isEnabling
+        ? (I18n.getLocale() === 'en' ? 'Invite code enabled' : '通行碼已啟用')
+        : (I18n.getLocale() === 'en' ? 'Invite code disabled' : '通行碼已停用'));
+      await this.openCourseParticipantsWorkspace(courseId);
+    } catch (error) {
+      console.error('Update invite code status error:', error);
+      showToast(I18n.getLocale() === 'en' ? 'Failed to update invite code status' : '更新通行碼狀態失敗');
     }
   },
 

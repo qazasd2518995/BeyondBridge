@@ -11,7 +11,8 @@ const { canManageCourse } = require('../utils/course-access');
 const {
   enrollUserIntoClassLinkedCourse,
   ensureInviteClassForCourse,
-  generateInviteCode
+  generateUniqueInviteCode,
+  resolveLinkedCourseForClass
 } = require('../utils/class-course-links');
 
 const TEACHING_ROLES = new Set([
@@ -28,6 +29,38 @@ function isTeachingUser(user) {
   if (!user) return false;
   if (user.isAdmin) return true;
   return TEACHING_ROLES.has(user.role);
+}
+
+async function backfillClassCourseLinks(classes = []) {
+  const seen = new Set();
+  const uniqueClasses = [];
+
+  for (const classData of classes) {
+    if (!classData?.classId || seen.has(classData.classId)) continue;
+    seen.add(classData.classId);
+    uniqueClasses.push(classData);
+  }
+
+  await Promise.all(uniqueClasses.map(async (classData) => {
+    if (!classData.courseId) {
+      const linkedCourse = await resolveLinkedCourseForClass(classData);
+      if (linkedCourse?.courseId) {
+        classData.courseId = linkedCourse.courseId;
+        classData.courseTitle = linkedCourse.title || linkedCourse.name || '';
+      }
+    }
+  }));
+
+  return uniqueClasses;
+}
+
+async function canManageInviteClass(classData, user) {
+  if (!classData || !user) return false;
+  if (user.isAdmin || classData.teacherId === user.userId) return true;
+  if (!classData.courseId) return false;
+
+  const course = await db.getItem(`COURSE#${classData.courseId}`, 'META');
+  return canManageCourse(course, user);
 }
 
 async function canAccessClass(classData, user) {
@@ -92,6 +125,8 @@ router.get('/', authMiddleware, async (req, res) => {
       classes = [...ownedClasses, ...enrolledClasses];
     }
 
+    classes = await backfillClassCourseLinks(classes);
+
     res.json({
       success: true,
       data: classes
@@ -139,6 +174,7 @@ router.get('/course/:courseId/invite-link', authMiddleware, async (req, res) => 
         classId: inviteClass.classId,
         className: inviteClass.name,
         inviteCode: inviteClass.inviteCode,
+        status: inviteClass.status || 'active',
         courseId: course.courseId,
         courseTitle: course.title || course.name || ''
       }
@@ -174,6 +210,8 @@ router.get('/:id', authMiddleware, async (req, res) => {
         message: '無權限查看此班級'
       });
     }
+
+    await backfillClassCourseLinks([classData]);
 
     // 取得班級成員
     const members = await db.query(`CLASS#${id}`, { skPrefix: 'MEMBER#' });
@@ -243,7 +281,7 @@ router.post('/', authMiddleware, async (req, res) => {
 
     const classId = db.generateId('cls');
     const now = new Date().toISOString();
-    const inviteCode = generateInviteCode();
+    const inviteCode = await generateUniqueInviteCode();
 
     const newClass = {
       PK: `CLASS#${classId}`,
@@ -423,7 +461,15 @@ router.post('/:id/join', authMiddleware, async (req, res) => {
       });
     }
 
-    if (classData.inviteCode !== inviteCode) {
+    if (classData.status !== 'active') {
+      return res.status(400).json({
+        success: false,
+        error: 'INVALID_CODE',
+        message: '此邀請碼目前不可使用'
+      });
+    }
+
+    if (String(classData.inviteCode || '').toUpperCase() !== String(inviteCode || '').trim().toUpperCase()) {
       return res.status(400).json({
         success: false,
         error: 'INVALID_CODE',
@@ -618,6 +664,112 @@ router.post('/join-by-code', authMiddleware, async (req, res) => {
       success: false,
       error: 'JOIN_FAILED',
       message: '加入班級失敗'
+    });
+  }
+});
+
+router.post('/:id/invite-code/regenerate', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const classData = await db.getItem(`CLASS#${id}`, 'META');
+
+    if (!classData) {
+      return res.status(404).json({
+        success: false,
+        error: 'CLASS_NOT_FOUND',
+        message: '找不到班級'
+      });
+    }
+
+    if (!(await canManageInviteClass(classData, req.user))) {
+      return res.status(403).json({
+        success: false,
+        error: 'FORBIDDEN',
+        message: '無權限重發邀請碼'
+      });
+    }
+
+    const updatedClass = await db.updateItem(`CLASS#${id}`, 'META', {
+      inviteCode: await generateUniqueInviteCode(),
+      updatedAt: new Date().toISOString()
+    });
+
+    res.json({
+      success: true,
+      message: '邀請碼已更新',
+      data: {
+        classId: updatedClass.classId,
+        className: updatedClass.name,
+        inviteCode: updatedClass.inviteCode,
+        status: updatedClass.status || 'active',
+        courseId: updatedClass.courseId || null,
+        courseTitle: updatedClass.courseTitle || null
+      }
+    });
+  } catch (error) {
+    console.error('Regenerate invite code error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'UPDATE_FAILED',
+      message: '更新邀請碼失敗'
+    });
+  }
+});
+
+router.post('/:id/invite-code/status', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const nextStatus = String(req.body?.status || '').trim().toLowerCase();
+    const allowedStatuses = new Set(['active', 'inactive']);
+
+    if (!allowedStatuses.has(nextStatus)) {
+      return res.status(400).json({
+        success: false,
+        error: 'INVALID_STATUS',
+        message: '邀請碼狀態無效'
+      });
+    }
+
+    const classData = await db.getItem(`CLASS#${id}`, 'META');
+    if (!classData) {
+      return res.status(404).json({
+        success: false,
+        error: 'CLASS_NOT_FOUND',
+        message: '找不到班級'
+      });
+    }
+
+    if (!(await canManageInviteClass(classData, req.user))) {
+      return res.status(403).json({
+        success: false,
+        error: 'FORBIDDEN',
+        message: '無權限更新邀請碼狀態'
+      });
+    }
+
+    const updatedClass = await db.updateItem(`CLASS#${id}`, 'META', {
+      status: nextStatus,
+      updatedAt: new Date().toISOString()
+    });
+
+    res.json({
+      success: true,
+      message: nextStatus === 'active' ? '邀請碼已啟用' : '邀請碼已停用',
+      data: {
+        classId: updatedClass.classId,
+        className: updatedClass.name,
+        inviteCode: updatedClass.inviteCode,
+        status: updatedClass.status || nextStatus,
+        courseId: updatedClass.courseId || null,
+        courseTitle: updatedClass.courseTitle || null
+      }
+    });
+  } catch (error) {
+    console.error('Update invite code status error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'UPDATE_FAILED',
+      message: '更新邀請碼狀態失敗'
     });
   }
 });

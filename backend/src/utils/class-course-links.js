@@ -28,6 +28,28 @@ function generateInviteCode() {
   return code;
 }
 
+async function generateUniqueInviteCode(maxAttempts = 12) {
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const inviteCode = generateInviteCode();
+    const existing = await db.scan({
+      filter: {
+        expression: 'entityType = :type AND inviteCode = :code',
+        values: {
+          ':type': 'CLASS',
+          ':code': inviteCode
+        }
+      },
+      limit: 1
+    });
+
+    if (!Array.isArray(existing) || existing.length === 0) {
+      return inviteCode;
+    }
+  }
+
+  throw new Error('UNABLE_TO_GENERATE_UNIQUE_INVITE_CODE');
+}
+
 function buildUserProfileForEnrollment(user = {}, fallback = {}) {
   return {
     userId: user.userId || fallback.userId || null,
@@ -153,8 +175,9 @@ async function findInviteClassForCourse(courseId) {
     }
   });
 
-  const activeMatch = matches.find(item => item?.status !== 'archived');
-  return activeMatch || null;
+  const nonArchivedMatches = matches.filter(item => item?.status !== 'archived');
+  const activeMatch = nonArchivedMatches.find(item => item?.status === 'active');
+  return activeMatch || nonArchivedMatches[0] || null;
 }
 
 async function findLegacyInviteClassForCourse(course) {
@@ -218,7 +241,7 @@ async function ensureInviteClassForCourse(course, teacherUser) {
     courseId: course.courseId,
     courseTitle: course.title || course.name || '',
 
-    inviteCode: generateInviteCode(),
+    inviteCode: await generateUniqueInviteCode(),
     memberCount: 0,
     assignmentCount: 0,
 
@@ -237,5 +260,6 @@ module.exports = {
   ensureInviteClassForCourse,
   findInviteClassForCourse,
   generateInviteCode,
+  generateUniqueInviteCode,
   resolveLinkedCourseForClass
 };
