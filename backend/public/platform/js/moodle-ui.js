@@ -628,18 +628,27 @@ const MoodleUI = {
     ) || (
       submissionStatus.grade !== undefined && submissionStatus.grade !== null
     );
+    const gradePendingRelease = Boolean(
+      assignment.gradeVisibility?.pendingRelease ||
+      submission?.gradePendingRelease ||
+      submissionStatus.gradePendingRelease
+    );
 
     const graded = Boolean(
       assignment.graded === true ||
       submissionStatus.graded === true ||
+      submission?.graded === true ||
       submission?.gradedAt ||
-      hasGrade
+      hasGrade ||
+      gradePendingRelease
     );
     const computedSubmission = submission || (submissionStatus.submitted
       ? {
           submittedAt: submissionStatus.submittedAt || null,
           grade: submissionStatus.grade ?? null,
-          gradedAt: submissionStatus.graded ? submissionStatus.gradedAt || submissionStatus.submittedAt || null : null,
+          gradedAt: submissionStatus.graded ? submissionStatus.gradedAt || null : null,
+          graded: Boolean(submissionStatus.graded || submissionStatus.gradePendingRelease),
+          gradePendingRelease: Boolean(submissionStatus.gradePendingRelease),
           isLate: submissionStatus.isLate ?? (submissionStatus.submittedAt && assignment.dueDate
             ? new Date(submissionStatus.submittedAt) > new Date(assignment.dueDate)
             : false),
@@ -662,6 +671,7 @@ const MoodleUI = {
         : [],
       submitted,
       graded,
+      gradePendingRelease,
       grade: assignment.grade ?? computedSubmission?.grade ?? submissionStatus.grade ?? null,
       maxPoints: assignment.maxPoints ?? assignment.maxGrade ?? 100,
       maxGrade: assignment.maxGrade ?? assignment.maxPoints ?? 100,
@@ -674,6 +684,11 @@ const MoodleUI = {
     const attempts = Array.isArray(quiz.attempts) ? quiz.attempts : [];
     const completedAttempts = attempts.filter(a => a.status === 'completed').length;
     const bestScore = quiz.bestScore ?? userStatus.bestScore ?? null;
+    const gradePendingRelease = Boolean(
+      quiz.gradeVisibility?.pendingRelease ||
+      userStatus.gradePendingRelease ||
+      attempts.some(attempt => attempt?.gradePendingRelease)
+    );
     const attemptCount = Number(userStatus.attemptCount ?? attempts.length ?? 0);
     const completed = Boolean(
       quiz.completed === true ||
@@ -692,9 +707,14 @@ const MoodleUI = {
       ...quiz,
       completed,
       bestScore,
+      gradePendingRelease,
       attemptCount,
       canAttempt
     };
+  },
+
+  isGradeReleasePending(record = {}) {
+    return Boolean(record?.gradeVisibility?.pendingRelease || record?.visibility?.pendingRelease);
   },
 
   getCalendarEventDate(event = {}) {
@@ -1978,6 +1998,8 @@ const MoodleUI = {
     const normalizedGrades = Array.isArray(grades)
       ? (grades[0] || null)
       : grades;
+    const gradeVisibility = normalizedGrades?.gradeVisibility || normalizedGrades?.visibility || {};
+    const pendingRelease = Boolean(gradeVisibility.pendingRelease);
 
     const items = Array.isArray(normalizedGrades?.items)
       ? normalizedGrades.items
@@ -1991,11 +2013,14 @@ const MoodleUI = {
           weight: item.weight ?? null,
           feedback: item.feedback || '',
           submitted: item.submitted || false,
-          graded: item.graded || false
+          graded: item.graded || false,
+          gradePendingRelease: item.gradePendingRelease || false
         }))
         : [];
 
-    const totalScore = normalizedGrades?.totalScore
+    const totalScore = pendingRelease
+      ? t('moodleGrade.pendingReleaseLabel')
+      : normalizedGrades?.totalScore
       ?? normalizedGrades?.summary?.overallGrade
       ?? '-';
     const completedItems = normalizedGrades?.completedItems
@@ -2011,12 +2036,20 @@ const MoodleUI = {
 
     return `
       <div class="student-grades">
+        ${pendingRelease ? `
+          <div class="assignment-deadline-note is-submitted">
+            <strong>${t('moodleGrade.pendingReleaseTitle')}</strong>
+            <span>${t('moodleGrade.pendingReleaseDesc')}</span>
+          </div>
+        ` : ''}
         <div class="gradebook-shell">
           <div class="gradebook-shell-head">
             <div class="gradebook-shell-copy">
               <span class="gradebook-shell-kicker">${I18n.getLocale() === 'en' ? 'My progress' : '我的成績概覽'}</span>
               <div class="gradebook-shell-title">${I18n.getLocale() === 'en' ? 'Grade summary' : '成績摘要'}</div>
-              <div class="gradebook-shell-desc">${I18n.getLocale() === 'en' ? 'Review your total score, completed work, and detailed feedback from each graded activity.' : '查看你的總分、完成項目與各項評分回饋。'}</div>
+              <div class="gradebook-shell-desc">${pendingRelease
+                ? t('moodleGrade.pendingReleaseDesc')
+                : (I18n.getLocale() === 'en' ? 'Review your total score, completed work, and detailed feedback from each graded activity.' : '查看你的總分、完成項目與各項評分回饋。')}</div>
             </div>
           </div>
         </div>
@@ -2035,7 +2068,9 @@ const MoodleUI = {
             <div class="gradebook-shell-copy">
               <span class="gradebook-shell-kicker">${I18n.getLocale() === 'en' ? 'Breakdown' : '詳細項目'}</span>
               <div class="gradebook-shell-title">${I18n.getLocale() === 'en' ? 'Detailed grades' : '詳細成績'}</div>
-              <div class="gradebook-shell-desc">${I18n.getLocale() === 'en' ? 'Assignments, quizzes, and weighted items are listed below with scores and feedback.' : '下方列出每個作業、測驗與加權項目的得分和回饋。'}</div>
+              <div class="gradebook-shell-desc">${pendingRelease
+                ? t('moodleGrade.pendingReleaseDesc')
+                : (I18n.getLocale() === 'en' ? 'Assignments, quizzes, and weighted items are listed below with scores and feedback.' : '下方列出每個作業、測驗與加權項目的得分和回饋。')}</div>
             </div>
           </div>
           <div class="gradebook-table-wrapper">
@@ -2054,9 +2089,9 @@ const MoodleUI = {
                   <tr>
                     <td>${this.escapeText(item.name || item.title || t('moodleGrade.item'))}</td>
                     <td><span class="type-badge ${item.type}">${item.type === 'assignment' ? t('moodleGrade.typeAssignment') : item.type === 'quiz' ? t('moodleGrade.typeQuiz') : t('moodleGrade.typeOther')}</span></td>
-                    <td><strong>${item.score !== null && item.score !== undefined ? item.score : '-'}</strong> / ${item.maxScore ?? '-'}</td>
+                    <td><strong>${pendingRelease && item.graded ? t('moodleGrade.pendingReleaseLabel') : (item.score !== null && item.score !== undefined ? item.score : '-')}</strong> / ${item.maxScore ?? '-'}</td>
                     <td>${item.weight ? item.weight + '%' : '-'}</td>
-                    <td>${this.escapeText(item.feedback || '-')}</td>
+                    <td>${this.escapeText(pendingRelease && item.graded ? t('moodleGrade.pendingReleaseLabel') : (item.feedback || '-'))}</td>
                   </tr>
                 `).join('')}
               </tbody>
@@ -3974,7 +4009,9 @@ const MoodleUI = {
           tone: isPastDue ? 'is-danger' : 'is-success'
         }
       : a.graded
-        ? { label: t('moodleAssignment.statusGraded'), tone: 'is-accent' }
+        ? (a.gradePendingRelease
+          ? { label: t('moodleAssignment.pendingRelease'), tone: 'is-neutral' }
+          : { label: t('moodleAssignment.statusGraded'), tone: 'is-accent' })
         : a.submitted
           ? {
               label: a.submission?.isLate
@@ -3988,7 +4025,9 @@ const MoodleUI = {
 
     const submissions = Number(a.stats?.totalSubmissions || 0);
     const graded = Number(a.stats?.gradedCount || 0);
-    const gradeText = a.graded && a.grade !== null && a.grade !== undefined
+    const gradeText = a.gradePendingRelease
+      ? t('moodleGrade.pendingReleaseLabel')
+      : a.graded && a.grade !== null && a.grade !== undefined
       ? `${a.grade}/${a.maxPoints || 100}`
       : '';
 
@@ -4065,7 +4104,9 @@ const MoodleUI = {
     const averageScoreLabel = averageScore !== undefined && averageScore !== null && averageScore !== '' && Number.isFinite(averageScoreNumber)
       ? averageScoreNumber.toFixed(0)
       : '-';
-    const bestScoreLabel = q.bestScore !== undefined && q.bestScore !== null && q.bestScore !== ''
+    const bestScoreLabel = q.gradePendingRelease
+      ? t('moodleQuiz.pendingRelease')
+      : q.bestScore !== undefined && q.bestScore !== null && q.bestScore !== ''
       ? `${Number.isFinite(bestScoreNumber) ? bestScoreNumber.toFixed(0) : q.bestScore} ${t('moodleQuiz.score')}`
       : `- ${t('moodleQuiz.score')}`;
 
@@ -4094,7 +4135,9 @@ const MoodleUI = {
         ? { label: isEnglish ? 'Closed' : '已關閉', tone: 'is-neutral' }
         : { label: isEnglish ? 'Scheduled' : '未開放', tone: 'is-warning' };
     const studentStatusMeta = q.completed
-      ? { label: t('moodleQuiz.completed'), tone: 'is-accent' }
+      ? (q.gradePendingRelease
+        ? { label: t('moodleQuiz.pendingRelease'), tone: 'is-neutral' }
+        : { label: t('moodleQuiz.completed'), tone: 'is-accent' })
       : isOpen && q.canAttempt !== false
         ? { label: isEnglish ? 'Available now' : '可立即作答', tone: 'is-success' }
         : {
@@ -4619,16 +4662,19 @@ const MoodleUI = {
         </button>
       ` : '';
       const isPastDue = this.isAssignmentPastDue(assignment);
+      const gradePendingRelease = Boolean(assignment.gradePendingRelease && assignment.submission);
       const hasSubmissionGrade = assignment.submission && assignment.submission.grade !== undefined && assignment.submission.grade !== null;
       const statusClass = assignment.submission
-        ? (hasSubmissionGrade ? 'graded' : (assignment.submission.isLate ? 'late-submitted' : 'submitted'))
+        ? (gradePendingRelease ? 'submitted' : (hasSubmissionGrade ? 'graded' : (assignment.submission.isLate ? 'late-submitted' : 'submitted')))
         : (isPastDue ? 'late-submitted' : 'not-submitted');
       const statusText = assignment.submission
-        ? (hasSubmissionGrade
-          ? `${t('moodleAssignment.gradedStatus')}: ${assignment.submission.grade}/${assignment.maxPoints}`
-          : (assignment.submission.isLate
-            ? (isEnglish ? 'Submitted late' : '已逾時提交')
-            : t('moodleAssignment.submittedStatus')))
+        ? (gradePendingRelease
+          ? t('moodleAssignment.pendingRelease')
+          : (hasSubmissionGrade
+            ? `${t('moodleAssignment.gradedStatus')}: ${assignment.submission.grade}/${assignment.maxPoints}`
+            : (assignment.submission.isLate
+              ? (isEnglish ? 'Submitted late' : '已逾時提交')
+              : t('moodleAssignment.submittedStatus'))))
         : (isPastDue
           ? (isEnglish ? 'Overdue, submission still open' : '已逾時，仍可提交')
           : t('moodleAssignment.notSubmitted'));
@@ -4714,6 +4760,7 @@ const MoodleUI = {
     const submission = normalizedAssignment.submission || null;
     const isPastDue = this.isAssignmentPastDue(normalizedAssignment);
     const isLateSubmission = Boolean(submission?.isLate);
+    const gradePendingRelease = Boolean(normalizedAssignment.gradePendingRelease && submission);
     const canEditSubmission = Boolean(submission) && !normalizedAssignment.graded;
     const submissionKicker = isEnglish ? 'Submission' : '我的提交';
     const submissionNote = isEnglish
@@ -4735,8 +4782,8 @@ const MoodleUI = {
           <div class="assignment-deadline-note ${isLateSubmission ? 'is-late' : 'is-submitted'}">
             <strong>${isLateSubmission ? (isEnglish ? 'Submitted after the due date' : '這份作業是逾時提交') : (isEnglish ? 'Submission recorded' : '提交已記錄')}</strong>
             <span>${t('moodleAssignment.submitTime')}：${this.escapeText(this.formatPlatformDate(submission.submittedAt, { dateStyle: 'medium', timeStyle: 'short' }) || '—')}</span>
-          </div>
-        `
+        </div>
+      `
         : '');
 
     const submissionSummaryHtml = submission ? `
@@ -4749,6 +4796,12 @@ const MoodleUI = {
           </div>
         </div>
         ${noticeHtml}
+        ${gradePendingRelease ? `
+          <div class="assignment-deadline-note is-submitted">
+            <strong>${t('moodleAssignment.pendingRelease')}</strong>
+            <span>${t('moodleAssignment.pendingReleaseNote')}</span>
+          </div>
+        ` : ''}
         <div class="assignment-body submitted-content">
           ${submission.content ? `<div class="text-content">${this.formatMultilineText(submission.content)}</div>` : ''}
           ${submission.files?.length ? `
@@ -5359,7 +5412,11 @@ const MoodleUI = {
       );
 
       if (result.success) {
-        showToast(`${t('moodleQuiz.completeScore')}：${result.data.score}`);
+        if (result.data?.gradeVisibility?.pendingRelease) {
+          showToast(t('moodleQuiz.submitPendingRelease'));
+        } else {
+          showToast(`${t('moodleQuiz.completeScore')}：${result.data.score}`);
+        }
         showView('moodleQuizzes');
         this.loadQuizzes();
       } else {
@@ -6293,6 +6350,7 @@ const MoodleUI = {
       const attemptsHistory = Array.isArray(quiz.myAttempts)
         ? quiz.myAttempts
         : (Array.isArray(quiz.attempts) ? quiz.attempts : []);
+      const gradePendingRelease = Boolean(quiz.gradePendingRelease);
       const attemptsAllowedRaw = Number(quiz.maxAttempts);
       const attemptsAllowed = Number.isFinite(attemptsAllowedRaw) ? attemptsAllowedRaw : 0;
       const now = new Date();
@@ -6333,6 +6391,12 @@ const MoodleUI = {
               <span class="value">${quiz.closeDate ? new Date(quiz.closeDate).toLocaleString(I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW') : t('moodleQuiz.noLimit')}</span>
             </div>
           </div>
+          ${gradePendingRelease ? `
+            <div class="assignment-deadline-note is-submitted">
+              <strong>${t('moodleQuiz.pendingRelease')}</strong>
+              <span>${t('moodleQuiz.pendingReleaseNote')}</span>
+            </div>
+          ` : ''}
           ${attemptsHistory.length > 0 ? `
             <div class="quiz-attempts-history">
               <h3>${t('moodleQuiz.attemptHistory')}</h3>
@@ -6351,7 +6415,9 @@ const MoodleUI = {
                       <td>${i + 1}</td>
                       <td>${a.startedAt ? new Date(a.startedAt).toLocaleString(I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW') : '-'}</td>
                       <td>${(a.completedAt || a.submittedAt) ? new Date(a.completedAt || a.submittedAt).toLocaleString(I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW') : '-'}</td>
-                      <td>${a.score !== undefined && a.score !== null ? a.score + ' ' + t('moodleQuiz.pointsSuffix') : (a.percentage !== undefined && a.percentage !== null ? `${a.percentage}%` : '-')}</td>
+                      <td>${gradePendingRelease && a.status === 'completed'
+                        ? t('moodleGrade.pendingReleaseLabel')
+                        : (a.score !== undefined && a.score !== null ? a.score + ' ' + t('moodleQuiz.pointsSuffix') : (a.percentage !== undefined && a.percentage !== null ? `${a.percentage}%` : '-'))}</td>
                     </tr>
                   `).join('')}
                 </tbody>
@@ -8191,10 +8257,11 @@ const MoodleUI = {
   async saveGradeCell(input, itemId, studentId) {
     const newValue = input.value.trim();
     const cell = input.parentElement;
+    const courseId = this.currentGradebookCourseId;
 
     try {
       const result = await API.gradebook.updateGrade(
-        this.currentGradebookCourseId,
+        courseId,
         itemId,
         { grades: [{ studentId, grade: newValue ? parseFloat(newValue) : null }] }
       );
@@ -8203,8 +8270,7 @@ const MoodleUI = {
         cell.innerHTML = `<span class="grade-value">${newValue || '-'}</span>`;
         cell.classList.toggle('not-graded', !newValue);
         showToast(t('moodleGrade.updated'));
-        // 重新計算總分
-        this.recalculateStudentTotal(studentId);
+        await this.openGradebookManagement(courseId);
       } else {
         showToast(result.message || t('common.updateFailed'));
         cell.innerHTML = `<span class="grade-value">${input.defaultValue || '-'}</span>`;
@@ -8350,11 +8416,12 @@ const MoodleUI = {
                 <div class="category-item" data-category-id="${cat.categoryId}">
                   <div class="category-info">
                     <span class="category-name">${cat.name}</span>
+                    ${cat.isDefault ? `<span class="status-chip neutral">${I18n.getLocale() === 'en' ? 'Built-in' : '預設'}</span>` : ''}
                     <span class="category-weight">${cat.weight}%</span>
                   </div>
                   <div class="category-actions">
                     <button onclick="MoodleUI.editGradeCategory('${courseId}', '${cat.categoryId}')" class="btn-sm">${t('moodleGradeCategory.edit')}</button>
-                    <button onclick="MoodleUI.deleteGradeCategory('${courseId}', '${cat.categoryId}')" class="btn-sm btn-danger">${t('moodleGradeCategory.delete')}</button>
+                    ${cat.isDefault ? '' : `<button onclick="MoodleUI.deleteGradeCategory('${courseId}', '${cat.categoryId}')" class="btn-sm btn-danger">${t('moodleGradeCategory.delete')}</button>`}
                   </div>
                 </div>
               `).join('')}

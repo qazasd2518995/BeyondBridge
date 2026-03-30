@@ -11,9 +11,118 @@ const express = require('express');
 const router = express.Router();
 const db = require('../../utils/db');
 const { authMiddleware } = require('../../utils/auth');
-const { canManageCourse } = require('../../utils/course-access');
+const { canManageCourse, isTeachingUser } = require('../../utils/course-access');
 const { invalidateGradebookSnapshots } = require('../../utils/gradebook-snapshots');
 const { syncCourseActivityLink, deleteCourseActivityLink } = require('../../utils/course-activities');
+const {
+  getGradeVisibility,
+  maskAssignmentSubmissionStatus,
+  maskAssignmentSubmission
+} = require('../../utils/grade-visibility');
+const {
+  listManagedCourseIds,
+  backfillCourseOwnerLinks
+} = require('../../utils/course-owner-links');
+
+function uniqueIds(values = []) {
+  return [...new Set(values.filter(Boolean))];
+}
+
+function stripDbKeys(item = {}) {
+  if (!item || typeof item !== 'object') return item;
+  const { PK, SK, ...rest } = item;
+  return rest;
+}
+
+async function getManagedAssignmentCourseIds(user) {
+  if (!user?.userId || !isTeachingUser(user) || user.isAdmin) {
+    return [];
+  }
+
+  const linkedCourseIds = await listManagedCourseIds(user.userId);
+  if (linkedCourseIds.length > 0) {
+    return linkedCourseIds;
+  }
+
+  const courses = await db.getItemsByEntityType('COURSE', {
+    projection: [
+      'courseId',
+      'title',
+      'name',
+      'category',
+      'visibility',
+      'status',
+      'updatedAt',
+      'createdAt',
+      'instructorId',
+      'teacherId',
+      'creatorId',
+      'createdBy',
+      'instructors'
+    ]
+  });
+  const managedCourses = courses.filter(course => canManageCourse(course, user));
+
+  if (managedCourses.length > 0) {
+    await backfillCourseOwnerLinks(managedCourses);
+  }
+
+  return uniqueIds(managedCourses.map(course => course.courseId));
+}
+
+async function listAssignmentsForCourseIds(courseIds = []) {
+  const ids = uniqueIds(courseIds);
+  if (ids.length === 0) return [];
+
+  const results = await Promise.all(ids.map(courseId =>
+    db.queryByIndex('GSI1', `COURSE#${courseId}`, 'GSI1PK', {
+      skName: 'GSI1SK',
+      skPrefix: 'ASSIGNMENT#'
+    })
+  ));
+
+  return results.flat().filter(Boolean);
+}
+
+async function getAssignmentSubmissionMap(assignmentIds = [], userId) {
+  const ids = uniqueIds(assignmentIds);
+  if (ids.length === 0 || !userId) return new Map();
+
+  const submissions = await db.batchGetItems(ids.map(assignmentId => ({
+    PK: `ASSIGNMENT#${assignmentId}`,
+    SK: `SUBMISSION#${userId}`
+  })), {
+    projection: ['PK', 'submittedAt', 'content', 'files', 'grade', 'feedback', 'gradedAt', 'isLate', 'lateBy', 'version']
+  });
+
+  return new Map(submissions.map((submission) => {
+    const assignmentId = String(submission.PK || '').replace('ASSIGNMENT#', '');
+    return [assignmentId, submission];
+  }));
+}
+
+async function getAssignmentCourseMap(assignments = []) {
+  const courseIds = uniqueIds(assignments.map(item => item.courseId));
+  if (courseIds.length === 0) return new Map();
+
+  const courses = await db.getCoursesByIds(courseIds, {
+    projection: [
+      'courseId',
+      'settings',
+      'instructorId',
+      'teacherId',
+      'creatorId',
+      'createdBy',
+      'instructors'
+    ]
+  });
+
+  return new Map(
+    courses
+      .filter(course => course?.courseId)
+      .map(course => [course.courseId, course])
+  );
+}
 
 // ==================== 作業列表與詳情 ====================
 
@@ -26,34 +135,25 @@ router.get('/', authMiddleware, async (req, res) => {
     const userId = req.user.userId;
     const { courseId, status, dueIn } = req.query;
 
-    let assignments = await db.scan({
-      filter: {
-        expression: 'entityType = :type',
-        values: { ':type': 'ASSIGNMENT' }
-      }
-    });
+    let assignments = [];
 
-    if (!req.user.isAdmin) {
-      const [progressList, teachingCourses] = await Promise.all([
+    if (req.user.isAdmin) {
+      assignments = courseId
+        ? await listAssignmentsForCourseIds([courseId])
+        : await db.getItemsByEntityType('ASSIGNMENT');
+    } else {
+      const [progressList, managedCourseIds] = await Promise.all([
         db.getUserCourseProgress(userId),
-        db.scan({
-          filter: {
-            expression: 'entityType = :type AND (instructorId = :userId OR teacherId = :userId OR creatorId = :userId OR createdBy = :userId OR contains(instructors, :userId))',
-            values: { ':type': 'COURSE', ':userId': userId }
-          }
-        })
+        getManagedAssignmentCourseIds(req.user)
       ]);
-
-      const allowedCourseIds = new Set([
-        ...progressList.map(item => item.courseId).filter(Boolean),
-        ...teachingCourses.map(item => item.courseId).filter(Boolean)
+      const allowedCourseIds = uniqueIds([
+        ...progressList.map(item => item.courseId),
+        ...managedCourseIds
       ]);
-      assignments = assignments.filter(item => allowedCourseIds.has(item.courseId));
-    }
-
-    // 課程篩選
-    if (courseId) {
-      assignments = assignments.filter(a => a.courseId === courseId);
+      const targetCourseIds = courseId
+        ? allowedCourseIds.filter(id => id === courseId)
+        : allowedCourseIds;
+      assignments = await listAssignmentsForCourseIds(targetCourseIds);
     }
 
     // 狀態篩選（upcoming, past, all）
@@ -73,30 +173,37 @@ router.get('/', authMiddleware, async (req, res) => {
       });
     }
 
-    // 取得用戶的提交狀態
-    const assignmentsWithStatus = await Promise.all(
-      assignments.map(async (a) => {
-        const submission = await db.getItem(
-          `ASSIGNMENT#${a.assignmentId}`,
-          `SUBMISSION#${userId}`
-        );
-        delete a.PK;
-        delete a.SK;
-        return {
-          ...a,
-          submissionStatus: submission ? {
-            submitted: true,
-            submittedAt: submission.submittedAt,
-            grade: submission.grade,
-            graded: submission.gradedAt !== null,
-            isLate: !!submission.isLate,
-            lateBy: submission.lateBy || 0
-          } : {
-            submitted: false
-          }
-        };
-      })
+    const courseMap = await getAssignmentCourseMap(assignments);
+    const submissionMap = await getAssignmentSubmissionMap(
+      assignments.map(item => item.assignmentId),
+      userId
     );
+    const assignmentsWithStatus = assignments.map((assignment) => {
+      const submission = submissionMap.get(assignment.assignmentId);
+      const course = courseMap.get(assignment.courseId) || null;
+      const gradeVisibility = getGradeVisibility(course, {
+        canManage: req.user.isAdmin || canManageCourse(course, req.user),
+        isAdmin: req.user.isAdmin
+      });
+      const submissionStatus = submission ? {
+        submitted: true,
+        submittedAt: submission.submittedAt,
+        grade: submission.grade,
+        graded: submission.gradedAt !== null && submission.gradedAt !== undefined,
+        gradedAt: submission.gradedAt || null,
+        isLate: !!submission.isLate,
+        lateBy: submission.lateBy || 0
+      } : {
+        submitted: false
+      };
+      return {
+        ...stripDbKeys(assignment),
+        submissionStatus: gradeVisibility.gradesReleased
+          ? submissionStatus
+          : maskAssignmentSubmissionStatus(submissionStatus),
+        gradeVisibility
+      };
+    });
 
     // 排序：按截止日期
     assignmentsWithStatus.sort((a, b) =>
@@ -130,38 +237,25 @@ router.get('/my', authMiddleware, async (req, res) => {
 
     if (role === 'instructor') {
       // 教師：取得自己課程的所有作業
-      const courses = await db.scan({
-        filter: {
-          expression: 'entityType = :type AND (instructorId = :userId OR teacherId = :userId OR creatorId = :userId OR createdBy = :userId OR contains(instructors, :userId))',
-          values: { ':type': 'COURSE', ':userId': userId }
-        }
-      });
-
-      const courseIds = courses.map(c => c.courseId);
-
-      let assignments = await db.scan({
-        filter: {
-          expression: 'entityType = :type',
-          values: { ':type': 'ASSIGNMENT' }
-        }
-      });
-
-      assignments = assignments.filter(a => courseIds.includes(a.courseId));
+      const courseIds = req.user.isAdmin
+        ? []
+        : await getManagedAssignmentCourseIds(req.user);
+      const assignments = req.user.isAdmin
+        ? await db.getItemsByEntityType('ASSIGNMENT')
+        : await listAssignmentsForCourseIds(courseIds);
 
       // 取得每個作業的提交統計
       const assignmentsWithStats = await Promise.all(
-        assignments.map(async (a) => {
-          const submissions = await db.query(`ASSIGNMENT#${a.assignmentId}`, {
+        assignments.map(async (assignment) => {
+          const submissions = await db.query(`ASSIGNMENT#${assignment.assignmentId}`, {
             skPrefix: 'SUBMISSION#'
           });
 
           const gradedCount = submissions.filter(s => s.gradedAt).length;
           const pendingCount = submissions.filter(s => !s.gradedAt).length;
 
-          delete a.PK;
-          delete a.SK;
           return {
-            ...a,
+            ...stripDbKeys(assignment),
             stats: {
               totalSubmissions: submissions.length,
               graded: gradedCount,
@@ -180,43 +274,40 @@ router.get('/my', authMiddleware, async (req, res) => {
     } else {
       // 學生：取得已報名課程的作業
       const progressList = await db.getUserCourseProgress(userId);
-      const courseIds = progressList.map(p => p.courseId);
-
-      let assignments = await db.scan({
-        filter: {
-          expression: 'entityType = :type',
-          values: { ':type': 'ASSIGNMENT' }
-        }
-      });
-
-      assignments = assignments.filter(a => courseIds.includes(a.courseId));
-
-      // 取得提交狀態
-      const assignmentsWithStatus = await Promise.all(
-        assignments.map(async (a) => {
-          const submission = await db.getItem(
-            `ASSIGNMENT#${a.assignmentId}`,
-            `SUBMISSION#${userId}`
-          );
-          delete a.PK;
-          delete a.SK;
-          return {
-            ...a,
-            submission: submission ? {
-              submitted: true,
-              submittedAt: submission.submittedAt,
-              content: submission.content,
-              files: submission.files,
-              grade: submission.grade,
-              feedback: submission.feedback,
-              gradedAt: submission.gradedAt,
-              isLate: !!submission.isLate,
-              lateBy: submission.lateBy || 0,
-              version: submission.version || 1
-            } : null
-          };
-        })
+      const courseIds = uniqueIds(progressList.map(p => p.courseId));
+      const assignments = await listAssignmentsForCourseIds(courseIds);
+      const courseMap = await getAssignmentCourseMap(assignments);
+      const submissionMap = await getAssignmentSubmissionMap(
+        assignments.map(item => item.assignmentId),
+        userId
       );
+      const assignmentsWithStatus = assignments.map((assignment) => {
+        const submission = submissionMap.get(assignment.assignmentId);
+        const course = courseMap.get(assignment.courseId) || null;
+        const gradeVisibility = getGradeVisibility(course, {
+          canManage: req.user.isAdmin || canManageCourse(course, req.user),
+          isAdmin: req.user.isAdmin
+        });
+        const normalizedSubmission = submission ? {
+          submitted: true,
+          submittedAt: submission.submittedAt,
+          content: submission.content,
+          files: submission.files,
+          grade: submission.grade,
+          feedback: submission.feedback,
+          gradedAt: submission.gradedAt,
+          isLate: !!submission.isLate,
+          lateBy: submission.lateBy || 0,
+          version: submission.version || 1
+        } : null;
+        return {
+          ...stripDbKeys(assignment),
+          submission: normalizedSubmission
+            ? (gradeVisibility.gradesReleased ? normalizedSubmission : maskAssignmentSubmission(normalizedSubmission))
+            : null,
+          gradeVisibility
+        };
+      });
 
       // 狀態篩選
       let filtered = assignmentsWithStatus;
@@ -282,6 +373,10 @@ router.get('/:id', authMiddleware, async (req, res) => {
 
     // 取得用戶的提交
     const submission = await db.getItem(`ASSIGNMENT#${id}`, `SUBMISSION#${userId}`);
+    const gradeVisibility = getGradeVisibility(course, {
+      canManage: req.user.isAdmin || canManageCourse(course, req.user),
+      isAdmin: req.user.isAdmin
+    });
 
     delete assignment.PK;
     delete assignment.SK;
@@ -291,7 +386,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
       data: {
         ...assignment,
         courseName: course?.title,
-        submission: submission ? {
+        submission: submission ? (gradeVisibility.gradesReleased ? {
           submittedAt: submission.submittedAt,
           content: submission.content,
           files: submission.files,
@@ -302,7 +397,19 @@ router.get('/:id', authMiddleware, async (req, res) => {
           isLate: !!submission.isLate,
           lateBy: submission.lateBy || 0,
           version: submission.version || 1
-        } : null
+        } : maskAssignmentSubmission({
+          submittedAt: submission.submittedAt,
+          content: submission.content,
+          files: submission.files,
+          grade: submission.grade,
+          feedback: submission.feedback,
+          gradedAt: submission.gradedAt,
+          gradedBy: submission.gradedBy,
+          isLate: !!submission.isLate,
+          lateBy: submission.lateBy || 0,
+          version: submission.version || 1
+        })) : null,
+        gradeVisibility
       }
     });
 

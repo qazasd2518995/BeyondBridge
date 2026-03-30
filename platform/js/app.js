@@ -3398,13 +3398,21 @@ const App = {
 
   getQuizStateMeta(quiz = {}) {
     const rawStatus = String(quiz.userStatus || quiz.status || '').toLowerCase();
-    const attempts = Number(quiz.attempts || quiz.attemptCount || 0);
+    const attempts = Number(quiz.attempts || quiz.attemptCount || quiz.userStatus?.attemptCount || 0);
     const hasAttempts = quiz.attempted === true || attempts > 0;
     const hasScore = quiz.bestScore !== undefined && quiz.bestScore !== null && quiz.bestScore !== '';
+    const gradePendingRelease = Boolean(quiz.gradeVisibility?.pendingRelease || quiz.userStatus?.gradePendingRelease);
+    const hasCompletedAttempt = Boolean(
+      quiz.completed === true ||
+      quiz.userStatus?.lastAttemptAt ||
+      quiz.lastAttemptAt ||
+      hasScore ||
+      gradePendingRelease
+    );
     const inProgressLabel = I18n.getLocale() === 'en' ? 'In Progress' : '進行中';
 
     let state = 'not_started';
-    if (['completed', 'passed', 'submitted'].includes(rawStatus) || (quiz.completed === true) || (hasScore && rawStatus !== 'in_progress')) {
+    if (['completed', 'passed', 'submitted'].includes(rawStatus) || (hasCompletedAttempt && rawStatus !== 'in_progress')) {
       state = 'completed';
     } else if (['in_progress', 'attempted', 'active'].includes(rawStatus) || hasAttempts) {
       state = 'in_progress';
@@ -3413,8 +3421,8 @@ const App = {
     if (state === 'completed') {
       return {
         state,
-        badgeLabel: t('app.completedQuizzes'),
-        badgeClass: 'is-completed',
+        badgeLabel: gradePendingRelease ? t('moodleGrade.pendingReleaseLabel') : t('app.completedQuizzes'),
+        badgeClass: gradePendingRelease ? 'is-progress' : 'is-completed',
         actionLabel: t('app.viewResults'),
         actionIcon: '<polyline points="20 6 9 17 4 12"/>'
       };
@@ -3448,6 +3456,7 @@ const App = {
     const questionCount = Number(quiz.questionCount || quiz.totalQuestions || 0);
     const passingScore = Number(quiz.passingScore || 60);
     const attempts = Number(quiz.attempts || quiz.attemptCount || 0);
+    const gradePendingRelease = Boolean(quiz.gradeVisibility?.pendingRelease || quiz.userStatus?.gradePendingRelease);
     const bestScore = quiz.bestScore !== undefined && quiz.bestScore !== null && quiz.bestScore !== ''
       ? Number(quiz.bestScore)
       : null;
@@ -3465,7 +3474,14 @@ const App = {
       attempts > 0 ? `<span class="quiz-row-meta-pill">${this.escapeText(t('app.attempted'))} <strong>${attempts}</strong> ${this.escapeText(t('app.times'))}</span>` : ''
     ].filter(Boolean).join('');
 
-    const scoreMarkup = bestScore !== null && !Number.isNaN(bestScore)
+    const scoreMarkup = gradePendingRelease
+      ? `
+        <div class="quiz-row-score">
+          <div class="quiz-row-score-value tone-blue">${this.escapeText(t('moodleGrade.pendingReleaseLabel'))}</div>
+          <div class="quiz-row-score-label">${this.escapeText(t('app.bestScore'))}</div>
+        </div>
+      `
+      : bestScore !== null && !Number.isNaN(bestScore)
       ? `
         <div class="quiz-row-score">
           <div class="quiz-row-score-value ${bestScore >= passingScore ? 'tone-success' : 'tone-terracotta'}">${bestScore}%</div>

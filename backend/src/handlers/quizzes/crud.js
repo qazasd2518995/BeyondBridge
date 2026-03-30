@@ -7,9 +7,101 @@ const express = require('express');
 const router = express.Router();
 const db = require('../../utils/db');
 const { authMiddleware } = require('../../utils/auth');
-const { canManageCourse } = require('../../utils/course-access');
+const { canManageCourse, isTeachingUser } = require('../../utils/course-access');
 const { invalidateGradebookSnapshots } = require('../../utils/gradebook-snapshots');
 const { syncCourseActivityLink, deleteCourseActivityLink } = require('../../utils/course-activities');
+const {
+  getGradeVisibility,
+  maskQuizUserStatus,
+  maskQuizAttempt
+} = require('../../utils/grade-visibility');
+const {
+  listManagedCourseIds,
+  backfillCourseOwnerLinks
+} = require('../../utils/course-owner-links');
+
+function uniqueIds(values = []) {
+  return [...new Set(values.filter(Boolean))];
+}
+
+function stripDbKeys(item = {}) {
+  if (!item || typeof item !== 'object') return item;
+  const { PK, SK, ...rest } = item;
+  return rest;
+}
+
+async function getManagedQuizCourseIds(user) {
+  if (!user?.userId || !isTeachingUser(user) || user.isAdmin) {
+    return [];
+  }
+
+  const linkedCourseIds = await listManagedCourseIds(user.userId);
+  if (linkedCourseIds.length > 0) {
+    return linkedCourseIds;
+  }
+
+  const courses = await db.getItemsByEntityType('COURSE', {
+    projection: [
+      'courseId',
+      'title',
+      'name',
+      'category',
+      'visibility',
+      'status',
+      'updatedAt',
+      'createdAt',
+      'instructorId',
+      'teacherId',
+      'creatorId',
+      'createdBy',
+      'instructors'
+    ]
+  });
+  const managedCourses = courses.filter(course => canManageCourse(course, user));
+
+  if (managedCourses.length > 0) {
+    await backfillCourseOwnerLinks(managedCourses);
+  }
+
+  return uniqueIds(managedCourses.map(course => course.courseId));
+}
+
+async function listQuizzesForCourseIds(courseIds = []) {
+  const ids = uniqueIds(courseIds);
+  if (ids.length === 0) return [];
+
+  const results = await Promise.all(ids.map(courseId =>
+    db.queryByIndex('GSI1', `COURSE#${courseId}`, 'GSI1PK', {
+      skName: 'GSI1SK',
+      skPrefix: 'QUIZ#'
+    })
+  ));
+
+  return results.flat().filter(Boolean);
+}
+
+async function getQuizCourseMap(quizzes = []) {
+  const courseIds = uniqueIds(quizzes.map(item => item.courseId));
+  if (courseIds.length === 0) return new Map();
+
+  const courses = await db.getCoursesByIds(courseIds, {
+    projection: [
+      'courseId',
+      'settings',
+      'instructorId',
+      'teacherId',
+      'creatorId',
+      'createdBy',
+      'instructors'
+    ]
+  });
+
+  return new Map(
+    courses
+      .filter(course => course?.courseId)
+      .map(course => [course.courseId, course])
+  );
+}
 
 // ==================== 測驗列表與詳情 ====================
 
@@ -22,34 +114,25 @@ router.get('/', authMiddleware, async (req, res) => {
     const userId = req.user.userId;
     const { courseId, status } = req.query;
 
-    let quizzes = await db.scan({
-      filter: {
-        expression: 'entityType = :type',
-        values: { ':type': 'QUIZ' }
-      }
-    });
+    let quizzes = [];
 
-    if (!req.user.isAdmin) {
-      const [progressList, teachingCourses] = await Promise.all([
+    if (req.user.isAdmin) {
+      quizzes = courseId
+        ? await listQuizzesForCourseIds([courseId])
+        : await db.getItemsByEntityType('QUIZ');
+    } else {
+      const [progressList, managedCourseIds] = await Promise.all([
         db.getUserCourseProgress(userId),
-        db.scan({
-          filter: {
-            expression: 'entityType = :type AND (instructorId = :userId OR teacherId = :userId OR creatorId = :userId OR createdBy = :userId OR contains(instructors, :userId))',
-            values: { ':type': 'COURSE', ':userId': userId }
-          }
-        })
+        getManagedQuizCourseIds(req.user)
       ]);
-
-      const allowedCourseIds = new Set([
-        ...progressList.map(item => item.courseId).filter(Boolean),
-        ...teachingCourses.map(item => item.courseId).filter(Boolean)
+      const allowedCourseIds = uniqueIds([
+        ...progressList.map(item => item.courseId),
+        ...managedCourseIds
       ]);
-      quizzes = quizzes.filter(item => allowedCourseIds.has(item.courseId));
-    }
-
-    // 課程篩選
-    if (courseId) {
-      quizzes = quizzes.filter(q => q.courseId === courseId);
+      const targetCourseIds = courseId
+        ? allowedCourseIds.filter(id => id === courseId)
+        : allowedCourseIds;
+      quizzes = await listQuizzesForCourseIds(targetCourseIds);
     }
 
     // 狀態篩選
@@ -67,6 +150,7 @@ router.get('/', authMiddleware, async (req, res) => {
     }
 
     // 取得用戶的作答狀態
+    const courseMap = await getQuizCourseMap(quizzes);
     const quizzesWithStatus = await Promise.all(
       quizzes.map(async (q) => {
         const attempts = await db.query(`QUIZ#${q.quizId}`, {
@@ -78,18 +162,22 @@ router.get('/', authMiddleware, async (req, res) => {
           if (!best || current.score > best.score) return current;
           return best;
         }, null);
-
-        delete q.PK;
-        delete q.SK;
+        const course = courseMap.get(q.courseId) || null;
+        const gradeVisibility = getGradeVisibility(course, {
+          canManage: req.user.isAdmin || canManageCourse(course, req.user),
+          isAdmin: req.user.isAdmin
+        });
+        const userStatus = {
+          attemptCount: attempts.length,
+          bestScore: bestAttempt?.score || null,
+          lastAttemptAt: attempts.length > 0 ?
+            attempts[attempts.length - 1].submittedAt : null,
+          canAttempt: !q.maxAttempts || completedAttempts.length < q.maxAttempts
+        };
         return {
-          ...q,
-          userStatus: {
-            attemptCount: attempts.length,
-            bestScore: bestAttempt?.score || null,
-            lastAttemptAt: attempts.length > 0 ?
-              attempts[attempts.length - 1].submittedAt : null,
-            canAttempt: !q.maxAttempts || completedAttempts.length < q.maxAttempts
-          }
+          ...stripDbKeys(q),
+          userStatus: gradeVisibility.gradesReleased ? userStatus : maskQuizUserStatus(userStatus),
+          gradeVisibility
         };
       })
     );
@@ -143,6 +231,10 @@ router.get('/:id', authMiddleware, async (req, res) => {
     const attempts = await db.query(`QUIZ#${id}`, {
       skPrefix: `ATTEMPT#${userId}#`
     });
+    const gradeVisibility = getGradeVisibility(course, {
+      canManage: req.user.isAdmin || canManageCourse(course, req.user),
+      isAdmin: req.user.isAdmin
+    });
 
     // 檢查是否有進行中的作答
     const inProgressAttempt = attempts.find(a => a.status === 'in_progress');
@@ -168,10 +260,11 @@ router.get('/:id', authMiddleware, async (req, res) => {
           delete a.SK;
           // 不返回詳細答案
           delete a.answers;
-          return a;
+          return gradeVisibility.gradesReleased ? a : maskQuizAttempt(a);
         }),
         inProgressAttemptId: inProgressAttempt?.attemptId,
-        canAttempt: !quiz.maxAttempts || attempts.filter(a => a.status === 'completed').length < quiz.maxAttempts
+        canAttempt: !quiz.maxAttempts || attempts.filter(a => a.status === 'completed').length < quiz.maxAttempts,
+        gradeVisibility
       }
     });
 

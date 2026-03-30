@@ -10,6 +10,7 @@ const { authMiddleware } = require('../../utils/auth');
 const { canManageCourse } = require('../../utils/course-access');
 const { invalidateGradebookSnapshots } = require('../../utils/gradebook-snapshots');
 const { syncCourseCertificates } = require('../../utils/certificates');
+const { getGradeVisibility } = require('../../utils/grade-visibility');
 const {
   getQuiz,
   prepareQuestionsForStudent,
@@ -258,6 +259,11 @@ router.post('/:id/attempts/:attemptId/submit', authMiddleware, async (req, res) 
         message: '找不到此測驗'
       });
     }
+    const course = quiz.courseId ? await db.getItem(`COURSE#${quiz.courseId}`, 'META') : null;
+    const gradeVisibility = getGradeVisibility(course, {
+      canManage: req.user.isAdmin || canManageCourse(course, req.user),
+      isAdmin: req.user.isAdmin
+    });
 
     // 找到作答記錄
     const attempts = await db.query(`QUIZ#${id}`, {
@@ -380,11 +386,12 @@ router.post('/:id/attempts/:attemptId/submit', authMiddleware, async (req, res) 
       totalPoints,
       percentage,
       passed,
-      submittedAt: now
+      submittedAt: now,
+      gradeVisibility
     };
 
     // 根據設定決定是否顯示詳細結果
-    if (quiz.showResults === 'immediately') {
+    if (gradeVisibility.gradesReleased && quiz.showResults === 'immediately') {
       result.questionResults = questionResults;
       if (quiz.showCorrectAnswers) {
         result.correctAnswers = quiz.questions.map(q => ({
@@ -396,9 +403,20 @@ router.post('/:id/attempts/:attemptId/submit', authMiddleware, async (req, res) 
       }
     }
 
+    if (!gradeVisibility.gradesReleased) {
+      result = {
+        attemptId,
+        totalPoints,
+        submittedAt: now,
+        gradeVisibility
+      };
+    }
+
     res.json({
       success: true,
-      message: passed ? '恭喜通過測驗！' : '測驗完成',
+      message: gradeVisibility.gradesReleased
+        ? (passed ? '恭喜通過測驗！' : '測驗完成')
+        : '測驗已提交，成績待老師釋出',
       data: result
     });
 
@@ -429,6 +447,11 @@ router.get('/:id/attempts/:attemptId/review', authMiddleware, async (req, res) =
         message: '找不到此測驗'
       });
     }
+    const course = quiz.courseId ? await db.getItem(`COURSE#${quiz.courseId}`, 'META') : null;
+    const gradeVisibility = getGradeVisibility(course, {
+      canManage: req.user.isAdmin || canManageCourse(course, req.user),
+      isAdmin: req.user.isAdmin
+    });
 
     // 找到作答記錄
     const attempts = await db.query(`QUIZ#${id}`, {
@@ -467,6 +490,14 @@ router.get('/:id/attempts/:attemptId/review', authMiddleware, async (req, res) =
         success: false,
         error: 'RESULTS_NOT_AVAILABLE',
         message: '結果將在測驗關閉後顯示'
+      });
+    }
+
+    if (!gradeVisibility.gradesReleased) {
+      return res.status(403).json({
+        success: false,
+        error: 'GRADES_PENDING_RELEASE',
+        message: '此課程成績尚未釋出'
       });
     }
 

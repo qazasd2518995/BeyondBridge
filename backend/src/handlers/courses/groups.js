@@ -33,6 +33,32 @@ function canManageCourse(course, user) {
   return ownerIds.has(user.userId) || inInstructors;
 }
 
+async function getCourseStudentEnrollments(courseId) {
+  const enrollments = await db.queryByIndex(
+    'GSI1',
+    `COURSE#${courseId}`,
+    'GSI1PK',
+    { skPrefix: 'ENROLLED#', skName: 'GSI1SK' }
+  );
+
+  const deduped = new Map();
+  enrollments.forEach((enrollment) => {
+    if (!enrollment?.userId) return;
+    deduped.set(enrollment.userId, {
+      ...enrollment,
+      role: enrollment.role || 'student'
+    });
+  });
+
+  return Array.from(deduped.values());
+}
+
+async function isUserEnrolledInCourse(courseId, userId) {
+  if (!courseId || !userId) return false;
+  const progress = await db.getItem(`USER#${userId}`, `PROG#COURSE#${courseId}`);
+  return !!progress;
+}
+
 /**
  * GET /api/courses/:id/groups
  * 取得課程的所有群組
@@ -401,8 +427,8 @@ router.post('/:id/groups/:groupId/members', authMiddleware, async (req, res) => 
       }
 
       // 檢查用戶是否報名課程
-      const enrollment = await db.getItem(`COURSE#${id}`, `ENROLLMENT#${userId}`);
-      if (!enrollment) {
+      const isEnrolled = await isUserEnrolledInCourse(id, userId);
+      if (!isEnrolled) {
         skipped.push(userId);
         continue;
       }
@@ -667,8 +693,7 @@ router.post('/:id/auto-create-groups', authMiddleware, async (req, res) => {
     }
 
     // 取得所有報名學生
-    const enrollments = await db.query(`COURSE#${id}`, { skPrefix: 'ENROLLMENT#' });
-    const students = enrollments.filter(e => e.role === 'student' || !e.role);
+    const students = await getCourseStudentEnrollments(id);
 
     if (students.length === 0) {
       return res.status(400).json({
@@ -811,8 +836,8 @@ router.get('/:id/group-overview', authMiddleware, async (req, res) => {
     const groups = await db.query(`COURSE#${id}`, { skPrefix: 'GROUP#' });
 
     // 取得所有報名學生
-    const enrollments = await db.query(`COURSE#${id}`, { skPrefix: 'ENROLLMENT#' });
-    const totalStudents = enrollments.filter(e => e.role === 'student' || !e.role).length;
+    const enrollments = await getCourseStudentEnrollments(id);
+    const totalStudents = enrollments.length;
 
     // 統計未分組學生
     const groupedStudentIds = new Set();
@@ -821,9 +846,7 @@ router.get('/:id/group-overview', authMiddleware, async (req, res) => {
       members.forEach(m => groupedStudentIds.add(m.userId));
     }
 
-    const ungroupedStudents = enrollments.filter(
-      e => (e.role === 'student' || !e.role) && !groupedStudentIds.has(e.userId)
-    );
+    const ungroupedStudents = enrollments.filter(e => !groupedStudentIds.has(e.userId));
 
     // 取得每個群組的詳細成員
     const groupsWithMembers = await Promise.all(

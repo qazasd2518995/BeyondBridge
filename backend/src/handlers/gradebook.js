@@ -20,6 +20,13 @@ const {
   putGradebookSnapshot,
   invalidateGradebookSnapshots
 } = require('../utils/gradebook-snapshots');
+const {
+  getGradeVisibility,
+  maskGradeSummary,
+  maskStudentGradeItems,
+  maskAssignmentSubmission,
+  maskQuizAttempt
+} = require('../utils/grade-visibility');
 
 // ==================== 預設成績等第量表 ====================
 
@@ -59,12 +66,51 @@ const DEFAULT_GRADE_SCALES = {
   }
 };
 
+const DEFAULT_GRADE_CATEGORIES = [
+  {
+    categoryId: 'default_assignments',
+    name: '作業',
+    nameEn: 'Assignments',
+    isDefault: true,
+    weight: 40,
+    type: 'assignment',
+    dropLowest: 0,
+    aggregation: 'weighted_mean',
+    order: 1
+  },
+  {
+    categoryId: 'default_quizzes',
+    name: '測驗',
+    nameEn: 'Quizzes',
+    isDefault: true,
+    weight: 40,
+    type: 'quiz',
+    dropLowest: 0,
+    aggregation: 'weighted_mean',
+    order: 2
+  },
+  {
+    categoryId: 'default_participation',
+    name: '參與',
+    nameEn: 'Participation',
+    isDefault: true,
+    weight: 20,
+    type: 'manual',
+    dropLowest: 0,
+    aggregation: 'weighted_mean',
+    order: 3
+  }
+];
+
 const GRADEBOOK_ASSIGNMENT_PROJECTION = [
   'assignmentId',
   'title',
   'maxGrade',
   'weight',
-  'dueDate'
+  'categoryId',
+  'dueDate',
+  'gradeToPass',
+  'hidden'
 ];
 
 const GRADEBOOK_QUIZ_PROJECTION = [
@@ -72,8 +118,12 @@ const GRADEBOOK_QUIZ_PROJECTION = [
   'title',
   'totalPoints',
   'weight',
+  'categoryId',
   'closeDate',
-  'gradeMethod'
+  'gradeMethod',
+  'passingGrade',
+  'maxAttempts',
+  'hidden'
 ];
 
 const GRADEBOOK_MANUAL_ITEM_PROJECTION = [
@@ -173,6 +223,394 @@ function normalizeManualItem(item = {}) {
     createdAt: item.createdAt || null,
     updatedAt: item.updatedAt || null
   };
+}
+
+function defaultCategoryIdForType(type = 'manual') {
+  if (type === 'assignment') return 'default_assignments';
+  if (type === 'quiz') return 'default_quizzes';
+  return 'default_participation';
+}
+
+function defaultCategoryLabelByType(type = 'manual') {
+  if (type === 'assignment') return '作業';
+  if (type === 'quiz') return '測驗';
+  return '參與';
+}
+
+function normalizeAssignmentItem(item = {}) {
+  return {
+    id: item.assignmentId,
+    itemId: item.assignmentId,
+    type: 'assignment',
+    title: item.title,
+    maxGrade: item.maxGrade,
+    maxScore: item.maxGrade,
+    weight: item.weight ?? null,
+    categoryId: item.categoryId || defaultCategoryIdForType('assignment'),
+    dueDate: item.dueDate || null,
+    hidden: !!item.hidden,
+    gradeToPass: item.gradeToPass ?? null
+  };
+}
+
+function normalizeQuizItem(item = {}) {
+  return {
+    id: item.quizId,
+    itemId: item.quizId,
+    type: 'quiz',
+    title: item.title,
+    maxGrade: item.totalPoints,
+    maxScore: item.totalPoints,
+    weight: item.weight ?? null,
+    categoryId: item.categoryId || defaultCategoryIdForType('quiz'),
+    dueDate: item.closeDate || null,
+    hidden: !!item.hidden,
+    gradeMethod: item.gradeMethod || 'highest',
+    passingGrade: item.passingGrade ?? null,
+    maxAttempts: item.maxAttempts ?? null
+  };
+}
+
+function roundGradeValue(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return null;
+  return Math.round(numeric * 100) / 100;
+}
+
+function roundPercentage(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return null;
+  return Math.round(numeric * 100) / 100;
+}
+
+function calculatePercentage(grade, maxGrade) {
+  const earned = Number(grade);
+  const possible = Number(maxGrade);
+  if (!Number.isFinite(earned) || !Number.isFinite(possible) || possible <= 0) {
+    return null;
+  }
+  return roundPercentage((earned / possible) * 100);
+}
+
+function normalizeGradeCategory(category = {}, index = 0) {
+  const type = category.type || 'mixed';
+  const weight = Number(category.weight);
+  const order = Number(category.order);
+  const categoryId = category.categoryId || `cat_${index}`;
+  const isDefault = DEFAULT_GRADE_CATEGORIES.some(item => item.categoryId === categoryId);
+  return {
+    categoryId,
+    name: category.name || defaultCategoryLabelByType(type),
+    nameEn: category.nameEn || category.name || defaultCategoryLabelByType(type),
+    isDefault: category.isDefault === true || isDefault,
+    weight: Number.isFinite(weight) ? Math.max(0, weight) : 0,
+    type,
+    dropLowest: Math.max(0, parseInt(category.dropLowest, 10) || 0),
+    aggregation: category.aggregation || 'weighted_mean',
+    order: Number.isFinite(order) ? order : index + 1
+  };
+}
+
+function mergeGradeCategories(storedCategories = []) {
+  const merged = new Map(
+    DEFAULT_GRADE_CATEGORIES.map((category, index) => [
+      category.categoryId,
+      normalizeGradeCategory(category, index)
+    ])
+  );
+
+  storedCategories.forEach((category, index) => {
+    const normalized = normalizeGradeCategory(category, merged.size + index);
+    merged.set(normalized.categoryId, normalized);
+  });
+
+  return Array.from(merged.values()).sort((a, b) => {
+    const orderDiff = (a.order || 0) - (b.order || 0);
+    if (orderDiff !== 0) return orderDiff;
+    return String(a.name || '').localeCompare(String(b.name || ''));
+  });
+}
+
+async function getCourseGradeCategories(courseId) {
+  const categories = await db.query(`COURSE#${courseId}`, {
+    skPrefix: 'GRADECAT#'
+  });
+  return mergeGradeCategories(categories);
+}
+
+function buildCategoryMap(categories = []) {
+  return new Map(categories.map(category => [category.categoryId, category]));
+}
+
+function ensureCategoryCoverage(categories = [], items = []) {
+  const merged = new Map(categories.map(category => [category.categoryId, category]));
+  let syntheticOrder = merged.size + 1;
+
+  items.forEach(item => {
+    const categoryId = item?.categoryId || defaultCategoryIdForType(item?.type);
+    if (!categoryId || merged.has(categoryId)) return;
+    merged.set(categoryId, normalizeGradeCategory({
+      categoryId,
+      name: defaultCategoryLabelByType(item?.type),
+      nameEn: defaultCategoryLabelByType(item?.type),
+      type: item?.type || 'mixed',
+      weight: 0,
+      aggregation: 'weighted_mean',
+      order: syntheticOrder++
+    }, syntheticOrder));
+  });
+
+  return Array.from(merged.values()).sort((a, b) => {
+    const orderDiff = (a.order || 0) - (b.order || 0);
+    if (orderDiff !== 0) return orderDiff;
+    return String(a.name || '').localeCompare(String(b.name || ''));
+  });
+}
+
+function calculateMean(values = []) {
+  if (values.length === 0) return null;
+  return roundPercentage(values.reduce((sum, value) => sum + value, 0) / values.length);
+}
+
+function calculateMedian(values = []) {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  if (sorted.length % 2 === 0) {
+    return roundPercentage((sorted[middle - 1] + sorted[middle]) / 2);
+  }
+  return roundPercentage(sorted[middle]);
+}
+
+function applyDropLowest(items = [], dropLowest = 0) {
+  const dropCount = Math.max(0, parseInt(dropLowest, 10) || 0);
+  if (dropCount <= 0 || items.length <= dropCount) {
+    return items;
+  }
+
+  const sorted = [...items].sort((a, b) => (a.percentage || 0) - (b.percentage || 0));
+  const dropped = new Set(sorted.slice(0, dropCount).map(item => item.itemId));
+  return items.filter(item => !dropped.has(item.itemId));
+}
+
+function calculateWeightedMean(items = [], {
+  useExplicitWeights = true,
+  fallbackToMaxGrade = true
+} = {}) {
+  const validItems = items.filter(item => Number.isFinite(item?.percentage));
+  if (validItems.length === 0) return null;
+
+  let totalWeight = 0;
+  let total = 0;
+
+  validItems.forEach(item => {
+    const explicitWeight = Number(item.weight);
+    const maxGrade = Number(item.maxGrade);
+    let weight = null;
+
+    if (useExplicitWeights && Number.isFinite(explicitWeight) && explicitWeight > 0) {
+      weight = explicitWeight;
+    } else if (fallbackToMaxGrade && Number.isFinite(maxGrade) && maxGrade > 0) {
+      weight = maxGrade;
+    } else {
+      weight = 1;
+    }
+
+    totalWeight += weight;
+    total += item.percentage * weight;
+  });
+
+  if (totalWeight <= 0) {
+    return calculateMean(validItems.map(item => item.percentage));
+  }
+
+  return roundPercentage(total / totalWeight);
+}
+
+function calculateCategoryPercentage(items = [], category = {}) {
+  const gradedItems = items.filter(item => Number.isFinite(item?.percentage));
+  if (gradedItems.length === 0) return null;
+
+  const trimmedItems = applyDropLowest(gradedItems, category.dropLowest);
+  const percentages = trimmedItems.map(item => item.percentage);
+  if (trimmedItems.length === 0) return null;
+
+  switch (category.aggregation) {
+    case 'highest':
+      return roundPercentage(Math.max(...percentages));
+    case 'lowest':
+      return roundPercentage(Math.min(...percentages));
+    case 'median':
+      return calculateMedian(percentages);
+    case 'mean':
+      return calculateMean(percentages);
+    case 'simple_weighted_mean':
+      return calculateWeightedMean(trimmedItems, {
+        useExplicitWeights: false,
+        fallbackToMaxGrade: true
+      });
+    case 'weighted_mean':
+    default:
+      return calculateWeightedMean(trimmedItems, {
+        useExplicitWeights: true,
+        fallbackToMaxGrade: true
+      });
+  }
+}
+
+function calculateOverallPercentage(items = [], settings = {}, categoryBreakdown = []) {
+  const gradedItems = items.filter(item => Number.isFinite(item?.percentage));
+  if (gradedItems.length === 0) return null;
+
+  if (settings?.weightedCategories) {
+    const activeCategories = categoryBreakdown.filter(category => Number.isFinite(category?.overallPercentage));
+    if (activeCategories.length === 0) return null;
+
+    const totalWeight = activeCategories.reduce((sum, category) => {
+      const weight = Number(category.weight);
+      return sum + (Number.isFinite(weight) && weight > 0 ? weight : 0);
+    }, 0);
+
+    if (totalWeight > 0) {
+      const weightedTotal = activeCategories.reduce((sum, category) => (
+        sum + (category.overallPercentage * category.weight)
+      ), 0);
+      return roundPercentage(weightedTotal / totalWeight);
+    }
+
+    return calculateMean(activeCategories.map(category => category.overallPercentage));
+  }
+
+  const allItemsWeighted = gradedItems.length > 0 && gradedItems.every(item => {
+    const weight = Number(item.weight);
+    return Number.isFinite(weight) && weight > 0;
+  });
+
+  if (allItemsWeighted) {
+    return calculateWeightedMean(gradedItems, {
+      useExplicitWeights: true,
+      fallbackToMaxGrade: false
+    });
+  }
+
+  const totalEarned = gradedItems.reduce((sum, item) => sum + Number(item.grade || 0), 0);
+  const totalPossible = gradedItems.reduce((sum, item) => sum + Number(item.maxGrade || 0), 0);
+  if (totalPossible <= 0) return null;
+  return roundPercentage((totalEarned / totalPossible) * 100);
+}
+
+function calculateGradeSummary(items = [], categories = [], settings = {}) {
+  const gradedItems = items.filter(item => {
+    const grade = Number(item?.grade);
+    return Number.isFinite(grade) && Number.isFinite(item?.percentage);
+  }).map(item => ({
+    ...item,
+    grade: Number(item.grade)
+  }));
+  const totalEarned = gradedItems.reduce((sum, item) => sum + Number(item.grade || 0), 0);
+  const totalPossible = gradedItems.reduce((sum, item) => sum + Number(item.maxGrade || 0), 0);
+  const resolvedCategories = ensureCategoryCoverage(categories, items);
+  const categoryBreakdown = resolvedCategories.map(category => {
+    const categoryItems = gradedItems.filter(item => item.categoryId === category.categoryId);
+    return {
+      categoryId: category.categoryId,
+      name: category.name,
+      nameEn: category.nameEn,
+      type: category.type,
+      weight: category.weight,
+      aggregation: category.aggregation,
+      dropLowest: category.dropLowest,
+      gradedItemCount: categoryItems.length,
+      overallPercentage: calculateCategoryPercentage(categoryItems, category)
+    };
+  });
+
+  const overallPercentage = calculateOverallPercentage(gradedItems, settings, categoryBreakdown);
+  const passingGrade = settings?.gradeToPass ?? 60;
+
+  return {
+    totalEarned: roundGradeValue(totalEarned) ?? 0,
+    totalPossible: roundGradeValue(totalPossible) ?? 0,
+    gradedCount: gradedItems.length,
+    completedItems: gradedItems.length,
+    totalItems: items.length,
+    overallGrade: overallPercentage,
+    overallPercentage,
+    passingGrade,
+    passing: Number.isFinite(overallPercentage) ? overallPercentage >= passingGrade : false,
+    categoryBreakdown
+  };
+}
+
+function buildStudentGradeItems(dataset = {}, studentId, categories = []) {
+  const categoryMap = buildCategoryMap(ensureCategoryCoverage(categories, buildGradeColumns(
+    dataset.assignments || [],
+    dataset.quizzes || [],
+    dataset.manualItems || []
+  )));
+
+  const assignmentItems = (dataset.assignments || []).map(assignment => {
+    const item = normalizeAssignmentItem(assignment);
+    const submission = dataset.submissionsByAssignment?.get(item.itemId)?.get(studentId) || null;
+    const grade = submission?.grade === null || submission?.grade === undefined
+      ? null
+      : Number(submission.grade);
+    return {
+      ...item,
+      category: categoryMap.get(item.categoryId)?.name || defaultCategoryLabelByType(item.type),
+      grade,
+      percentage: calculatePercentage(grade, item.maxGrade),
+      graded: grade !== null && grade !== undefined,
+      submitted: !!submission,
+      feedback: submission?.feedback || null,
+      gradedAt: submission?.gradedAt || null,
+      submittedAt: submission?.submittedAt || null,
+      isLate: !!submission?.isLate,
+      lateBy: submission?.lateBy || 0
+    };
+  });
+
+  const quizItems = (dataset.quizzes || []).map(quiz => {
+    const item = normalizeQuizItem(quiz);
+    const quizSummary = getQuizGradeSummary(item, dataset.attemptsByQuiz?.get(item.itemId)?.get(studentId) || []);
+    const bestScore = quizSummary.bestScore === null || quizSummary.bestScore === undefined
+      ? null
+      : Number(quizSummary.bestScore);
+    return {
+      ...item,
+      category: categoryMap.get(item.categoryId)?.name || defaultCategoryLabelByType(item.type),
+      grade: bestScore,
+      percentage: Number.isFinite(quizSummary.bestPercentage)
+        ? roundPercentage(quizSummary.bestPercentage)
+        : calculatePercentage(bestScore, item.maxGrade),
+      graded: bestScore !== null && bestScore !== undefined,
+      submitted: quizSummary.attemptCount > 0,
+      feedback: null,
+      attemptCount: quizSummary.attemptCount,
+      gradedAt: quizSummary.bestAttempt?.submittedAt || quizSummary.completedAttempts?.slice(-1)?.[0]?.submittedAt || null
+    };
+  });
+
+  const manualItems = (dataset.manualItems || []).map(manualItem => {
+    const item = normalizeManualItem(manualItem);
+    const record = dataset.manualRecordsByItem?.get(item.itemId)?.get(studentId) || null;
+    const grade = record?.grade === null || record?.grade === undefined
+      ? null
+      : Number(record.grade);
+    return {
+      ...item,
+      category: categoryMap.get(item.categoryId)?.name || defaultCategoryLabelByType(item.type),
+      grade,
+      percentage: calculatePercentage(grade, item.maxGrade),
+      graded: grade !== null && grade !== undefined,
+      submitted: grade !== null && grade !== undefined,
+      feedback: record?.feedback || null,
+      gradedAt: record?.gradedAt || null,
+      submittedAt: record?.gradedAt || record?.updatedAt || null
+    };
+  });
+
+  return [...assignmentItems, ...quizItems, ...manualItems];
 }
 
 async function getCourseAssignments(courseId) {
@@ -326,30 +764,17 @@ async function getEnrollmentUserMap(enrollments = []) {
   return new Map(users.filter(user => user?.userId).map(user => [user.userId, user]));
 }
 
-function buildGradeColumns(assignments = [], quizzes = [], manualItems = []) {
-  return [
-    ...assignments.map(a => ({
-      id: a.assignmentId,
-      itemId: a.assignmentId,
-      type: 'assignment',
-      title: a.title,
-      maxGrade: a.maxGrade,
-      maxScore: a.maxGrade,
-      weight: a.weight,
-      dueDate: a.dueDate
-    })),
-    ...quizzes.map(q => ({
-      id: q.quizId,
-      itemId: q.quizId,
-      type: 'quiz',
-      title: q.title,
-      maxGrade: q.totalPoints,
-      maxScore: q.totalPoints,
-      weight: q.weight,
-      dueDate: q.closeDate
-    })),
+function buildGradeColumns(assignments = [], quizzes = [], manualItems = [], categories = []) {
+  const items = [
+    ...assignments.map(normalizeAssignmentItem),
+    ...quizzes.map(normalizeQuizItem),
     ...manualItems.map(normalizeManualItem)
   ];
+  const categoryMap = buildCategoryMap(ensureCategoryCoverage(categories, items));
+  return items.map(item => ({
+    ...item,
+    category: categoryMap.get(item.categoryId)?.name || defaultCategoryLabelByType(item.type)
+  }));
 }
 
 function applyStudentFiltersAndSorting(students = [], { search, sortBy = 'name', sortOrder = 'asc' } = {}) {
@@ -426,70 +851,35 @@ async function buildTeacherCourseGradebookSnapshot(courseId, course) {
     attemptsByQuiz,
     manualRecordsByItem
   } = await buildCourseGradebookDataset(courseId);
+  const categories = await getCourseGradeCategories(courseId);
 
-  const gradeColumns = buildGradeColumns(assignments, quizzes, manualItems);
+  const gradeColumns = buildGradeColumns(assignments, quizzes, manualItems, categories);
   const enrollmentUserMap = await getEnrollmentUserMap(enrollments);
 
   const students = await Promise.all(
     enrollments.map(async (e) => {
       const user = enrollmentUserMap.get(e.userId);
-      const grades = {};
-      let totalEarned = 0;
-      let totalPossible = 0;
-      let gradedCount = 0;
-
-      for (const a of assignments) {
-        const submission = submissionsByAssignment.get(a.assignmentId)?.get(e.userId) || null;
-        grades[a.assignmentId] = {
-          grade: submission?.grade ?? null,
-          submitted: !!submission,
-          gradedAt: submission?.gradedAt
-        };
-
-        if (submission?.grade !== undefined && submission?.grade !== null) {
-          totalEarned += submission.grade;
-          totalPossible += a.maxGrade;
-          gradedCount++;
-        }
-      }
-
-      for (const q of quizzes) {
-        const attempts = attemptsByQuiz.get(q.quizId)?.get(e.userId) || [];
-        const quizSummary = getQuizGradeSummary(q, attempts);
-        const bestScore = quizSummary.bestScore;
-
-        grades[q.quizId] = {
-          grade: bestScore,
-          submitted: quizSummary.attemptCount > 0,
-          attemptCount: quizSummary.attemptCount
-        };
-
-        if (bestScore !== null) {
-          totalEarned += bestScore;
-          totalPossible += q.totalPoints;
-          gradedCount++;
-        }
-      }
-
-      for (const item of manualItems) {
-        const record = manualRecordsByItem.get(item.itemId)?.get(e.userId) || null;
-        grades[item.itemId] = {
-          grade: record?.grade ?? null,
-          submitted: record?.grade !== undefined && record?.grade !== null,
-          gradedAt: record?.gradedAt || null,
-          feedback: record?.feedback || ''
-        };
-
-        if (record?.grade !== undefined && record?.grade !== null) {
-          totalEarned += record.grade;
-          totalPossible += item.maxGrade;
-          gradedCount++;
-        }
-      }
-
-      const overallPercentage = totalPossible > 0
-        ? Math.round((totalEarned / totalPossible) * 10000) / 100
-        : null;
+      const studentItems = buildStudentGradeItems({
+        assignments,
+        quizzes,
+        manualItems,
+        submissionsByAssignment,
+        attemptsByQuiz,
+        manualRecordsByItem
+      }, e.userId, categories);
+      const grades = Object.fromEntries(
+        studentItems.map(item => [item.itemId, {
+          grade: item.grade ?? null,
+          submitted: !!item.submitted,
+          gradedAt: item.gradedAt || null,
+          feedback: item.feedback || '',
+          attemptCount: item.attemptCount || 0,
+          percentage: item.percentage,
+          categoryId: item.categoryId,
+          weight: item.weight ?? null
+        }])
+      );
+      const summary = calculateGradeSummary(studentItems, categories, course.settings || {});
 
       return {
         userId: e.userId,
@@ -498,14 +888,7 @@ async function buildTeacherCourseGradebookSnapshot(courseId, course) {
         enrolledAt: e.enrolledAt,
         lastAccess: e.lastAccessedAt,
         grades,
-        summary: {
-          totalEarned,
-          totalPossible,
-          gradedCount,
-          totalItems: gradeColumns.length,
-          overallPercentage,
-          passing: overallPercentage >= (course.settings?.gradeToPass || 60)
-        }
+        summary
       };
     })
   );
@@ -634,22 +1017,12 @@ router.get('/courses/:courseId/categories', authMiddleware, async (req, res) => 
       });
     }
 
-    // 取得成績類別
-    const categories = await db.query(`COURSE#${courseId}`, {
-      skPrefix: 'GRADECAT#'
-    });
-
-    // 如果沒有類別，返回預設類別
-    const defaultCategories = [
-      { categoryId: 'default_assignments', name: '作業', nameEn: 'Assignments', weight: 40, type: 'assignment' },
-      { categoryId: 'default_quizzes', name: '測驗', nameEn: 'Quizzes', weight: 40, type: 'quiz' },
-      { categoryId: 'default_participation', name: '參與', nameEn: 'Participation', weight: 20, type: 'manual' }
-    ];
+    const categories = await getCourseGradeCategories(courseId);
 
     res.json({
       success: true,
       data: {
-        categories: categories.length > 0 ? categories : defaultCategories,
+        categories,
         totalWeight: categories.reduce((sum, c) => sum + (c.weight || 0), 0) || 100
       }
     });
@@ -750,7 +1123,8 @@ router.put('/courses/:courseId/categories/:categoryId', authMiddleware, async (r
     }
 
     const category = await db.getItem(`COURSE#${courseId}`, `GRADECAT#${categoryId}`);
-    if (!category) {
+    const defaultCategory = DEFAULT_GRADE_CATEGORIES.find(item => item.categoryId === categoryId);
+    if (!category && !defaultCategory) {
       return res.status(404).json({
         success: false,
         error: 'NOT_FOUND',
@@ -768,13 +1142,38 @@ router.put('/courses/:courseId/categories/:categoryId', authMiddleware, async (r
       updatedAt: new Date().toISOString()
     };
 
-    await db.updateItem(`COURSE#${courseId}`, `GRADECAT#${categoryId}`, updates);
+    if (!category && defaultCategory) {
+      const now = new Date().toISOString();
+      await db.putItem({
+        PK: `COURSE#${courseId}`,
+        SK: `GRADECAT#${categoryId}`,
+        entityType: 'GRADE_CATEGORY',
+        categoryId,
+        courseId,
+        name: updates.name || defaultCategory.name,
+        nameEn: updates.nameEn || defaultCategory.nameEn,
+        weight: updates.weight ?? defaultCategory.weight,
+        type: updates.type || defaultCategory.type,
+        dropLowest: updates.dropLowest ?? defaultCategory.dropLowest,
+        aggregation: updates.aggregation || defaultCategory.aggregation,
+        order: defaultCategory.order,
+        createdAt: now,
+        updatedAt: now
+      });
+    } else {
+      await db.updateItem(`COURSE#${courseId}`, `GRADECAT#${categoryId}`, updates);
+    }
     await invalidateGradebookSnapshots(courseId);
 
     res.json({
       success: true,
       message: '成績類別已更新',
-      data: { ...category, ...updates }
+      data: {
+        ...(defaultCategory || {}),
+        ...(category || {}),
+        ...updates,
+        categoryId
+      }
     });
 
   } catch (error) {
@@ -802,6 +1201,14 @@ router.delete('/courses/:courseId/categories/:categoryId', authMiddleware, async
         success: false,
         error: 'FORBIDDEN',
         message: '沒有權限管理此課程成績類別'
+      });
+    }
+
+    if (DEFAULT_GRADE_CATEGORIES.some(item => item.categoryId === categoryId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'DEFAULT_CATEGORY_LOCKED',
+        message: '預設成績類別不可刪除'
       });
     }
 
@@ -856,39 +1263,8 @@ router.get('/courses/:courseId/items', authMiddleware, async (req, res) => {
 
     // 取得所有成績項目
     const { assignments, quizzes, manualItems } = await getCourseGradeItems(courseId);
-
-    const items = [
-      ...assignments.map(a => ({
-        itemId: a.assignmentId,
-        type: 'assignment',
-        title: a.title,
-        maxGrade: a.maxGrade,
-        weight: a.weight,
-        categoryId: a.categoryId || 'default_assignments',
-        dueDate: a.dueDate,
-        hidden: a.hidden || false
-      })),
-      ...quizzes.map(q => ({
-        itemId: q.quizId,
-        type: 'quiz',
-        title: q.title,
-        maxGrade: q.totalPoints,
-        weight: q.weight,
-        categoryId: q.categoryId || 'default_quizzes',
-        dueDate: q.closeDate,
-        hidden: q.hidden || false
-      })),
-      ...manualItems.map(m => ({
-        itemId: m.itemId,
-        type: 'manual',
-        title: m.title,
-        maxGrade: m.maxGrade,
-        weight: m.weight,
-        categoryId: m.categoryId || 'default_participation',
-        dueDate: m.dueDate,
-        hidden: m.hidden || false
-      }))
-    ];
+    const categories = await getCourseGradeCategories(courseId);
+    const items = buildGradeColumns(assignments, quizzes, manualItems, categories);
 
     res.json({
       success: true,
@@ -1211,123 +1587,59 @@ router.get('/my', authMiddleware, async (req, res) => {
       progressList = progressList.filter(p => p.courseId === courseId);
     }
 
+    const courses = await db.getCoursesByIds(
+      progressList.map(progress => progress.courseId),
+      { projection: ['courseId', 'title', 'name', 'settings'] }
+    );
+    const courseMap = new Map(
+      courses
+        .filter(course => course?.courseId)
+        .map(course => [course.courseId, course])
+    );
+
     const gradesData = await Promise.all(
       progressList.map(async (progress) => {
-        const course = await db.getItem(`COURSE#${progress.courseId}`, 'META');
-        const {
-          assignments,
-          quizzes,
-          manualItems,
-          submissionsByAssignment,
-          attemptsByQuiz,
-          manualRecordsByItem
-        } = await buildCourseGradebookDataset(progress.courseId);
+        const course = courseMap.get(progress.courseId) || null;
+        const dataset = await buildCourseGradebookDataset(progress.courseId);
+        const categories = await getCourseGradeCategories(progress.courseId);
+        const categoryMap = buildCategoryMap(categories);
+        const gradeVisibility = getGradeVisibility(course, {
+          canManage: req.user.isAdmin || canManageCourse(course, req.user),
+          isAdmin: req.user.isAdmin
+        });
 
-        // 整理成績項目
-        const gradeItems = [];
+        let gradeItems = buildStudentGradeItems(dataset, userId, categories).map(item => ({
+          type: item.type,
+          itemId: item.itemId,
+          title: item.title,
+          category: categoryMap.get(item.categoryId)?.name || item.category || defaultCategoryLabelByType(item.type),
+          categoryId: item.categoryId,
+          maxGrade: item.maxGrade,
+          weight: item.weight ?? null,
+          dueDate: item.dueDate || null,
+          grade: item.grade ?? null,
+          percentage: item.percentage,
+          graded: !!item.graded,
+          submitted: !!item.submitted,
+          feedback: item.feedback || null,
+          attemptCount: item.attemptCount || 0,
+          passed: item.type === 'quiz' && Number.isFinite(item.percentage)
+            ? item.percentage >= (item.passingGrade ?? 60)
+            : null
+        }));
+        let summary = calculateGradeSummary(gradeItems, categories, course?.settings || {});
 
-        // 作業成績
-        for (const a of assignments) {
-          const submission = submissionsByAssignment.get(a.assignmentId)?.get(userId) || null;
-
-          gradeItems.push({
-            type: 'assignment',
-            itemId: a.assignmentId,
-            title: a.title,
-            category: '作業',
-            maxGrade: a.maxGrade,
-            weight: a.weight || null,
-            dueDate: a.dueDate,
-            grade: submission?.grade || null,
-            graded: !!submission?.gradedAt,
-            submitted: !!submission,
-            feedback: submission?.feedback || null
-          });
-        }
-
-        // 測驗成績
-        for (const q of quizzes) {
-          const quizSummary = getQuizGradeSummary(q, attemptsByQuiz.get(q.quizId)?.get(userId) || []);
-          const bestScore = quizSummary.bestScore;
-          const bestPercentage = quizSummary.bestPercentage;
-
-          gradeItems.push({
-            type: 'quiz',
-            itemId: q.quizId,
-            title: q.title,
-            category: '測驗',
-            maxGrade: q.totalPoints,
-            weight: q.weight || null,
-            dueDate: q.closeDate,
-            grade: bestScore,
-            percentage: bestPercentage,
-            graded: quizSummary.attemptCount > 0,
-            attemptCount: quizSummary.attemptCount,
-            passed: bestPercentage >= q.passingGrade
-          });
-        }
-
-        // 手動成績
-        for (const item of manualItems) {
-          const record = manualRecordsByItem.get(item.itemId)?.get(userId) || null;
-
-          gradeItems.push({
-            type: 'manual',
-            itemId: item.itemId,
-            title: item.title,
-            category: '手動項目',
-            maxGrade: item.maxGrade,
-            weight: item.weight || null,
-            dueDate: item.dueDate || null,
-            grade: record?.grade ?? null,
-            percentage: record?.grade != null && item.maxGrade
-              ? Math.round((record.grade / item.maxGrade) * 10000) / 100
-              : null,
-            graded: record?.grade !== undefined && record?.grade !== null,
-            feedback: record?.feedback || null
-          });
-        }
-
-        // 計算總成績
-        const gradedItems = gradeItems.filter(g => g.grade !== null);
-        let overallGrade = null;
-        let overallPercentage = null;
-
-        if (gradedItems.length > 0) {
-          // 如果有權重，使用加權平均
-          const hasWeights = gradedItems.some(g => g.weight);
-
-          if (hasWeights) {
-            const totalWeight = gradedItems.reduce((sum, g) => sum + (g.weight || 0), 0);
-            if (totalWeight > 0) {
-              overallPercentage = gradedItems.reduce((sum, g) => {
-                const percentage = g.percentage || (g.grade / g.maxGrade * 100);
-                return sum + percentage * (g.weight || 0) / totalWeight;
-              }, 0);
-            }
-          } else {
-            // 簡單平均
-            overallPercentage = gradedItems.reduce((sum, g) => {
-              const percentage = g.percentage || (g.grade / g.maxGrade * 100);
-              return sum + percentage;
-            }, 0) / gradedItems.length;
-          }
-
-          overallGrade = Math.round(overallPercentage * 100) / 100;
+        if (!gradeVisibility.gradesReleased) {
+          gradeItems = maskStudentGradeItems(gradeItems);
+          summary = maskGradeSummary(summary);
         }
 
         return {
           courseId: progress.courseId,
           courseTitle: course?.title || progress.courseTitle,
           gradeItems,
-          summary: {
-            totalItems: gradeItems.length,
-            completedItems: gradedItems.length,
-            overallGrade,
-            overallPercentage,
-            passingGrade: course?.settings?.gradeToPass || 60,
-            passing: overallPercentage >= (course?.settings?.gradeToPass || 60)
-          }
+          summary,
+          gradeVisibility
         };
       })
     );
@@ -1417,6 +1729,10 @@ router.get('/courses/:courseId/students/:studentId', authMiddleware, async (req,
 
     const isInstructor = canManageCourse(course, req.user);
     const isSelf = studentId === userId;
+    const gradeVisibility = getGradeVisibility(course, {
+      canManage: req.user.isAdmin || isInstructor,
+      isAdmin: req.user.isAdmin
+    });
 
     if (!isInstructor && !isSelf && !req.user.isAdmin) {
       return res.status(403).json({
@@ -1438,120 +1754,100 @@ router.get('/courses/:courseId/students/:studentId', authMiddleware, async (req,
       });
     }
 
-    const {
-      assignments,
-      quizzes,
-      manualItems,
-      submissionsByAssignment,
-      attemptsByQuiz,
-      manualRecordsByItem
-    } = await buildCourseGradebookDataset(courseId);
+    const dataset = await buildCourseGradebookDataset(courseId);
+    const categories = await getCourseGradeCategories(courseId);
+    const studentItems = buildStudentGradeItems(dataset, studentId, categories);
+    let assignmentGrades = studentItems
+      .filter(item => item.type === 'assignment')
+      .map(item => ({
+        type: item.type,
+        itemId: item.itemId,
+        title: item.title,
+        maxGrade: item.maxGrade,
+        dueDate: item.dueDate,
+        categoryId: item.categoryId,
+        weight: item.weight ?? null,
+        submission: item.submitted ? {
+          submittedAt: item.submittedAt || null,
+          grade: item.grade,
+          feedback: item.feedback,
+          gradedAt: item.gradedAt,
+          isLate: !!item.isLate,
+          lateBy: item.lateBy || 0
+        } : null
+      }));
+    let quizGrades = (dataset.quizzes || []).map(quiz => {
+      const item = studentItems.find(entry => entry.itemId === quiz.quizId);
+      const quizSummary = getQuizGradeSummary(normalizeQuizItem(quiz), dataset.attemptsByQuiz?.get(quiz.quizId)?.get(studentId) || []);
+      const completedAttempts = quizSummary.completedAttempts
+        .filter(attempt => attempt.status === 'completed')
+        .map(attempt => ({
+          attemptNumber: attempt.attemptNumber,
+          score: attempt.score,
+          percentage: attempt.percentage,
+          passed: attempt.passed,
+          submittedAt: attempt.submittedAt
+        }));
 
-    const assignmentGrades = await Promise.all(
-      assignments.map(async (a) => {
-        const submission = submissionsByAssignment.get(a.assignmentId)?.get(studentId) || null;
-
-        return {
-          type: 'assignment',
-          itemId: a.assignmentId,
-          title: a.title,
-          maxGrade: a.maxGrade,
-          dueDate: a.dueDate,
-          submission: submission ? {
-            submittedAt: submission.submittedAt,
-            grade: submission.grade,
-            feedback: submission.feedback,
-            gradedAt: submission.gradedAt,
-            isLate: submission.isLate
-          } : null
-        };
-      })
-    );
-
-    const quizGrades = await Promise.all(
-      quizzes.map(async (q) => {
-        const quizSummary = getQuizGradeSummary(q, attemptsByQuiz.get(q.quizId)?.get(studentId) || []);
-        const completedAttempts = quizSummary.completedAttempts
-          .filter(a => a.status === 'completed')
-          .map(a => ({
-            attemptNumber: a.attemptNumber,
-            score: a.score,
-            percentage: a.percentage,
-            passed: a.passed,
-            submittedAt: a.submittedAt
-          }));
-
-        return {
-          type: 'quiz',
-          itemId: q.quizId,
-          title: q.title,
-          maxGrade: q.totalPoints,
-          passingGrade: q.passingGrade,
-          closeDate: q.closeDate,
-          maxAttempts: q.maxAttempts,
-          gradeMethod: q.gradeMethod,
-          attempts: completedAttempts,
-          bestAttempt: quizSummary.bestAttempt
-            ? {
-              attemptNumber: quizSummary.bestAttempt.attemptNumber,
-              score: quizSummary.bestAttempt.score,
-              percentage: quizSummary.bestAttempt.percentage,
-              passed: quizSummary.bestAttempt.passed,
-              submittedAt: quizSummary.bestAttempt.submittedAt
-            }
-            : null
-        };
-      })
-    );
-
-    const manualGrades = await Promise.all(
-      manualItems.map(async (item) => {
-        const record = manualRecordsByItem.get(item.itemId)?.get(studentId) || null;
-
-        return {
-          type: 'manual',
-          itemId: item.itemId,
-          title: item.title,
-          maxGrade: item.maxGrade,
-          dueDate: item.dueDate || null,
-          submission: record ? {
-            submittedAt: record.gradedAt || record.updatedAt || record.createdAt || null,
-            grade: record.grade,
-            feedback: record.feedback,
-            gradedAt: record.gradedAt || null,
-            isLate: false
-          } : null
-        };
-      })
-    );
-
-    // 計算總成績
-    let totalEarned = 0;
-    let totalPossible = 0;
-
-    assignmentGrades.forEach(g => {
-      if (g.submission?.grade !== undefined && g.submission?.grade !== null) {
-        totalEarned += g.submission.grade;
-        totalPossible += g.maxGrade;
-      }
+      return {
+        type: 'quiz',
+        itemId: quiz.quizId,
+        title: quiz.title,
+        maxGrade: quiz.totalPoints,
+        passingGrade: quiz.passingGrade,
+        closeDate: quiz.closeDate,
+        maxAttempts: quiz.maxAttempts,
+        gradeMethod: quiz.gradeMethod,
+        categoryId: item?.categoryId || defaultCategoryIdForType('quiz'),
+        weight: item?.weight ?? null,
+        attempts: completedAttempts,
+        bestAttempt: quizSummary.bestAttempt
+          ? {
+            attemptNumber: quizSummary.bestAttempt.attemptNumber,
+            score: quizSummary.bestAttempt.score,
+            percentage: quizSummary.bestAttempt.percentage,
+            passed: quizSummary.bestAttempt.passed,
+            submittedAt: quizSummary.bestAttempt.submittedAt
+          }
+          : null
+      };
     });
+    let manualGrades = studentItems
+      .filter(item => item.type === 'manual')
+      .map(item => ({
+        type: item.type,
+        itemId: item.itemId,
+        title: item.title,
+        maxGrade: item.maxGrade,
+        dueDate: item.dueDate || null,
+        categoryId: item.categoryId,
+        weight: item.weight ?? null,
+        submission: item.submitted ? {
+          submittedAt: item.submittedAt || null,
+          grade: item.grade,
+          feedback: item.feedback,
+          gradedAt: item.gradedAt || null,
+          isLate: false
+        } : null
+      }));
+    let summary = calculateGradeSummary(studentItems, categories, course.settings || {});
 
-    quizGrades.forEach(g => {
-      if (g.bestAttempt) {
-        totalEarned += g.bestAttempt.score;
-        totalPossible += g.maxGrade;
-      }
-    });
-
-    manualGrades.forEach(g => {
-      if (g.submission?.grade !== undefined && g.submission?.grade !== null) {
-        totalEarned += g.submission.grade;
-        totalPossible += g.maxGrade;
-      }
-    });
-
-    const overallPercentage = totalPossible > 0 ?
-      Math.round((totalEarned / totalPossible) * 10000) / 100 : null;
+    if (!gradeVisibility.gradesReleased) {
+      assignmentGrades = assignmentGrades.map(item => ({
+        ...item,
+        submission: item.submission ? maskAssignmentSubmission(item.submission) : null
+      }));
+      quizGrades = quizGrades.map(item => ({
+        ...item,
+        attempts: (item.attempts || []).map(maskQuizAttempt),
+        bestAttempt: item.bestAttempt ? maskQuizAttempt(item.bestAttempt) : null
+      }));
+      manualGrades = manualGrades.map(item => ({
+        ...item,
+        submission: item.submission ? maskAssignmentSubmission(item.submission) : null
+      }));
+      summary = maskGradeSummary(summary);
+    }
 
     res.json({
       success: true,
@@ -1568,13 +1864,8 @@ router.get('/courses/:courseId/students/:studentId', authMiddleware, async (req,
           quizzes: quizGrades,
           manual: manualGrades
         },
-        summary: {
-          totalEarned,
-          totalPossible,
-          overallPercentage,
-          passing: overallPercentage >= (course.settings?.gradeToPass || 60),
-          passingGrade: course.settings?.gradeToPass || 60
-        }
+        summary,
+        gradeVisibility
       }
     });
 

@@ -1,7 +1,7 @@
 const db = require('./db');
 
 const GRADEBOOK_SNAPSHOT_PK = 'GRADEBOOK_SNAPSHOT';
-const GRADEBOOK_SNAPSHOT_VERSION = 1;
+const GRADEBOOK_SNAPSHOT_VERSION = 2;
 const GRADEBOOK_SNAPSHOT_KEYS = {
   TEACHER_COURSE: 'teacher_course'
 };
@@ -14,6 +14,7 @@ async function getGradebookSnapshot(courseId, snapshotKey = GRADEBOOK_SNAPSHOT_K
   if (!courseId) return null;
   const item = await db.getItem(GRADEBOOK_SNAPSHOT_PK, buildGradebookSnapshotSk(courseId, snapshotKey));
   if (!item || item.entityType !== 'GRADEBOOK_SNAPSHOT') return null;
+  if (item.version !== GRADEBOOK_SNAPSHOT_VERSION) return null;
   return item;
 }
 
@@ -59,6 +60,7 @@ async function invalidateGradebookSnapshots(courseId) {
 module.exports = {
   GRADEBOOK_SNAPSHOT_PK,
   GRADEBOOK_SNAPSHOT_KEYS,
+  GRADEBOOK_SNAPSHOT_VERSION,
   getGradebookSnapshot,
   putGradebookSnapshot,
   deleteGradebookSnapshot,
