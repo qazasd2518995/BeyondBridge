@@ -1350,10 +1350,11 @@ const MoodleUI = {
     if (!detailContent) return;
 
     try {
-      const [courseResult, participantsResult, groupOverviewResult] = await Promise.all([
+      const [courseResult, participantsResult, groupOverviewResult, inviteLinkResult] = await Promise.all([
         API.courses.get(courseId),
         API.courses.getParticipants(courseId),
-        API.courseGroups.getOverview(courseId).catch(() => ({ success: false, data: null }))
+        API.courseGroups.getOverview(courseId).catch(() => ({ success: false, data: null })),
+        API.classes.getCourseInviteLink(courseId).catch(() => ({ success: false, data: null }))
       ]);
 
       if (!courseResult.success || !courseResult.data) {
@@ -1385,6 +1386,7 @@ const MoodleUI = {
           memberCount: learnerMembers.length
         };
         const groupOverview = groupOverviewResult.success ? (groupOverviewResult.data || {}) : null;
+        const inviteLink = inviteLinkResult.success ? (inviteLinkResult.data || null) : null;
         const subtitleParts = [
           rosterRecord.subject,
           rosterRecord.teacherName,
@@ -1407,7 +1409,10 @@ const MoodleUI = {
           membersEmptyNote: I18n.getLocale() === 'en'
             ? 'Learners will appear here after they enroll in this course.'
             : '學生加入這門課後，就會顯示在這裡。',
-          extraPanelsHtml: this.renderCourseGroupManagementSection(courseId, groupOverview)
+          extraPanelsHtml: [
+            this.renderCourseInviteCodeSection(inviteLink),
+            this.renderCourseGroupManagementSection(courseId, groupOverview)
+          ].join('')
         });
       } else {
         detailContent.innerHTML = this.renderParticipantsList(learnerMembers);
@@ -1418,6 +1423,62 @@ const MoodleUI = {
     } catch (error) {
       console.error('Open course participants workspace error:', error);
       showToast(t('moodleParticipant.loadFailed'));
+    }
+  },
+
+  renderCourseInviteCodeSection(inviteLink = null) {
+    if (!inviteLink?.inviteCode) return '';
+
+    const isEnglish = I18n.getLocale() === 'en';
+    const inviteCode = this.escapeText(inviteLink.inviteCode);
+
+    return `
+      <section class="bridge-detail-panel">
+        <div class="card">
+          <div class="card-header">
+            <div class="bridge-detail-panel-copy">
+              <span class="bridge-detail-panel-kicker">${isEnglish ? 'Invite code' : '邀請碼'}</span>
+              <h3 class="card-title">${isEnglish ? 'Student registration code' : '學生註冊通行碼'}</h3>
+              <p class="bridge-detail-panel-note">${isEnglish ? 'Share this code with learners. Registration or join-by-code will add them to this class and enroll them in the course automatically.' : '把這組通行碼提供給學生。學生註冊或加入後，會自動進入這堂課的班級與課程。'}</p>
+            </div>
+            <div class="management-inline-actions">
+              <div class="bridge-detail-chip">
+                <div class="bridge-detail-chip-body">
+                  <span class="bridge-detail-chip-label">${isEnglish ? 'Code' : '通行碼'}</span>
+                  <strong class="bridge-detail-chip-value">${inviteCode}</strong>
+                </div>
+                <button type="button" class="bridge-detail-icon-btn is-subtle" onclick="MoodleUI.copyInviteCode(${this.toInlineActionValue(inviteLink.inviteCode)})" aria-label="${this.escapeText(isEnglish ? 'Copy invite code' : '複製邀請碼')}">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    `;
+  },
+
+  async copyInviteCode(code = '') {
+    if (!code) return;
+
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(String(code));
+      } else {
+        const fallback = document.createElement('textarea');
+        fallback.value = String(code);
+        fallback.setAttribute('readonly', 'readonly');
+        fallback.style.position = 'absolute';
+        fallback.style.left = '-9999px';
+        document.body.appendChild(fallback);
+        fallback.select();
+        document.execCommand('copy');
+        fallback.remove();
+      }
+      showToast(I18n.getLocale() === 'en' ? 'Invite code copied' : '邀請碼已複製');
+    } catch (error) {
+      console.error('Copy invite code error:', error);
+      showToast(I18n.getLocale() === 'en' ? 'Failed to copy invite code' : '複製邀請碼失敗');
     }
   },
 

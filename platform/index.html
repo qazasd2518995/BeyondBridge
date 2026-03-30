@@ -15700,6 +15700,11 @@
 
                 const cls = result.data;
 
+                if (cls?.courseId && typeof MoodleUI !== 'undefined' && typeof MoodleUI.openCourse === 'function') {
+                    await MoodleUI.openCourse(cls.courseId);
+                    return;
+                }
+
                 const detailContent = document.getElementById('classDetailContent');
                 detailContent.innerHTML = renderClassDetailContent(cls, classId, {
                     isTeacher: false,

@@ -7,6 +7,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../utils/db');
 const auth = require('../utils/auth');
+const { enrollUserIntoClassLinkedCourse } = require('../utils/class-course-links');
 
 /**
  * POST /api/auth/login
@@ -238,6 +239,8 @@ router.post('/register', async (req, res) => {
 
     await db.putItem(newUser);
 
+    let enrolledCourse = null;
+
     // 學生自動加入班級
     if (role === 'student' && classData) {
       // 建立班級成員關係
@@ -279,6 +282,12 @@ router.post('/register', async (req, res) => {
         memberCount: (classData.memberCount || 0) + 1,
         updatedAt: now
       });
+
+      enrolledCourse = await enrollUserIntoClassLinkedCourse(classData, {
+        userId,
+        displayName,
+        email
+      }, { now });
     }
 
     // 產生 Token
@@ -286,7 +295,9 @@ router.post('/register', async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: role === 'student' ? '註冊成功，已加入班級' : '註冊成功',
+      message: role === 'student'
+        ? (enrolledCourse?.courseId ? '註冊成功，已加入班級與課程' : '註冊成功，已加入班級')
+        : '註冊成功',
       data: {
         user: {
           userId,
@@ -296,7 +307,11 @@ router.post('/register', async (req, res) => {
           isAdmin: false,
           organization,
           subscriptionTier: role === 'student' ? 'student' : 'free',
-          enrolledClass: classData ? { classId: classData.classId, className: classData.name } : null
+          enrolledClass: classData ? { classId: classData.classId, className: classData.name } : null,
+          enrolledCourse: enrolledCourse?.courseId ? {
+            courseId: enrolledCourse.courseId,
+            courseTitle: enrolledCourse.courseTitle
+          } : null
         },
         ...tokens
       }

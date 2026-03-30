@@ -7,6 +7,12 @@ const express = require('express');
 const router = express.Router();
 const db = require('../utils/db');
 const { authMiddleware } = require('../utils/auth');
+const { canManageCourse } = require('../utils/course-access');
+const {
+  enrollUserIntoClassLinkedCourse,
+  ensureInviteClassForCourse,
+  generateInviteCode
+} = require('../utils/class-course-links');
 
 const TEACHING_ROLES = new Set([
   'manager',
@@ -105,6 +111,48 @@ router.get('/', authMiddleware, async (req, res) => {
  * GET /api/classes/:id
  * 取得班級詳情
  */
+router.get('/course/:courseId/invite-link', authMiddleware, async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const course = await db.getItem(`COURSE#${courseId}`, 'META');
+
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        error: 'COURSE_NOT_FOUND',
+        message: '找不到課程'
+      });
+    }
+
+    if (!canManageCourse(course, req.user)) {
+      return res.status(403).json({
+        success: false,
+        error: 'FORBIDDEN',
+        message: '無權限查看此課程邀請碼'
+      });
+    }
+
+    const inviteClass = await ensureInviteClassForCourse(course, req.user);
+    res.json({
+      success: true,
+      data: {
+        classId: inviteClass.classId,
+        className: inviteClass.name,
+        inviteCode: inviteClass.inviteCode,
+        courseId: course.courseId,
+        courseTitle: course.title || course.name || ''
+      }
+    });
+  } catch (error) {
+    console.error('Get course invite link error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'FETCH_FAILED',
+      message: '取得課程邀請碼失敗'
+    });
+  }
+});
+
 router.get('/:id', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
@@ -164,8 +212,9 @@ router.get('/:id', authMiddleware, async (req, res) => {
  */
 router.post('/', authMiddleware, async (req, res) => {
   try {
-    const { name, description, subject, gradeLevel } = req.body;
+    const { name, description, subject, gradeLevel, courseId } = req.body;
     const userId = req.user.userId;
+    const course = courseId ? await db.getItem(`COURSE#${courseId}`, 'META') : null;
 
     if (!isTeachingUser(req.user)) {
       return res.status(403).json({
@@ -175,7 +224,16 @@ router.post('/', authMiddleware, async (req, res) => {
       });
     }
 
-    if (!name) {
+    if (courseId && (!course || !canManageCourse(course, req.user))) {
+      return res.status(403).json({
+        success: false,
+        error: 'FORBIDDEN',
+        message: '無權限將班級綁定到此課程'
+      });
+    }
+
+    const className = name || course?.title || '';
+    if (!className) {
       return res.status(400).json({
         success: false,
         error: 'MISSING_FIELDS',
@@ -196,13 +254,15 @@ router.post('/', authMiddleware, async (req, res) => {
       createdAt: now,
 
       classId,
-      name,
+      name: className,
       description: description || '',
-      subject: subject || '一般課程',
+      subject: subject || course?.category || '一般課程',
       gradeLevel: gradeLevel || 'general',
 
       teacherId: userId,
       teacherName: req.user.displayName || '教師',
+      courseId: course?.courseId || null,
+      courseTitle: course?.title || null,
 
       inviteCode,
       memberCount: 0,
@@ -237,7 +297,7 @@ router.post('/', authMiddleware, async (req, res) => {
 router.put('/:id', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, description, subject, gradeLevel, status } = req.body;
+    const { name, description, subject, gradeLevel, status, courseId } = req.body;
 
     const classData = await db.getItem(`CLASS#${id}`, 'META');
     if (!classData) {
@@ -257,12 +317,28 @@ router.put('/:id', authMiddleware, async (req, res) => {
       });
     }
 
+    let linkedCourse = null;
+    if (courseId !== undefined && courseId !== null && courseId !== '') {
+      linkedCourse = await db.getItem(`COURSE#${courseId}`, 'META');
+      if (!linkedCourse || !canManageCourse(linkedCourse, req.user)) {
+        return res.status(403).json({
+          success: false,
+          error: 'FORBIDDEN',
+          message: '無權限更新班級對應課程'
+        });
+      }
+    }
+
     const updates = { updatedAt: new Date().toISOString() };
     if (name) updates.name = name;
     if (description !== undefined) updates.description = description;
     if (subject) updates.subject = subject;
     if (gradeLevel) updates.gradeLevel = gradeLevel;
     if (status) updates.status = status;
+    if (courseId !== undefined) {
+      updates.courseId = courseId || null;
+      updates.courseTitle = linkedCourse?.title || null;
+    }
 
     const updatedClass = await db.updateItem(`CLASS#${id}`, 'META', updates);
 
@@ -407,10 +483,19 @@ router.post('/:id/join', authMiddleware, async (req, res) => {
       updatedAt: now
     });
 
+    const enrolledCourse = await enrollUserIntoClassLinkedCourse(classData, req.user, { now });
+
     res.json({
       success: true,
-      message: '已成功加入班級',
-      data: { classId: id, className: classData.name }
+      message: enrolledCourse?.courseId ? '已成功加入班級與課程' : '已成功加入班級',
+      data: {
+        classId: id,
+        className: classData.name,
+        enrolledCourse: enrolledCourse?.courseId ? {
+          courseId: enrolledCourse.courseId,
+          courseTitle: enrolledCourse.courseTitle
+        } : null
+      }
     });
 
   } catch (error) {
@@ -512,10 +597,19 @@ router.post('/join-by-code', authMiddleware, async (req, res) => {
       updatedAt: now
     });
 
+    const enrolledCourse = await enrollUserIntoClassLinkedCourse(classData, req.user, { now });
+
     res.json({
       success: true,
-      message: '已成功加入班級',
-      data: { classId, className: classData.name }
+      message: enrolledCourse?.courseId ? '已成功加入班級與課程' : '已成功加入班級',
+      data: {
+        classId,
+        className: classData.name,
+        enrolledCourse: enrolledCourse?.courseId ? {
+          courseId: enrolledCourse.courseId,
+          courseTitle: enrolledCourse.courseTitle
+        } : null
+      }
     });
 
   } catch (error) {
@@ -762,17 +856,5 @@ router.delete('/:classId/assignments/:assignmentId', authMiddleware, async (req,
     });
   }
 });
-
-/**
- * 產生邀請碼
- */
-function generateInviteCode() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let code = '';
-  for (let i = 0; i < 6; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return code;
-}
 
 module.exports = router;

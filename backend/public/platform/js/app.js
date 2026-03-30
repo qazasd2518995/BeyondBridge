@@ -2674,6 +2674,10 @@ const App = {
     try {
       const result = await API.classes.get(classId);
       if (result.success) {
+        if (this.isStudentUser(API.getCurrentUser()) && result.data?.courseId && typeof MoodleUI !== 'undefined' && typeof MoodleUI.openCourse === 'function') {
+          await MoodleUI.openCourse(result.data.courseId);
+          return;
+        }
         this.currentClass = result.data;
         this.showClassDetailView();
       } else {

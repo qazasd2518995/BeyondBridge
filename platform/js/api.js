@@ -772,6 +772,10 @@ const API = {
       });
     },
 
+    async getCourseInviteLink(courseId) {
+      return API.request(`/classes/course/${courseId}/invite-link`);
+    },
+
     async removeMember(classId, userId) {
       return API.request(`/classes/${classId}/members/${userId}`, {
         method: 'DELETE'
