@@ -4345,6 +4345,32 @@ const MoodleUI = {
     }
   },
 
+  async deleteAssignment(assignmentId, courseId = this.currentAssignmentCourseId || this.currentCourseId) {
+    const confirmed = await showConfirmDialog({
+      message: t('moodleActivityEdit.confirmDelete'),
+      confirmLabel: t('common.delete'),
+      tone: 'danger'
+    });
+    if (!confirmed) return;
+
+    try {
+      const result = await API.assignments.delete(assignmentId);
+      if (!result.success) {
+        showToast(result.message || t('common.deleteFailed'));
+        return;
+      }
+
+      showToast(result.message || t('common.deleted'));
+      this.currentAssignmentDetail = null;
+      this.currentViewedAssignmentSubmission = null;
+      showView('moodleAssignments');
+      await this.loadAssignments(courseId || this.currentAssignmentCourseId);
+    } catch (error) {
+      console.error('Delete assignment error:', error);
+      showToast(t('common.deleteFailed'));
+    }
+  },
+
   async downloadAllAssignmentSubmissions(assignmentId) {
     try {
       const response = await fetch(`${API.baseUrl}/assignments/${assignmentId}/download-all`, {
@@ -4587,6 +4613,11 @@ const MoodleUI = {
       const briefNote = isTeacher
         ? (isEnglish ? 'Review the task brief, grading basis, and submission requirements before checking student work.' : '先確認這份作業的任務說明、評分依據與提交條件，再開始檢視學生作業。')
         : (isEnglish ? 'Understand the task goal, instructions, and submission requirements before you begin.' : '開始前先理解這次任務的目標、說明與提交方式。');
+      const deleteAssignmentButton = isTeacher ? `
+        <button type="button" class="btn-sm btn-danger" onclick="MoodleUI.deleteAssignment(${this.toInlineActionValue(assignment.assignmentId)}, ${this.toInlineActionValue(assignment.courseId || this.currentAssignmentCourseId || '')})">
+          ${t('common.delete')}
+        </button>
+      ` : '';
       const isPastDue = this.isAssignmentPastDue(assignment);
       const hasSubmissionGrade = assignment.submission && assignment.submission.grade !== undefined && assignment.submission.grade !== null;
       const statusClass = assignment.submission
@@ -4613,8 +4644,11 @@ const MoodleUI = {
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
                 ${t('moodleAssignment.backToList')}
               </button>
-              <div class="assignment-status ${statusClass}">
-                ${this.escapeText(statusText)}
+              <div class="assignment-hero-actions">
+                ${deleteAssignmentButton}
+                <div class="assignment-status ${statusClass}">
+                  ${this.escapeText(statusText)}
+                </div>
               </div>
             </div>
             <div class="assignment-info">
@@ -5115,6 +5149,30 @@ const MoodleUI = {
     this.loadQuizzes(this.currentQuizCourseId, filter);
   },
 
+  async deleteQuiz(quizId, courseId = this.currentQuizCourseId || this.currentCourseId) {
+    const confirmed = await showConfirmDialog({
+      message: I18n.getLocale() === 'en' ? 'Delete this quiz and all attempt records?' : '確定要刪除此測驗與所有作答紀錄嗎？',
+      confirmLabel: t('common.delete'),
+      tone: 'danger'
+    });
+    if (!confirmed) return;
+
+    try {
+      const result = await API.quizzes.delete(quizId);
+      if (!result.success) {
+        showToast(result.message || t('common.deleteFailed'));
+        return;
+      }
+
+      showToast(result.message || (I18n.getLocale() === 'en' ? 'Quiz deleted' : '測驗已刪除'));
+      showView('moodleQuizzes');
+      await this.loadQuizzes(courseId || this.currentQuizCourseId);
+    } catch (error) {
+      console.error('Delete quiz error:', error);
+      showToast(t('common.deleteFailed'));
+    }
+  },
+
   /**
    * 開始測驗
    */
@@ -5606,6 +5664,12 @@ const MoodleUI = {
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
                   <span>${isSubscribed ? (I18n.getLocale() === 'en' ? 'Unsubscribe' : '取消訂閱') : (I18n.getLocale() === 'en' ? 'Subscribe' : '訂閱討論區')}</span>
                 </button>
+                ${canManageForum ? `
+                  <button type="button" class="forum-header-btn secondary" onclick="MoodleUI.deleteForum(${this.toInlineActionValue(forumId)}, ${this.toInlineActionValue(forum.courseId || this.currentForumCourseId || '')})">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                    <span>${t('common.delete')}</span>
+                  </button>
+                ` : ''}
                 <button type="button" class="forum-header-btn primary" onclick="MoodleUI.openNewDiscussionModal(${this.toInlineActionValue(forumId)})">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                   <span>${t('moodleForum.newDiscussion')}</span>
@@ -5967,6 +6031,8 @@ const MoodleUI = {
       .filter(Boolean)
       .sort((a, b) => new Date(b) - new Date(a))[0];
     const courseName = course?.title || course?.name || quiz.courseName || t('moodleCourse.course');
+    const targetCourseId = quiz.courseId || course?.courseId || this.currentQuizCourseId || null;
+    const canManageQuiz = this.canTeachCourse(course);
     const safeBackAction = this.currentQuizCourseId
       ? `showView('moodleQuizzes'); MoodleUI.loadQuizzes(${this.toInlineActionValue(this.currentQuizCourseId)})`
       : `showView('moodleQuizzes'); MoodleUI.loadQuizzes()`;
@@ -5980,12 +6046,19 @@ const MoodleUI = {
           kicker: courseName,
           title: quiz.title || quizMeta.title || t('moodleQuiz.title'),
           subtitle: quiz.description || t('moodleQuiz.noDesc'),
-          actions: this.currentQuizCourseId
-            ? [{
-                label: I18n.getLocale() === 'en' ? 'Create quiz' : '新增測驗',
-                className: 'btn-primary btn-sm',
-                onclick: `MoodleUI.showCreateQuizModal(${this.toInlineActionValue(this.currentQuizCourseId)})`
-              }]
+          actions: canManageQuiz
+            ? [
+                ...(targetCourseId ? [{
+                  label: I18n.getLocale() === 'en' ? 'Create quiz' : '新增測驗',
+                  className: 'btn-primary btn-sm',
+                  onclick: `MoodleUI.showCreateQuizModal(${this.toInlineActionValue(targetCourseId)})`
+                }] : []),
+                {
+                  label: t('common.delete'),
+                  className: 'btn-sm btn-danger',
+                  onclick: `MoodleUI.deleteQuiz(${this.toInlineActionValue(quiz.quizId || quizMeta.quizId || '')}, ${this.toInlineActionValue(targetCourseId || '')})`
+                }
+              ]
             : []
         })}
         <section class="quiz-report-hero">
@@ -6518,6 +6591,30 @@ const MoodleUI = {
     } catch (error) {
       console.error('Mark forum read error:', error);
       showToast(t('common.updateFailed'));
+    }
+  },
+
+  async deleteForum(forumId, courseId = this.currentForumCourseId || this.currentCourseId) {
+    const confirmed = await showConfirmDialog({
+      message: I18n.getLocale() === 'en' ? 'Delete this forum, all discussions, and all replies?' : '確定要刪除此討論區、所有主題與回覆嗎？',
+      confirmLabel: t('common.delete'),
+      tone: 'danger'
+    });
+    if (!confirmed) return;
+
+    try {
+      const result = await API.forums.delete(forumId);
+      if (!result.success) {
+        showToast(result.message || t('common.deleteFailed'));
+        return;
+      }
+
+      showToast(result.message || (I18n.getLocale() === 'en' ? 'Forum deleted' : '討論區已刪除'));
+      showView('moodleForums');
+      await this.loadForums(courseId || this.currentForumCourseId);
+    } catch (error) {
+      console.error('Delete forum error:', error);
+      showToast(t('common.deleteFailed'));
     }
   },
 

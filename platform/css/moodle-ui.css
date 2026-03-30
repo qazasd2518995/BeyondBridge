@@ -2433,6 +2433,14 @@
   z-index: 1;
 }
 
+.assignment-hero-actions {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .assignment-back-btn {
   display: inline-flex;
   align-items: center;
@@ -5647,6 +5655,11 @@
   .assignment-status {
     white-space: normal;
     align-self: flex-start;
+  }
+
+  .assignment-hero-actions {
+    width: 100%;
+    justify-content: flex-start;
   }
 
   .assignment-meta-grid {
