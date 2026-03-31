@@ -5925,25 +5925,25 @@
                 </div>
             </div>
 
-            <!-- Badges View -->
-            <div id="badgesView" class="admin-view">
+            <!-- Certificates View -->
+            <div id="certificatesView" class="admin-view">
                 <div class="admin-header">
-                    <h2 data-i18n="admin.badges.title">徽章系統</h2>
+                    <h2 data-i18n="admin.certificates.title">證書管理</h2>
                     <div class="admin-header-actions">
-                        <button class="btn btn-primary" onclick="openCreateBadgeModal()">
+                        <button class="btn btn-primary" onclick="openCreateCertificateModal()">
                             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                            <span data-i18n="admin.badges.addBadge">新增徽章</span>
+                            <span data-i18n="admin.certificates.addCertificate">新增證書</span>
                         </button>
                     </div>
                 </div>
                 <div class="stats-grid admin-section-spacing">
-                    <div class="stat-card"><div class="stat-value" id="totalBadgesCount">0</div><div class="stat-label" data-i18n="admin.badges.totalBadges">徽章總數</div></div>
-                    <div class="stat-card"><div class="stat-value" id="activeBadgesCount">0</div><div class="stat-label" data-i18n="admin.badges.active">啟用中</div></div>
-                    <div class="stat-card"><div class="stat-value" id="awardedBadgesCount">0</div><div class="stat-label" data-i18n="admin.badges.awarded">已頒發</div></div>
+                    <div class="stat-card"><div class="stat-value" id="totalCertificatesCount">0</div><div class="stat-label" data-i18n="admin.certificates.totalCertificates">證書總數</div></div>
+                    <div class="stat-card"><div class="stat-value" id="activeCertificatesCount">0</div><div class="stat-label" data-i18n="admin.certificates.active">啟用中</div></div>
+                    <div class="stat-card"><div class="stat-value" id="awardedCertificatesCount">0</div><div class="stat-label" data-i18n="admin.certificates.awarded">已頒發</div></div>
                 </div>
                 <div class="card">
-                    <div class="card-header"><h3 data-i18n="admin.badges.list">徽章列表</h3></div>
-                    <div id="badgesGrid" class="admin-card-grid">
+                    <div class="card-header"><h3 data-i18n="admin.certificates.list">證書列表</h3></div>
+                    <div id="certificatesGrid" class="admin-card-grid">
                         <div class="admin-empty-state" data-i18n="common.loading">載入中...</div>
                     </div>
                 </div>
@@ -8472,7 +8472,8 @@
                 'courses': t('admin.courses.title'),
                 'courseCategories': t('admin.categories.title'),
                 'questionbank': t('admin.questionBank.title'),
-                'badges': t('admin.badges.pageTitle'),
+                'certificates': t('admin.certificates.pageTitle'),
+                'badges': t('admin.certificates.pageTitle'),
                 'learningPaths': t('admin.paths.title'),
                 'scorm': 'SCORM',
                 'lti': t('admin.lti.title'),
@@ -8497,6 +8498,7 @@
                 'courses': t('admin.breadcrumb.teaching'),
                 'courseCategories': t('admin.breadcrumb.teaching'),
                 'questionbank': t('admin.breadcrumb.teaching'),
+                'certificates': t('admin.breadcrumb.teaching'),
                 'badges': t('admin.breadcrumb.teaching'),
                 'learningPaths': t('admin.breadcrumb.teaching'),
                 'scorm': t('admin.breadcrumb.advanced'),
@@ -8586,7 +8588,7 @@
         let adminQuestionCategories = [];
         let adminQuestions = [];
         let currentQuestionCategoryFilter = '';
-        let adminBadges = [];
+        let adminCertificates = [];
         let adminH5pContents = [];
 
         // 用戶管理全域變數
@@ -8606,6 +8608,10 @@
 
         // View Management
         function showView(viewName) {
+            if (viewName === 'badges') {
+                viewName = 'certificates';
+            }
+
             document.querySelectorAll('.admin-view').forEach(v => v.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
 
@@ -8631,7 +8637,7 @@
                 case 'courses': loadCourses(); break;
                 case 'courseCategories': loadCourseCategories(); break;
                 case 'questionbank': loadQuestionBank(); break;
-                case 'badges': loadBadges(); break;
+                case 'certificates': loadCertificates(); break;
                 case 'learningPaths': loadLearningPaths(); break;
                 case 'scorm': loadScorm(); break;
                 case 'lti': loadLti(); break;
@@ -10937,27 +10943,34 @@
             `;
         }
 
-        function renderBadgesGrid(badges) {
-            const grid = document.getElementById('badgesGrid');
+        function editCertificate(certificateId) {
+            if (typeof editBadge === 'function') {
+                return editBadge(certificateId);
+            }
+            showToast(t('admin.certificates.createWip'), 'info');
+        }
+
+        function renderCertificatesGrid(certificates) {
+            const grid = document.getElementById('certificatesGrid');
             if (!grid) return;
 
-            if (!Array.isArray(badges) || badges.length === 0) {
-                grid.innerHTML = renderAdminEmptyState(t('admin.badges.noBadges'));
+            if (!Array.isArray(certificates) || certificates.length === 0) {
+                grid.innerHTML = renderAdminEmptyState(t('admin.certificates.noCertificates'));
                 return;
             }
 
-            grid.innerHTML = badges.map((badge) => {
-                const badgeId = badge.id || badge.badgeId || '';
-                const statusLabel = badge.isActive ? t('admin.filter.active') : t('admin.badges.inactive');
-                const statusClass = badge.isActive ? 'badge-success' : 'badge-warning';
+            grid.innerHTML = certificates.map((certificate) => {
+                const certificateId = certificate.id || certificate.badgeId || '';
+                const statusLabel = certificate.isActive ? t('admin.filter.active') : t('admin.certificates.inactive');
+                const statusClass = certificate.isActive ? 'badge-success' : 'badge-warning';
                 return renderAdminEntityCard({
                     tone: 'badge',
-                    kicker: I18n.getLocale() === 'en' ? 'Badge' : '徽章',
-                    title: badge.name || t('admin.badges.unnamed'),
-                    description: badge.description || t('admin.badges.noDescription'),
-                    actions: `<button class="btn-icon" onclick="editBadge('${escapeHtml(String(badgeId))}')" title="${t('common.edit')}"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>`,
+                    kicker: I18n.getLocale() === 'en' ? 'Certificate' : '證書',
+                    title: certificate.name || t('admin.certificates.unnamed'),
+                    description: certificate.description || t('admin.certificates.noDescription'),
+                    actions: `<button class="btn-icon" onclick="editCertificate('${escapeHtml(String(certificateId))}')" title="${t('common.edit')}"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>`,
                     leadMarkup: `<span class="badge ${statusClass}">${escapeHtml(String(statusLabel))}</span>`,
-                    stats: [t('admin.badges.awarded', { count: badge.awardedCount || 0 })]
+                    stats: [t('admin.certificates.awarded', { count: certificate.awardedCount || 0 })]
                 });
             }).join('');
         }
@@ -11176,25 +11189,25 @@
             }
         }
 
-        // Load Badges
-        async function loadBadges() {
+        // Load Certificates
+        async function loadCertificates() {
             try {
                 const result = await API.request('/badges');
-                adminBadges = result.success ? getAdminCollection(result.data) : [];
+                adminCertificates = result.success ? getAdminCollection(result.data) : [];
 
                 // Update stats (with null checks)
-                const totalBadgesEl = document.getElementById('totalBadgesCount');
-                const activeBadgesEl = document.getElementById('activeBadgesCount');
-                const awardedBadgesEl = document.getElementById('awardedBadgesCount');
-                if (totalBadgesEl) totalBadgesEl.textContent = adminBadges.length;
-                if (activeBadgesEl) activeBadgesEl.textContent = adminBadges.filter((badge) => badge.isActive).length;
-                if (awardedBadgesEl) awardedBadgesEl.textContent = adminBadges.reduce((sum, badge) => sum + (badge.awardedCount || 0), 0);
+                const totalCertificatesEl = document.getElementById('totalCertificatesCount');
+                const activeCertificatesEl = document.getElementById('activeCertificatesCount');
+                const awardedCertificatesEl = document.getElementById('awardedCertificatesCount');
+                if (totalCertificatesEl) totalCertificatesEl.textContent = adminCertificates.length;
+                if (activeCertificatesEl) activeCertificatesEl.textContent = adminCertificates.filter((certificate) => certificate.isActive).length;
+                if (awardedCertificatesEl) awardedCertificatesEl.textContent = adminCertificates.reduce((sum, certificate) => sum + (certificate.awardedCount || 0), 0);
 
-                renderBadgesGrid(adminBadges);
+                renderCertificatesGrid(adminCertificates);
             } catch (error) {
-                console.error('Load badges error:', error);
-                const grid = document.getElementById('badgesGrid');
-                if (grid) grid.innerHTML = renderAdminEmptyState(t('admin.badges.loading'), 'error');
+                console.error('Load certificates error:', error);
+                const grid = document.getElementById('certificatesGrid');
+                if (grid) grid.innerHTML = renderAdminEmptyState(t('admin.certificates.loading'), 'error');
             }
         }
 
@@ -12723,16 +12736,16 @@
             }
         }
 
-        async function openCreateBadgeModal() {
+        async function openCreateCertificateModal() {
             try {
                 const values = await showAdminFormDialog({
-                    title: t('admin.badges.addBadge'),
+                    title: t('admin.certificates.addCertificate'),
                     submitText: t('common.create'),
                     fields: [
-                        { name: 'name', label: '徽章名稱', required: true },
-                        { name: 'description', label: '徽章描述', type: 'textarea', rows: 3 },
-                        { name: 'icon', label: '徽章圖示', value: 'trophy', placeholder: '例如：trophy / star / medal' },
-                        { name: 'color', label: '徽章顏色', type: 'color', value: '#f59e0b' }
+                        { name: 'name', label: '證書名稱', required: true },
+                        { name: 'description', label: '證書說明', type: 'textarea', rows: 3 },
+                        { name: 'icon', label: '證書圖示', value: 'trophy', placeholder: '例如：trophy / star / medal' },
+                        { name: 'color', label: '主題顏色', type: 'color', value: '#f59e0b' }
                     ]
                 });
 
@@ -12744,13 +12757,18 @@
                         color: values.color || '#f59e0b',
                         status: 'active'
                     }),
-                    loadBadges,
-                    '徽章建立成功'
+                    loadCertificates,
+                    t('admin.certificates.created')
                 );
             } catch (error) {
                 // 用戶取消
             }
         }
+
+        // Backward-compatible aliases for older admin entry points.
+        const loadBadges = loadCertificates;
+        const renderBadgesGrid = renderCertificatesGrid;
+        const openCreateBadgeModal = openCreateCertificateModal;
 
         async function openCreatePathModal() {
             try {
