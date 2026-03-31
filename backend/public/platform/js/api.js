@@ -2187,6 +2187,10 @@ const API = {
 
   // ===== 證書 API =====
   certificates: {
+    async listAdmin() {
+      return API.request('/certificates/admin/courses');
+    },
+
     async getMy() {
       return API.request('/certificates/my');
     },

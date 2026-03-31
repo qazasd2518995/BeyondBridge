@@ -51,6 +51,69 @@ function buildActivityGroups(activities = []) {
   return groups;
 }
 
+router.get('/admin/courses', authMiddleware, async (req, res) => {
+  try {
+    if (!req.user?.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: '只有管理員可以查看證書總覽'
+      });
+    }
+
+    const [courses, settingsItems] = await Promise.all([
+      db.getItemsByEntityType('COURSE'),
+      db.getItemsByEntityType('COURSE_CERTIFICATE_SETTINGS')
+    ]);
+
+    const courseMap = new Map(
+      (Array.isArray(courses) ? courses : [])
+        .filter(course => course?.courseId)
+        .map(course => [course.courseId, course])
+    );
+
+    const overview = await Promise.all(
+      (Array.isArray(settingsItems) ? settingsItems : [])
+        .filter(item => item?.courseId)
+        .map(async (item) => {
+          const course = courseMap.get(item.courseId) || null;
+          const normalized = normalizeCertificateSettings(item, course || { courseId: item.courseId }, []);
+          const recipients = await listCourseRecipients(item.courseId);
+          const durationCriterion = normalized.criteria.find(criterion => criterion?.type === CERTIFICATE_CRITERION_TYPES.DURATION) || null;
+
+          return {
+            courseId: item.courseId,
+            courseTitle: course?.title || course?.name || normalized.template?.certificateTitle || '未命名課程',
+            instructorName: course?.instructorName || course?.teacherName || '',
+            enabled: normalized.enabled,
+            autoIssue: normalized.autoIssue,
+            issuedCount: Array.isArray(recipients) ? recipients.length : 0,
+            criteriaCount: Array.isArray(normalized.criteria) ? normalized.criteria.length : 0,
+            hasComplexCriteria: Array.isArray(normalized.criteria)
+              ? normalized.criteria.some(criterion => criterion?.type !== CERTIFICATE_CRITERION_TYPES.DURATION)
+              : false,
+            durationMinutes: durationCriterion?.minMinutes || null,
+            template: normalized.template,
+            createdAt: item.createdAt || normalized.createdAt || null,
+            updatedAt: item.updatedAt || normalized.updatedAt || null
+          };
+        })
+    );
+
+    overview.sort((a, b) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime());
+
+    res.json({
+      success: true,
+      data: overview
+    });
+  } catch (error) {
+    console.error('Get admin certificate overview error:', error);
+    res.status(500).json({
+      success: false,
+      message: '取得證書總覽失敗'
+    });
+  }
+});
+
 router.get('/my', authMiddleware, async (req, res) => {
   try {
     const certificates = await listUserCertificates(req.user.userId);

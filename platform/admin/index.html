@@ -10943,11 +10943,63 @@
             `;
         }
 
-        function editCertificate(certificateId) {
-            if (typeof editBadge === 'function') {
-                return editBadge(certificateId);
+        function getCertificateStatusMeta(enabled) {
+            const isActive = enabled !== false;
+            return {
+                isActive,
+                label: isActive ? t('admin.filter.active') : t('admin.certificates.inactive'),
+                className: isActive ? 'badge-success' : 'badge-warning'
+            };
+        }
+
+        function getAdminCertificateThemeOptions() {
+            return [
+                { value: 'classic', label: 'Classic Blue' },
+                { value: 'sunrise', label: 'Sunrise Gold' },
+                { value: 'forest', label: 'Forest Green' },
+                { value: 'ocean', label: 'Ocean Teal' }
+            ];
+        }
+
+        function buildAdminDurationCriterion(minMinutes, existingCriteria = []) {
+            const preserved = (Array.isArray(existingCriteria) ? existingCriteria : [])
+                .filter((criterion) => criterion && criterion.type !== 'duration')
+                .map((criterion) => ({ ...criterion }));
+            const normalizedMinutes = Math.max(parseInt(minMinutes, 10) || 0, 0);
+
+            if (normalizedMinutes > 0) {
+                preserved.unshift({
+                    criterionId: `admin-duration-${Date.now()}`,
+                    type: 'duration',
+                    minMinutes: normalizedMinutes,
+                    description: `累積學習時間達 ${normalizedMinutes} 分鐘`
+                });
             }
-            showToast(t('admin.certificates.createWip'), 'info');
+
+            return preserved.map((criterion, index) => ({
+                ...criterion,
+                order: index + 1
+            }));
+        }
+
+        async function fetchCertificateCourseOptions() {
+            const result = await API.courses.list({ status: 'all', limit: 200, sortBy: 'title', sortOrder: 'asc' });
+            if (!result.success) {
+                throw new Error(result.message || '取得課程列表失敗');
+            }
+
+            const courses = getAdminCollection(result.data)
+                .filter(course => course?.courseId)
+                .sort((a, b) => String(a.title || a.name || '').localeCompare(String(b.title || b.name || ''), 'zh-Hant'));
+
+            return courses.map((course) => ({
+                value: course.courseId,
+                label: `${course.title || course.name || course.courseId}${course.shortName ? ` (${course.shortName})` : ''}`
+            }));
+        }
+
+        async function editCertificate(courseId) {
+            await openCreateCertificateModal(courseId);
         }
 
         function renderCertificatesGrid(certificates) {
@@ -10960,17 +11012,23 @@
             }
 
             grid.innerHTML = certificates.map((certificate) => {
-                const certificateId = certificate.id || certificate.badgeId || '';
-                const statusLabel = certificate.isActive ? t('admin.filter.active') : t('admin.certificates.inactive');
-                const statusClass = certificate.isActive ? 'badge-success' : 'badge-warning';
+                const courseId = certificate.courseId || '';
+                const statusMeta = getCertificateStatusMeta(certificate.enabled);
+                const subtitleParts = [
+                    certificate.template?.certificateTitle || t('admin.certificates.noDescription'),
+                    certificate.instructorName || ''
+                ].filter(Boolean);
                 return renderAdminEntityCard({
                     tone: 'badge',
                     kicker: I18n.getLocale() === 'en' ? 'Certificate' : '證書',
-                    title: certificate.name || t('admin.certificates.unnamed'),
-                    description: certificate.description || t('admin.certificates.noDescription'),
-                    actions: `<button class="btn-icon" onclick="editCertificate('${escapeHtml(String(certificateId))}')" title="${t('common.edit')}"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>`,
-                    leadMarkup: `<span class="badge ${statusClass}">${escapeHtml(String(statusLabel))}</span>`,
-                    stats: [t('admin.certificates.awarded', { count: certificate.awardedCount || 0 })]
+                    title: certificate.courseTitle || t('admin.certificates.unnamed'),
+                    description: subtitleParts.join(' · '),
+                    actions: `<button class="btn-icon" onclick="editCertificate('${escapeHtml(String(courseId))}')" title="${t('common.edit')}"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>`,
+                    leadMarkup: `<span class="badge ${statusMeta.className}">${escapeHtml(String(statusMeta.label))}</span>`,
+                    stats: [
+                        `${certificate.issuedCount || 0} ${I18n.getLocale() === 'en' ? 'issued' : '已頒發'}`,
+                        `${certificate.criteriaCount || 0} ${I18n.getLocale() === 'en' ? 'criteria' : '項條件'}`
+                    ]
                 });
             }).join('');
         }
@@ -11192,7 +11250,7 @@
         // Load Certificates
         async function loadCertificates() {
             try {
-                const result = await API.request('/badges');
+                const result = await API.certificates.listAdmin();
                 adminCertificates = result.success ? getAdminCollection(result.data) : [];
 
                 // Update stats (with null checks)
@@ -11200,8 +11258,8 @@
                 const activeCertificatesEl = document.getElementById('activeCertificatesCount');
                 const awardedCertificatesEl = document.getElementById('awardedCertificatesCount');
                 if (totalCertificatesEl) totalCertificatesEl.textContent = adminCertificates.length;
-                if (activeCertificatesEl) activeCertificatesEl.textContent = adminCertificates.filter((certificate) => certificate.isActive).length;
-                if (awardedCertificatesEl) awardedCertificatesEl.textContent = adminCertificates.reduce((sum, certificate) => sum + (certificate.awardedCount || 0), 0);
+                if (activeCertificatesEl) activeCertificatesEl.textContent = adminCertificates.filter((certificate) => certificate.enabled !== false).length;
+                if (awardedCertificatesEl) awardedCertificatesEl.textContent = adminCertificates.reduce((sum, certificate) => sum + (certificate.issuedCount || 0), 0);
 
                 renderCertificatesGrid(adminCertificates);
             } catch (error) {
@@ -12736,32 +12794,138 @@
             }
         }
 
-        async function openCreateCertificateModal() {
+        async function openCreateCertificateModal(courseId = '') {
             try {
+                const isEditing = Boolean(courseId);
+                const [courseOptions, settingsResult] = await Promise.all([
+                    fetchCertificateCourseOptions(),
+                    courseId ? API.certificates.getSettings(courseId) : Promise.resolve({ success: true, data: null })
+                ]);
+
+                if (!courseOptions.length) {
+                    showToast(I18n.getLocale() === 'en' ? 'No courses available for certificate setup.' : '目前沒有可設定證書的課程', 'error');
+                    return;
+                }
+
+                const certificateData = settingsResult.success ? settingsResult.data : null;
+                const course = certificateData?.course || null;
+                const settings = certificateData?.settings || null;
+                const existingCriteria = Array.isArray(settings?.criteria) ? settings.criteria : [];
+                const durationCriterion = existingCriteria.find((criterion) => criterion?.type === 'duration') || null;
+                const hasComplexCriteria = existingCriteria.some((criterion) => criterion?.type && criterion.type !== 'duration');
+                const themeOptions = (certificateData?.themes || getAdminCertificateThemeOptions()).map((theme) => ({
+                    value: theme.value,
+                    label: theme.name || theme.value
+                }));
+                const currentCourseId = courseId || course?.courseId || courseOptions[0]?.value || '';
+                const currentCourseLabel = course?.title
+                    || courseOptions.find((option) => option.value === currentCourseId)?.label
+                    || currentCourseId;
+
                 const values = await showAdminFormDialog({
-                    title: t('admin.certificates.addCertificate'),
-                    submitText: t('common.create'),
+                    title: isEditing ? `${t('common.edit')} ${t('admin.certificates.title')}` : t('admin.certificates.addCertificate'),
+                    submitText: isEditing ? t('common.save') : t('common.create'),
+                    maxWidth: '760px',
+                    message: hasComplexCriteria
+                        ? (I18n.getLocale() === 'en'
+                            ? 'Advanced activity and score criteria will be preserved here. Use the course-side certificate page when you need to fine-tune those rules.'
+                            : '這裡會保留既有的活動/成績條件；若要細調複雜條件，請到課程端的證書頁面設定。')
+                        : '',
                     fields: [
-                        { name: 'name', label: '證書名稱', required: true },
-                        { name: 'description', label: '證書說明', type: 'textarea', rows: 3 },
-                        { name: 'icon', label: '證書圖示', value: 'trophy', placeholder: '例如：trophy / star / medal' },
-                        { name: 'color', label: '主題顏色', type: 'color', value: '#f59e0b' }
+                        ...(isEditing
+                            ? [
+                                { name: 'courseLabel', label: I18n.getLocale() === 'en' ? 'Course' : '課程', value: currentCourseLabel, readOnly: true },
+                                { name: 'courseId', label: 'Course ID', value: currentCourseId, readOnly: true }
+                            ]
+                            : [
+                                { name: 'courseId', label: I18n.getLocale() === 'en' ? 'Course' : '課程', type: 'select', required: true, value: currentCourseId, options: courseOptions }
+                            ]),
+                        {
+                            name: 'status',
+                            label: I18n.getLocale() === 'en' ? 'Status' : '狀態',
+                            type: 'select',
+                            value: settings?.enabled === false ? 'inactive' : 'active',
+                            options: [
+                                { value: 'active', label: I18n.getLocale() === 'en' ? 'Active' : '啟用' },
+                                { value: 'inactive', label: I18n.getLocale() === 'en' ? 'Inactive' : '停用' }
+                            ]
+                        },
+                        {
+                            name: 'autoIssue',
+                            label: I18n.getLocale() === 'en' ? 'Auto issue' : '自動頒發',
+                            type: 'select',
+                            value: settings?.autoIssue === false ? 'false' : 'true',
+                            options: [
+                                { value: 'true', label: I18n.getLocale() === 'en' ? 'Enabled' : '啟用' },
+                                { value: 'false', label: I18n.getLocale() === 'en' ? 'Disabled' : '停用' }
+                            ]
+                        },
+                        {
+                            name: 'theme',
+                            label: I18n.getLocale() === 'en' ? 'Theme' : '主題樣式',
+                            type: 'select',
+                            value: settings?.template?.theme || 'classic',
+                            options: themeOptions
+                        },
+                        { name: 'certificateTitle', label: I18n.getLocale() === 'en' ? 'Certificate title' : '證書標題', required: true, value: settings?.template?.certificateTitle || course?.title || '' },
+                        { name: 'certificateSubtitle', label: I18n.getLocale() === 'en' ? 'Subtitle' : '副標題', value: settings?.template?.certificateSubtitle || 'Certificate of Completion' },
+                        { name: 'issuerName', label: I18n.getLocale() === 'en' ? 'Issuer name' : '頒發單位', value: settings?.template?.issuerName || course?.instructorName || 'BeyondBridge' },
+                        { name: 'issuerTitle', label: I18n.getLocale() === 'en' ? 'Issuer title' : '頒發者職稱', value: settings?.template?.issuerTitle || (I18n.getLocale() === 'en' ? 'Instructor' : '課程講師') },
+                        {
+                            name: 'statement',
+                            label: I18n.getLocale() === 'en' ? 'Statement' : '證書敘述',
+                            type: 'textarea',
+                            rows: 4,
+                            value: settings?.template?.statement || '茲證明學員已完成本課程規範之學習要求，特此頒發證書。'
+                        },
+                        {
+                            name: 'minMinutes',
+                            label: I18n.getLocale() === 'en' ? 'Minimum study minutes' : '最低學習分鐘',
+                            type: 'number',
+                            min: 0,
+                            value: durationCriterion?.minMinutes || 30,
+                            hint: I18n.getLocale() === 'en'
+                                ? 'This admin screen currently manages the basic study-time rule. Other existing criteria will be preserved.'
+                                : '管理後台目前主要調整基本時數條件；其他既有條件會保留。'
+                        }
                     ]
                 });
 
-                await runCreateAction(
-                    () => API.badges.create({
-                        name: values.name,
-                        description: values.description,
-                        icon: values.icon || 'trophy',
-                        color: values.color || '#f59e0b',
-                        status: 'active'
-                    }),
-                    loadCertificates,
-                    t('admin.certificates.created')
-                );
+                const targetCourseId = values.courseId || currentCourseId;
+                if (!targetCourseId) {
+                    showToast(I18n.getLocale() === 'en' ? 'Please select a course.' : '請先選擇課程', 'error');
+                    return;
+                }
+
+                const result = await API.certificates.updateSettings(targetCourseId, {
+                    enabled: values.status === 'active',
+                    autoIssue: values.autoIssue !== 'false',
+                    template: {
+                        theme: values.theme || 'classic',
+                        certificateTitle: values.certificateTitle,
+                        certificateSubtitle: values.certificateSubtitle,
+                        issuerName: values.issuerName,
+                        issuerTitle: values.issuerTitle,
+                        statement: values.statement
+                    },
+                    criteria: buildAdminDurationCriterion(values.minMinutes, existingCriteria),
+                    createdAt: settings?.createdAt || null
+                });
+
+                if (!result.success) {
+                    showToast(result.message || t('admin.error.operationFailed'), 'error');
+                    return;
+                }
+
+                showToast(result.message || (isEditing
+                    ? (I18n.getLocale() === 'en' ? 'Certificate settings updated' : '證書設定已更新')
+                    : t('admin.certificates.created')));
+                loadCertificates();
             } catch (error) {
-                // 用戶取消
+                if (error.message !== 'cancelled') {
+                    console.error('Open certificate modal error:', error);
+                    showToast(t('admin.error.operationFailed'), 'error');
+                }
             }
         }
 
