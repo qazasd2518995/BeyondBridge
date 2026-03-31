@@ -33,7 +33,7 @@ function buildActivityGroups(activities = []) {
       sectionId: activity.sectionId || null
     };
 
-    if (['page', 'url', 'file', 'video', 'lti', 'scorm', 'h5p', 'label'].includes(normalized.type)) {
+    if (['page', 'url', 'file', 'video', 'interactive_video', 'lti', 'scorm', 'h5p', 'label'].includes(normalized.type)) {
       groups.materials.push(normalized);
       return;
     }

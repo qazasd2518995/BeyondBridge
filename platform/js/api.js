@@ -1104,6 +1104,38 @@ const API = {
     }
   },
 
+  interactiveVideos: {
+    async get(courseId, activityId) {
+      return API.request(`/interactive-videos/${courseId}/${activityId}`);
+    },
+
+    async startSession(courseId, activityId) {
+      return API.request(`/interactive-videos/${courseId}/${activityId}/session`, {
+        method: 'POST'
+      });
+    },
+
+    async heartbeat(courseId, activityId, data) {
+      return API.request(`/interactive-videos/${courseId}/${activityId}/heartbeat`, {
+        method: 'POST',
+        body: data
+      });
+    },
+
+    async answer(courseId, activityId, data) {
+      return API.request(`/interactive-videos/${courseId}/${activityId}/answer`, {
+        method: 'POST',
+        body: data
+      });
+    },
+
+    async complete(courseId, activityId) {
+      return API.request(`/interactive-videos/${courseId}/${activityId}/complete`, {
+        method: 'POST'
+      });
+    }
+  },
+
   // ===== 成績簿 API =====
   gradebook: {
     async getCourseGradebook(courseId) {

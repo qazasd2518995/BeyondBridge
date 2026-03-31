@@ -27,6 +27,13 @@ const {
   maskAssignmentSubmission,
   maskQuizAttempt
 } = require('../utils/grade-visibility');
+const {
+  normalizeInteractiveVideoGradeItem,
+  getCourseInteractiveVideoActivities,
+  getInteractiveVideoAttemptsByActivity,
+  hasInteractiveVideoAttemptStarted,
+  calculateInteractiveVideoScorePercent
+} = require('../utils/interactive-video-data');
 
 // ==================== 預設成績等第量表 ====================
 
@@ -228,12 +235,14 @@ function normalizeManualItem(item = {}) {
 function defaultCategoryIdForType(type = 'manual') {
   if (type === 'assignment') return 'default_assignments';
   if (type === 'quiz') return 'default_quizzes';
+  if (type === 'interactive_video') return 'default_quizzes';
   return 'default_participation';
 }
 
 function defaultCategoryLabelByType(type = 'manual') {
   if (type === 'assignment') return '作業';
   if (type === 'quiz') return '測驗';
+  if (type === 'interactive_video') return '互動影片';
   return '參與';
 }
 
@@ -268,6 +277,16 @@ function normalizeQuizItem(item = {}) {
     gradeMethod: item.gradeMethod || 'highest',
     passingGrade: item.passingGrade ?? null,
     maxAttempts: item.maxAttempts ?? null
+  };
+}
+
+function normalizeInteractiveVideoItem(item = {}) {
+  const normalized = normalizeInteractiveVideoGradeItem(item);
+  if (!normalized) return null;
+  return {
+    ...normalized,
+    weight: normalized.weight ?? null,
+    categoryId: normalized.categoryId || defaultCategoryIdForType('interactive_video')
   };
 }
 
@@ -546,6 +565,7 @@ function buildStudentGradeItems(dataset = {}, studentId, categories = []) {
   const categoryMap = buildCategoryMap(ensureCategoryCoverage(categories, buildGradeColumns(
     dataset.assignments || [],
     dataset.quizzes || [],
+    dataset.interactiveVideos || [],
     dataset.manualItems || []
   )));
 
@@ -591,6 +611,34 @@ function buildStudentGradeItems(dataset = {}, studentId, categories = []) {
     };
   });
 
+  const interactiveVideoItems = (dataset.interactiveVideos || [])
+    .map(normalizeInteractiveVideoItem)
+    .filter(Boolean)
+    .map((interactiveVideo) => {
+      const attempt = dataset.interactiveVideoAttemptsByActivity?.get(interactiveVideo.itemId)?.get(studentId) || null;
+      const hasStarted = hasInteractiveVideoAttemptStarted(attempt);
+      const grade = attempt?.score === null || attempt?.score === undefined
+        ? null
+        : Number(attempt.score);
+      return {
+        ...interactiveVideo,
+        category: categoryMap.get(interactiveVideo.categoryId)?.name || defaultCategoryLabelByType(interactiveVideo.type),
+        grade,
+        percentage: calculateInteractiveVideoScorePercent(attempt, interactiveVideo),
+        graded: grade !== null && grade !== undefined,
+        submitted: hasStarted,
+        feedback: null,
+        attemptCount: hasStarted ? 1 : 0,
+        gradedAt: attempt?.completedAt || attempt?.updatedAt || null,
+        submittedAt: attempt?.lastAccessedAt || null,
+        watchedSeconds: Number(attempt?.watchedSeconds || 0) || 0,
+        progressPercentage: Number(attempt?.progressPercentage || 0) || 0,
+        completionStatus: attempt?.status || (hasStarted ? 'in_progress' : 'not_started'),
+        answeredPromptCount: Array.isArray(attempt?.answeredPromptIds) ? attempt.answeredPromptIds.length : 0,
+        promptCount: interactiveVideo.promptCount || 0
+      };
+    });
+
   const manualItems = (dataset.manualItems || []).map(manualItem => {
     const item = normalizeManualItem(manualItem);
     const record = dataset.manualRecordsByItem?.get(item.itemId)?.get(studentId) || null;
@@ -610,7 +658,7 @@ function buildStudentGradeItems(dataset = {}, studentId, categories = []) {
     };
   });
 
-  return [...assignmentItems, ...quizItems, ...manualItems];
+  return [...assignmentItems, ...quizItems, ...interactiveVideoItems, ...manualItems];
 }
 
 async function getCourseAssignments(courseId) {
@@ -630,16 +678,17 @@ async function getCourseQuizzes(courseId) {
 }
 
 async function getCourseGradeItems(courseId) {
-  const [assignments, quizzes, manualItems] = await Promise.all([
+  const [assignments, quizzes, interactiveVideos, manualItems] = await Promise.all([
     getCourseAssignments(courseId),
     getCourseQuizzes(courseId),
+    getCourseInteractiveVideoActivities(courseId, { gradedOnly: true }),
     db.query(`COURSE#${courseId}`, {
       skPrefix: 'GRADEITEM#',
       projection: GRADEBOOK_MANUAL_ITEM_PROJECTION
     })
   ]);
 
-  return { assignments, quizzes, manualItems };
+  return { assignments, quizzes, interactiveVideos, manualItems };
 }
 
 function mapRowsByStudent(rows = [], studentKey = 'userId') {
@@ -711,9 +760,16 @@ function getQuizGradeSummary(quiz, attempts = []) {
 }
 
 async function buildCourseGradebookDataset(courseId) {
-  const { assignments, quizzes, manualItems } = await getCourseGradeItems(courseId);
+  const { assignments, quizzes, interactiveVideos, manualItems } = await getCourseGradeItems(courseId);
+  const enrollments = await db.queryByIndex(
+    'GSI1',
+    `COURSE#${courseId}`,
+    'GSI1PK',
+    { skPrefix: 'ENROLLED#', skName: 'GSI1SK', projection: ['userId'] }
+  );
+  const studentIds = enrollments.map((item) => item.userId).filter(Boolean);
 
-  const [submissionEntries, attemptEntries, manualRecordEntries] = await Promise.all([
+  const [submissionEntries, attemptEntries, interactiveVideoAttemptsByActivity, manualRecordEntries] = await Promise.all([
     Promise.all(
       assignments
         .filter(item => item?.assignmentId)
@@ -736,6 +792,7 @@ async function buildCourseGradebookDataset(courseId) {
           }))
         ])
     ),
+    getInteractiveVideoAttemptsByActivity(courseId, interactiveVideos, studentIds),
     Promise.all(
       manualItems
         .filter(item => item?.itemId)
@@ -752,9 +809,11 @@ async function buildCourseGradebookDataset(courseId) {
   return {
     assignments,
     quizzes,
+    interactiveVideos,
     manualItems,
     submissionsByAssignment: new Map(submissionEntries),
     attemptsByQuiz: new Map(attemptEntries),
+    interactiveVideoAttemptsByActivity,
     manualRecordsByItem: new Map(manualRecordEntries)
   };
 }
@@ -764,10 +823,11 @@ async function getEnrollmentUserMap(enrollments = []) {
   return new Map(users.filter(user => user?.userId).map(user => [user.userId, user]));
 }
 
-function buildGradeColumns(assignments = [], quizzes = [], manualItems = [], categories = []) {
+function buildGradeColumns(assignments = [], quizzes = [], interactiveVideos = [], manualItems = [], categories = []) {
   const items = [
     ...assignments.map(normalizeAssignmentItem),
     ...quizzes.map(normalizeQuizItem),
+    ...interactiveVideos.map(normalizeInteractiveVideoItem).filter(Boolean),
     ...manualItems.map(normalizeManualItem)
   ];
   const categoryMap = buildCategoryMap(ensureCategoryCoverage(categories, items));
@@ -846,14 +906,16 @@ async function buildTeacherCourseGradebookSnapshot(courseId, course) {
   const {
     assignments,
     quizzes,
+    interactiveVideos,
     manualItems,
     submissionsByAssignment,
     attemptsByQuiz,
+    interactiveVideoAttemptsByActivity,
     manualRecordsByItem
   } = await buildCourseGradebookDataset(courseId);
   const categories = await getCourseGradeCategories(courseId);
 
-  const gradeColumns = buildGradeColumns(assignments, quizzes, manualItems, categories);
+  const gradeColumns = buildGradeColumns(assignments, quizzes, interactiveVideos, manualItems, categories);
   const enrollmentUserMap = await getEnrollmentUserMap(enrollments);
 
   const students = await Promise.all(
@@ -862,9 +924,11 @@ async function buildTeacherCourseGradebookSnapshot(courseId, course) {
       const studentItems = buildStudentGradeItems({
         assignments,
         quizzes,
+        interactiveVideos,
         manualItems,
         submissionsByAssignment,
         attemptsByQuiz,
+        interactiveVideoAttemptsByActivity,
         manualRecordsByItem
       }, e.userId, categories);
       const grades = Object.fromEntries(
@@ -1262,9 +1326,9 @@ router.get('/courses/:courseId/items', authMiddleware, async (req, res) => {
     }
 
     // 取得所有成績項目
-    const { assignments, quizzes, manualItems } = await getCourseGradeItems(courseId);
+    const { assignments, quizzes, interactiveVideos, manualItems } = await getCourseGradeItems(courseId);
     const categories = await getCourseGradeCategories(courseId);
-    const items = buildGradeColumns(assignments, quizzes, manualItems, categories);
+    const items = buildGradeColumns(assignments, quizzes, interactiveVideos, manualItems, categories);
 
     res.json({
       success: true,
@@ -1812,6 +1876,34 @@ router.get('/courses/:courseId/students/:studentId', authMiddleware, async (req,
           : null
       };
     });
+    let interactiveVideoGrades = (dataset.interactiveVideos || [])
+      .map(normalizeInteractiveVideoItem)
+      .filter(Boolean)
+      .map((item) => {
+        const attempt = dataset.interactiveVideoAttemptsByActivity?.get(item.itemId)?.get(studentId) || null;
+        const hasStarted = hasInteractiveVideoAttemptStarted(attempt);
+        return {
+          type: item.type,
+          itemId: item.itemId,
+          title: item.title,
+          maxGrade: item.maxGrade,
+          passingScore: item.passingScore,
+          categoryId: item.categoryId,
+          weight: item.weight ?? null,
+          submission: hasStarted ? {
+            submittedAt: attempt?.lastAccessedAt || null,
+            grade: attempt?.score ?? null,
+            feedback: null,
+            gradedAt: attempt?.completedAt || attempt?.updatedAt || null,
+            isLate: false,
+            progressPercentage: Number(attempt?.progressPercentage || 0) || 0,
+            watchedSeconds: Number(attempt?.watchedSeconds || 0) || 0,
+            answeredPromptCount: Array.isArray(attempt?.answeredPromptIds) ? attempt.answeredPromptIds.length : 0,
+            promptCount: item.promptCount || 0,
+            status: attempt?.status || 'in_progress'
+          } : null
+        };
+      });
     let manualGrades = studentItems
       .filter(item => item.type === 'manual')
       .map(item => ({
@@ -1842,6 +1934,10 @@ router.get('/courses/:courseId/students/:studentId', authMiddleware, async (req,
         attempts: (item.attempts || []).map(maskQuizAttempt),
         bestAttempt: item.bestAttempt ? maskQuizAttempt(item.bestAttempt) : null
       }));
+      interactiveVideoGrades = interactiveVideoGrades.map(item => ({
+        ...item,
+        submission: item.submission ? maskAssignmentSubmission(item.submission) : null
+      }));
       manualGrades = manualGrades.map(item => ({
         ...item,
         submission: item.submission ? maskAssignmentSubmission(item.submission) : null
@@ -1862,6 +1958,7 @@ router.get('/courses/:courseId/students/:studentId', authMiddleware, async (req,
         grades: {
           assignments: assignmentGrades,
           quizzes: quizGrades,
+          interactiveVideos: interactiveVideoGrades,
           manual: manualGrades
         },
         summary,

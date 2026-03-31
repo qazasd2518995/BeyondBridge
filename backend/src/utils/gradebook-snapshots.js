@@ -1,7 +1,7 @@
 const db = require('./db');
 
 const GRADEBOOK_SNAPSHOT_PK = 'GRADEBOOK_SNAPSHOT';
-const GRADEBOOK_SNAPSHOT_VERSION = 2;
+const GRADEBOOK_SNAPSHOT_VERSION = 3;
 const GRADEBOOK_SNAPSHOT_KEYS = {
   TEACHER_COURSE: 'teacher_course'
 };

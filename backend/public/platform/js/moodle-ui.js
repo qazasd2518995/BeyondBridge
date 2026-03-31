@@ -20,6 +20,8 @@ const MoodleUI = {
   currentCalendarEvents: [],
   currentEditingActivity: null,
   manageableCourseIdsCache: null,
+  interactiveVideoEditorState: {},
+  interactiveVideoPromptCounter: 0,
 
   teachingRoles: new Set(['manager', 'coursecreator', 'educator', 'trainer', 'creator', 'teacher', 'assistant']),
 
@@ -113,6 +115,30 @@ const MoodleUI = {
   setSidebarActiveView(viewName) {
     document.querySelectorAll('.nav-item').forEach((item) => item.classList.remove('active'));
     document.querySelector(`.nav-item[data-view="${viewName}"]`)?.classList.add('active');
+  },
+
+  getPlatformViewPath(viewName, query = null) {
+    if (window.PlatformRouter?.getPathForView) {
+      return window.PlatformRouter.getPathForView(viewName, query) || '#';
+    }
+    return '#';
+  },
+
+  getCourseDetailPath(courseId, tab = '') {
+    if (!courseId) return '#';
+    const basePath = `/platform/course/${encodeURIComponent(courseId)}`;
+    if (!tab || tab === 'content') return basePath;
+    return `${basePath}?tab=${encodeURIComponent(tab)}`;
+  },
+
+  navigateCourseDetail(event, courseId, tab = 'content') {
+    if (!courseId || typeof window.openPlatformPath !== 'function') return true;
+    return window.openPlatformPath(event, this.getCourseDetailPath(courseId, tab));
+  },
+
+  navigateCourseWorkspace(event, viewName, courseId) {
+    if (!courseId || typeof window.openPlatformView !== 'function') return true;
+    return window.openPlatformView(event, viewName, { query: { courseId } });
   },
 
   canManageLearningPath(path, user = API.getCurrentUser()) {
@@ -1018,6 +1044,17 @@ const MoodleUI = {
         path: options.path || `/platform/course/${encodeURIComponent(courseId)}`,
         replaceHistory: options.replaceHistory
       });
+
+      const requestedTab = String(options.tab || 'content').toLowerCase();
+      if (requestedTab === 'participants' && this.canViewParticipants(course, API.getCurrentUser())) {
+        if (this.canTeachCourse(course, API.getCurrentUser())) {
+          await this.openCourseParticipantsWorkspace(courseId);
+        } else {
+          await this.switchCourseTab('participants');
+        }
+      } else {
+        await this.switchCourseTab('content');
+      }
     } catch (error) {
       console.error('Open course error:', error);
       showToast(t('moodleCourse.loadFailed'));
@@ -1055,6 +1092,13 @@ const MoodleUI = {
     const participantsTabLabel = canTeach
       ? t('moodleCourse.tabParticipants')
       : (I18n.getLocale() === 'en' ? 'Members' : '成員');
+    const courseDetailHref = this.getCourseDetailPath(course.courseId, 'content');
+    const participantsHref = this.getCourseDetailPath(course.courseId, 'participants');
+    const forumsHref = this.getPlatformViewPath('moodleForums', { courseId: course.courseId });
+    const assignmentsHref = this.getPlatformViewPath('moodleAssignments', { courseId: course.courseId });
+    const quizzesHref = this.getPlatformViewPath('moodleQuizzes', { courseId: course.courseId });
+    const gradebookHref = this.getPlatformViewPath('moodleGradebook', { courseId: course.courseId });
+    const analyticsHref = this.getPlatformViewPath('teacherAnalytics', { courseId: course.courseId });
     const courseMeta = [
       `${t('moodleCourse.teacherLabel')}：${course.instructorName || course.teacherName || t('moodleCourse.teacher')}`,
       studentsLabel,
@@ -1080,10 +1124,10 @@ const MoodleUI = {
       <!-- 課程頭部 -->
       <div class="course-header">
         <div class="course-hero">
-          <button onclick="showView('moodleCourses')" class="back-btn">
+          <a href="${this.escapeText(this.getPlatformViewPath('moodleCourses'))}" onclick="return openPlatformView(event, 'moodleCourses')" class="back-btn">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
             ${t('moodleCourse.backToCourseList')}
-          </button>
+          </a>
           <div class="course-hero-top">
             <div class="course-hero-badges">
               <span class="course-category-badge">${this.escapeText(categoryLabel)}</span>
@@ -1132,13 +1176,13 @@ const MoodleUI = {
 
       <!-- 課程導航標籤 -->
       <div class="course-nav-tabs">
-        <button class="nav-tab active" data-course-tab="content" onclick="MoodleUI.switchCourseTab('content', this)">${t('moodleCourse.tabContent')}</button>
-        ${canViewParticipants ? `<button class="nav-tab" data-course-tab="participants" onclick="${canTeach ? `MoodleUI.openCourseParticipantsWorkspace(${this.toInlineActionValue(course.courseId)})` : `MoodleUI.switchCourseTab('participants', this)`}">${participantsTabLabel}</button>` : ''}
-        <button class="nav-tab" data-course-tab="forums" onclick="MoodleUI.openCourseForums(${this.toInlineActionValue(course.courseId)})">${t('nav.classDiscussions')}</button>
-        <button class="nav-tab" data-course-tab="assignments" onclick="MoodleUI.openCourseAssignmentsWorkspace(${this.toInlineActionValue(course.courseId)})">${t('moodleCourse.tabAssignments')}</button>
-        <button class="nav-tab" data-course-tab="quizzes" onclick="MoodleUI.openCourseQuizzesWorkspace(${this.toInlineActionValue(course.courseId)})">${t('moodleCourse.tabQuizzes')}</button>
-        <button class="nav-tab" data-course-tab="grades" onclick="MoodleUI.openCourseGradebookWorkspace(${this.toInlineActionValue(course.courseId)})">${t('moodleCourse.tabGrades')}</button>
-        ${canViewReports ? `<button class="nav-tab" data-course-tab="analytics" onclick="MoodleUI.openCourseAnalyticsWorkspace(${this.toInlineActionValue(course.courseId)})">${t('moodleCourse.tabAnalytics')}</button>` : ''}
+        <a href="${this.escapeText(courseDetailHref)}" class="nav-tab active" data-course-tab="content" onclick="return MoodleUI.navigateCourseDetail(event, ${this.toInlineActionValue(course.courseId)}, 'content')">${t('moodleCourse.tabContent')}</a>
+        ${canViewParticipants ? `<a href="${this.escapeText(participantsHref)}" class="nav-tab" data-course-tab="participants" onclick="return MoodleUI.navigateCourseDetail(event, ${this.toInlineActionValue(course.courseId)}, 'participants')">${participantsTabLabel}</a>` : ''}
+        <a href="${this.escapeText(forumsHref)}" class="nav-tab" data-course-tab="forums" onclick="return MoodleUI.navigateCourseWorkspace(event, 'moodleForums', ${this.toInlineActionValue(course.courseId)})">${t('nav.classDiscussions')}</a>
+        <a href="${this.escapeText(assignmentsHref)}" class="nav-tab" data-course-tab="assignments" onclick="return MoodleUI.navigateCourseWorkspace(event, 'moodleAssignments', ${this.toInlineActionValue(course.courseId)})">${t('moodleCourse.tabAssignments')}</a>
+        <a href="${this.escapeText(quizzesHref)}" class="nav-tab" data-course-tab="quizzes" onclick="return MoodleUI.navigateCourseWorkspace(event, 'moodleQuizzes', ${this.toInlineActionValue(course.courseId)})">${t('moodleCourse.tabQuizzes')}</a>
+        <a href="${this.escapeText(gradebookHref)}" class="nav-tab" data-course-tab="grades" onclick="return MoodleUI.navigateCourseWorkspace(event, 'moodleGradebook', ${this.toInlineActionValue(course.courseId)})">${t('moodleCourse.tabGrades')}</a>
+        ${canViewReports ? `<a href="${this.escapeText(analyticsHref)}" class="nav-tab" data-course-tab="analytics" onclick="return MoodleUI.navigateCourseWorkspace(event, 'teacherAnalytics', ${this.toInlineActionValue(course.courseId)})">${t('moodleCourse.tabAnalytics')}</a>` : ''}
       </div>
 
       <!-- 課程內容區 -->
@@ -1230,6 +1274,7 @@ const MoodleUI = {
       page: '<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/>',
       url: '<path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>',
       file: '<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>',
+      interactive_video: '<rect x="3" y="4" width="18" height="13" rx="2"/><polygon points="10,8 16,11 10,14"/><path d="M7 20h10"/><path d="M9 17v3"/><path d="M15 17v3"/>',
       assignment: '<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>',
       quiz: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
       forum: '<path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>',
@@ -1241,6 +1286,7 @@ const MoodleUI = {
       page: 'var(--olive)',
       url: '#6366f1',
       file: '#10b981',
+      interactive_video: '#0ea5e9',
       assignment: 'var(--terracotta)',
       quiz: '#8b5cf6',
       forum: '#f59e0b',
@@ -1252,6 +1298,7 @@ const MoodleUI = {
       page: I18n.getLocale() === 'en' ? 'Page' : '頁面',
       url: I18n.getLocale() === 'en' ? 'Link' : '連結',
       file: I18n.getLocale() === 'en' ? 'File' : '檔案',
+      interactive_video: I18n.getLocale() === 'en' ? 'Interactive Video' : '互動影片',
       assignment: I18n.getLocale() === 'en' ? 'Assignment' : '作業',
       quiz: I18n.getLocale() === 'en' ? 'Quiz' : '測驗',
       forum: I18n.getLocale() === 'en' ? 'Forum' : '討論區',
@@ -1364,6 +1411,7 @@ const MoodleUI = {
 
       this.currentCourseId = courseId;
       const course = this.normalizeCourseRecord(courseResult.data || {});
+      this.currentCourse = course;
       const allParticipants = participantsResult.success && Array.isArray(participantsResult.data)
         ? participantsResult.data
         : [];
@@ -1372,51 +1420,28 @@ const MoodleUI = {
         .filter((participant) => learnerRoles.has(String(participant?.role || 'student').toLowerCase()))
         .map((participant) => ({
           userId: participant.userId || participant.id || '',
+          displayName: participant.displayName || participant.userName || participant.name || (I18n.getLocale() === 'en' ? 'Learner' : '學員'),
           userName: participant.displayName || participant.userName || participant.name || (I18n.getLocale() === 'en' ? 'Learner' : '學員'),
           userEmail: participant.email || participant.userEmail || '',
-          joinedAt: participant.enrolledAt || participant.joinedAt || null
+          email: participant.email || participant.userEmail || '',
+          enrolledAt: participant.enrolledAt || participant.joinedAt || null,
+          joinedAt: participant.enrolledAt || participant.joinedAt || null,
+          progress: Number(participant.progress ?? participant.progressPercentage ?? 0) || 0,
+          lastAccess: participant.lastAccessAt || participant.lastAccessedAt || participant.lastAccess || null,
+          role: 'student',
+          studentId: participant.studentId || participant.userId || participant.id || ''
         }));
 
-      if (typeof window.renderClassDetailContent === 'function') {
-        const rosterRecord = {
-          name: course.title || course.name || t('moodleCourse.course'),
-          subject: this.getLocalizedCourseCategory(course.category),
-          teacherName: course.instructorName || course.teacherName || t('moodleCourse.teacher'),
-          members: learnerMembers,
-          memberCount: learnerMembers.length
-        };
-        const groupOverview = groupOverviewResult.success ? (groupOverviewResult.data || {}) : null;
-        const inviteLink = inviteLinkResult.success ? (inviteLinkResult.data || null) : null;
-        const subtitleParts = [
-          rosterRecord.subject,
-          rosterRecord.teacherName,
-          course.shortName || course.code || course.courseCode || ''
-        ].filter(Boolean);
+      const groupOverview = groupOverviewResult.success ? (groupOverviewResult.data || {}) : null;
+      const inviteLink = inviteLinkResult.success ? (inviteLinkResult.data || null) : null;
 
-        detailContent.innerHTML = window.renderClassDetailContent(rosterRecord, courseId, {
-          isTeacher: true,
-          backView: 'classes',
-          teacherMembersOnly: true,
-          canManageMembers: false,
-          titleOverride: rosterRecord.name,
-          subtitleOverride: subtitleParts.join(' · '),
-          kickerOverride: I18n.getLocale() === 'en' ? 'Student roster' : '學生名單',
-          memberSectionTitle: I18n.getLocale() === 'en' ? 'Student roster' : '學生名單',
-          memberSectionNote: I18n.getLocale() === 'en'
-            ? 'View the learners currently enrolled in this course from one unified workspace.'
-            : '在同一個工作區查看目前加入這門課的學生名單。',
-          membersEmptyTitle: I18n.getLocale() === 'en' ? 'No learners enrolled yet' : '目前還沒有學生加入',
-          membersEmptyNote: I18n.getLocale() === 'en'
-            ? 'Learners will appear here after they enroll in this course.'
-            : '學生加入這門課後，就會顯示在這裡。',
-          extraPanelsHtml: [
-            this.renderCourseInviteCodeSection(inviteLink),
-            this.renderCourseGroupManagementSection(courseId, groupOverview)
-          ].join('')
-        });
-      } else {
-        detailContent.innerHTML = this.renderParticipantsList(learnerMembers);
-      }
+      detailContent.innerHTML = this.renderCourseParticipantsWorkspace({
+        course,
+        learnerMembers,
+        groupOverview,
+        inviteLink
+      });
+      this.applyDynamicUiMetrics(detailContent);
 
       this.setSidebarActiveView('classes');
       showView('classDetail');
@@ -1424,6 +1449,109 @@ const MoodleUI = {
       console.error('Open course participants workspace error:', error);
       showToast(t('moodleParticipant.loadFailed'));
     }
+  },
+
+  renderCourseParticipantsWorkspace({ course, learnerMembers, groupOverview, inviteLink }) {
+    const isEnglish = I18n.getLocale() === 'en';
+    const courseTitle = course.title || course.name || t('moodleCourse.course');
+    const courseCategory = this.getLocalizedCourseCategory(course.category) || (isEnglish ? 'Course' : '課程');
+    const instructorName = course.instructorName || course.teacherName || t('moodleCourse.teacher');
+    const courseCode = course.shortName || course.code || course.courseCode || '';
+    const totalStudents = learnerMembers.length;
+    const totalGroups = Number(groupOverview?.totalGroups || 0);
+    const groupedStudents = Number(groupOverview?.groupedStudents || 0);
+    const ungroupedStudents = Array.isArray(groupOverview?.ungrouped)
+      ? groupOverview.ungrouped.length
+      : Math.max(totalStudents - groupedStudents, 0);
+    const inviteActive = (inviteLink?.status || 'active') === 'active';
+
+    return `
+      <div class="management-detail-page course-roster-workspace">
+        <div class="course-roster-toolbar">
+          <button type="button" class="management-back-link" onclick="MoodleUI.setSidebarActiveView('classes'); showView('classes'); App.loadClasses();">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
+            <span>${isEnglish ? 'Back to My Students' : '返回我的學生'}</span>
+          </button>
+          <div class="management-inline-actions">
+            <button type="button" class="bridge-secondary-btn" onclick="MoodleUI.openCourse(${this.toInlineActionValue(course.courseId)})">
+              ${isEnglish ? 'Open Course' : '查看課程'}
+            </button>
+          </div>
+        </div>
+
+        <section class="course-header course-roster-hero">
+          <div class="course-hero">
+            <div class="course-hero-top">
+              <div class="management-heading">
+                <span class="course-header-kicker">${isEnglish ? 'Student roster' : '學生名單'}</span>
+                <h2 class="course-roster-title">${this.escapeText(courseTitle)}</h2>
+                <p class="course-roster-copy">${this.escapeText(
+                  isEnglish
+                    ? 'Manage the roster, invite code, and learner groups for this course from one unified workspace.'
+                    : '在同一個工作區管理這門課的學生名單、邀請碼與分組設定。'
+                )}</p>
+              </div>
+            </div>
+            <div class="course-hero-badges">
+              <span class="course-hero-badge">${this.escapeText(courseCategory)}</span>
+              <span class="course-hero-badge">${this.escapeText(instructorName)}</span>
+              ${courseCode ? `<span class="course-hero-badge">${this.escapeText(courseCode)}</span>` : ''}
+              ${inviteLink?.inviteCode ? `<span class="course-hero-badge">${this.escapeText(inviteActive ? (isEnglish ? 'Invite active' : '邀請碼啟用中') : (isEnglish ? 'Invite inactive' : '邀請碼已停用'))}</span>` : ''}
+            </div>
+          </div>
+        </section>
+
+        <div class="management-metric-grid course-roster-metrics">
+          <article class="management-metric-card">
+            <div class="management-metric-value">${totalStudents}</div>
+            <div class="management-metric-label">${isEnglish ? 'Learners' : '學生數'}</div>
+            <div class="management-metric-helper">${isEnglish ? 'Currently enrolled in this course' : '目前已加入這門課的學生'}</div>
+          </article>
+          <article class="management-metric-card tone-info">
+            <div class="management-metric-value">${totalGroups}</div>
+            <div class="management-metric-label">${isEnglish ? 'Groups' : '群組數'}</div>
+            <div class="management-metric-helper">${isEnglish ? 'Group structures available' : '目前可用的分組數量'}</div>
+          </article>
+          <article class="management-metric-card ${ungroupedStudents > 0 ? 'tone-warning' : 'tone-info'}">
+            <div class="management-metric-value">${ungroupedStudents}</div>
+            <div class="management-metric-label">${isEnglish ? 'Ungrouped learners' : '未分組學生'}</div>
+            <div class="management-metric-helper">${isEnglish ? 'Learners still waiting for grouping' : '尚未安排到群組的學生'}</div>
+          </article>
+          <article class="management-metric-card ${inviteActive ? 'tone-info' : 'tone-danger'}">
+            <div class="management-metric-value">${inviteActive ? (isEnglish ? 'On' : '啟用') : (isEnglish ? 'Off' : '停用')}</div>
+            <div class="management-metric-label">${isEnglish ? 'Invite code' : '邀請碼狀態'}</div>
+            <div class="management-metric-helper">${this.escapeText(
+              inviteLink?.inviteCode
+                ? (inviteActive
+                  ? (isEnglish ? 'Learners can register with this code' : '學生目前可使用通行碼加入')
+                  : (isEnglish ? 'Registration via code is paused' : '通行碼加入目前已暫停'))
+                : (isEnglish ? 'No invite code configured yet' : '目前還沒有可用通行碼')
+            )}</div>
+          </article>
+        </div>
+
+        <div class="course-roster-layout">
+          <section class="management-card course-roster-main-card">
+            <div class="course-roster-card-head">
+              <div class="management-heading">
+                <span class="participants-directory-kicker">${isEnglish ? 'Roster' : '名單總覽'}</span>
+                <div class="management-title">${isEnglish ? 'Learner roster' : '學生名單'}</div>
+                <p class="management-copy">${isEnglish ? 'Review each learner’s join date, progress, and recent activity.' : '查看每位學生的加入日期、學習進度與最近活動。'}</p>
+              </div>
+              <span class="participants-directory-count">${this.escapeText(`${totalStudents} ${isEnglish ? 'learners' : '位學生'}`)}</span>
+            </div>
+            <div class="course-roster-card-body">
+              ${this.renderParticipantsList(learnerMembers)}
+            </div>
+          </section>
+
+          <div class="course-roster-side">
+            ${this.renderCourseInviteCodeSection(inviteLink)}
+            ${this.renderCourseGroupManagementSection(course.courseId, groupOverview)}
+          </div>
+        </div>
+      </div>
+    `;
   },
 
   renderCourseInviteCodeSection(inviteLink = null) {
@@ -1435,32 +1563,34 @@ const MoodleUI = {
     const classId = inviteLink.classId || '';
 
     return `
-      <section class="bridge-detail-panel">
-        <div class="card">
-          <div class="card-header">
-            <div class="bridge-detail-panel-copy">
-              <span class="bridge-detail-panel-kicker">${isEnglish ? 'Invite code' : '邀請碼'}</span>
-              <h3 class="card-title">${isEnglish ? 'Student registration code' : '學生註冊通行碼'}</h3>
-              <p class="bridge-detail-panel-note">${isEnglish ? 'Share this code with learners. Registration or join-by-code will add them to this class and enroll them in the course automatically.' : '把這組通行碼提供給學生。學生註冊或加入後，會自動進入這堂課的班級與課程。'}</p>
+      <section class="management-card course-roster-side-card">
+        <div class="course-roster-side-card-body">
+          <div class="section-title-row">
+            <div class="management-heading">
+              <span class="participants-directory-kicker">${isEnglish ? 'Invite code' : '邀請碼'}</span>
+              <div class="management-title">${isEnglish ? 'Student registration code' : '學生註冊通行碼'}</div>
+              <p class="management-copy">${isEnglish ? 'Share this code with learners. Registration or join-by-code will add them to this class and enroll them in the course automatically.' : '把這組通行碼提供給學生。學生註冊或加入後，會自動進入這堂課的班級與課程。'}</p>
             </div>
-            <div class="management-inline-actions">
-              <div class="bridge-detail-chip">
-                <div class="bridge-detail-chip-body">
-                  <span class="bridge-detail-chip-label">${isEnglish ? 'Code' : '通行碼'}</span>
-                  <strong class="bridge-detail-chip-value">${inviteCode}</strong>
-                </div>
-                <button type="button" class="bridge-detail-icon-btn is-subtle" onclick="MoodleUI.copyInviteCode(${this.toInlineActionValue(inviteLink.inviteCode)})" aria-label="${this.escapeText(isEnglish ? 'Copy invite code' : '複製邀請碼')}">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-                </button>
+            <span class="management-status-badge ${isActive ? 'is-success' : 'is-warning'}">${this.escapeText(isActive ? (isEnglish ? 'Active' : '啟用中') : (isEnglish ? 'Inactive' : '已停用'))}</span>
+          </div>
+          <div class="management-inline-actions">
+            <div class="bridge-detail-chip">
+              <div class="bridge-detail-chip-body">
+                <span class="bridge-detail-chip-label">${isEnglish ? 'Code' : '通行碼'}</span>
+                <strong class="bridge-detail-chip-value">${inviteCode}</strong>
               </div>
-              <span class="badge-status-pill ${isActive ? 'is-active' : 'is-draft'}">${this.escapeText(isActive ? (isEnglish ? 'Active' : '啟用中') : (isEnglish ? 'Inactive' : '已停用'))}</span>
-              <button type="button" class="bridge-secondary-btn" onclick="MoodleUI.regenerateCourseInviteCode(${this.toInlineActionValue(classId)}, ${this.toInlineActionValue(inviteLink.courseId || this.currentCourseId)})">
-                ${isEnglish ? 'Regenerate' : '重發通行碼'}
-              </button>
-              <button type="button" class="bridge-secondary-btn" onclick="MoodleUI.setCourseInviteCodeStatus(${this.toInlineActionValue(classId)}, ${this.toInlineActionValue(isActive ? 'inactive' : 'active')}, ${this.toInlineActionValue(inviteLink.courseId || this.currentCourseId)})">
-                ${isActive ? (isEnglish ? 'Disable' : '停用') : (isEnglish ? 'Enable' : '啟用')}
+              <button type="button" class="bridge-detail-icon-btn is-subtle" onclick="MoodleUI.copyInviteCode(${this.toInlineActionValue(inviteLink.inviteCode)})" aria-label="${this.escapeText(isEnglish ? 'Copy invite code' : '複製邀請碼')}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
               </button>
             </div>
+          </div>
+          <div class="management-inline-actions course-roster-side-actions">
+            <button type="button" class="bridge-secondary-btn" onclick="MoodleUI.regenerateCourseInviteCode(${this.toInlineActionValue(classId)}, ${this.toInlineActionValue(inviteLink.courseId || this.currentCourseId)})">
+              ${isEnglish ? 'Regenerate' : '重發通行碼'}
+            </button>
+            <button type="button" class="bridge-secondary-btn" onclick="MoodleUI.setCourseInviteCodeStatus(${this.toInlineActionValue(classId)}, ${this.toInlineActionValue(isActive ? 'inactive' : 'active')}, ${this.toInlineActionValue(inviteLink.courseId || this.currentCourseId)})">
+              ${isActive ? (isEnglish ? 'Disable' : '停用') : (isEnglish ? 'Enable' : '啟用')}
+            </button>
           </div>
         </div>
       </section>
@@ -1556,14 +1686,12 @@ const MoodleUI = {
     const isEnglish = I18n.getLocale() === 'en';
     if (!overview) {
       return `
-        <section class="bridge-detail-panel">
-          <div class="card">
-            <div class="card-header">
-              <div class="bridge-detail-panel-copy">
-                <span class="bridge-detail-panel-kicker">${isEnglish ? 'Groups' : '分組'}</span>
-                <h3 class="card-title">${isEnglish ? 'Group management' : '分組管理'}</h3>
-                <p class="bridge-detail-panel-note">${isEnglish ? 'Group data is temporarily unavailable for this course.' : '這門課的分組資料目前暫時無法載入。'}</p>
-              </div>
+        <section class="management-card course-roster-side-card">
+          <div class="course-roster-side-card-body">
+            <div class="management-heading">
+              <span class="participants-directory-kicker">${isEnglish ? 'Groups' : '分組'}</span>
+              <div class="management-title">${isEnglish ? 'Group management' : '分組管理'}</div>
+              <p class="management-copy">${isEnglish ? 'Group data is temporarily unavailable for this course.' : '這門課的分組資料目前暫時無法載入。'}</p>
             </div>
           </div>
         </section>
@@ -1579,39 +1707,39 @@ const MoodleUI = {
     `).join('');
 
     return `
-      <section class="bridge-detail-panel">
-        <div class="card">
-          <div class="card-header">
-            <div class="bridge-detail-panel-copy">
-              <span class="bridge-detail-panel-kicker">${isEnglish ? 'Groups' : '分組'}</span>
-              <h3 class="card-title">${isEnglish ? 'Group management' : '分組管理'}</h3>
-              <p class="bridge-detail-panel-note">${isEnglish ? 'Create learner groups and assign students directly from this roster workspace.' : '直接在這個學生名單工作區建立群組並安排學生。'}</p>
+      <section class="management-card course-roster-side-card">
+        <div class="course-roster-side-card-body">
+          <div class="section-title-row">
+            <div class="management-heading">
+              <span class="participants-directory-kicker">${isEnglish ? 'Groups' : '分組'}</span>
+              <div class="management-title">${isEnglish ? 'Group management' : '分組管理'}</div>
+              <p class="management-copy">${isEnglish ? 'Create learner groups and assign students directly from this roster workspace.' : '直接在這個學生名單工作區建立群組並安排學生。'}</p>
             </div>
             <div class="management-inline-actions">
-              <span class="bridge-detail-panel-badge">${groups.length} ${isEnglish ? 'groups' : '個群組'}</span>
+              <span class="management-status-badge is-accent">${this.escapeText(`${groups.length} ${isEnglish ? 'groups' : '個群組'}`)}</span>
               <button type="button" class="bridge-primary-btn" onclick="MoodleUI.createCourseGroupPrompt(${this.toInlineActionValue(courseId)})">
                 ${isEnglish ? 'Create group' : '新增群組'}
               </button>
             </div>
           </div>
-          <div class="card-body">
-            <div class="course-group-summary">
-              <div class="course-group-summary-copy">
-                ${isEnglish
-                  ? `Grouped ${overview.groupedStudents || 0} of ${overview.totalStudents || 0} learners.`
-                  : `已分組 ${overview.groupedStudents || 0} / ${overview.totalStudents || 0} 位學生。`}
-              </div>
-              <div class="course-group-summary-badges">
-                <span class="management-status-badge is-accent">${this.escapeText(`${overview.totalGroups || 0} ${isEnglish ? 'groups' : '群組'}`)}</span>
-                <span class="management-status-badge ${ungrouped.length > 0 ? 'is-warning' : 'is-success'}">${this.escapeText(`${ungrouped.length} ${isEnglish ? 'ungrouped' : '未分組'}`)}</span>
-              </div>
-            </div>
 
-            ${groups.length === 0 ? `
-              <div class="course-group-empty">${isEnglish ? 'No groups yet. Create your first group to start organizing this course roster.' : '目前還沒有群組，建立第一個群組後就能開始整理這門課的學生名單。'}</div>
-            ` : `
-              <div class="group-grid">
-                ${groups.map((group) => {
+          <div class="course-group-summary">
+            <div class="course-group-summary-copy">
+              ${isEnglish
+                ? `Grouped ${overview.groupedStudents || 0} of ${overview.totalStudents || 0} learners.`
+                : `已分組 ${overview.groupedStudents || 0} / ${overview.totalStudents || 0} 位學生。`}
+            </div>
+            <div class="course-group-summary-badges">
+              <span class="management-status-badge is-accent">${this.escapeText(`${overview.totalGroups || 0} ${isEnglish ? 'groups' : '群組'}`)}</span>
+              <span class="management-status-badge ${ungrouped.length > 0 ? 'is-warning' : 'is-success'}">${this.escapeText(`${ungrouped.length} ${isEnglish ? 'ungrouped' : '未分組'}`)}</span>
+            </div>
+          </div>
+
+          ${groups.length === 0 ? `
+            <div class="course-group-empty">${isEnglish ? 'No groups yet. Create your first group to start organizing this course roster.' : '目前還沒有群組，建立第一個群組後就能開始整理這門課的學生名單。'}</div>
+          ` : `
+            <div class="group-grid">
+              ${groups.map((group) => {
                   const members = Array.isArray(group.members) ? group.members : [];
                   const selectId = `course-group-select-${courseId}-${group.groupId}`;
                   return `
@@ -1663,9 +1791,8 @@ const MoodleUI = {
                     </article>
                   `;
                 }).join('')}
-              </div>
-            `}
-          </div>
+            </div>
+          `}
         </div>
       </section>
     `;
@@ -2201,7 +2328,7 @@ const MoodleUI = {
               <div class="gradebook-shell-title">${I18n.getLocale() === 'en' ? 'Detailed grades' : '詳細成績'}</div>
               <div class="gradebook-shell-desc">${pendingRelease
                 ? t('moodleGrade.pendingReleaseDesc')
-                : (I18n.getLocale() === 'en' ? 'Assignments, quizzes, and weighted items are listed below with scores and feedback.' : '下方列出每個作業、測驗與加權項目的得分和回饋。')}</div>
+                : (I18n.getLocale() === 'en' ? 'Assignments, quizzes, interactive videos, and weighted items are listed below with scores and feedback.' : '下方列出每個作業、測驗、互動影片與加權項目的得分和回饋。')}</div>
             </div>
           </div>
           <div class="gradebook-table-wrapper">
@@ -2219,7 +2346,7 @@ const MoodleUI = {
                 ${items.map(item => `
                   <tr>
                     <td>${this.escapeText(item.name || item.title || t('moodleGrade.item'))}</td>
-                    <td><span class="type-badge ${item.type}">${item.type === 'assignment' ? t('moodleGrade.typeAssignment') : item.type === 'quiz' ? t('moodleGrade.typeQuiz') : t('moodleGrade.typeOther')}</span></td>
+                    <td><span class="type-badge ${item.type}">${item.type === 'assignment' ? t('moodleGrade.typeAssignment') : item.type === 'quiz' ? t('moodleGrade.typeQuiz') : item.type === 'interactive_video' ? (I18n.getLocale() === 'en' ? 'Interactive Video' : '互動影片') : t('moodleGrade.typeOther')}</span></td>
                     <td><strong>${pendingRelease && item.graded ? t('moodleGrade.pendingReleaseLabel') : (item.score !== null && item.score !== undefined ? item.score : '-')}</strong> / ${item.maxScore ?? '-'}</td>
                     <td>${item.weight ? item.weight + '%' : '-'}</td>
                     <td>${this.escapeText(pendingRelease && item.graded ? t('moodleGrade.pendingReleaseLabel') : (item.feedback || '-'))}</td>
@@ -2386,6 +2513,9 @@ const MoodleUI = {
       case 'file':
         this.openFileActivity(activityId, courseId);
         break;
+      case 'interactive_video':
+        this.openInteractiveVideoActivity(activityId, courseId);
+        break;
       default:
         showToast(t('moodleActivity.unsupportedType') + ': ' + type);
     }
@@ -2432,6 +2562,1280 @@ const MoodleUI = {
       if (m) return m[1];
     }
     return null;
+  },
+
+  getInteractiveVideoUiCopy() {
+    const isEnglish = I18n.getLocale() === 'en';
+    return {
+      subtitle: isEnglish ? 'Interactive video' : '互動影片',
+      teacherPrompt: isEnglish ? 'Teacher prompt' : '老師提問',
+      learnerReply: isEnglish ? 'Your reply' : '你的回答',
+      continue: isEnglish ? 'Continue playback' : '繼續播放',
+      waiting: isEnglish ? 'Keep watching. The next prompt will appear automatically.' : '繼續觀看，下一個提問會在時間點到達後自動出現。',
+      emptyTranscript: isEnglish ? 'Your teacher-led conversation will appear here.' : '老師的互動提問會依照影片進度顯示在這裡。',
+      watchProgress: isEnglish ? 'Watch progress' : '觀看進度',
+      score: isEnglish ? 'Score' : '分數',
+      answered: isEnglish ? 'Answered' : '已回答',
+      watchedSeconds: isEnglish ? 'Watched time' : '觀看時間',
+      submit: isEnglish ? 'Submit answer' : '送出答案',
+      reflectionPlaceholder: isEnglish ? 'Write your reflection…' : '輸入你的想法…',
+      questionRequired: isEnglish ? 'This prompt must be answered before playback continues.' : '這題需先回答，影片才會繼續。',
+      completed: isEnglish ? 'Interactive video completed' : '互動影片已完成',
+      resume: isEnglish ? 'Resume from where you left off' : '將從你上次看到的位置繼續',
+      completionPending: isEnglish ? 'Some required prompts or watch-time thresholds are not yet met.' : '還有必答題或觀看門檻尚未完成。',
+      loading: isEnglish ? 'Preparing interactive video…' : '互動影片準備中…',
+      invalidConfig: isEnglish ? 'This interactive video is not configured correctly.' : '這支互動影片尚未設定完成。',
+      saved: isEnglish ? 'Answer saved' : '答案已儲存'
+    };
+  },
+
+  normalizeInteractiveVideoConfig(activity = {}) {
+    const config = activity?.interactiveVideo && typeof activity.interactiveVideo === 'object'
+      ? activity.interactiveVideo
+      : {};
+    const prompts = Array.isArray(config.prompts)
+      ? config.prompts
+          .filter(Boolean)
+          .map((prompt, index) => {
+            const options = Array.isArray(prompt.options)
+              ? prompt.options.map((option, optionIndex) => (
+                typeof option === 'object' && option !== null
+                  ? {
+                      value: option.value ?? `option_${optionIndex + 1}`,
+                      label: option.label ?? option.text ?? String(option.value ?? `Option ${optionIndex + 1}`)
+                    }
+                  : {
+                      value: String(option),
+                      label: String(option)
+                    }
+              ))
+              : [];
+            return {
+              promptId: prompt.promptId || `prompt_${String(index + 1).padStart(3, '0')}`,
+              triggerSecond: Math.max(0, Math.floor(Number(prompt.triggerSecond) || 0)),
+              questionType: prompt.questionType || 'single_choice',
+              question: String(prompt.question || '').trim(),
+              options,
+              correctAnswer: prompt.correctAnswer ?? null,
+              points: Math.max(0, Number(prompt.points) || 0),
+              required: prompt.required !== false,
+              pauseVideo: prompt.pauseVideo !== false,
+              feedbackCorrect: prompt.feedbackCorrect || '',
+              feedbackIncorrect: prompt.feedbackIncorrect || '',
+              speakerName: prompt.speakerName || config.speakerName || '',
+              speakerAvatar: prompt.speakerAvatar || config.speakerAvatar || ''
+            };
+          })
+          .filter((prompt) => prompt.question)
+          .sort((a, b) => a.triggerSecond - b.triggerSecond)
+      : [];
+
+    return {
+      videoUrl: config.videoUrl || activity.url || '',
+      youtubeId: config.youtubeId || activity.youtubeId || this.extractYouTubeId(config.videoUrl || activity.url || ''),
+      durationSeconds: Math.max(0, Math.floor(Number(config.durationSeconds || 0) || 0)),
+      gradingMode: config.gradingMode || 'graded',
+      passingScore: Math.max(0, Math.min(100, Number(config.passingScore || 70) || 70)),
+      completionRule: {
+        minWatchPercent: Math.max(0, Math.min(100, Number(config?.completionRule?.minWatchPercent || 85) || 85)),
+        requiredPromptMode: config?.completionRule?.requiredPromptMode || 'all'
+      },
+      speakerName: config.speakerName || '',
+      speakerAvatar: config.speakerAvatar || '',
+      prompts
+    };
+  },
+
+  getInteractiveVideoEditorCopy() {
+    const isEnglish = I18n.getLocale() === 'en';
+    return {
+      sectionLabel: isEnglish ? 'Timeline prompts' : '時間軸提問',
+      sectionHint: isEnglish
+        ? 'Create teacher prompts at specific timestamps. The video pauses automatically when a required checkpoint appears.'
+        : '用卡片設定影片時間點的提問，播放到指定時間後會自動停下並請學生作答。',
+      addPrompt: isEnglish ? 'Add prompt' : '新增提問',
+      noPrompts: isEnglish ? 'No prompts yet. Add the first checkpoint to guide learners through the video.' : '尚未加入提問。先新增第一個時間點提問，建立互動學習節奏。',
+      promptLabel: isEnglish ? 'Prompt' : '提問',
+      promptType: isEnglish ? 'Question type' : '題型',
+      triggerTime: isEnglish ? 'Trigger time' : '觸發時間',
+      question: isEnglish ? 'Question' : '題目',
+      questionPlaceholder: isEnglish ? 'What should the learner notice here?' : '這一段你想請學生注意什麼？',
+      points: isEnglish ? 'Points' : '分數',
+      correctAnswer: isEnglish ? 'Correct answer' : '正確答案',
+      feedbackCorrect: isEnglish ? 'Correct feedback' : '答對回饋',
+      feedbackIncorrect: isEnglish ? 'Incorrect feedback' : '答錯回饋',
+      reflectionFeedback: isEnglish ? 'Reply feedback' : '作答後回饋',
+      required: isEnglish ? 'Required checkpoint' : '必答題',
+      pauseVideo: isEnglish ? 'Pause video when triggered' : '觸發時暫停影片',
+      addOption: isEnglish ? 'Add option' : '新增選項',
+      removePrompt: isEnglish ? 'Remove prompt' : '移除提問',
+      removeOption: isEnglish ? 'Remove' : '移除',
+      singleChoice: isEnglish ? 'Single choice' : '單選題',
+      trueFalse: isEnglish ? 'True / False' : '是非題',
+      reflection: isEnglish ? 'Short reflection' : '簡答反思',
+      optionPlaceholder: isEnglish ? 'Option text' : '選項文字',
+      answerTrue: isEnglish ? 'True' : '正確',
+      answerFalse: isEnglish ? 'False' : '錯誤',
+      timeHint: isEnglish ? 'Use mm:ss or hh:mm:ss' : '可輸入 mm:ss 或 hh:mm:ss',
+      questionRequiredHint: isEnglish ? 'Learners must answer this prompt before completing the video.' : '學生必須完成這題，互動影片才算完成。',
+      reflectionHint: isEnglish ? 'Reflections are stored for review but do not count as auto-graded points.' : '反思題會保留作答內容，但不會自動判分。',
+      timelineScale: isEnglish ? 'Timeline checkpoints' : '時間軸節點',
+      untitledPrompt: isEnglish ? 'Untitled prompt' : '未命名提問'
+    };
+  },
+
+  generateInteractiveVideoPromptId() {
+    this.interactiveVideoPromptCounter += 1;
+    return `iv_prompt_${Date.now().toString(36)}_${String(this.interactiveVideoPromptCounter).padStart(3, '0')}`;
+  },
+
+  formatInteractiveVideoTimeInput(totalSeconds = 0) {
+    return this.formatInteractiveVideoTime(totalSeconds);
+  },
+
+  parseInteractiveVideoTimeInput(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return 0;
+    if (/^\d+$/.test(raw)) {
+      return Math.max(0, Math.floor(Number(raw) || 0));
+    }
+    const parts = raw.split(':').map((part) => part.trim()).filter(Boolean);
+    if (parts.length < 2 || parts.length > 3 || parts.some((part) => !/^\d+$/.test(part))) {
+      throw new Error('INVALID_INTERACTIVE_VIDEO_PROMPTS');
+    }
+    const numeric = parts.map((part) => Number(part));
+    if (parts.length === 2) {
+      return (numeric[0] * 60) + numeric[1];
+    }
+    return (numeric[0] * 3600) + (numeric[1] * 60) + numeric[2];
+  },
+
+  normalizeInteractiveVideoPromptOption(option, index = 0) {
+    if (typeof option === 'object' && option !== null) {
+      return String(option.label || option.text || option.value || '').trim();
+    }
+    const normalized = String(option || '').trim();
+    return normalized || (index < 2 ? '' : '');
+  },
+
+  normalizeInteractiveVideoPromptDraft(prompt = {}, index = 0, fallback = {}) {
+    const type = ['single_choice', 'true_false', 'short_text_reflection'].includes(prompt.questionType)
+      ? prompt.questionType
+      : 'single_choice';
+    const baseOptions = Array.isArray(prompt.options)
+      ? prompt.options.map((option, optionIndex) => this.normalizeInteractiveVideoPromptOption(option, optionIndex))
+      : [];
+    const options = type === 'single_choice'
+      ? (baseOptions.length > 0 ? baseOptions : ['', ''])
+      : [];
+    const correctAnswerIndex = type === 'single_choice'
+      ? Math.max(0, options.findIndex((option) => String(option) === String(prompt.correctAnswer ?? '')))
+      : null;
+    return {
+      promptId: prompt.promptId || this.generateInteractiveVideoPromptId(),
+      triggerSecond: Math.max(0, Math.floor(Number(prompt.triggerSecond) || 0)),
+      questionType: type,
+      question: String(prompt.question || '').trim(),
+      options,
+      correctAnswerIndex,
+      booleanAnswer: String(prompt.correctAnswer).toLowerCase() === 'false' ? 'false' : 'true',
+      points: Math.max(0, Number(prompt.points) || 0),
+      required: prompt.required !== false,
+      pauseVideo: prompt.pauseVideo !== false,
+      feedbackCorrect: prompt.feedbackCorrect || '',
+      feedbackIncorrect: prompt.feedbackIncorrect || '',
+      speakerName: prompt.speakerName || fallback.speakerName || '',
+      speakerAvatar: prompt.speakerAvatar || fallback.speakerAvatar || ''
+    };
+  },
+
+  getInteractiveVideoEditorState(prefix = '') {
+    return Array.isArray(this.interactiveVideoEditorState[prefix]) ? this.interactiveVideoEditorState[prefix] : [];
+  },
+
+  seedInteractiveVideoPromptEditor(prefix = '', prompts = [], fallback = {}) {
+    const sourcePrompts = Array.isArray(prompts) && prompts.length > 0 ? prompts : [{}];
+    const preparedPrompts = sourcePrompts.map((prompt, index) => this.normalizeInteractiveVideoPromptDraft(prompt, index, fallback));
+    this.interactiveVideoEditorState[prefix] = preparedPrompts;
+    return preparedPrompts;
+  },
+
+  renderInteractiveVideoPromptTimeline(prefix = '', prompts = []) {
+    const copy = this.getInteractiveVideoEditorCopy();
+    const sortedPrompts = [...(prompts || [])]
+      .sort((a, b) => a.triggerSecond - b.triggerSecond);
+    if (sortedPrompts.length === 0) {
+      return `<div class="interactive-video-editor-timeline-empty">${this.escapeText(copy.noPrompts)}</div>`;
+    }
+    const maxSecond = Math.max(60, ...sortedPrompts.map((prompt) => Number(prompt.triggerSecond) || 0));
+    return `
+      <div class="interactive-video-editor-timeline-rail">
+        ${sortedPrompts.map((prompt, index) => {
+          const ratio = maxSecond > 0 ? (Math.max(0, Number(prompt.triggerSecond) || 0) / maxSecond) * 100 : 0;
+          return `
+            <button
+              type="button"
+              class="interactive-video-editor-timeline-marker"
+              style="left: ${Math.min(100, Math.max(0, ratio))}%"
+              onclick="MoodleUI.scrollToInteractiveVideoPrompt(${this.toInlineActionValue(prefix)}, ${this.toInlineActionValue(prompt.promptId)})"
+            >
+              <span>${this.escapeText(this.formatInteractiveVideoTimeInput(prompt.triggerSecond || 0))}</span>
+            </button>
+          `;
+        }).join('')}
+      </div>
+      <div class="interactive-video-editor-timeline-chips">
+        ${sortedPrompts.map((prompt, index) => `
+          <button
+            type="button"
+            class="interactive-video-editor-chip"
+            onclick="MoodleUI.scrollToInteractiveVideoPrompt(${this.toInlineActionValue(prefix)}, ${this.toInlineActionValue(prompt.promptId)})"
+          >
+            <span>${this.escapeText(copy.promptLabel)} ${index + 1}</span>
+            <strong>${this.escapeText(this.formatInteractiveVideoTimeInput(prompt.triggerSecond || 0))}</strong>
+          </button>
+        `).join('')}
+      </div>
+    `;
+  },
+
+  renderInteractiveVideoPromptCard(prompt = {}, index = 0, prefix = '') {
+    const copy = this.getInteractiveVideoEditorCopy();
+    const optionRows = (prompt.questionType === 'single_choice' ? prompt.options : []).map((option, optionIndex) => `
+      <div class="interactive-video-editor-option-row">
+        <label class="interactive-video-editor-option-correct">
+          <input
+            type="radio"
+            name="${this.escapeText(`${prefix}interactiveVideoCorrect_${prompt.promptId}`)}"
+            value="${optionIndex}"
+            ${prompt.correctAnswerIndex === optionIndex ? 'checked' : ''}
+          >
+          <span>${this.escapeText(copy.correctAnswer)}</span>
+        </label>
+        <input
+          type="text"
+          class="interactive-video-editor-option-input"
+          value="${this.escapeText(option || '')}"
+          placeholder="${this.escapeText(copy.optionPlaceholder)}"
+          oninput="MoodleUI.refreshInteractiveVideoPromptEditorTimeline(${this.toInlineActionValue(prefix)})"
+        >
+        <button
+          type="button"
+          class="btn-secondary btn-sm"
+          onclick="MoodleUI.removeInteractiveVideoPromptOption(${this.toInlineActionValue(prefix)}, ${this.toInlineActionValue(prompt.promptId)}, ${optionIndex})"
+        >
+          ${this.escapeText(copy.removeOption)}
+        </button>
+      </div>
+    `).join('');
+
+    return `
+      <article class="interactive-video-editor-card" data-prompt-id="${this.escapeText(prompt.promptId)}">
+        <div class="interactive-video-editor-card-head">
+          <div>
+            <span class="interactive-video-editor-card-kicker">${this.escapeText(copy.promptLabel)} ${index + 1}</span>
+            <div class="interactive-video-editor-card-meta">
+              <h4 data-iv-editor-card-title>${this.escapeText(prompt.question || copy.untitledPrompt)}</h4>
+              <span class="interactive-video-editor-card-time" data-iv-editor-card-time>${this.escapeText(this.formatInteractiveVideoTimeInput(prompt.triggerSecond || 0))}</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            class="btn-danger btn-sm"
+            onclick="MoodleUI.removeInteractiveVideoPrompt(${this.toInlineActionValue(prefix)}, ${this.toInlineActionValue(prompt.promptId)})"
+          >
+            ${this.escapeText(copy.removePrompt)}
+          </button>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>${this.escapeText(copy.triggerTime)}</label>
+            <input
+              type="text"
+              class="interactive-video-editor-time-input"
+              value="${this.escapeText(this.formatInteractiveVideoTimeInput(prompt.triggerSecond || 0))}"
+              placeholder="00:30"
+              oninput="MoodleUI.handleInteractiveVideoPromptFieldInput(this, ${this.toInlineActionValue(prefix)})"
+            >
+            <p class="form-hint">${this.escapeText(copy.timeHint)}</p>
+          </div>
+          <div class="form-group">
+            <label>${this.escapeText(copy.promptType)}</label>
+            <select
+              class="interactive-video-editor-type-select"
+              onchange="MoodleUI.changeInteractiveVideoPromptType(${this.toInlineActionValue(prefix)}, ${this.toInlineActionValue(prompt.promptId)}, this.value)"
+            >
+              <option value="single_choice" ${prompt.questionType === 'single_choice' ? 'selected' : ''}>${this.escapeText(copy.singleChoice)}</option>
+              <option value="true_false" ${prompt.questionType === 'true_false' ? 'selected' : ''}>${this.escapeText(copy.trueFalse)}</option>
+              <option value="short_text_reflection" ${prompt.questionType === 'short_text_reflection' ? 'selected' : ''}>${this.escapeText(copy.reflection)}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>${this.escapeText(copy.points)}</label>
+            <input
+              type="number"
+              class="interactive-video-editor-points-input"
+              min="0"
+              value="${this.escapeText(prompt.points || 0)}"
+              ${prompt.questionType === 'short_text_reflection' ? 'disabled' : ''}
+            >
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>${this.escapeText(copy.question)}</label>
+          <textarea
+            class="interactive-video-editor-question-input"
+            rows="3"
+            placeholder="${this.escapeText(copy.questionPlaceholder)}"
+            oninput="MoodleUI.handleInteractiveVideoPromptFieldInput(this, ${this.toInlineActionValue(prefix)})"
+          >${this.escapeText(prompt.question || '')}</textarea>
+        </div>
+
+        ${prompt.questionType === 'single_choice' ? `
+          <div class="form-group">
+            <div class="interactive-video-editor-inline-head">
+              <label>${this.escapeText(copy.singleChoice)}</label>
+              <button
+                type="button"
+                class="btn-secondary btn-sm"
+                onclick="MoodleUI.addInteractiveVideoPromptOption(${this.toInlineActionValue(prefix)}, ${this.toInlineActionValue(prompt.promptId)})"
+              >
+                ${this.escapeText(copy.addOption)}
+              </button>
+            </div>
+            <div class="interactive-video-editor-option-list">
+              ${optionRows}
+            </div>
+          </div>
+        ` : ''}
+
+        ${prompt.questionType === 'true_false' ? `
+          <div class="form-group">
+            <label>${this.escapeText(copy.correctAnswer)}</label>
+            <select class="interactive-video-editor-boolean-answer">
+              <option value="true" ${prompt.booleanAnswer === 'true' ? 'selected' : ''}>${this.escapeText(copy.answerTrue)}</option>
+              <option value="false" ${prompt.booleanAnswer === 'false' ? 'selected' : ''}>${this.escapeText(copy.answerFalse)}</option>
+            </select>
+          </div>
+        ` : ''}
+
+        <div class="form-row interactive-video-editor-toggle-row">
+          <div class="form-group form-checkbox-row">
+            <label class="checkbox-label">
+              <input type="checkbox" class="interactive-video-editor-required-input" ${prompt.required ? 'checked' : ''}>
+              <span>${this.escapeText(copy.required)}</span>
+            </label>
+            <p class="form-hint">${this.escapeText(copy.questionRequiredHint)}</p>
+          </div>
+          <div class="form-group form-checkbox-row">
+            <label class="checkbox-label">
+              <input type="checkbox" class="interactive-video-editor-pause-input" ${prompt.pauseVideo ? 'checked' : ''}>
+              <span>${this.escapeText(copy.pauseVideo)}</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>${this.escapeText(prompt.questionType === 'short_text_reflection' ? copy.reflectionFeedback : copy.feedbackCorrect)}</label>
+            <textarea class="interactive-video-editor-feedback-correct" rows="2">${this.escapeText(prompt.feedbackCorrect || '')}</textarea>
+          </div>
+          ${prompt.questionType !== 'short_text_reflection' ? `
+            <div class="form-group">
+              <label>${this.escapeText(copy.feedbackIncorrect)}</label>
+              <textarea class="interactive-video-editor-feedback-incorrect" rows="2">${this.escapeText(prompt.feedbackIncorrect || '')}</textarea>
+            </div>
+          ` : `
+            <div class="interactive-video-editor-reflection-hint">${this.escapeText(copy.reflectionHint)}</div>
+          `}
+        </div>
+      </article>
+    `;
+  },
+
+  buildInteractiveVideoPromptEditor(prefix = '', prompts = [], fallback = {}) {
+    const copy = this.getInteractiveVideoEditorCopy();
+    const draftPrompts = this.seedInteractiveVideoPromptEditor(prefix, prompts, fallback);
+    return `
+      <div class="interactive-video-editor-shell">
+        <div class="interactive-video-editor-head">
+          <div>
+            <label>${this.escapeText(copy.sectionLabel)}</label>
+            <p class="form-hint">${this.escapeText(copy.sectionHint)}</p>
+          </div>
+          <button type="button" class="btn-secondary btn-sm" onclick="MoodleUI.addInteractiveVideoPrompt(${this.toInlineActionValue(prefix)})">
+            ${this.escapeText(copy.addPrompt)}
+          </button>
+        </div>
+        <div id="${this.escapeText(`${prefix}interactiveVideoPromptTimeline`)}" class="interactive-video-editor-timeline">
+          ${this.renderInteractiveVideoPromptTimeline(prefix, draftPrompts)}
+        </div>
+        <div id="${this.escapeText(`${prefix}interactiveVideoPromptList`)}" class="interactive-video-editor-list">
+          ${draftPrompts.map((prompt, index) => this.renderInteractiveVideoPromptCard(prompt, index, prefix)).join('')}
+        </div>
+      </div>
+    `;
+  },
+
+  collectInteractiveVideoPromptEditorDrafts(prefix = '', { preserveEmptyOptions = false } = {}) {
+    const container = document.getElementById(`${prefix}interactiveVideoPromptList`);
+    if (!container) {
+      return this.getInteractiveVideoEditorState(prefix);
+    }
+
+    const field = (id) => document.getElementById(`${prefix}${id}`);
+    const speakerName = field('interactiveVideoSpeakerName')?.value?.trim() || '';
+    const speakerAvatar = field('interactiveVideoSpeakerAvatar')?.value?.trim() || '';
+    const existingState = new Map(this.getInteractiveVideoEditorState(prefix).map((prompt) => [prompt.promptId, prompt]));
+
+    return Array.from(container.querySelectorAll('.interactive-video-editor-card')).map((card, index) => {
+      const promptId = card.dataset.promptId || this.generateInteractiveVideoPromptId();
+      const previous = existingState.get(promptId) || {};
+      let triggerSecond = Number(previous.triggerSecond || 0) || 0;
+      try {
+        triggerSecond = this.parseInteractiveVideoTimeInput(card.querySelector('.interactive-video-editor-time-input')?.value || '0');
+      } catch (error) {
+        if (!preserveEmptyOptions) throw error;
+      }
+      const questionType = card.querySelector('.interactive-video-editor-type-select')?.value || 'single_choice';
+      const optionValues = Array.from(card.querySelectorAll('.interactive-video-editor-option-input'))
+        .map((input) => input.value)
+        .filter((value) => preserveEmptyOptions || String(value || '').trim());
+      const checkedCorrect = Array.from(card.querySelectorAll('input[type="radio"]')).find((input) => input.checked);
+      const correctAnswerIndex = checkedCorrect ? Number(checkedCorrect.value) : null;
+
+      return {
+        promptId,
+        triggerSecond,
+        questionType,
+        question: card.querySelector('.interactive-video-editor-question-input')?.value?.trim() || '',
+        options: questionType === 'single_choice'
+          ? (preserveEmptyOptions ? optionValues : optionValues.map((value) => String(value).trim()).filter(Boolean))
+          : [],
+        correctAnswerIndex: questionType === 'single_choice' ? correctAnswerIndex : null,
+        booleanAnswer: questionType === 'true_false'
+          ? (card.querySelector('.interactive-video-editor-boolean-answer')?.value || 'true')
+          : 'true',
+        points: questionType === 'short_text_reflection'
+          ? 0
+          : Math.max(0, Number(card.querySelector('.interactive-video-editor-points-input')?.value || 0) || 0),
+        required: card.querySelector('.interactive-video-editor-required-input')?.checked !== false,
+        pauseVideo: card.querySelector('.interactive-video-editor-pause-input')?.checked !== false,
+        feedbackCorrect: card.querySelector('.interactive-video-editor-feedback-correct')?.value?.trim() || '',
+        feedbackIncorrect: questionType === 'short_text_reflection'
+          ? ''
+          : (card.querySelector('.interactive-video-editor-feedback-incorrect')?.value?.trim() || ''),
+        speakerName: previous.speakerName || speakerName,
+        speakerAvatar: previous.speakerAvatar || speakerAvatar
+      };
+    });
+  },
+
+  refreshInteractiveVideoPromptEditorTimeline(prefix = '') {
+    try {
+      const prompts = this.collectInteractiveVideoPromptEditorDrafts(prefix, { preserveEmptyOptions: true });
+      this.interactiveVideoEditorState[prefix] = prompts;
+      const timeline = document.getElementById(`${prefix}interactiveVideoPromptTimeline`);
+      if (timeline) {
+        timeline.innerHTML = this.renderInteractiveVideoPromptTimeline(prefix, prompts);
+      }
+    } catch (error) {
+      // Ignore invalid partial input while the teacher is typing.
+    }
+  },
+
+  handleInteractiveVideoPromptFieldInput(inputEl, prefix = '') {
+    const card = inputEl?.closest?.('.interactive-video-editor-card');
+    if (card) {
+      const copy = this.getInteractiveVideoEditorCopy();
+      const titleEl = card.querySelector('[data-iv-editor-card-title]');
+      const timeEl = card.querySelector('[data-iv-editor-card-time]');
+      const question = card.querySelector('.interactive-video-editor-question-input')?.value?.trim() || '';
+      const timeValue = card.querySelector('.interactive-video-editor-time-input')?.value || '';
+      if (titleEl) {
+        titleEl.textContent = question || copy.untitledPrompt;
+      }
+      if (timeEl) {
+        try {
+          timeEl.textContent = this.formatInteractiveVideoTimeInput(this.parseInteractiveVideoTimeInput(timeValue));
+        } catch (error) {
+          timeEl.textContent = timeValue || '00:00';
+        }
+      }
+    }
+    this.refreshInteractiveVideoPromptEditorTimeline(prefix);
+  },
+
+  rerenderInteractiveVideoPromptEditor(prefix = '') {
+    const prompts = this.getInteractiveVideoEditorState(prefix);
+    const list = document.getElementById(`${prefix}interactiveVideoPromptList`);
+    if (list) {
+      list.innerHTML = prompts.map((prompt, index) => this.renderInteractiveVideoPromptCard(prompt, index, prefix)).join('');
+    }
+    const timeline = document.getElementById(`${prefix}interactiveVideoPromptTimeline`);
+    if (timeline) {
+      timeline.innerHTML = this.renderInteractiveVideoPromptTimeline(prefix, prompts);
+    }
+  },
+
+  addInteractiveVideoPrompt(prefix = '') {
+    const prompts = this.collectInteractiveVideoPromptEditorDrafts(prefix, { preserveEmptyOptions: true });
+    prompts.push(this.normalizeInteractiveVideoPromptDraft({}, prompts.length));
+    this.interactiveVideoEditorState[prefix] = prompts;
+    this.rerenderInteractiveVideoPromptEditor(prefix);
+  },
+
+  removeInteractiveVideoPrompt(prefix = '', promptId = '') {
+    let prompts = this.collectInteractiveVideoPromptEditorDrafts(prefix, { preserveEmptyOptions: true })
+      .filter((prompt) => prompt.promptId !== promptId);
+    if (prompts.length === 0) {
+      prompts = [this.normalizeInteractiveVideoPromptDraft({}, 0)];
+    }
+    this.interactiveVideoEditorState[prefix] = prompts;
+    this.rerenderInteractiveVideoPromptEditor(prefix);
+  },
+
+  changeInteractiveVideoPromptType(prefix = '', promptId = '', nextType = 'single_choice') {
+    const prompts = this.collectInteractiveVideoPromptEditorDrafts(prefix, { preserveEmptyOptions: true })
+      .map((prompt) => {
+        if (prompt.promptId !== promptId) return prompt;
+        if (nextType === 'single_choice') {
+          const nextOptions = Array.isArray(prompt.options) && prompt.options.length > 0 ? prompt.options : ['', ''];
+          return {
+            ...prompt,
+            questionType: 'single_choice',
+            options: nextOptions,
+            correctAnswerIndex: Number.isInteger(prompt.correctAnswerIndex) ? prompt.correctAnswerIndex : 0,
+            booleanAnswer: 'true',
+            points: Math.max(0, Number(prompt.points || 0) || 0),
+            feedbackIncorrect: prompt.feedbackIncorrect || ''
+          };
+        }
+        if (nextType === 'true_false') {
+          return {
+            ...prompt,
+            questionType: 'true_false',
+            options: [],
+            correctAnswerIndex: null,
+            booleanAnswer: prompt.booleanAnswer === 'false' ? 'false' : 'true',
+            points: Math.max(0, Number(prompt.points || 0) || 0)
+          };
+        }
+        return {
+          ...prompt,
+          questionType: 'short_text_reflection',
+          options: [],
+          correctAnswerIndex: null,
+          booleanAnswer: 'true',
+          points: 0,
+          feedbackIncorrect: ''
+        };
+      });
+    this.interactiveVideoEditorState[prefix] = prompts;
+    this.rerenderInteractiveVideoPromptEditor(prefix);
+  },
+
+  addInteractiveVideoPromptOption(prefix = '', promptId = '') {
+    const prompts = this.collectInteractiveVideoPromptEditorDrafts(prefix, { preserveEmptyOptions: true })
+      .map((prompt) => {
+        if (prompt.promptId !== promptId) return prompt;
+        return {
+          ...prompt,
+          options: [...(Array.isArray(prompt.options) ? prompt.options : []), '']
+        };
+      });
+    this.interactiveVideoEditorState[prefix] = prompts;
+    this.rerenderInteractiveVideoPromptEditor(prefix);
+  },
+
+  removeInteractiveVideoPromptOption(prefix = '', promptId = '', optionIndex = 0) {
+    const prompts = this.collectInteractiveVideoPromptEditorDrafts(prefix, { preserveEmptyOptions: true })
+      .map((prompt) => {
+        if (prompt.promptId !== promptId) return prompt;
+        const nextOptions = (Array.isArray(prompt.options) ? prompt.options : []).filter((_, index) => index !== optionIndex);
+        const safeOptions = nextOptions.length > 0 ? nextOptions : [''];
+        const nextCorrectIndex = Number.isInteger(prompt.correctAnswerIndex)
+          ? Math.min(prompt.correctAnswerIndex, safeOptions.length - 1)
+          : 0;
+        return {
+          ...prompt,
+          options: safeOptions,
+          correctAnswerIndex: nextCorrectIndex
+        };
+      });
+    this.interactiveVideoEditorState[prefix] = prompts;
+    this.rerenderInteractiveVideoPromptEditor(prefix);
+  },
+
+  scrollToInteractiveVideoPrompt(prefix = '', promptId = '') {
+    const list = document.getElementById(`${prefix}interactiveVideoPromptList`);
+    const node = list
+      ? Array.from(list.querySelectorAll('.interactive-video-editor-card')).find((item) => item.dataset.promptId === promptId)
+      : null;
+    if (!node) return;
+    node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    node.classList.add('is-highlighted');
+    window.clearTimeout(node._ivHighlightTimer);
+    node._ivHighlightTimer = window.setTimeout(() => node.classList.remove('is-highlighted'), 1200);
+  },
+
+  formatInteractiveVideoPromptsForTextarea(prompts = []) {
+    return JSON.stringify((prompts || []).map((prompt) => ({
+      triggerSecond: prompt.triggerSecond || 0,
+      questionType: prompt.questionType || 'single_choice',
+      question: prompt.question || '',
+      options: Array.isArray(prompt.options) ? prompt.options.map((option) => option.label || option.text || option.value || option) : [],
+      correctAnswer: prompt.correctAnswer ?? '',
+      points: Number(prompt.points || 0) || 0,
+      required: prompt.required !== false,
+      pauseVideo: prompt.pauseVideo !== false,
+      feedbackCorrect: prompt.feedbackCorrect || '',
+      feedbackIncorrect: prompt.feedbackIncorrect || '',
+      speakerName: prompt.speakerName || '',
+      speakerAvatar: prompt.speakerAvatar || ''
+    })), null, 2);
+  },
+
+  buildInteractiveVideoConfigFromForm(prefix = '') {
+    const field = (id) => document.getElementById(`${prefix}${id}`);
+    const videoUrl = field('interactiveVideoUrl')?.value?.trim() || '';
+    const youtubeId = this.extractYouTubeId(videoUrl);
+    if (!videoUrl || !youtubeId) {
+      throw new Error('INVALID_INTERACTIVE_VIDEO_URL');
+    }
+
+    const speakerName = field('interactiveVideoSpeakerName')?.value?.trim() || '';
+    const speakerAvatar = field('interactiveVideoSpeakerAvatar')?.value?.trim() || '';
+    let prompts = [];
+
+    if (document.getElementById(`${prefix}interactiveVideoPromptList`)) {
+      const promptDrafts = this.collectInteractiveVideoPromptEditorDrafts(prefix)
+        .filter((prompt) => prompt.question);
+
+      prompts = promptDrafts.map((prompt) => {
+        if (prompt.questionType === 'single_choice') {
+          const options = (Array.isArray(prompt.options) ? prompt.options : []).map((option) => String(option || '').trim()).filter(Boolean);
+          if (options.length < 2 || !Number.isInteger(prompt.correctAnswerIndex) || !options[prompt.correctAnswerIndex]) {
+            throw new Error('INVALID_INTERACTIVE_VIDEO_PROMPTS');
+          }
+          return {
+            promptId: prompt.promptId,
+            triggerSecond: prompt.triggerSecond,
+            questionType: prompt.questionType,
+            question: prompt.question,
+            options,
+            correctAnswer: options[prompt.correctAnswerIndex],
+            points: Math.max(0, Number(prompt.points || 0) || 0),
+            required: prompt.required !== false,
+            pauseVideo: prompt.pauseVideo !== false,
+            feedbackCorrect: prompt.feedbackCorrect || '',
+            feedbackIncorrect: prompt.feedbackIncorrect || '',
+            speakerName: prompt.speakerName || speakerName,
+            speakerAvatar: prompt.speakerAvatar || speakerAvatar
+          };
+        }
+
+        if (prompt.questionType === 'true_false') {
+          return {
+            promptId: prompt.promptId,
+            triggerSecond: prompt.triggerSecond,
+            questionType: prompt.questionType,
+            question: prompt.question,
+            correctAnswer: prompt.booleanAnswer === 'false' ? 'false' : 'true',
+            points: Math.max(0, Number(prompt.points || 0) || 0),
+            required: prompt.required !== false,
+            pauseVideo: prompt.pauseVideo !== false,
+            feedbackCorrect: prompt.feedbackCorrect || '',
+            feedbackIncorrect: prompt.feedbackIncorrect || '',
+            speakerName: prompt.speakerName || speakerName,
+            speakerAvatar: prompt.speakerAvatar || speakerAvatar
+          };
+        }
+
+        return {
+          promptId: prompt.promptId,
+          triggerSecond: prompt.triggerSecond,
+          questionType: 'short_text_reflection',
+          question: prompt.question,
+          correctAnswer: null,
+          points: 0,
+          required: prompt.required !== false,
+          pauseVideo: prompt.pauseVideo !== false,
+          feedbackCorrect: prompt.feedbackCorrect || '',
+          feedbackIncorrect: '',
+          speakerName: prompt.speakerName || speakerName,
+          speakerAvatar: prompt.speakerAvatar || speakerAvatar
+        };
+      }).sort((a, b) => a.triggerSecond - b.triggerSecond);
+    } else {
+      const promptsRaw = field('interactiveVideoPrompts')?.value?.trim() || '[]';
+      try {
+        prompts = JSON.parse(promptsRaw);
+      } catch (error) {
+        throw new Error('INVALID_INTERACTIVE_VIDEO_PROMPTS');
+      }
+    }
+
+    if (!Array.isArray(prompts) || prompts.length === 0) {
+      throw new Error('INVALID_INTERACTIVE_VIDEO_PROMPTS');
+    }
+
+    return {
+      url: videoUrl,
+      youtubeId,
+      interactiveVideo: {
+        videoUrl,
+        youtubeId,
+        speakerName,
+        speakerAvatar,
+        gradingMode: field('interactiveVideoGradingMode')?.value || 'graded',
+        passingScore: Math.max(0, Math.min(100, Number(field('interactiveVideoPassingScore')?.value || 70) || 70)),
+        completionRule: {
+          minWatchPercent: Math.max(0, Math.min(100, Number(field('interactiveVideoWatchPercent')?.value || 85) || 85)),
+          requiredPromptMode: 'all'
+        },
+        prompts: Array.isArray(prompts) ? prompts : []
+      }
+    };
+  },
+
+  ensureYouTubeIframeApi() {
+    if (window.YT?.Player) {
+      return Promise.resolve(window.YT);
+    }
+    if (this._youtubeIframeApiPromise) {
+      return this._youtubeIframeApiPromise;
+    }
+
+    this._youtubeIframeApiPromise = new Promise((resolve, reject) => {
+      const existingScript = document.querySelector('script[data-youtube-iframe-api="1"]');
+      const previousReadyHandler = window.onYouTubeIframeAPIReady;
+
+      window.onYouTubeIframeAPIReady = () => {
+        if (typeof previousReadyHandler === 'function') previousReadyHandler();
+        resolve(window.YT);
+      };
+
+      if (existingScript) {
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = 'https://www.youtube.com/iframe_api';
+      script.async = true;
+      script.dataset.youtubeIframeApi = '1';
+      script.onerror = () => {
+        this._youtubeIframeApiPromise = null;
+        reject(new Error('YOUTUBE_API_LOAD_FAILED'));
+      };
+      document.head.appendChild(script);
+    });
+
+    return this._youtubeIframeApiPromise;
+  },
+
+  renderInteractiveVideoAvatar(name = '', avatar = '', variant = 'teacher') {
+    if (avatar) {
+      return `<span class="interactive-video-avatar ${variant}"><img src="${this.escapeText(avatar)}" alt="${this.escapeText(name || 'Teacher')}"></span>`;
+    }
+    const safeName = String(name || (variant === 'teacher' ? 'T' : 'S')).trim();
+    const initials = safeName.slice(0, 1).toUpperCase();
+    return `<span class="interactive-video-avatar ${variant}">${this.escapeText(initials)}</span>`;
+  },
+
+  resolveInteractiveVideoAnswerLabel(prompt, answerRecord) {
+    if (!answerRecord) return '';
+    const answerValue = answerRecord.answer;
+    if (Array.isArray(answerValue)) {
+      return answerValue.map((value) => this.resolveInteractiveVideoAnswerLabel(prompt, { answer: value })).filter(Boolean).join(', ');
+    }
+    if (prompt.questionType === 'true_false') {
+      return String(answerValue).toLowerCase() === 'true'
+        ? (I18n.getLocale() === 'en' ? 'True' : '是')
+        : (I18n.getLocale() === 'en' ? 'False' : '否');
+    }
+    const matched = (prompt.options || []).find((option) => String(option.value) === String(answerValue));
+    return matched?.label || String(answerValue || '');
+  },
+
+  buildInteractiveVideoTranscriptHtml(runtime) {
+    const copy = this.getInteractiveVideoUiCopy();
+    const prompts = runtime.prompts || [];
+    const answers = runtime.attempt?.answers || {};
+    const messages = [];
+
+    prompts.forEach((prompt) => {
+      const answerRecord = answers[prompt.promptId];
+      if (!answerRecord) return;
+
+      const speakerName = prompt.speakerName || runtime.config.speakerName || (I18n.getLocale() === 'en' ? 'Teacher' : '老師');
+      messages.push(`
+        <div class="interactive-video-bubble-row teacher">
+          ${this.renderInteractiveVideoAvatar(speakerName, prompt.speakerAvatar || runtime.config.speakerAvatar, 'teacher')}
+          <div class="interactive-video-bubble teacher">
+            <div class="interactive-video-bubble-kicker">${this.escapeText(copy.teacherPrompt)}</div>
+            <div class="interactive-video-bubble-text">${this.escapeText(prompt.question)}</div>
+          </div>
+        </div>
+      `);
+
+      messages.push(`
+        <div class="interactive-video-bubble-row learner">
+          <div class="interactive-video-bubble learner">
+            <div class="interactive-video-bubble-kicker">${this.escapeText(copy.learnerReply)}</div>
+            <div class="interactive-video-bubble-text">${this.escapeText(this.resolveInteractiveVideoAnswerLabel(prompt, answerRecord))}</div>
+          </div>
+          ${this.renderInteractiveVideoAvatar(API.getCurrentUser()?.displayName || API.getCurrentUser()?.email || (I18n.getLocale() === 'en' ? 'You' : '我'), '', 'learner')}
+        </div>
+      `);
+
+      const feedback = answerRecord.feedback || (answerRecord.isCorrect === false ? prompt.feedbackIncorrect : prompt.feedbackCorrect);
+      if (feedback) {
+        messages.push(`
+          <div class="interactive-video-bubble-row teacher">
+            ${this.renderInteractiveVideoAvatar(speakerName, prompt.speakerAvatar || runtime.config.speakerAvatar, 'teacher')}
+            <div class="interactive-video-bubble teacher subtle">
+              <div class="interactive-video-bubble-text">${this.escapeText(feedback)}</div>
+            </div>
+          </div>
+        `);
+      }
+    });
+
+    if (messages.length === 0) {
+      return `<div class="interactive-video-empty">${this.escapeText(copy.emptyTranscript)}</div>`;
+    }
+
+    return messages.join('');
+  },
+
+  buildInteractiveVideoPromptCardHtml(runtime) {
+    const copy = this.getInteractiveVideoUiCopy();
+    const prompt = (runtime.prompts || []).find((item) => item.promptId === runtime.activePromptId);
+    if (!prompt) {
+      return `
+        <div class="interactive-video-idle-card">
+          <div class="interactive-video-idle-copy">${this.escapeText(copy.waiting)}</div>
+        </div>
+      `;
+    }
+
+    const buttons = prompt.questionType === 'true_false'
+      ? `
+          <div class="interactive-video-options">
+            <button type="button" class="interactive-video-option" onclick="MoodleUI.submitInteractiveVideoChoice(true)">${I18n.getLocale() === 'en' ? 'True' : '是'}</button>
+            <button type="button" class="interactive-video-option" onclick="MoodleUI.submitInteractiveVideoChoice(false)">${I18n.getLocale() === 'en' ? 'False' : '否'}</button>
+          </div>
+        `
+      : prompt.questionType === 'short_text_reflection'
+        ? `
+          <div class="interactive-video-text-answer">
+            <textarea id="interactiveVideoTextAnswer" rows="4" placeholder="${this.escapeText(copy.reflectionPlaceholder)}"></textarea>
+            <button type="button" class="interactive-video-submit" onclick="MoodleUI.submitInteractiveVideoText()">${this.escapeText(copy.submit)}</button>
+          </div>
+        `
+        : `
+          <div class="interactive-video-options">
+            ${(prompt.options || []).map((option) => `
+              <button type="button" class="interactive-video-option" onclick="MoodleUI.submitInteractiveVideoChoice(${this.toInlineActionValue(option.value)})">${this.escapeText(option.label)}</button>
+            `).join('')}
+          </div>
+        `;
+
+    return `
+      <div class="interactive-video-prompt-card">
+        <div class="interactive-video-prompt-head">
+          ${this.renderInteractiveVideoAvatar(prompt.speakerName || runtime.config.speakerName, prompt.speakerAvatar || runtime.config.speakerAvatar, 'teacher')}
+          <div>
+            <div class="interactive-video-prompt-label">${this.escapeText(copy.teacherPrompt)}</div>
+            <div class="interactive-video-prompt-time">${this.escapeText(this.formatInteractiveVideoTime(prompt.triggerSecond))}</div>
+          </div>
+        </div>
+        <div class="interactive-video-prompt-question">${this.escapeText(prompt.question)}</div>
+        <div class="interactive-video-prompt-required">${this.escapeText(copy.questionRequired)}</div>
+        ${buttons}
+      </div>
+    `;
+  },
+
+  buildInteractiveVideoSummaryHtml(runtime) {
+    const copy = this.getInteractiveVideoUiCopy();
+    const durationSeconds = Math.max(1, Number(runtime.config.durationSeconds || 0) || 1);
+    const watchedSeconds = Number(runtime.attempt?.watchedSeconds || 0) || 0;
+    const watchPercent = Math.min(100, Math.round((watchedSeconds / durationSeconds) * 100));
+    const answeredCount = Array.isArray(runtime.attempt?.answeredPromptIds) ? runtime.attempt.answeredPromptIds.length : 0;
+    const totalPrompts = Array.isArray(runtime.prompts) ? runtime.prompts.length : 0;
+    const score = Number(runtime.attempt?.score || 0) || 0;
+    const maxScore = Number(runtime.attempt?.maxScore || 0) || 0;
+
+    return `
+      <div class="interactive-video-summary-card ${runtime.completedSummary?.status === 'completed' ? 'is-complete' : ''}">
+        <div class="interactive-video-summary-grid">
+          <div class="interactive-video-summary-item">
+            <span>${this.escapeText(copy.watchProgress)}</span>
+            <strong>${watchPercent}%</strong>
+          </div>
+          <div class="interactive-video-summary-item">
+            <span>${this.escapeText(copy.answered)}</span>
+            <strong>${answeredCount}/${totalPrompts}</strong>
+          </div>
+          <div class="interactive-video-summary-item">
+            <span>${this.escapeText(copy.score)}</span>
+            <strong>${maxScore > 0 ? `${score}/${maxScore}` : '—'}</strong>
+          </div>
+          <div class="interactive-video-summary-item">
+            <span>${this.escapeText(copy.watchedSeconds)}</span>
+            <strong>${this.escapeText(this.formatInteractiveVideoTime(watchedSeconds))}</strong>
+          </div>
+        </div>
+        ${runtime.completedSummary ? `
+          <div class="interactive-video-summary-note">
+            ${this.escapeText(runtime.completedSummary.completionEligible ? copy.completed : copy.completionPending)}
+          </div>
+        ` : ''}
+      </div>
+    `;
+  },
+
+  renderInteractiveVideoSidebar(runtime) {
+    if (!runtime?.overlay) return;
+    const transcriptEl = runtime.overlay.querySelector('[data-iv-transcript]');
+    const promptEl = runtime.overlay.querySelector('[data-iv-prompt]');
+    const summaryEl = runtime.overlay.querySelector('[data-iv-summary]');
+    if (transcriptEl) transcriptEl.innerHTML = this.buildInteractiveVideoTranscriptHtml(runtime);
+    if (promptEl) promptEl.innerHTML = this.buildInteractiveVideoPromptCardHtml(runtime);
+    if (summaryEl) summaryEl.innerHTML = this.buildInteractiveVideoSummaryHtml(runtime);
+  },
+
+  formatInteractiveVideoTime(totalSeconds = 0) {
+    const seconds = Math.max(0, Math.floor(Number(totalSeconds) || 0));
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const remain = seconds % 60;
+    if (hours > 0) {
+      return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(remain).padStart(2, '0')}`;
+    }
+    return `${String(minutes).padStart(2, '0')}:${String(remain).padStart(2, '0')}`;
+  },
+
+  async flushInteractiveVideoProgress(runtime, force = false) {
+    if (!runtime?.courseId || !runtime?.activityId) return;
+    const wholeSeconds = Math.floor(Number(runtime.pendingWatchSeconds || 0));
+    const currentTime = Math.max(0, Math.floor(Number(runtime.currentTime || 0)));
+    const hasProgressPayload = wholeSeconds > 0 || force;
+    if (!hasProgressPayload) return;
+
+    const durationSeconds = Math.max(1, Number(runtime.config.durationSeconds || 0) || 1);
+    const nextWatchedSeconds = Math.max(0, Number(runtime.attempt?.watchedSeconds || 0) || 0) + wholeSeconds;
+    const progressPercent = Math.min(100, Math.round((Math.max(currentTime, nextWatchedSeconds) / durationSeconds) * 100));
+
+    runtime.pendingWatchSeconds = Math.max(0, Number(runtime.pendingWatchSeconds || 0) - wholeSeconds);
+    runtime.attempt = {
+      ...(runtime.attempt || {}),
+      watchedSeconds: nextWatchedSeconds,
+      lastPositionSecond: currentTime,
+      progressPercentage: progressPercent
+    };
+
+    this.renderInteractiveVideoSidebar(runtime);
+
+    try {
+      await Promise.all([
+        API.interactiveVideos.heartbeat(runtime.courseId, runtime.activityId, {
+          currentTime,
+          playedDelta: wholeSeconds,
+          playerState: runtime.playerState || 'paused',
+          visible: document.visibilityState === 'visible',
+          progressPercentage: progressPercent
+        }),
+        API.courses.updateProgress(runtime.courseId, {
+          activityId: runtime.activity.activityId,
+          currentSectionId: runtime.activity.sectionId,
+          timeSpent: wholeSeconds,
+          activityProgress: progressPercent
+        })
+      ]);
+    } catch (error) {
+      console.warn('Interactive video progress sync failed:', error);
+    }
+  },
+
+  async finalizeInteractiveVideo(runtime, { autoComplete = false } = {}) {
+    if (!runtime || runtime.isFinalizing) return;
+    runtime.isFinalizing = true;
+
+    try {
+      await this.flushInteractiveVideoProgress(runtime, true);
+      const result = await API.interactiveVideos.complete(runtime.courseId, runtime.activityId);
+      if (result?.success) {
+        runtime.completedSummary = result.data || null;
+        runtime.attempt = {
+          ...(runtime.attempt || {}),
+          status: result.data?.status || runtime.attempt?.status,
+          score: result.data?.score ?? runtime.attempt?.score,
+          maxScore: result.data?.maxScore ?? runtime.attempt?.maxScore,
+          watchedSeconds: result.data?.watchedSeconds ?? runtime.attempt?.watchedSeconds
+        };
+
+        if (result.data?.completionEligible) {
+          await API.courses.completeActivity(runtime.courseId, runtime.activityId);
+          await this.triggerCourseCompletionCheck(runtime.courseId);
+          if (autoComplete) {
+            showToast(I18n.getLocale() === 'en'
+              ? `Interactive video completed. Score: ${result.data.score ?? 0}${result.data.maxScore ? ` / ${result.data.maxScore}` : ''}`
+              : `互動影片完成，分數：${result.data.score ?? 0}${result.data.maxScore ? ` / ${result.data.maxScore}` : ''}`);
+          }
+        }
+
+        this.renderInteractiveVideoSidebar(runtime);
+      }
+    } catch (error) {
+      console.warn('Finalize interactive video failed:', error);
+    } finally {
+      runtime.isFinalizing = false;
+    }
+  },
+
+  async submitInteractiveVideoChoice(answer) {
+    const runtime = this.currentInteractiveVideoRuntime;
+    if (!runtime?.activePromptId) return;
+
+    try {
+      const result = await API.interactiveVideos.answer(runtime.courseId, runtime.activityId, {
+        promptId: runtime.activePromptId,
+        answer,
+        currentTime: Math.floor(Number(runtime.currentTime || 0))
+      });
+      if (!result?.success) {
+        showToast(result?.message || (I18n.getLocale() === 'en' ? 'Failed to save answer' : '儲存答案失敗'));
+        return;
+      }
+
+      const prompt = runtime.prompts.find((item) => item.promptId === runtime.activePromptId);
+      runtime.attempt = {
+        ...(runtime.attempt || {}),
+        answers: {
+          ...((runtime.attempt && runtime.attempt.answers) || {}),
+          [runtime.activePromptId]: {
+            answer,
+            isCorrect: result.data?.isCorrect,
+            feedback: result.data?.feedback || '',
+            pointsEarned: result.data?.isCorrect === true ? Number(prompt?.points || 0) || 0 : 0,
+            answeredAt: new Date().toISOString()
+          }
+        },
+        answeredPromptIds: result.data?.answeredPromptIds || runtime.attempt?.answeredPromptIds || [],
+        score: result.data?.score ?? runtime.attempt?.score ?? 0,
+        maxScore: result.data?.maxScore ?? runtime.attempt?.maxScore ?? 0
+      };
+      runtime.activePromptId = null;
+      this.renderInteractiveVideoSidebar(runtime);
+      showToast(this.getInteractiveVideoUiCopy().saved);
+      if (runtime.player?.playVideo) {
+        window.setTimeout(() => runtime.player.playVideo(), 320);
+      }
+    } catch (error) {
+      console.error('Interactive video answer error:', error);
+      showToast(I18n.getLocale() === 'en' ? 'Failed to save answer' : '儲存答案失敗');
+    }
+  },
+
+  async submitInteractiveVideoText() {
+    const textarea = document.getElementById('interactiveVideoTextAnswer');
+    const value = textarea?.value?.trim();
+    if (!value) return;
+    return this.submitInteractiveVideoChoice(value);
+  },
+
+  resumeInteractiveVideoPlayback() {
+    const runtime = this.currentInteractiveVideoRuntime;
+    if (runtime?.player?.playVideo) {
+      runtime.player.playVideo();
+    }
+  },
+
+  async openInteractiveVideoActivity(activityId, courseId) {
+    try {
+      const copy = this.getInteractiveVideoUiCopy();
+      const result = await API.interactiveVideos.get(courseId, activityId);
+      if (!result?.success || !result.data?.interactiveVideo) {
+        showToast(copy.invalidConfig);
+        return;
+      }
+
+      const activity = {
+        activityId: result.data.activityId,
+        courseId: result.data.courseId,
+        title: result.data.title,
+        description: result.data.description || '',
+        sectionId: result.data.sectionId || null
+      };
+      const config = this.normalizeInteractiveVideoConfig({
+        type: 'interactive_video',
+        url: result.data.interactiveVideo.videoUrl,
+        youtubeId: result.data.interactiveVideo.youtubeId,
+        interactiveVideo: result.data.interactiveVideo
+      });
+      if (!config.youtubeId) {
+        showToast(copy.invalidConfig);
+        return;
+      }
+
+      const sessionResult = await API.interactiveVideos.startSession(courseId, activityId);
+      const attempt = sessionResult?.success
+        ? (sessionResult.data?.attempt || result.data?.attempt || {})
+        : (result.data?.attempt || {});
+
+      const viewer = this.openActivityViewerShell({
+        overlayId: 'interactive-video-viewer-overlay',
+        title: result.data.title || copy.subtitle,
+        subtitle: copy.subtitle,
+        externalUrl: config.videoUrl
+      });
+
+      viewer.body.innerHTML = `
+        <div class="interactive-video-layout">
+          <div class="interactive-video-stage">
+            <div class="interactive-video-player-shell">
+              <div id="interactive-video-player" class="interactive-video-player"></div>
+            </div>
+          </div>
+          <aside class="interactive-video-sidebar">
+            <div class="interactive-video-sidebar-head">
+              <div class="interactive-video-sidebar-title">${this.escapeText(result.data.title || copy.subtitle)}</div>
+              <div class="interactive-video-sidebar-subtitle">${this.escapeText(activity.description || copy.resume)}</div>
+            </div>
+            <div class="interactive-video-summary-slot" data-iv-summary></div>
+            <div class="interactive-video-prompt-slot" data-iv-prompt></div>
+            <div class="interactive-video-transcript" data-iv-transcript></div>
+            <div class="interactive-video-sidebar-actions">
+              <button type="button" class="interactive-video-resume-btn" onclick="MoodleUI.resumeInteractiveVideoPlayback()">${this.escapeText(copy.continue)}</button>
+            </div>
+          </aside>
+        </div>
+      `;
+
+      const runtime = {
+        overlay: viewer.overlay,
+        courseId,
+        activityId,
+        activity,
+        config,
+        prompts: config.prompts || [],
+        attempt: {
+          ...(attempt || {}),
+          answers: attempt?.answers || {},
+          answeredPromptIds: attempt?.answeredPromptIds || [],
+          triggeredPromptIds: attempt?.triggeredPromptIds || []
+        },
+        currentTime: Number(attempt?.lastPositionSecond || 0) || 0,
+        pendingWatchSeconds: 0,
+        playerState: 'idle',
+        activePromptId: null,
+        heartbeatTimer: null,
+        pollTimer: null,
+        lastTrackedTime: null,
+        completedSummary: null,
+        isFinalizing: false
+      };
+      this.currentInteractiveVideoRuntime = runtime;
+      this.renderInteractiveVideoSidebar(runtime);
+
+      viewer.overlay._activityViewerCleanup = async () => {
+        if (runtime.heartbeatTimer) clearInterval(runtime.heartbeatTimer);
+        if (runtime.pollTimer) clearInterval(runtime.pollTimer);
+        await this.finalizeInteractiveVideo(runtime, { autoComplete: false });
+        if (runtime.player?.destroy) {
+          try {
+            runtime.player.destroy();
+          } catch (error) {
+            console.warn('Destroy interactive video player failed:', error);
+          }
+        }
+        if (this.currentInteractiveVideoRuntime === runtime) {
+          this.currentInteractiveVideoRuntime = null;
+        }
+      };
+
+      await this.ensureYouTubeIframeApi();
+
+      runtime.player = new window.YT.Player('interactive-video-player', {
+        videoId: config.youtubeId,
+        host: 'https://www.youtube-nocookie.com',
+        playerVars: {
+          autoplay: 1,
+          rel: 0,
+          modestbranding: 1,
+          playsinline: 1
+        },
+        events: {
+          onReady: (event) => {
+            const resumeSecond = Math.max(0, Math.floor(Number(runtime.attempt?.lastPositionSecond || 0) || 0));
+            if (resumeSecond > 0 && event.target?.seekTo) {
+              event.target.seekTo(resumeSecond, true);
+            }
+          },
+          onStateChange: (event) => {
+            const states = window.YT?.PlayerState || {};
+            if (event.data === states.PLAYING) {
+              runtime.playerState = 'playing';
+              runtime.lastTrackedTime = Number(runtime.player?.getCurrentTime?.() || runtime.currentTime || 0);
+            } else if (event.data === states.PAUSED) {
+              runtime.playerState = 'paused';
+            } else if (event.data === states.ENDED) {
+              runtime.playerState = 'ended';
+              this.finalizeInteractiveVideo(runtime, { autoComplete: true });
+            } else {
+              runtime.playerState = 'idle';
+            }
+          }
+        }
+      });
+
+      runtime.heartbeatTimer = window.setInterval(() => {
+        this.flushInteractiveVideoProgress(runtime);
+      }, 10000);
+
+      runtime.pollTimer = window.setInterval(() => {
+        if (!runtime.player || typeof runtime.player.getCurrentTime !== 'function') return;
+        const currentTime = Number(runtime.player.getCurrentTime()) || 0;
+        runtime.currentTime = currentTime;
+
+        if (runtime.playerState === 'playing' && document.visibilityState === 'visible' && Number.isFinite(runtime.lastTrackedTime)) {
+          const delta = currentTime - runtime.lastTrackedTime;
+          if (delta > 0 && delta <= 2) {
+            runtime.pendingWatchSeconds += delta;
+          }
+        }
+        runtime.lastTrackedTime = currentTime;
+
+        const activePrompt = runtime.activePromptId
+          ? runtime.prompts.find((prompt) => prompt.promptId === runtime.activePromptId)
+          : null;
+        if (!activePrompt) {
+          const nextPrompt = runtime.prompts.find((prompt) => (
+            currentTime >= Number(prompt.triggerSecond || 0)
+            && !(runtime.attempt?.answeredPromptIds || []).includes(prompt.promptId)
+          ));
+          if (nextPrompt) {
+            runtime.activePromptId = nextPrompt.promptId;
+            if (nextPrompt.pauseVideo !== false && runtime.player?.pauseVideo) {
+              runtime.player.pauseVideo();
+            }
+            this.renderInteractiveVideoSidebar(runtime);
+          }
+        }
+
+        if (Math.floor(runtime.pendingWatchSeconds) >= 5) {
+          this.flushInteractiveVideoProgress(runtime);
+        }
+      }, 400);
+    } catch (error) {
+      console.error('Open interactive video activity failed:', error);
+      showToast(this.getInteractiveVideoUiCopy().invalidConfig);
+    }
   },
 
   /**
@@ -3186,6 +4590,13 @@ const MoodleUI = {
               <span>${t('moodleAddActivity.typeFile')}</span>
               <p>${t('moodleAddActivity.typeFileDesc')}</p>
             </button>
+            <button type="button" class="activity-type-card" onclick="MoodleUI.selectActivityType('interactive_video', this)">
+              <div class="type-icon tone-sky">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="13" rx="2"/><polygon points="10,8 16,11 10,14"/><path d="M7 20h10"/><path d="M9 17v3"/><path d="M15 17v3"/></svg>
+              </div>
+              <span>${I18n.getLocale() === 'en' ? 'Interactive video' : '互動影片'}</span>
+              <p>${I18n.getLocale() === 'en' ? 'Pause a YouTube video at timeline checkpoints and ask learners questions in a sidebar.' : '在 YouTube 影片時間點自動停下，於右側 sidebar 提問並記錄作答。'}</p>
+            </button>
             <button type="button" class="activity-type-card" onclick="MoodleUI.selectActivityType('assignment', this)">
               <div class="type-icon tone-terracotta">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
@@ -3293,6 +4704,41 @@ const MoodleUI = {
             <label>${t('moodleAddActivity.fileLabel')}</label>
             <input type="file" id="fileUpload">
           </div>
+        `;
+      case 'interactive_video':
+        return commonFields + `
+          <div class="form-group">
+            <label>${I18n.getLocale() === 'en' ? 'YouTube URL' : 'YouTube 連結'}</label>
+            <input type="url" id="interactiveVideoUrl" placeholder="https://www.youtube.com/watch?v=...">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>${I18n.getLocale() === 'en' ? 'Teacher name' : '老師名稱'}</label>
+              <input type="text" id="interactiveVideoSpeakerName" placeholder="${I18n.getLocale() === 'en' ? 'Teacher Lin' : '林老師'}">
+            </div>
+            <div class="form-group">
+              <label>${I18n.getLocale() === 'en' ? 'Teacher avatar URL' : '老師頭像 URL'}</label>
+              <input type="url" id="interactiveVideoSpeakerAvatar" placeholder="/uploads/teacher-avatar.png">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>${I18n.getLocale() === 'en' ? 'Grading mode' : '評分模式'}</label>
+              <select id="interactiveVideoGradingMode">
+                <option value="graded">${I18n.getLocale() === 'en' ? 'Graded' : '計分'}</option>
+                <option value="practice">${I18n.getLocale() === 'en' ? 'Practice only' : '僅練習'}</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>${I18n.getLocale() === 'en' ? 'Passing score' : '通過分數'}</label>
+              <input type="number" id="interactiveVideoPassingScore" value="70" min="0" max="100">
+            </div>
+            <div class="form-group">
+              <label>${I18n.getLocale() === 'en' ? 'Min watch %' : '最少觀看比例 %'}</label>
+              <input type="number" id="interactiveVideoWatchPercent" value="85" min="0" max="100">
+            </div>
+          </div>
+          ${this.buildInteractiveVideoPromptEditor('')}
         `;
       case 'assignment':
         return commonFields + `
@@ -3407,6 +4853,16 @@ const MoodleUI = {
         activityData.file = document.getElementById('fileUpload')?.files?.[0] || null;
         if (!activityData.file) {
           showToast(I18n.getLocale() === 'en' ? 'Please choose a file.' : '請選擇檔案');
+          return;
+        }
+        break;
+      case 'interactive_video':
+        try {
+          Object.assign(activityData, this.buildInteractiveVideoConfigFromForm());
+        } catch (error) {
+          showToast(error.message === 'INVALID_INTERACTIVE_VIDEO_PROMPTS'
+            ? (I18n.getLocale() === 'en' ? 'Please complete each interactive video prompt before saving.' : '請先完成每一張互動影片提問卡的設定。')
+            : (I18n.getLocale() === 'en' ? 'Please enter a valid YouTube URL.' : '請輸入有效的 YouTube 連結。'));
           return;
         }
         break;
@@ -7760,9 +9216,10 @@ const MoodleUI = {
     container.innerHTML = `<div class="loading">${t('common.loading')}</div>`;
 
     try {
-      const [progressResult, atRiskResult] = await Promise.all([
+      const [progressResult, atRiskResult, activityReportResult] = await Promise.all([
         API.teachers.getStudentProgress(courseId),
-        API.teachers.getAtRiskStudents(courseId).catch(() => ({ success: false, data: null }))
+        API.teachers.getAtRiskStudents(courseId).catch(() => ({ success: false, data: null })),
+        API.courseReports.getActivityReport(courseId).catch(() => ({ success: false, data: null }))
       ]);
 
       if (!progressResult.success) {
@@ -7773,7 +9230,8 @@ const MoodleUI = {
       container.innerHTML = this.renderTeacherAnalyticsPage(
         progressResult.data || {},
         atRiskResult.success ? (atRiskResult.data || {}) : {},
-        courseId
+        courseId,
+        activityReportResult.success ? (activityReportResult.data || {}) : {}
       );
       this.applyDynamicUiMetrics(container);
     } catch (error) {
@@ -7782,7 +9240,7 @@ const MoodleUI = {
     }
   },
 
-  renderTeacherAnalyticsPage(progressData = {}, atRiskData = {}, courseId) {
+  renderTeacherAnalyticsPage(progressData = {}, atRiskData = {}, courseId, activityReport = {}) {
     const isEnglish = I18n.getLocale() === 'en';
     const students = Array.isArray(progressData.students) ? progressData.students : [];
     const atRiskStudents = Array.isArray(atRiskData.students) ? atRiskData.students : [];
@@ -7798,6 +9256,15 @@ const MoodleUI = {
     const missingLabel = isEnglish ? 'Missing work' : '缺交作業';
     const lastActiveLabel = isEnglish ? 'Last active' : '最近活動';
     const alertsLabel = isEnglish ? 'Alerts' : '警示內容';
+    const interactiveVideoActivities = Array.isArray(activityReport.activities)
+      ? activityReport.activities.filter((activity) => activity.type === 'interactive_video')
+      : [];
+    const avgInteractiveWatch = interactiveVideoActivities.length > 0
+      ? Math.round(interactiveVideoActivities.reduce((sum, activity) => sum + Number(activity.stats?.avgWatchPercent || 0), 0) / interactiveVideoActivities.length)
+      : 0;
+    const avgInteractiveScore = interactiveVideoActivities.length > 0
+      ? Math.round(interactiveVideoActivities.reduce((sum, activity) => sum + Number(activity.stats?.avgScore || 0), 0) / interactiveVideoActivities.length)
+      : 0;
 
     return `
       <div class="management-detail-page teacher-analytics-page">
@@ -7954,6 +9421,62 @@ const MoodleUI = {
                       </div>
                     </td>
                     <td data-label="${progressLabel}">${this.escapeText(`${Math.round(Number(student.progress || 0))}%`)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          `}
+        </div>
+
+        <div class="management-table-shell">
+          <div class="management-table-heading">
+            <h3>${isEnglish ? 'Interactive video performance' : '互動影片學習表現'}</h3>
+            <span class="management-status-badge is-accent">${this.escapeText(`${interactiveVideoActivities.length} ${isEnglish ? 'activities' : '個活動'}`)}</span>
+          </div>
+          ${interactiveVideoActivities.length === 0 ? `
+            <div class="management-empty-preview">${isEnglish ? 'No graded interactive videos have been added to this course yet.' : '這門課目前還沒有可分析的互動影片活動。'}</div>
+          ` : `
+            <div class="management-metric-grid">
+              ${this.renderManagementMetricGrid([
+                {
+                  value: `${avgInteractiveWatch}%`,
+                  label: isEnglish ? 'Average watch rate' : '平均觀看比例',
+                  helper: isEnglish ? 'across interactive videos' : '互動影片整體觀看率',
+                  tone: 'tone-info'
+                },
+                {
+                  value: `${avgInteractiveScore}%`,
+                  label: isEnglish ? 'Average score' : '平均得分',
+                  helper: isEnglish ? 'graded prompts only' : '只計算有分數的題目',
+                  tone: 'tone-warning'
+                }
+              ])}
+            </div>
+            <table class="management-table">
+              <thead>
+                <tr>
+                  <th>${isEnglish ? 'Interactive video' : '互動影片'}</th>
+                  <th>${isEnglish ? 'Prompts' : '題目數'}</th>
+                  <th>${isEnglish ? 'Attempt rate' : '開始率'}</th>
+                  <th>${isEnglish ? 'Completion rate' : '完成率'}</th>
+                  <th>${isEnglish ? 'Avg watch' : '平均觀看'}</th>
+                  <th>${isEnglish ? 'Avg score' : '平均得分'}</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${interactiveVideoActivities.map((activity) => `
+                  <tr>
+                    <td data-label="${isEnglish ? 'Interactive video' : '互動影片'}">
+                      <div class="management-inline-stack">
+                        <strong>${this.escapeText(activity.title || (isEnglish ? 'Interactive video' : '互動影片'))}</strong>
+                        <span>${this.escapeText((activity.maxGrade || 0) > 0 ? `${activity.maxGrade} ${isEnglish ? 'pts' : '分'}` : (isEnglish ? 'Practice activity' : '練習活動'))}</span>
+                      </div>
+                    </td>
+                    <td data-label="${isEnglish ? 'Prompts' : '題目數'}">${this.escapeText(String(activity.promptCount || 0))}</td>
+                    <td data-label="${isEnglish ? 'Attempt rate' : '開始率'}">${this.escapeText(`${Math.round(Number(activity.stats?.attemptRate || 0))}%`)}</td>
+                    <td data-label="${isEnglish ? 'Completion rate' : '完成率'}">${this.escapeText(`${Math.round(Number(activity.stats?.completionRate || 0))}%`)}</td>
+                    <td data-label="${isEnglish ? 'Avg watch' : '平均觀看'}">${activity.stats?.avgWatchPercent != null ? this.escapeText(`${Math.round(Number(activity.stats.avgWatchPercent))}%`) : '—'}</td>
+                    <td data-label="${isEnglish ? 'Avg score' : '平均得分'}">${activity.stats?.avgScore != null ? this.escapeText(`${Math.round(Number(activity.stats.avgScore))}%`) : '—'}</td>
                   </tr>
                 `).join('')}
               </tbody>
@@ -10917,453 +12440,6 @@ const MoodleUI = {
   },
 
   /**
-   * 徽章系統
-   */
-  currentBadgesFilter: 'all',
-
-  async openBadges() {
-    const container = document.getElementById('badgesContent');
-    if (!container) return;
-    showView('badges');
-    container.innerHTML = `<div class="loading">${t('common.loading')}</div>`;
-    try {
-      const [badgesResult, statsResult] = await Promise.all([
-        API.badges.list(),
-        API.badges.getStats()
-      ]);
-      const badges = badgesResult.success ? (Array.isArray(badgesResult.data) ? badgesResult.data : (badgesResult.data?.badges || [])) : [];
-      const stats = statsResult.success ? statsResult.data : {};
-      this._badgesData = badges;
-      this._badgesStats = stats;
-      this.renderBadgesPage(container, badges, stats);
-    } catch (error) {
-      console.error('Open badges error:', error);
-      container.innerHTML = `<div class="error">${t('moodleBadges.loadFailed')}</div>`;
-    }
-  },
-
-  renderBadgesPage(container, badges, stats) {
-    const user = (typeof API !== 'undefined' && API.getCurrentUser) ? API.getCurrentUser() : null;
-    const isEnglish = I18n.getLocale() === 'en';
-    const canManage = !!(user && (user.isAdmin || ['manager', 'coursecreator', 'educator', 'trainer', 'creator', 'teacher', 'assistant'].includes(user.role)));
-    const filtered = this.currentBadgesFilter === 'all' ? badges :
-      badges.filter(b => b.status === this.currentBadgesFilter || b.type === this.currentBadgesFilter);
-
-    container.innerHTML = `
-      <div class="badges-container">
-        <div class="badges-header">
-          <h2>${t('moodleBadges.title')}</h2>
-          ${canManage ? `<button onclick="MoodleUI.openCreateBadgeModal()" class="btn-primary">${t('moodleBadges.createBadge')}</button>` : ''}
-        </div>
-        <div class="badge-stats-grid">
-          <div class="badge-stat-card tone-olive">
-            <div class="value">${stats.totalBadges || badges.length}</div>
-            <div class="label">${t('moodleBadges.totalBadges')}</div>
-          </div>
-          <div class="badge-stat-card tone-terracotta">
-            <div class="value">${stats.activeBadges || 0}</div>
-            <div class="label">${t('moodleBadges.activeBadges')}</div>
-          </div>
-          <div class="badge-stat-card tone-blue">
-            <div class="value">${stats.totalIssued || 0}</div>
-            <div class="label">${t('moodleBadges.totalIssued')}</div>
-          </div>
-        </div>
-        <div class="badges-tabs">
-        ${['all','active','draft','course','site'].map(f => `
-          <button class="badge-tab ${this.currentBadgesFilter === f ? 'active' : ''}"
-                  onclick="MoodleUI.currentBadgesFilter='${f}';MoodleUI.renderBadgesPage(document.getElementById('badgesContent'),MoodleUI._badgesData,MoodleUI._badgesStats)">
-            ${{all:t('common.all'),active:t('common.active'),draft:t('common.draft'),course:t('moodleBadges.course'),site:t('moodleBadges.site')}[f]}
-          </button>
-        `).join('')}
-        </div>
-        <div class="badges-grid">
-        ${filtered.length === 0 ? this.renderActivityEmptyState({
-          icon: '<svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>',
-          title: t('moodleBadges.noBadges'),
-          hint: isEnglish ? 'Create a badge or adjust the current filter.' : '建立新徽章，或切換目前的篩選條件。'
-        }) :
-          filtered.map(b => `
-            <div class="badge-card ${b.status !== 'active' ? 'locked' : ''}"
-                 onclick="MoodleUI.viewBadgeDetail(${this.toInlineActionValue(b.badgeId || b.id)})">
-              <div class="badge-card-top">
-                <div class="badge-icon ${this.getSurfaceToneClass(b.badgeId || b.id || b.name)}">
-                  ${this.renderBadgeIcon(b.icon)}
-                </div>
-                <span class="badge-status-pill ${b.status === 'active' ? 'is-active' : 'is-draft'}">${this.getBadgeStatusLabel(b.status)}</span>
-              </div>
-              <div class="badge-card-body">
-                <h3 class="badge-name">${this.escapeText(b.name || t('common.unnamed'))}</h3>
-                <p class="badge-description">${this.escapeText(this.truncateText(b.description || t('common.noDescription'), 96))}</p>
-                <div class="badge-criteria">
-                  <span class="badge-summary-pill">${t('moodleBadges.typeLabel')}：${this.escapeText(this.getBadgeTypeLabel(b.type))}</span>
-                  <span class="badge-summary-pill">${t('moodleBadges.issuedLabel')}：${b.issuedCount || 0}</span>
-                </div>
-              </div>
-              <div class="badge-card-footer">
-                <span class="badge-summary-pill">${b.courseId ? (isEnglish ? 'Course badge' : '課程徽章') : (isEnglish ? 'Site badge' : '網站徽章')}</span>
-                <span class="badge-card-open">${isEnglish ? 'View details' : '查看詳情'}</span>
-              </div>
-            </div>
-          `).join('')}
-        </div>
-      </div>`;
-  },
-
-  async viewBadgeDetail(badgeId) {
-    const container = document.getElementById('badgesContent');
-    if (!container) return;
-    container.innerHTML = `<div class="loading">${t('common.loading')}</div>`;
-    try {
-      const user = (typeof API !== 'undefined' && API.getCurrentUser) ? API.getCurrentUser() : null;
-      const badgeResult = await API.badges.get(badgeId);
-      if (!badgeResult.success) { container.innerHTML = `<div class="error">${t('common.loadFailed')}</div>`; return; }
-      const b = badgeResult.data;
-      const canManage = this.canManageBadge(b, user);
-      let recipients = [];
-      if (canManage) {
-        const recipientsResult = await API.badges.getRecipients(badgeId).catch(() => ({ success: false }));
-        recipients = recipientsResult.success ? (Array.isArray(recipientsResult.data) ? recipientsResult.data : (recipientsResult.data?.recipients || [])) : [];
-      }
-      const isEnglish = I18n.getLocale() === 'en';
-
-      container.innerHTML = `
-        <div class="badges-container">
-          <button onclick="MoodleUI.openBadges()" class="btn-back">${t('common.backToList')}</button>
-          <div class="badge-detail-page">
-          <div class="badge-detail-header-row">
-            <div class="badge-detail-icon ${this.getSurfaceToneClass(b.badgeId || b.id || b.name)}">
-              ${this.renderBadgeIcon(b.icon)}
-            </div>
-            <div class="badge-detail-main">
-              <div class="badge-detail-name">${this.escapeText(b.name || t('common.unnamed'))}</div>
-              <div class="badge-detail-description">${this.escapeText(b.description || t('common.noDescription'))}</div>
-              <div class="badge-summary-tags">
-                <span class="badge-status-pill ${b.status === 'active' ? 'is-active' : 'is-draft'}">${this.getBadgeStatusLabel(b.status)}</span>
-                <span class="badge-summary-pill">${t('moodleBadges.typeLabel')}：${this.escapeText(this.getBadgeTypeLabel(b.type))}</span>
-                <span class="badge-summary-pill">${t('moodleBadges.issuedLabel')}：${b.issuedCount || 0}</span>
-              </div>
-            </div>
-            ${canManage ? `
-            <div class="badge-detail-actions">
-              <button onclick="MoodleUI.openIssueBadgeModal(${this.toInlineActionValue(badgeId)})" class="btn-primary btn-sm">${t('moodleBadges.issueBadge')}</button>
-              <button onclick="MoodleUI.openEditBadgeModal(${this.toInlineActionValue(badgeId)})" class="btn-sm">${t('common.edit')}</button>
-              <button onclick="MoodleUI.deleteBadge(${this.toInlineActionValue(badgeId)})" class="btn-sm btn-danger">${t('moodleGradeCategory.delete')}</button>
-            </div>
-            ` : ''}
-          </div>
-          <div class="badge-detail-info">
-            <div class="badge-info-item">
-              <label>${t('moodleBadges.typeLabel')}</label>
-              <span>${this.escapeText(this.getBadgeTypeLabel(b.type))}</span>
-            </div>
-            <div class="badge-info-item">
-              <label>${t('common.status')}</label>
-              <span>${this.getBadgeStatusLabel(b.status)}</span>
-            </div>
-            <div class="badge-info-item">
-              <label>${t('moodleBadges.issuedLabel')}</label>
-              <span>${b.issuedCount || 0}</span>
-            </div>
-            ${canManage ? `
-            <div class="badge-info-item">
-              <label>${t('moodleBadges.recipients')}</label>
-              <span>${recipients.length}</span>
-            </div>
-            ` : ''}
-          </div>
-        ${(b.criteria || []).length > 0 ? `
-          <div class="badge-criteria-panel">
-            <h4>${t('moodleBadges.criteria')}</h4>
-            <ul>${b.criteria.map(c => `<li>${this.escapeText(c.description || c.type || t('moodleBadges.criterion'))}</li>`).join('')}</ul>
-          </div>
-        ` : ''}
-        ${canManage ? `
-        <div class="badge-recipients-section">
-          <div class="section-title-row">
-            <h3>${t('moodleBadges.recipients')}（${recipients.length}）</h3>
-          </div>
-        ${recipients.length === 0 ? this.renderActivityEmptyState({
-          icon: '<svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1"><circle cx="12" cy="7" r="4"/><path d="M5.5 21a7.5 7.5 0 0113 0"/></svg>',
-          title: t('moodleBadges.noRecipients'),
-          hint: isEnglish ? 'Issue this badge to learners when they meet the criteria.' : '當學員達成條件後，就可以發送這枚徽章。'
-        }) : `
-          <div class="badge-table-shell">
-            <table class="rubric-table">
-              <thead><tr>
-                <th>${t('common.user')}</th>
-                <th>${t('moodleBadges.issueDateCol')}</th>
-                <th>${t('common.actions')}</th>
-              </tr></thead>
-              <tbody>
-                ${recipients.map(r => `
-                  <tr>
-                    <td>${this.escapeText(r.userName || r.userId || '—')}</td>
-                    <td>${this.escapeText(this.formatDate(r.issuedAt || r.createdAt, 'datetime'))}</td>
-                    <td class="table-action-cell">
-                      ${canManage ? `<button onclick="MoodleUI.revokeBadge(${this.toInlineActionValue(badgeId)},${this.toInlineActionValue(r.userId)})" class="btn-sm btn-danger">${t('moodleBadges.revoke')}</button>` : '—'}
-                    </td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>
-        `}
-        ` : ''}
-        </div>
-        </div>
-        </div>`;
-    } catch (error) {
-      console.error('View badge detail error:', error);
-      container.innerHTML = `<div class="error">${t('common.loadFailed')}</div>`;
-    }
-  },
-
-  async openCreateBadgeModal(badge = null) {
-    this.closeModal('createBadgeModal');
-    const courses = await this.getRoleScopedCourses({ manageOnly: true }).catch(() => []);
-    const isEditing = !!badge;
-    const selectedBadgeIcon = this.normalizeBadgeIcon(badge?.icon);
-    const badgeIconOptions = this.getBadgeIconOptions();
-    const modal = document.createElement('div');
-    modal.id = 'createBadgeModal';
-    modal.className = 'modal-overlay active';
-    modal.innerHTML = `
-      <div class="modal-content modal-lg">
-        <div class="modal-header">
-          <h3>${isEditing ? (I18n.getLocale() === 'en' ? 'Edit Badge' : '編輯徽章') : t('moodleBadges.createTitle')}</h3>
-          <button onclick="MoodleUI.closeModal('createBadgeModal')" class="modal-close">&times;</button>
-        </div>
-        <div class="modal-body">
-          <input type="hidden" id="badgeId" value="${this.escapeText(badge?.badgeId || badge?.id || '')}">
-          <div class="form-group">
-            <label>${t('moodleBadges.nameLabel')} *</label>
-            <input type="text" id="badgeName" placeholder="${t('moodleBadges.namePlaceholder')}" value="${this.escapeText(badge?.name || '')}">
-          </div>
-          <div class="form-group">
-            <label>${t('common.description')}</label>
-            <textarea id="badgeDescription" rows="2" placeholder="${t('moodleBadges.descPlaceholder')}">${this.escapeText(badge?.description || '')}</textarea>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label>${t('moodleBadges.iconLabel')}</label>
-              <div class="badge-icon-preview-card">
-                <div id="badgeIconPreview" class="badge-icon-preview">${this.renderBadgeIcon(selectedBadgeIcon)}</div>
-                <div id="badgeIconPreviewLabel" class="badge-icon-preview-label">${this.escapeText(badgeIconOptions.find(item => item.value === selectedBadgeIcon)?.label || '')}</div>
-              </div>
-              <select id="badgeIcon">
-                ${badgeIconOptions.map(option => `
-                  <option value="${option.value}" ${selectedBadgeIcon === option.value ? 'selected' : ''}>${this.escapeText(option.label)}</option>
-                `).join('')}
-              </select>
-            </div>
-            <div class="form-group">
-              <label>${t('common.type')}</label>
-              <select id="badgeType">
-                <option value="course" ${(badge?.type || 'course') === 'course' ? 'selected' : ''}>${t('moodleBadges.typeCourse')}</option><option value="site" ${badge?.type === 'site' ? 'selected' : ''}>${t('moodleBadges.typeSite')}</option><option value="manual" ${badge?.type === 'manual' ? 'selected' : ''}>${t('moodleBadges.typeManual')}</option>
-              </select>
-            </div>
-          </div>
-          <div class="form-group">
-            <label>${t('common.status')}</label>
-            <select id="badgeStatus"><option value="draft" ${(badge?.status || 'draft') === 'draft' ? 'selected' : ''}>${t('common.draft')}</option><option value="active" ${(badge?.status || 'draft') === 'active' ? 'selected' : ''}>${t('common.active')}</option></select>
-          </div>
-          <div class="form-group" id="badgeCourseField" hidden>
-            <label>${I18n.getLocale() === 'en' ? 'Course' : '對應課程'}</label>
-            <select id="badgeCourseId">
-              <option value="">${I18n.getLocale() === 'en' ? 'Select course' : '選擇課程'}</option>
-              ${courses.map(course => `
-                <option value="${this.escapeText(course.courseId || course.id || '')}" ${badge?.courseId === (course.courseId || course.id || '') ? 'selected' : ''}>${this.escapeText(course.title || course.name || t('moodleCourse.course'))}</option>
-              `).join('')}
-            </select>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button onclick="MoodleUI.closeModal('createBadgeModal')" class="btn-secondary">${t('common.cancel')}</button>
-          <button onclick="MoodleUI.saveBadge()" class="btn-primary">${isEditing ? t('common.save') : t('moodleBadges.createBtn')}</button>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(modal);
-    modal.onclick = (e) => { if (e.target === modal) this.closeModal('createBadgeModal'); };
-    this.updateBadgeCourseFieldVisibility(document.getElementById('badgeType')?.value);
-    this.updateBadgeIconPreview(selectedBadgeIcon);
-    document.getElementById('badgeIcon')?.addEventListener('change', (event) => {
-      this.updateBadgeIconPreview(event.target.value);
-    });
-    document.getElementById('badgeType')?.addEventListener('change', (event) => {
-      this.updateBadgeCourseFieldVisibility(event.target.value);
-    });
-  },
-
-  updateBadgeCourseFieldVisibility(type) {
-    const field = document.getElementById('badgeCourseField');
-    if (!field) return;
-    field.hidden = type !== 'course';
-  },
-
-  async saveBadge() {
-    const badgeId = document.getElementById('badgeId')?.value?.trim();
-    const name = document.getElementById('badgeName')?.value?.trim();
-    if (!name) { showToast(t('common.nameRequired')); return; }
-    const type = document.getElementById('badgeType')?.value || 'course';
-    try {
-      const payload = {
-        name,
-        description: document.getElementById('badgeDescription')?.value || '',
-        icon: this.normalizeBadgeIcon(document.getElementById('badgeIcon')?.value || 'trophy'),
-        type,
-        courseId: type === 'course' ? (document.getElementById('badgeCourseId')?.value || null) : null,
-        status: document.getElementById('badgeStatus')?.value || 'draft'
-      };
-      const result = badgeId
-        ? await API.badges.update(badgeId, payload)
-        : await API.badges.create(payload);
-      if (result.success) {
-        showToast(badgeId
-          ? (I18n.getLocale() === 'en' ? 'Badge updated' : '徽章已更新')
-          : t('moodleBadges.created'));
-        this.closeModal('createBadgeModal');
-        if (badgeId) {
-          this.viewBadgeDetail(badgeId);
-        } else {
-          this.openBadges();
-        }
-      } else { showToast(result.error || (badgeId ? t('common.updateFailed') : t('common.createFailed'))); }
-    } catch (error) { showToast(badgeId ? t('common.updateFailed') : t('moodleBadges.createError')); }
-  },
-
-  async openEditBadgeModal(badgeId) {
-    try {
-      const result = await API.badges.get(badgeId);
-      if (!result.success) {
-        showToast(t('common.loadFailed'));
-        return;
-      }
-      this.openCreateBadgeModal(result.data);
-    } catch (error) {
-      console.error('Open edit badge modal error:', error);
-      showToast(t('common.loadFailed'));
-    }
-  },
-
-  async openIssueBadgeModal(badgeId) {
-    this.closeModal('issueBadgeModal');
-    let badge = null;
-    let participants = [];
-
-    try {
-      const badgeResult = await API.badges.get(badgeId);
-      if (badgeResult.success) {
-        badge = badgeResult.data;
-      }
-      if (badge?.courseId) {
-        const participantsResult = await API.courses.getParticipants(badge.courseId);
-        if (participantsResult.success) {
-          participants = (participantsResult.data || []).filter(person => person.role !== 'instructor');
-        }
-      }
-    } catch (error) {
-      console.warn('Load badge recipients context failed:', error);
-    }
-
-    const modal = document.createElement('div');
-    modal.id = 'issueBadgeModal';
-    modal.className = 'modal-overlay active';
-    modal.innerHTML = `
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3>${t('moodleBadges.issueTitle')}</h3>
-          <button onclick="MoodleUI.closeModal('issueBadgeModal')" class="modal-close">&times;</button>
-        </div>
-        <div class="modal-body">
-          <div class="form-group">
-            <label>${t('moodleBadges.userIdsLabel')}</label>
-            <input type="text" id="issueBadgeUserIds" placeholder="${t('moodleBadges.userIdsPlaceholder')}">
-          </div>
-          ${participants.length > 0 ? `
-          <div class="form-group">
-            <label>${I18n.getLocale() === 'en' ? 'Course learners' : '課程學員'}</label>
-            <div class="badge-recipient-picker">
-              ${participants.map(person => `
-                <label class="checkbox-label">
-                  <input type="checkbox" value="${this.escapeText(person.userId)}" onchange="MoodleUI.toggleBadgeRecipientSelection(this)">
-                  <span>${this.escapeText(person.displayName || person.userId)}${person.email ? ` (${this.escapeText(person.email)})` : ''}</span>
-                </label>
-              `).join('')}
-            </div>
-          </div>
-          ` : ''}
-        </div>
-        <div class="modal-footer">
-          <button onclick="MoodleUI.closeModal('issueBadgeModal')" class="btn-secondary">${t('common.cancel')}</button>
-          <button onclick="MoodleUI.issueBadge('${badgeId}')" class="btn-primary">${t('moodleBadges.issueBtn')}</button>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(modal);
-    modal.onclick = (e) => { if (e.target === modal) this.closeModal('issueBadgeModal'); };
-  },
-
-  toggleBadgeRecipientSelection(input) {
-    const field = document.getElementById('issueBadgeUserIds');
-    if (!field) return;
-    const current = field.value
-      .split(',')
-      .map(value => value.trim())
-      .filter(Boolean);
-    const selected = new Set(current);
-    if (input.checked) {
-      selected.add(input.value);
-    } else {
-      selected.delete(input.value);
-    }
-    field.value = Array.from(selected).join(', ');
-  },
-
-  async issueBadge(badgeId) {
-    const userIdsStr = document.getElementById('issueBadgeUserIds')?.value?.trim();
-    if (!userIdsStr) { showToast(t('moodleBadges.enterUserId')); return; }
-    const userIds = userIdsStr.split(',').map(s => s.trim()).filter(Boolean);
-    try {
-      const result = await API.badges.issue(badgeId, { userIds });
-      if (result.success) {
-        showToast(`${t('moodleBadges.issuedTo')} ${result.data?.issued || userIds.length} ${t('moodleBadges.users')}`);
-        this.closeModal('issueBadgeModal');
-        this.viewBadgeDetail(badgeId);
-      } else { showToast(result.error || t('common.issueFailed')); }
-    } catch (error) { showToast(t('common.issueFailed')); }
-  },
-
-  async revokeBadge(badgeId, userId) {
-    const confirmed = await showConfirmDialog({
-      message: t('moodleBadges.confirmRevoke'),
-      confirmLabel: t('common.confirm'),
-      tone: 'danger'
-    });
-    if (!confirmed) return;
-    try {
-      const result = await API.badges.revoke(badgeId, userId);
-      if (result.success) { showToast(t('moodleBadges.revoked')); this.viewBadgeDetail(badgeId); }
-      else { showToast(result.error || t('common.revokeFailed')); }
-    } catch (error) { showToast(t('common.revokeFailed')); }
-  },
-
-  async deleteBadge(badgeId) {
-    const confirmed = await showConfirmDialog({
-      message: t('moodleBadges.confirmDelete'),
-      confirmLabel: t('common.delete'),
-      tone: 'danger'
-    });
-    if (!confirmed) return;
-    try {
-      const result = await API.badges.delete(badgeId);
-      if (result.success) { showToast(t('common.deleted')); this.openBadges(); }
-      else { showToast(result.error || t('common.deleteFailed')); }
-    } catch (error) { showToast(t('common.deleteFailed')); }
-  },
-
-  /**
    * 學習進度
    */
   async openLearningProgress(courseId = null, options = {}) {
@@ -13503,6 +14579,43 @@ const MoodleUI = {
               <input type="url" id="ea_url" value="${merged.url || ''}">
             </div>
           ` : ''}
+          ${merged.activityType === 'interactive_video' ? `
+            <div class="form-group">
+              <label>${I18n.getLocale() === 'en' ? 'YouTube URL' : 'YouTube 連結'}</label>
+              <input type="url" id="ea_interactiveVideoUrl" value="${this.escapeText(merged.interactiveVideo?.videoUrl || merged.url || '')}">
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>${I18n.getLocale() === 'en' ? 'Teacher name' : '老師名稱'}</label>
+                <input type="text" id="ea_interactiveVideoSpeakerName" value="${this.escapeText(merged.interactiveVideo?.speakerName || '')}">
+              </div>
+              <div class="form-group">
+                <label>${I18n.getLocale() === 'en' ? 'Teacher avatar URL' : '老師頭像 URL'}</label>
+                <input type="url" id="ea_interactiveVideoSpeakerAvatar" value="${this.escapeText(merged.interactiveVideo?.speakerAvatar || '')}">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>${I18n.getLocale() === 'en' ? 'Grading mode' : '評分模式'}</label>
+                <select id="ea_interactiveVideoGradingMode">
+                  <option value="graded" ${(merged.interactiveVideo?.gradingMode || 'graded') === 'graded' ? 'selected' : ''}>${I18n.getLocale() === 'en' ? 'Graded' : '計分'}</option>
+                  <option value="practice" ${(merged.interactiveVideo?.gradingMode || 'graded') === 'practice' ? 'selected' : ''}>${I18n.getLocale() === 'en' ? 'Practice only' : '僅練習'}</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>${I18n.getLocale() === 'en' ? 'Passing score' : '通過分數'}</label>
+                <input type="number" id="ea_interactiveVideoPassingScore" min="0" max="100" value="${this.escapeText(merged.interactiveVideo?.passingScore ?? 70)}">
+              </div>
+              <div class="form-group">
+                <label>${I18n.getLocale() === 'en' ? 'Min watch %' : '最少觀看比例 %'}</label>
+                <input type="number" id="ea_interactiveVideoWatchPercent" min="0" max="100" value="${this.escapeText(merged.interactiveVideo?.completionRule?.minWatchPercent ?? 85)}">
+              </div>
+            </div>
+            ${this.buildInteractiveVideoPromptEditor('ea_', merged.interactiveVideo?.prompts || [], {
+              speakerName: merged.interactiveVideo?.speakerName || '',
+              speakerAvatar: merged.interactiveVideo?.speakerAvatar || ''
+            })}
+          ` : ''}
           ${merged.activityType === 'page' ? `
             <div class="form-group">
               <label>${t('moodleActivityEdit.pageContent')}</label>
@@ -13549,6 +14662,16 @@ const MoodleUI = {
     if (url) data.url = url.value;
     const content = document.getElementById('ea_content');
     if (content) data.content = content.value;
+    if ((activity.activityType || activity.type) === 'interactive_video') {
+      try {
+        Object.assign(data, this.buildInteractiveVideoConfigFromForm('ea_'));
+      } catch (error) {
+        showToast(error.message === 'INVALID_INTERACTIVE_VIDEO_PROMPTS'
+          ? (I18n.getLocale() === 'en' ? 'Please complete each interactive video prompt before saving.' : '請先完成每一張互動影片提問卡的設定。')
+          : (I18n.getLocale() === 'en' ? 'Please enter a valid YouTube URL.' : '請輸入有效的 YouTube 連結。'));
+        return;
+      }
+    }
 
     try {
       let result;
@@ -14250,9 +15373,9 @@ const MoodleUI = {
   },
 
   async openCertificates(courseId = null) {
-    const container = document.getElementById('badgesContent');
+    const container = document.getElementById('certificatesContent');
     if (!container) return;
-    showView('badges');
+    showView('certificates');
     container.innerHTML = `<div class="loading">${t('common.loading')}</div>`;
 
     try {
@@ -14307,10 +15430,6 @@ const MoodleUI = {
       console.error('Open certificates error:', error);
       container.innerHTML = `<div class="error">${t('common.loadFailed')}</div>`;
     }
-  },
-
-  async openBadges(courseId = null) {
-    return this.openCertificates(courseId);
   },
 
   renderCertificateTeacherWorkspace(container, { courses, payload, recipients }) {

@@ -9,6 +9,7 @@ const db = require('../../utils/db');
 const { authMiddleware } = require('../../utils/auth');
 const { canManageCourse } = require('../../utils/course-access');
 const { createLinkedEntityIndexes, enrichCourseActivity } = require('../../utils/legacy-course-activity-links');
+const { invalidateGradebookSnapshots } = require('../../utils/gradebook-snapshots');
 
 function matchesCourseActivityIdentifier(activity, targetId) {
   return [
@@ -17,6 +18,81 @@ function matchesCourseActivityIdentifier(activity, targetId) {
     activity?.quizId,
     activity?.forumId
   ].filter(Boolean).includes(targetId);
+}
+
+function normalizeInteractiveVideoPrompt(prompt = {}, index = 0, fallbackSpeaker = {}) {
+  const promptId = prompt.promptId || `prompt_${String(index + 1).padStart(3, '0')}`;
+  const questionType = prompt.questionType || 'single_choice';
+  const options = Array.isArray(prompt.options)
+    ? prompt.options.map((option, optionIndex) => {
+        if (typeof option === 'object' && option !== null) {
+          return {
+            value: option.value ?? `option_${optionIndex + 1}`,
+            label: option.label ?? option.text ?? String(option.value ?? `Option ${optionIndex + 1}`)
+          };
+        }
+        return {
+          value: String(option),
+          label: String(option)
+        };
+      })
+    : [];
+
+  return {
+    promptId,
+    triggerSecond: Math.max(0, Math.floor(Number(prompt.triggerSecond) || 0)),
+    questionType,
+    question: String(prompt.question || '').trim(),
+    options,
+    correctAnswer: prompt.correctAnswer ?? null,
+    points: Math.max(0, Number(prompt.points) || 0),
+    required: prompt.required !== false,
+    pauseVideo: prompt.pauseVideo !== false,
+    feedbackCorrect: prompt.feedbackCorrect || '',
+    feedbackIncorrect: prompt.feedbackIncorrect || '',
+    speakerName: prompt.speakerName || fallbackSpeaker.speakerName || '',
+    speakerAvatar: prompt.speakerAvatar || fallbackSpeaker.speakerAvatar || ''
+  };
+}
+
+function normalizeInteractiveVideoConfig(activity = {}) {
+  const rawConfig = activity?.interactiveVideo && typeof activity.interactiveVideo === 'object'
+    ? activity.interactiveVideo
+    : activity?.type === 'interactive_video'
+      ? {
+          videoUrl: activity.url || '',
+          youtubeId: activity.youtubeId || null,
+          prompts: activity.prompts || [],
+          speakerName: activity.speakerName || '',
+          speakerAvatar: activity.speakerAvatar || '',
+          gradingMode: activity.gradingMode || 'graded',
+          passingScore: activity.passingScore || 70,
+          completionRule: activity.completionRule || {}
+        }
+      : null;
+
+  if (!rawConfig) return null;
+
+  const config = {
+    videoUrl: rawConfig.videoUrl || activity.url || '',
+    youtubeId: rawConfig.youtubeId || activity.youtubeId || null,
+    durationSeconds: Math.max(0, Math.floor(Number(rawConfig.durationSeconds || activity.durationSeconds || 0) || 0)),
+    speakerName: rawConfig.speakerName || activity.speakerName || '',
+    speakerAvatar: rawConfig.speakerAvatar || activity.speakerAvatar || '',
+    gradingMode: rawConfig.gradingMode || activity.gradingMode || 'graded',
+    passingScore: Math.max(0, Math.min(100, Number(rawConfig.passingScore || activity.passingScore || 70) || 70)),
+    completionRule: {
+      minWatchPercent: Math.max(0, Math.min(100, Number(rawConfig?.completionRule?.minWatchPercent || activity?.completionRule?.minWatchPercent || 85) || 85)),
+      requiredPromptMode: rawConfig?.completionRule?.requiredPromptMode || activity?.completionRule?.requiredPromptMode || 'all'
+    }
+  };
+
+  config.prompts = (Array.isArray(rawConfig.prompts) ? rawConfig.prompts : [])
+    .map((prompt, index) => normalizeInteractiveVideoPrompt(prompt, index, config))
+    .filter((prompt) => prompt.question)
+    .sort((a, b) => a.triggerSecond - b.triggerSecond);
+
+  return config;
 }
 
 // ==================== 章節管理 ====================
@@ -201,19 +277,21 @@ router.delete('/:id/sections/:sectionId', authMiddleware, async (req, res) => {
 /**
  * POST /api/courses/:id/sections/:sectionId/activities
  * 新增活動到章節
- * 活動類型：page, url, file, assignment, quiz, forum, label, choice, feedback
+ * 活動類型：page, url, file, assignment, quiz, forum, label, choice, feedback, interactive_video
  */
 router.post('/:id/sections/:sectionId/activities', authMiddleware, async (req, res) => {
   try {
     const { id, sectionId } = req.params;
     const {
-      type, // page, url, file, assignment, quiz, forum, label, choice, feedback
+      type, // page, url, file, assignment, quiz, forum, label, choice, feedback, interactive_video
       title,
       name,
       description,
       content, // 頁面內容
       url, // 外部連結
       fileId, // 檔案ID
+      youtubeId,
+      interactiveVideo,
       visible = true,
       availability, // { from, until, conditions }
       completion // { type: 'manual' | 'view' | 'grade', gradeToPass }
@@ -246,6 +324,15 @@ router.post('/:id/sections/:sectionId/activities', authMiddleware, async (req, r
     const activityId = db.generateId('act');
 
     const now = new Date().toISOString();
+    const normalizedInteractiveVideo = type === 'interactive_video'
+      ? normalizeInteractiveVideoConfig({
+          type,
+          url,
+          youtubeId,
+          interactiveVideo
+        })
+      : null;
+
     const activityItem = {
       PK: `COURSE#${id}`,
       SK: `ACTIVITY#${sectionId}#${activityNumber}`,
@@ -260,8 +347,12 @@ router.post('/:id/sections/:sectionId/activities', authMiddleware, async (req, r
 
       // 類型特定內容
       content: type === 'page' || type === 'label' ? content : undefined,
-      url: type === 'url' ? url : undefined,
+      url: type === 'url' || type === 'interactive_video'
+        ? (type === 'interactive_video' ? normalizedInteractiveVideo?.videoUrl : url)
+        : undefined,
       fileId: type === 'file' ? fileId : undefined,
+      youtubeId: type === 'interactive_video' ? normalizedInteractiveVideo?.youtubeId : undefined,
+      interactiveVideo: normalizedInteractiveVideo || undefined,
 
       order: existingActivities.length + 1,
       visible,
@@ -280,6 +371,9 @@ router.post('/:id/sections/:sectionId/activities', authMiddleware, async (req, r
     };
 
     await db.putItem(activityItem);
+    if (type === 'interactive_video') {
+      await invalidateGradebookSnapshots(id);
+    }
 
     // 更新課程統計
     const totalActivities = (course.stats?.totalActivities || 0) + 1;
@@ -354,6 +448,12 @@ router.get('/:id/activities/:activityId', authMiddleware, async (req, res) => {
     const linkedIndexes = createLinkedEntityIndexes(linkedEntities);
     const enrichedActivity = enrichCourseActivity(activity, linkedIndexes);
 
+    if (enrichedActivity.type === 'interactive_video') {
+      enrichedActivity.interactiveVideo = normalizeInteractiveVideoConfig(enrichedActivity);
+      enrichedActivity.youtubeId = enrichedActivity.interactiveVideo?.youtubeId || enrichedActivity.youtubeId || null;
+      enrichedActivity.url = enrichedActivity.interactiveVideo?.videoUrl || enrichedActivity.url || '';
+    }
+
     if (enrichedActivity.type === 'file' && enrichedActivity.fileId) {
       const file = await db.getItem(`FILE#${enrichedActivity.fileId}`, 'META');
       if (file) {
@@ -421,9 +521,23 @@ router.put('/:id/activities/:activityId', authMiddleware, async (req, res) => {
     delete updates.createdAt;
     delete updates.name;
 
+    if (activity.type === 'interactive_video') {
+      const normalizedInteractiveVideo = normalizeInteractiveVideoConfig({
+        ...activity,
+        ...updates,
+        interactiveVideo: updates.interactiveVideo || activity.interactiveVideo
+      });
+      updates.interactiveVideo = normalizedInteractiveVideo;
+      updates.youtubeId = normalizedInteractiveVideo?.youtubeId || null;
+      updates.url = normalizedInteractiveVideo?.videoUrl || '';
+    }
+
     updates.updatedAt = new Date().toISOString();
 
     const updatedActivity = await db.updateItem(`COURSE#${id}`, activity.SK, updates);
+    if (activity.type === 'interactive_video') {
+      await invalidateGradebookSnapshots(id);
+    }
 
     delete updatedActivity.PK;
     delete updatedActivity.SK;
@@ -475,6 +589,9 @@ router.delete('/:id/activities/:activityId', authMiddleware, async (req, res) =>
     }
 
     await db.deleteItem(`COURSE#${id}`, activity.SK);
+    if (activity.type === 'interactive_video') {
+      await invalidateGradebookSnapshots(id);
+    }
 
     res.json({
       success: true,

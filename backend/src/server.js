@@ -60,6 +60,7 @@ const ltiRoutes = require('./handlers/lti');
 const lti13Routes = require('./handlers/lti13');
 const lti13ToolProxyRoutes = require('./handlers/lti13/tool-proxy');
 const h5pRoutes = require('./handlers/h5p');
+const interactiveVideoRoutes = require('./handlers/interactive-videos');
 
 // 教師功能路由
 const teacherAlertsRoutes = require('./handlers/teacher-alerts');
@@ -173,6 +174,7 @@ app.use('/api/lti', ltiRoutes);
 app.use('/api/lti', lti13ToolProxyRoutes); // 相容既有 Tool Proxy 路徑
 app.use('/api/lti/13', lti13Routes);  // LTI 1.3 端點
 app.use('/api/h5p', h5pRoutes);
+app.use('/api/interactive-videos', interactiveVideoRoutes);
 
 // 教師功能路由
 app.use('/api/teachers', teacherAlertsRoutes);
