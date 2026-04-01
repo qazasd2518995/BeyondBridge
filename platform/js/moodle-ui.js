@@ -3499,14 +3499,28 @@ const MoodleUI = {
     `;
   },
 
-  renderInteractiveVideoSidebar(runtime) {
+  renderInteractiveVideoSidebar(runtime, { forceScroll = false } = {}) {
     if (!runtime?.overlay) return;
+    const conversationEl = runtime.overlay.querySelector('[data-iv-conversation]');
     const transcriptEl = runtime.overlay.querySelector('[data-iv-transcript]');
     const promptEl = runtime.overlay.querySelector('[data-iv-prompt]');
     const summaryEl = runtime.overlay.querySelector('[data-iv-summary]');
+    const shouldStickToBottom = forceScroll
+      || !runtime.hasRenderedInteractiveVideoSidebar
+      || (conversationEl
+        ? (conversationEl.scrollHeight - conversationEl.scrollTop - conversationEl.clientHeight) <= 64
+        : true);
+
     if (transcriptEl) transcriptEl.innerHTML = this.buildInteractiveVideoTranscriptHtml(runtime);
     if (promptEl) promptEl.innerHTML = this.buildInteractiveVideoPromptCardHtml(runtime);
     if (summaryEl) summaryEl.innerHTML = this.buildInteractiveVideoSummaryHtml(runtime);
+
+    runtime.hasRenderedInteractiveVideoSidebar = true;
+    if (conversationEl && shouldStickToBottom) {
+      window.requestAnimationFrame(() => {
+        conversationEl.scrollTop = conversationEl.scrollHeight;
+      });
+    }
   },
 
   formatInteractiveVideoTime(totalSeconds = 0) {
@@ -3589,7 +3603,7 @@ const MoodleUI = {
           }
         }
 
-        this.renderInteractiveVideoSidebar(runtime);
+        this.renderInteractiveVideoSidebar(runtime, { forceScroll: true });
       }
     } catch (error) {
       console.warn('Finalize interactive video failed:', error);
@@ -3708,14 +3722,18 @@ const MoodleUI = {
               <div class="interactive-video-sidebar-subtitle">${this.escapeText(activity.description || copy.resume)}</div>
             </div>
             <div class="interactive-video-summary-slot" data-iv-summary></div>
-            <div class="interactive-video-prompt-slot" data-iv-prompt></div>
-            <div class="interactive-video-transcript" data-iv-transcript></div>
+            <div class="interactive-video-conversation" data-iv-conversation>
+              <div class="interactive-video-transcript" data-iv-transcript></div>
+              <div class="interactive-video-prompt-slot" data-iv-prompt></div>
+            </div>
             <div class="interactive-video-sidebar-actions">
               <button type="button" class="interactive-video-resume-btn" onclick="MoodleUI.resumeInteractiveVideoPlayback()">${this.escapeText(copy.continue)}</button>
             </div>
           </aside>
         </div>
       `;
+      viewer.overlay.querySelector('.activity-viewer-shell')?.classList.add('activity-viewer-shell--interactive-video');
+      viewer.body.classList.add('activity-viewer-body--interactive-video');
 
       const runtime = {
         overlay: viewer.overlay,
@@ -3741,7 +3759,7 @@ const MoodleUI = {
         isFinalizing: false
       };
       this.currentInteractiveVideoRuntime = runtime;
-      this.renderInteractiveVideoSidebar(runtime);
+      this.renderInteractiveVideoSidebar(runtime, { forceScroll: true });
 
       viewer.overlay._activityViewerCleanup = async () => {
         if (runtime.heartbeatTimer) clearInterval(runtime.heartbeatTimer);
@@ -3824,7 +3842,7 @@ const MoodleUI = {
             if (nextPrompt.pauseVideo !== false && runtime.player?.pauseVideo) {
               runtime.player.pauseVideo();
             }
-            this.renderInteractiveVideoSidebar(runtime);
+            this.renderInteractiveVideoSidebar(runtime, { forceScroll: true });
           }
         }
 
