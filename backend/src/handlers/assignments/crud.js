@@ -23,6 +23,7 @@ const {
   listManagedCourseIds,
   backfillCourseOwnerLinks
 } = require('../../utils/course-owner-links');
+const { isISODate, isPositiveInt, isOneOf } = require('../../utils/validate');
 
 function uniqueIds(values = []) {
   return [...new Set(values.filter(Boolean))];
@@ -460,6 +461,47 @@ router.post('/', authMiddleware, async (req, res) => {
         success: false,
         error: 'VALIDATION_ERROR',
         message: '請提供課程ID、作業標題和截止日期'
+      });
+    }
+
+    // 驗證日期格式
+    if (!isISODate(dueDate)) {
+      return res.status(400).json({
+        success: false,
+        error: 'VALIDATION_ERROR',
+        message: '截止日期格式不正確'
+      });
+    }
+    if (cutoffDate && !isISODate(cutoffDate)) {
+      return res.status(400).json({
+        success: false,
+        error: 'VALIDATION_ERROR',
+        message: '最終截止日期格式不正確'
+      });
+    }
+
+    // 驗證成績範圍
+    if (maxGrade !== undefined && (!Number.isFinite(Number(maxGrade)) || Number(maxGrade) <= 0)) {
+      return res.status(400).json({
+        success: false,
+        error: 'VALIDATION_ERROR',
+        message: '最高分數必須為正數'
+      });
+    }
+    if (gradeToPass !== undefined && (Number(gradeToPass) < 0 || Number(gradeToPass) > Number(maxGrade || 100))) {
+      return res.status(400).json({
+        success: false,
+        error: 'VALIDATION_ERROR',
+        message: '及格分數必須在 0 到最高分數之間'
+      });
+    }
+
+    // 驗證提交類型
+    if (!isOneOf(submissionType, ['online_text', 'file', 'both'])) {
+      return res.status(400).json({
+        success: false,
+        error: 'VALIDATION_ERROR',
+        message: '提交類型不正確'
       });
     }
 

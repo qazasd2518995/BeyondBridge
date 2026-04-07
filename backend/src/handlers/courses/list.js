@@ -9,6 +9,50 @@ const db = require('../../utils/db');
 const { authMiddleware, optionalAuthMiddleware } = require('../../utils/auth');
 const { canManageCourse } = require('../../utils/course-access');
 const { createLinkedEntityIndexes, enrichCourseActivity } = require('../../utils/legacy-course-activity-links');
+const {
+  listManagedCourseIds,
+  backfillCourseOwnerLinks
+} = require('../../utils/course-owner-links');
+
+function parseInteger(value, fallback, { min = Number.MIN_SAFE_INTEGER, max = Number.MAX_SAFE_INTEGER } = {}) {
+  const parsed = parseInt(value, 10);
+  if (Number.isNaN(parsed)) return fallback;
+  return Math.max(min, Math.min(max, parsed));
+}
+
+function sortCourses(courses = [], sortBy = 'createdAt', sortOrder = 'desc') {
+  const direction = String(sortOrder).toLowerCase() === 'asc' ? 1 : -1;
+  return courses.sort((a, b) => {
+    const aVal = a?.[sortBy] ?? '';
+    const bVal = b?.[sortBy] ?? '';
+    if (aVal === bVal) return 0;
+    return aVal > bVal ? direction : -direction;
+  });
+}
+
+function groupActivitiesBySection(activities = [], linkedIndexes = {}) {
+  const grouped = new Map();
+
+  activities.forEach((activity) => {
+    const sectionId = activity?.sectionId || String(activity?.SK || '').split('#')[1] || null;
+    if (!sectionId) return;
+    const bucket = grouped.get(sectionId) || [];
+    bucket.push(enrichCourseActivity(activity, linkedIndexes));
+    grouped.set(sectionId, bucket);
+  });
+
+  grouped.forEach((items, sectionId) => {
+    grouped.set(sectionId, items.sort((a, b) => (a.order || 0) - (b.order || 0)));
+  });
+
+  return grouped;
+}
+
+function stripCourseDbKeys(course) {
+  if (!course) return course;
+  const { PK, SK, ...cleanCourse } = course;
+  return cleanCourse;
+}
 
 // ==================== 課程列表與詳情 ====================
 
@@ -28,18 +72,31 @@ router.get('/', optionalAuthMiddleware, async (req, res) => {
       sortBy = 'createdAt',
       sortOrder = 'desc'
     } = req.query;
+    const normalizedLimit = Math.min(Math.max(1, parseInt(limit) || 20), 100);
+    const normalizedOffset = Math.max(0, parseInt(offset) || 0);
 
-    let courses = await db.scan({
-      filter: {
-        expression: 'entityType = :type AND #status = :status',
-        values: { ':type': 'COURSE', ':status': status },
-        names: { '#status': 'status' }
-      }
-    });
+    let courses;
 
-    // 分類篩選
     if (category) {
-      courses = courses.filter(c => c.category === category);
+      courses = await db.queryByIndex('GSI1', `CAT#${category}`, 'GSI1PK', {
+        filter: {
+          expression: 'entityType = :type',
+          values: { ':type': 'COURSE' }
+        }
+      });
+    } else if (status && status !== 'all') {
+      courses = await db.queryByIndex('GSI2', `STATUS#${status}`, 'GSI2PK', {
+        filter: {
+          expression: 'entityType = :type',
+          values: { ':type': 'COURSE' }
+        }
+      });
+    } else {
+      courses = await db.getItemsByEntityType('COURSE');
+    }
+
+    if (category && status && status !== 'all') {
+      courses = courses.filter(course => course.status === status);
     }
 
     // 講師篩選
@@ -58,34 +115,23 @@ router.get('/', optionalAuthMiddleware, async (req, res) => {
     }
 
     // 排序
-    courses.sort((a, b) => {
-      const aVal = a[sortBy] || '';
-      const bVal = b[sortBy] || '';
-      if (sortOrder === 'asc') {
-        return aVal > bVal ? 1 : -1;
-      }
-      return aVal < bVal ? 1 : -1;
-    });
+    sortCourses(courses, sortBy, sortOrder);
 
     // 分頁
     const total = courses.length;
-    courses = courses.slice(parseInt(offset), parseInt(offset) + parseInt(limit));
+    courses = courses.slice(normalizedOffset, normalizedOffset + normalizedLimit);
 
     // 清理資料
-    courses = courses.map(c => {
-      delete c.PK;
-      delete c.SK;
-      return c;
-    });
+    courses = courses.map(stripCourseDbKeys);
 
     res.json({
       success: true,
       data: courses,
       pagination: {
         total,
-        limit: parseInt(limit),
-        offset: parseInt(offset),
-        hasMore: parseInt(offset) + courses.length < total
+        limit: normalizedLimit,
+        offset: normalizedOffset,
+        hasMore: normalizedOffset + courses.length < total
       }
     });
 
@@ -109,21 +155,23 @@ router.get('/my', authMiddleware, async (req, res) => {
     const { role = 'student' } = req.query;
 
     if (role === 'instructor') {
-      // 教師：取得自己可管理的課程
-      let courses = await db.scan({
-        filter: {
-          expression: 'entityType = :type',
-          values: { ':type': 'COURSE' }
+      let courses = [];
+      const managedCourseIds = await listManagedCourseIds(userId);
+
+      if (managedCourseIds.length > 0) {
+        courses = await db.getCoursesByIds(managedCourseIds);
+      } else {
+        const allCourses = await db.getItemsByEntityType('COURSE');
+        courses = allCourses.filter(course => canManageCourse(course, req.user));
+        if (courses.length > 0) {
+          await backfillCourseOwnerLinks(courses);
         }
-      });
+      }
 
-      courses = courses.filter(course => canManageCourse(course, req.user));
+      courses = courses.filter(course => course && canManageCourse(course, req.user));
+      sortCourses(courses, 'updatedAt', 'desc');
 
-      courses = courses.map(c => {
-        delete c.PK;
-        delete c.SK;
-        return c;
-      });
+      courses = courses.map(stripCourseDbKeys);
 
       res.json({
         success: true,
@@ -133,30 +181,40 @@ router.get('/my', authMiddleware, async (req, res) => {
     } else {
       // 學生：取得已報名的課程進度
       const progressList = await db.getUserCourseProgress(userId);
+      const courseIds = [
+        ...new Set(
+          progressList
+            .map(progress => progress?.courseId)
+            .filter(Boolean)
+        )
+      ];
+      const courseMap = new Map(
+        (await db.getCoursesByIds(courseIds))
+          .filter(Boolean)
+          .map(course => [course.courseId, course])
+      );
 
       // 取得課程詳情
-      const courses = await Promise.all(
-        progressList.map(async (p) => {
-          const course = await db.getItem(`COURSE#${p.courseId}`, 'META');
-          if (course) {
-            delete course.PK;
-            delete course.SK;
-            return {
-              ...course,
-              progress: {
-                status: p.status,
-                progressPercentage: p.progressPercentage,
-                completedUnits: p.completedUnits,
-                currentUnit: p.currentUnit,
-                totalTimeSpent: p.totalTimeSpent,
-                lastAccessedAt: p.lastAccessedAt,
-                enrolledAt: p.enrolledAt
-              }
-            };
+      const courses = progressList.map((progress) => {
+        const course = courseMap.get(progress.courseId);
+        if (!course) return null;
+        return {
+          ...stripCourseDbKeys(course),
+          progress: {
+            status: progress.status,
+            progressPercentage: progress.progressPercentage,
+            completedUnits: progress.completedUnits,
+            currentUnit: progress.currentUnit,
+            totalTimeSpent: progress.totalTimeSpent,
+            lastAccessedAt: progress.lastAccessedAt,
+            enrolledAt: progress.enrolledAt,
+            completedActivities: Array.isArray(progress.completedActivities) ? progress.completedActivities : [],
+            activityAccessMap: progress.activityAccessMap || {},
+            activityTimeMap: progress.activityTimeMap || {},
+            activityProgressMap: progress.activityProgressMap || {}
           }
-          return null;
-        })
-      );
+        };
+      });
 
       res.json({
         success: true,
@@ -192,49 +250,37 @@ router.get('/:id', optionalAuthMiddleware, async (req, res) => {
       });
     }
 
-    // 取得課程章節
-    const [sections, linkedEntities] = await Promise.all([
+    // 取得課程章節與活動
+    const [sections, activities, linkedEntities, progress] = await Promise.all([
       db.query(`COURSE#${id}`, { skPrefix: 'SECTION#' }),
-      db.queryByIndex('GSI1', `COURSE#${id}`, 'GSI1PK')
+      db.query(`COURSE#${id}`, { skPrefix: 'ACTIVITY#' }),
+      db.queryByIndex('GSI1', `COURSE#${id}`, 'GSI1PK'),
+      req.user ? db.getItem(`USER#${req.user.userId}`, `PROG#COURSE#${id}`) : Promise.resolve(null)
     ]);
     const linkedIndexes = createLinkedEntityIndexes(linkedEntities);
+    const activitiesBySection = groupActivitiesBySection(activities, linkedIndexes);
 
-    // 取得每個章節的活動
-    const sectionsWithActivities = await Promise.all(
-      sections.map(async (section) => {
-        const activities = await db.query(`COURSE#${id}`, {
-          skPrefix: `ACTIVITY#${section.sectionId}#`
-        });
-        delete section.PK;
-        delete section.SK;
-        return {
-          ...section,
-          activities: activities
-            .map(a => enrichCourseActivity(a, linkedIndexes))
-            .sort((a, b) => (a.order || 0) - (b.order || 0))
-        };
-      })
-    );
+    const sectionsWithActivities = sections.map((section) => {
+      delete section.PK;
+      delete section.SK;
+      return {
+        ...section,
+        activities: activitiesBySection.get(section.sectionId) || []
+      };
+    });
 
-    // 如果用戶已登入，取得進度
     let userProgress = null;
-    if (req.user) {
-      const progress = await db.getItem(`USER#${req.user.userId}`, `PROG#COURSE#${id}`);
-      if (progress) {
-        delete progress.PK;
-        delete progress.SK;
-        userProgress = progress;
-      }
+    if (progress) {
+      delete progress.PK;
+      delete progress.SK;
+      userProgress = progress;
     }
 
     // 清理資料
-    delete course.PK;
-    delete course.SK;
-
     res.json({
       success: true,
       data: {
-        ...course,
+        ...stripCourseDbKeys(course),
         sections: sectionsWithActivities.sort((a, b) => a.order - b.order),
         userProgress
       }

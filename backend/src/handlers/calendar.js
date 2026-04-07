@@ -7,7 +7,180 @@ const express = require('express');
 const router = express.Router();
 const db = require('../utils/db');
 const { authMiddleware } = require('../utils/auth');
-const { canManageCourse } = require('../utils/course-access');
+const { canManageCourse, isTeachingUser } = require('../utils/course-access');
+const {
+  listManagedCourseIds,
+  backfillCourseOwnerLinks
+} = require('../utils/course-owner-links');
+
+const COURSE_CALENDAR_PROJECTION = ['courseId', 'title', 'name', 'startDate', 'endDate'];
+const ASSIGNMENT_CALENDAR_PROJECTION = ['assignmentId', 'courseId', 'title', 'description', 'dueDate'];
+const QUIZ_CALENDAR_PROJECTION = ['quizId', 'courseId', 'title', 'openDate', 'closeDate'];
+
+function uniqueIds(values = []) {
+  return [...new Set(values.filter(Boolean))];
+}
+
+function parsePositiveInteger(value, fallback) {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function isDateWithinRange(dateValue, startDate, endDate) {
+  if (!dateValue) return false;
+  const date = new Date(dateValue);
+  if (Number.isNaN(date.getTime())) return false;
+  return date >= startDate && date <= endDate;
+}
+
+function buildCourseMap(courses = []) {
+  return new Map(
+    (Array.isArray(courses) ? courses : [])
+      .filter(course => course?.courseId)
+      .map(course => [course.courseId, course])
+  );
+}
+
+async function getManagedCalendarCourseIds(user) {
+  if (!user?.userId || !isTeachingUser(user) || user.isAdmin) {
+    return [];
+  }
+
+  const linkedCourseIds = await listManagedCourseIds(user.userId);
+  if (linkedCourseIds.length > 0) {
+    return linkedCourseIds;
+  }
+
+  const courses = await db.getItemsByEntityType('COURSE', {
+    projection: [
+      'courseId',
+      'title',
+      'name',
+      'category',
+      'visibility',
+      'status',
+      'updatedAt',
+      'createdAt',
+      'instructorId',
+      'teacherId',
+      'creatorId',
+      'createdBy',
+      'instructors'
+    ]
+  });
+  const managedCourses = courses.filter(course => canManageCourse(course, user));
+
+  if (managedCourses.length > 0) {
+    await backfillCourseOwnerLinks(managedCourses);
+  }
+
+  return uniqueIds(managedCourses.map(course => course.courseId));
+}
+
+async function getAccessibleCalendarCourseIds(user, requestedCourseId) {
+  const progressList = await db.getUserCourseProgress(user.userId);
+  const enrolledCourseIds = uniqueIds(progressList.map(item => item.courseId));
+  const accessibleCourseIds = new Set(enrolledCourseIds);
+
+  if (isTeachingUser(user) && !user.isAdmin) {
+    const managedCourseIds = await getManagedCalendarCourseIds(user);
+    managedCourseIds.forEach(courseId => accessibleCourseIds.add(courseId));
+  }
+
+  if (!requestedCourseId) {
+    return [...accessibleCourseIds];
+  }
+
+  if (accessibleCourseIds.has(requestedCourseId) || user.isAdmin) {
+    return [requestedCourseId];
+  }
+
+  return null;
+}
+
+async function listCourseScopedItems(courseIds, skPrefix, projection) {
+  const ids = uniqueIds(courseIds);
+  if (ids.length === 0) return [];
+
+  const results = await Promise.all(ids.map(courseId =>
+    db.queryByIndex('GSI1', `COURSE#${courseId}`, 'GSI1PK', {
+      skName: 'GSI1SK',
+      skPrefix,
+      projection
+    })
+  ));
+
+  return results.flat().filter(Boolean);
+}
+
+async function getCalendarCourseMap(courseIds) {
+  const courses = await db.getCoursesByIds(uniqueIds(courseIds), {
+    projection: COURSE_CALENDAR_PROJECTION
+  });
+  return buildCourseMap(courses);
+}
+
+function buildAssignmentCalendarEvents(assignments, courseMap, startDate, endDate) {
+  return (Array.isArray(assignments) ? assignments : [])
+    .filter(assignment => assignment?.courseId && isDateWithinRange(assignment.dueDate, startDate, endDate))
+    .map((assignment) => {
+      const course = courseMap.get(assignment.courseId);
+      return {
+        eventId: assignment.assignmentId,
+        type: 'assignment',
+        title: assignment.title,
+        description: assignment.description,
+        start: assignment.dueDate,
+        end: assignment.dueDate,
+        allDay: true,
+        courseId: assignment.courseId,
+        courseName: course?.title || course?.name,
+        color: '#E74C3C',
+        link: `/platform/assignment/${assignment.assignmentId}`
+      };
+    });
+}
+
+function buildQuizCalendarEvents(quizzes, courseMap, startDate, endDate) {
+  return (Array.isArray(quizzes) ? quizzes : []).flatMap((quiz) => {
+    const course = courseMap.get(quiz.courseId);
+    const baseEvent = {
+      type: 'quiz',
+      courseId: quiz.courseId,
+      courseName: course?.title || course?.name,
+      link: `/platform/quiz/${quiz.quizId}`
+    };
+    const events = [];
+
+    if (isDateWithinRange(quiz.openDate, startDate, endDate)) {
+      events.push({
+        eventId: `${quiz.quizId}_open`,
+        subType: 'open',
+        title: `${quiz.title} 開放`,
+        start: quiz.openDate,
+        end: quiz.openDate,
+        allDay: true,
+        color: '#3498DB',
+        ...baseEvent
+      });
+    }
+
+    if (isDateWithinRange(quiz.closeDate, startDate, endDate)) {
+      events.push({
+        eventId: `${quiz.quizId}_close`,
+        subType: 'close',
+        title: `${quiz.title} 截止`,
+        start: quiz.closeDate,
+        end: quiz.closeDate,
+        allDay: true,
+        color: '#E67E22',
+        ...baseEvent
+      });
+    }
+
+    return events;
+  });
+}
 
 // ==================== 行事曆事件列表 ====================
 
@@ -17,7 +190,6 @@ const { canManageCourse } = require('../utils/course-access');
  */
 router.get('/', authMiddleware, async (req, res) => {
   try {
-    const userId = req.user.userId;
     const {
       start, // ISO 日期字串
       end,   // ISO 日期字串
@@ -30,113 +202,51 @@ router.get('/', authMiddleware, async (req, res) => {
     const startDate = start ? new Date(start) : new Date(now.getFullYear(), now.getMonth(), 1);
     const endDate = end ? new Date(end) : new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
+    const targetCourseIds = await getAccessibleCalendarCourseIds(req.user, courseId);
+    if (courseId && !targetCourseIds) {
+      return res.status(403).json({
+        success: false,
+        error: 'FORBIDDEN',
+        message: '沒有權限查看此課程行事曆'
+      });
+    }
+
     const events = [];
+    const shouldLoadAssignments = !type || type === 'all' || type === 'assignment';
+    const shouldLoadQuizzes = !type || type === 'all' || type === 'quiz';
+    const shouldLoadCourses = !type || type === 'all' || type === 'course';
+    const shouldLoadPersonal = !type || type === 'all' || type === 'personal';
 
-    // 取得用戶報名的課程
-    const progressList = await db.getUserCourseProgress(userId);
-    const courseIds = progressList.map(p => p.courseId);
-
-    // 如果指定了課程，只取該課程
-    const targetCourseIds = courseId ? [courseId] : courseIds;
+    const courseMap = (shouldLoadAssignments || shouldLoadQuizzes || shouldLoadCourses)
+      ? await getCalendarCourseMap(targetCourseIds)
+      : new Map();
 
     // 取得作業截止日期
-    if (!type || type === 'all' || type === 'assignment') {
-      const assignments = await db.scan({
-        filter: {
-          expression: 'entityType = :type',
-          values: { ':type': 'ASSIGNMENT' }
-        }
-      });
-
-      const courseAssignments = assignments.filter(a =>
-        targetCourseIds.includes(a.courseId)
+    if (shouldLoadAssignments && targetCourseIds.length > 0) {
+      const assignments = await listCourseScopedItems(
+        targetCourseIds,
+        'ASSIGNMENT#',
+        ASSIGNMENT_CALENDAR_PROJECTION
       );
-
-      for (const a of courseAssignments) {
-        const dueDate = new Date(a.dueDate);
-        if (dueDate >= startDate && dueDate <= endDate) {
-          const course = await db.getItem(`COURSE#${a.courseId}`, 'META');
-
-          events.push({
-            eventId: a.assignmentId,
-            type: 'assignment',
-            title: a.title,
-            description: a.description,
-            start: a.dueDate,
-            end: a.dueDate,
-            allDay: true,
-            courseId: a.courseId,
-            courseName: course?.title,
-            color: '#E74C3C', // 紅色
-            link: `/courses/${a.courseId}/assignments/${a.assignmentId}`
-          });
-        }
-      }
+      events.push(...buildAssignmentCalendarEvents(assignments, courseMap, startDate, endDate));
     }
 
     // 取得測驗日期
-    if (!type || type === 'all' || type === 'quiz') {
-      const quizzes = await db.scan({
-        filter: {
-          expression: 'entityType = :type',
-          values: { ':type': 'QUIZ' }
-        }
-      });
-
-      const courseQuizzes = quizzes.filter(q =>
-        targetCourseIds.includes(q.courseId)
+    if (shouldLoadQuizzes && targetCourseIds.length > 0) {
+      const quizzes = await listCourseScopedItems(
+        targetCourseIds,
+        'QUIZ#',
+        QUIZ_CALENDAR_PROJECTION
       );
-
-      for (const q of courseQuizzes) {
-        const course = await db.getItem(`COURSE#${q.courseId}`, 'META');
-
-        // 開放日期
-        if (q.openDate) {
-          const openDate = new Date(q.openDate);
-          if (openDate >= startDate && openDate <= endDate) {
-            events.push({
-              eventId: `${q.quizId}_open`,
-              type: 'quiz',
-              subType: 'open',
-              title: `${q.title} 開放`,
-              start: q.openDate,
-              end: q.openDate,
-              allDay: true,
-              courseId: q.courseId,
-              courseName: course?.title,
-              color: '#3498DB', // 藍色
-              link: `/courses/${q.courseId}/quizzes/${q.quizId}`
-            });
-          }
-        }
-
-        // 關閉日期
-        if (q.closeDate) {
-          const closeDate = new Date(q.closeDate);
-          if (closeDate >= startDate && closeDate <= endDate) {
-            events.push({
-              eventId: `${q.quizId}_close`,
-              type: 'quiz',
-              subType: 'close',
-              title: `${q.title} 截止`,
-              start: q.closeDate,
-              end: q.closeDate,
-              allDay: true,
-              courseId: q.courseId,
-              courseName: course?.title,
-              color: '#E67E22', // 橘色
-              link: `/courses/${q.courseId}/quizzes/${q.quizId}`
-            });
-          }
-        }
-      }
+      events.push(...buildQuizCalendarEvents(quizzes, courseMap, startDate, endDate));
     }
 
     // 取得課程事件（開始/結束日期）
-    if (!type || type === 'all' || type === 'course') {
+    if (shouldLoadCourses) {
       for (const cId of targetCourseIds) {
-        const course = await db.getItem(`COURSE#${cId}`, 'META');
+        const course = courseMap.get(cId);
         if (!course) continue;
+        const courseTitle = course.title || course.name || '未命名課程';
 
         if (course.startDate) {
           const courseStart = new Date(course.startDate);
@@ -145,14 +255,14 @@ router.get('/', authMiddleware, async (req, res) => {
               eventId: `${cId}_start`,
               type: 'course',
               subType: 'start',
-              title: `${course.title} 開課`,
+              title: `${courseTitle} 開課`,
               start: course.startDate,
               end: course.startDate,
               allDay: true,
               courseId: cId,
-              courseName: course.title,
+              courseName: courseTitle,
               color: '#2ECC71', // 綠色
-              link: `/courses/${cId}`
+              link: `/platform/course/${cId}`
             });
           }
         }
@@ -164,14 +274,14 @@ router.get('/', authMiddleware, async (req, res) => {
               eventId: `${cId}_end`,
               type: 'course',
               subType: 'end',
-              title: `${course.title} 結課`,
+              title: `${courseTitle} 結課`,
               start: course.endDate,
               end: course.endDate,
               allDay: true,
               courseId: cId,
-              courseName: course.title,
+              courseName: courseTitle,
               color: '#9B59B6', // 紫色
-              link: `/courses/${cId}`
+              link: `/platform/course/${cId}`
             });
           }
         }
@@ -179,8 +289,8 @@ router.get('/', authMiddleware, async (req, res) => {
     }
 
     // 取得個人事件
-    if (!type || type === 'all' || type === 'personal') {
-      const personalEvents = await db.query(`USER#${userId}`, {
+    if (shouldLoadPersonal) {
+      const personalEvents = await db.query(`USER#${req.user.userId}`, {
         skPrefix: 'EVENT#'
       });
 
@@ -233,68 +343,51 @@ router.get('/', authMiddleware, async (req, res) => {
  */
 router.get('/upcoming', authMiddleware, async (req, res) => {
   try {
-    const userId = req.user.userId;
     const { days = 7, limit = 10 } = req.query;
 
     const now = new Date();
-    const endDate = new Date(now.getTime() + parseInt(days) * 24 * 60 * 60 * 1000);
+    const dayRange = parsePositiveInteger(days, 7);
+    const maxResults = parsePositiveInteger(limit, 10);
+    const endDate = new Date(now.getTime() + dayRange * 24 * 60 * 60 * 1000);
+    const courseIds = await getAccessibleCalendarCourseIds(req.user);
 
-    // 使用主要的行事曆 API 邏輯
-    const events = [];
+    const [assignments, quizzes] = await Promise.all([
+      listCourseScopedItems(courseIds, 'ASSIGNMENT#', ASSIGNMENT_CALENDAR_PROJECTION),
+      listCourseScopedItems(courseIds, 'QUIZ#', QUIZ_CALENDAR_PROJECTION)
+    ]);
 
-    // 取得用戶報名的課程
-    const progressList = await db.getUserCourseProgress(userId);
-    const courseIds = progressList.map(p => p.courseId);
-
-    // 作業
-    const assignments = await db.scan({
-      filter: {
-        expression: 'entityType = :type',
-        values: { ':type': 'ASSIGNMENT' }
-      }
-    });
-
-    for (const a of assignments.filter(a => courseIds.includes(a.courseId))) {
-      const dueDate = new Date(a.dueDate);
-      if (dueDate >= now && dueDate <= endDate) {
-        events.push({
-          eventId: a.assignmentId,
-          type: 'assignment',
-          title: a.title,
-          dueDate: a.dueDate,
-          courseId: a.courseId,
-          daysUntil: Math.ceil((dueDate - now) / (1000 * 60 * 60 * 24))
-        });
-      }
-    }
-
-    // 測驗
-    const quizzes = await db.scan({
-      filter: {
-        expression: 'entityType = :type',
-        values: { ':type': 'QUIZ' }
-      }
-    });
-
-    for (const q of quizzes.filter(q => courseIds.includes(q.courseId))) {
-      if (q.closeDate) {
-        const closeDate = new Date(q.closeDate);
-        if (closeDate >= now && closeDate <= endDate) {
-          events.push({
-            eventId: q.quizId,
+    const events = [
+      ...assignments
+        .filter(assignment => isDateWithinRange(assignment.dueDate, now, endDate))
+        .map((assignment) => {
+          const dueDate = new Date(assignment.dueDate);
+          return {
+            eventId: assignment.assignmentId,
+            type: 'assignment',
+            title: assignment.title,
+            dueDate: assignment.dueDate,
+            courseId: assignment.courseId,
+            daysUntil: Math.ceil((dueDate - now) / (1000 * 60 * 60 * 24))
+          };
+        }),
+      ...quizzes
+        .filter(quiz => isDateWithinRange(quiz.closeDate, now, endDate))
+        .map((quiz) => {
+          const closeDate = new Date(quiz.closeDate);
+          return {
+            eventId: quiz.quizId,
             type: 'quiz',
-            title: q.title,
-            dueDate: q.closeDate,
-            courseId: q.courseId,
+            title: quiz.title,
+            dueDate: quiz.closeDate,
+            courseId: quiz.courseId,
             daysUntil: Math.ceil((closeDate - now) / (1000 * 60 * 60 * 24))
-          });
-        }
-      }
-    }
+          };
+        })
+    ];
 
     // 排序並限制數量
     events.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
-    const limitedEvents = events.slice(0, parseInt(limit));
+    const limitedEvents = events.slice(0, maxResults);
 
     res.json({
       success: true,

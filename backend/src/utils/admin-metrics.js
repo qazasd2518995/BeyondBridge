@@ -7,11 +7,6 @@ const ADMIN_METRICS_SNAPSHOT_KEYS = {
   ANALYTICS_OVERVIEW: 'analytics_overview'
 };
 
-const ANALYTICS_ENTITY_FILTER = (type) => ({
-  expression: 'entityType = :type',
-  values: { ':type': type }
-});
-
 const USER_ANALYTICS_PROJECTION = [
   'userId',
   'displayName',
@@ -81,43 +76,37 @@ function resolveLicenseStatus(license, now = new Date()) {
 }
 
 async function scanUsersForAnalytics() {
-  return db.scan({
-    filter: ANALYTICS_ENTITY_FILTER('USER'),
+  return db.getItemsByEntityType('USER', {
     projection: USER_ANALYTICS_PROJECTION
   });
 }
 
 async function scanResourcesForAnalytics() {
-  return db.scan({
-    filter: ANALYTICS_ENTITY_FILTER('RESOURCE'),
+  return db.getItemsByEntityType('RESOURCE', {
     projection: RESOURCE_ANALYTICS_PROJECTION
   });
 }
 
 async function scanLicensesForAnalytics() {
-  return db.scan({
-    filter: ANALYTICS_ENTITY_FILTER('LICENSE'),
+  return db.getItemsByEntityType('LICENSE', {
     projection: LICENSE_ANALYTICS_PROJECTION
   });
 }
 
 async function scanChatRoomsForAnalytics() {
-  return db.scan({
-    filter: ANALYTICS_ENTITY_FILTER('CHAT_ROOM'),
+  return db.getItemsByEntityType('CHAT_ROOM', {
     projection: ['status', 'rating']
   });
 }
 
 async function scanCoursesForDashboard() {
-  return db.scan({
-    filter: ANALYTICS_ENTITY_FILTER('COURSE'),
+  return db.getItemsByEntityType('COURSE', {
     projection: ['courseId', 'createdAt']
   });
 }
 
 async function scanAnnouncementsForDashboard() {
-  return db.scan({
-    filter: ANALYTICS_ENTITY_FILTER('ANNOUNCEMENT'),
+  return db.getItemsByEntityType('ANNOUNCEMENT', {
     projection: ['id', 'status']
   });
 }

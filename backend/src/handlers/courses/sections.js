@@ -77,6 +77,7 @@ function normalizeInteractiveVideoConfig(activity = {}) {
     videoUrl: rawConfig.videoUrl || activity.url || '',
     youtubeId: rawConfig.youtubeId || activity.youtubeId || null,
     durationSeconds: Math.max(0, Math.floor(Number(rawConfig.durationSeconds || activity.durationSeconds || 0) || 0)),
+    allowSeeking: rawConfig.allowSeeking !== false && activity.allowSeeking !== false,
     speakerName: rawConfig.speakerName || activity.speakerName || '',
     speakerAvatar: rawConfig.speakerAvatar || activity.speakerAvatar || '',
     gradingMode: rawConfig.gradingMode || activity.gradingMode || 'graded',

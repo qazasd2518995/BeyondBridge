@@ -60,6 +60,49 @@ const App = {
     });
   },
 
+  getPlatformViewHref(viewName, query = null) {
+    if (window.PlatformRouter?.getPathForView) {
+      return window.PlatformRouter.getPathForView(viewName, query) || '#';
+    }
+    const fallbackPaths = {
+      dashboard: '/platform',
+      library: '/platform/library',
+      courses: '/platform/my-courses',
+      licenses: '/platform/licenses',
+      videos: '/platform/videos',
+      quizzes: '/platform/legacy-quizzes',
+      discussions: '/platform/forums',
+      consultations: '/platform/consultations',
+      classes: '/platform/classes',
+      settings: '/platform/settings',
+      moodleCourses: '/platform/courses',
+      moodleAssignments: '/platform/assignments',
+      moodleQuizzes: '/platform/quizzes',
+      moodleForums: '/platform/forums',
+      moodleCalendar: '/platform/calendar',
+      moodleNotifications: '/platform/notifications',
+      moodleGradebook: '/platform/gradebook',
+      gradebookManagement: '/platform/gradebook/manage',
+      learningProgress: '/platform/learning-progress',
+      certificates: '/platform/certificates',
+      teacherAnalytics: '/platform/analytics',
+      rolesManagement: '/platform/roles',
+      courseCategories: '/platform/course-categories',
+      auditLogs: '/platform/audit-logs',
+      scormManager: '/platform/scorm',
+      ltiManager: '/platform/lti',
+      h5pManager: '/platform/h5p'
+    };
+    const path = fallbackPaths[viewName] || '#';
+    if (!query || path === '#') return path;
+    const url = new URL(path, window.location.origin);
+    Object.entries(query).forEach(([key, value]) => {
+      if (value === undefined || value === null || value === '') return;
+      url.searchParams.set(key, value);
+    });
+    return `${url.pathname}${url.search}`;
+  },
+
   /**
    * 初始化應用程式
    */
@@ -132,26 +175,27 @@ const App = {
     const isStudent = this.isStudentUser(user);
     const sidebar = document.querySelector('.sidebar-nav');
     if (!sidebar) return;
+    const viewHref = (viewName, query = null) => this.getPlatformViewHref(viewName, query);
 
     // 定義建橋者（教師/教育者）側邊欄 - 優化版
     const educatorSidebar = `
       <div class="nav-section">
         <div class="nav-section-title">${t('nav.teachingCenter')}</div>
-        <a href="#" class="nav-item active" data-view="dashboard" onclick="navigateTo(this, 'dashboard')">
+        <a href="${viewHref('dashboard')}" class="nav-item active" data-view="dashboard" onclick="return navigateTo(this, 'dashboard')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
             <polyline points="9,22 9,12 15,12 15,22"/>
           </svg>
           ${t('nav.dashboard')}
         </a>
-        <a href="#" class="nav-item" data-view="moodleCourses" onclick="showView('moodleCourses'); MoodleUI.loadCourses();">
+        <a href="${viewHref('moodleCourses')}" class="nav-item" data-view="moodleCourses" onclick="return openPlatformView(event, 'moodleCourses')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/>
             <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>
           </svg>
           ${t('nav.myCourses')}
         </a>
-        <a href="#" class="nav-item" data-view="classes" onclick="navigateTo(this, 'classes')">
+        <a href="${viewHref('classes')}" class="nav-item" data-view="classes" onclick="return navigateTo(this, 'classes')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
             <circle cx="9" cy="7" r="4"/>
@@ -160,14 +204,14 @@ const App = {
           </svg>
           ${t('nav.myStudents')}
         </a>
-        <a href="#" class="nav-item" data-view="moodleCalendar" onclick="showView('moodleCalendar'); MoodleUI.loadCalendar();">
+        <a href="${viewHref('moodleCalendar')}" class="nav-item" data-view="moodleCalendar" onclick="return openPlatformView(event, 'moodleCalendar')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
             <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
           </svg>
           ${t('nav.calendar')}
         </a>
-        <a href="#" class="nav-item" data-view="moodleNotifications" onclick="showView('moodleNotifications'); MoodleUI.loadNotifications();">
+        <a href="${viewHref('moodleNotifications')}" class="nav-item" data-view="moodleNotifications" onclick="return openPlatformView(event, 'moodleNotifications')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
             <path d="M13.73 21a2 2 0 01-3.46 0"/>
@@ -178,7 +222,7 @@ const App = {
       </div>
       <div class="nav-section">
         <div class="nav-section-title">${t('nav.teachingActivities')}</div>
-        <a href="#" class="nav-item" data-view="moodleAssignments" onclick="showView('moodleAssignments'); MoodleUI.loadAssignments();">
+        <a href="${viewHref('moodleAssignments')}" class="nav-item" data-view="moodleAssignments" onclick="return openPlatformView(event, 'moodleAssignments')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
             <polyline points="14,2 14,8 20,8"/>
@@ -187,7 +231,7 @@ const App = {
           </svg>
           ${t('nav.assignments')}
         </a>
-        <a href="#" class="nav-item" data-view="moodleQuizzes" onclick="showView('moodleQuizzes'); MoodleUI.loadQuizzes();">
+        <a href="${viewHref('moodleQuizzes')}" class="nav-item" data-view="moodleQuizzes" onclick="return openPlatformView(event, 'moodleQuizzes')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="10"/>
             <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/>
@@ -195,7 +239,7 @@ const App = {
           </svg>
           ${t('nav.quizzes')}
         </a>
-        <a href="#" class="nav-item" data-view="moodleForums" onclick="showView('moodleForums'); MoodleUI.loadForums();">
+        <a href="${viewHref('moodleForums')}" class="nav-item" data-view="moodleForums" onclick="return openPlatformView(event, 'moodleForums')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
           </svg>
@@ -204,14 +248,14 @@ const App = {
       </div>
       <div class="nav-section">
         <div class="nav-section-title">${t('nav.gradesAndAssessment')}</div>
-        <a href="#" class="nav-item" data-view="moodleGradebook" onclick="showView('moodleGradebook'); MoodleUI.loadGradebook();">
+        <a href="${viewHref('moodleGradebook')}" class="nav-item" data-view="moodleGradebook" onclick="return openPlatformView(event, 'moodleGradebook')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
             <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
           </svg>
           ${t('nav.gradebook')}
         </a>
-        <a href="#" class="nav-item" data-view="learningProgress" onclick="showView('learningProgress'); MoodleUI.openLearningProgress();">
+        <a href="${viewHref('learningProgress')}" class="nav-item" data-view="learningProgress" onclick="return openPlatformView(event, 'learningProgress')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 20V10"/>
             <path d="M12 20V4"/>
@@ -220,14 +264,14 @@ const App = {
           </svg>
           ${t('nav.learningProgress')}
         </a>
-        <a href="#" class="nav-item" data-view="badges" onclick="showView('badges'); MoodleUI.openBadges();">
+        <a href="${viewHref('certificates')}" class="nav-item" data-view="certificates" onclick="return openPlatformView(event, 'certificates')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="8" r="6"/>
             <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/>
           </svg>
-          ${t('nav.badges')}
+          ${t('nav.certificates')}
         </a>
-        <a href="#" class="nav-item" data-view="teacherAnalytics" onclick="showView('teacherAnalytics'); MoodleUI.openTeacherAnalytics();">
+        <a href="${viewHref('teacherAnalytics')}" class="nav-item" data-view="teacherAnalytics" onclick="return openPlatformView(event, 'teacherAnalytics')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="20" x2="18" y2="10"/>
             <line x1="12" y1="20" x2="12" y2="4"/>
@@ -238,14 +282,14 @@ const App = {
       </div>
       <div class="nav-section">
         <div class="nav-section-title">${t('nav.resources')}</div>
-        <a href="#" class="nav-item" data-view="library" onclick="navigateTo(this, 'library')">
+        <a href="${viewHref('library')}" class="nav-item" data-view="library" onclick="return navigateTo(this, 'library')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M4 19.5A2.5 2.5 0 016.5 17H20"/>
             <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>
           </svg>
           ${t('nav.library')}
         </a>
-        <a href="#" class="nav-item" data-view="licenses" onclick="navigateTo(this, 'licenses')">
+        <a href="${viewHref('licenses')}" class="nav-item" data-view="licenses" onclick="return navigateTo(this, 'licenses')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
             <polyline points="14,2 14,8 20,8"/>
@@ -258,14 +302,14 @@ const App = {
       </div>
       <div class="nav-section">
         <div class="nav-section-title">${t('nav.settings')}</div>
-        <a href="#" class="nav-item" data-view="settings" onclick="navigateTo(this, 'settings')">
+        <a href="${viewHref('settings')}" class="nav-item" data-view="settings" onclick="return navigateTo(this, 'settings')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="3"/>
             <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
           </svg>
           ${t('nav.personalSettings')}
         </a>
-        <a href="#" class="nav-item" data-view="logout" onclick="navigateTo(this, 'logout')">
+        <a href="${viewHref('dashboard')}" class="nav-item" data-view="logout" onclick="return navigateTo(this, 'logout')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
             <polyline points="16,17 21,12 16,7"/>
@@ -290,28 +334,28 @@ const App = {
     const studentSidebar = `
       <div class="nav-section">
         <div class="nav-section-title">${t('nav.learningCenter')}</div>
-        <a href="#" class="nav-item active" data-view="dashboard" onclick="navigateTo(this, 'dashboard')">
+        <a href="${viewHref('dashboard')}" class="nav-item active" data-view="dashboard" onclick="return navigateTo(this, 'dashboard')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
             <polyline points="9,22 9,12 15,12 15,22"/>
           </svg>
           ${t('nav.learnerDashboard')}
         </a>
-        <a href="#" class="nav-item" data-view="moodleCourses" onclick="showView('moodleCourses'); MoodleUI.loadCourses();">
+        <a href="${viewHref('moodleCourses')}" class="nav-item" data-view="moodleCourses" onclick="return openPlatformView(event, 'moodleCourses')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/>
             <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>
           </svg>
           ${t('nav.enrolledCourses')}
         </a>
-        <a href="#" class="nav-item" data-view="moodleCalendar" onclick="showView('moodleCalendar'); MoodleUI.loadCalendar();">
+        <a href="${viewHref('moodleCalendar')}" class="nav-item" data-view="moodleCalendar" onclick="return openPlatformView(event, 'moodleCalendar')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
             <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
           </svg>
           ${t('nav.learnerCalendar')}
         </a>
-        <a href="#" class="nav-item" data-view="moodleNotifications" onclick="showView('moodleNotifications'); MoodleUI.loadNotifications();">
+        <a href="${viewHref('moodleNotifications')}" class="nav-item" data-view="moodleNotifications" onclick="return openPlatformView(event, 'moodleNotifications')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
             <path d="M13.73 21a2 2 0 01-3.46 0"/>
@@ -322,7 +366,7 @@ const App = {
       </div>
       <div class="nav-section">
         <div class="nav-section-title">${t('nav.learningTasks')}</div>
-        <a href="#" class="nav-item" data-view="moodleAssignments" onclick="showView('moodleAssignments'); MoodleUI.loadAssignments();">
+        <a href="${viewHref('moodleAssignments')}" class="nav-item" data-view="moodleAssignments" onclick="return openPlatformView(event, 'moodleAssignments')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
             <polyline points="14,2 14,8 20,8"/>
@@ -331,7 +375,7 @@ const App = {
           </svg>
           ${t('nav.pendingAssignments')}
         </a>
-        <a href="#" class="nav-item" data-view="moodleQuizzes" onclick="showView('moodleQuizzes'); MoodleUI.loadQuizzes();">
+        <a href="${viewHref('moodleQuizzes')}" class="nav-item" data-view="moodleQuizzes" onclick="return openPlatformView(event, 'moodleQuizzes')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="10"/>
             <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/>
@@ -339,7 +383,7 @@ const App = {
           </svg>
           ${t('nav.pendingQuizzes')}
         </a>
-        <a href="#" class="nav-item" data-view="moodleForums" onclick="showView('moodleForums'); MoodleUI.loadForums();">
+        <a href="${viewHref('moodleForums')}" class="nav-item" data-view="moodleForums" onclick="return openPlatformView(event, 'moodleForums')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
           </svg>
@@ -348,14 +392,14 @@ const App = {
       </div>
       <div class="nav-section">
         <div class="nav-section-title">${t('nav.learningOutcomes')}</div>
-        <a href="#" class="nav-item" data-view="moodleGradebook" onclick="showView('moodleGradebook'); MoodleUI.loadGradebook();">
+        <a href="${viewHref('moodleGradebook')}" class="nav-item" data-view="moodleGradebook" onclick="return openPlatformView(event, 'moodleGradebook')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
             <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
           </svg>
           ${t('nav.myGrades')}
         </a>
-        <a href="#" class="nav-item" data-view="learningProgress" onclick="showView('learningProgress'); MoodleUI.openLearningProgress();">
+        <a href="${viewHref('learningProgress')}" class="nav-item" data-view="learningProgress" onclick="return openPlatformView(event, 'learningProgress')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 20V10"/>
             <path d="M12 20V4"/>
@@ -364,24 +408,24 @@ const App = {
           </svg>
           ${t('nav.learningProgress')}
         </a>
-        <a href="#" class="nav-item" data-view="badges" onclick="showView('badges'); MoodleUI.openBadges();">
+        <a href="${viewHref('certificates')}" class="nav-item" data-view="certificates" onclick="return openPlatformView(event, 'certificates')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="8" r="6"/>
             <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/>
           </svg>
-          ${t('nav.myBadges')}
+          ${t('nav.myCertificates')}
         </a>
       </div>
       <div class="nav-section">
         <div class="nav-section-title">${t('nav.settings')}</div>
-        <a href="#" class="nav-item" data-view="settings" onclick="navigateTo(this, 'settings')">
+        <a href="${viewHref('settings')}" class="nav-item" data-view="settings" onclick="return navigateTo(this, 'settings')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="3"/>
             <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
           </svg>
           ${t('nav.personalSettings')}
         </a>
-        <a href="#" class="nav-item" data-view="logout" onclick="navigateTo(this, 'logout')">
+        <a href="${viewHref('dashboard')}" class="nav-item" data-view="logout" onclick="return navigateTo(this, 'logout')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
             <polyline points="16,17 21,12 16,7"/>
@@ -406,21 +450,21 @@ const App = {
     const adminSection = `
       <div class="nav-section">
         <div class="nav-section-title">${t('nav.systemAdmin')}</div>
-        <a href="#" class="nav-item" data-view="rolesManagement" onclick="showView('rolesManagement'); MoodleUI.openRolesManagement();">
+        <a href="${viewHref('rolesManagement')}" class="nav-item" data-view="rolesManagement" onclick="return openPlatformView(event, 'rolesManagement')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/>
             <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
           </svg>
           ${t('nav.rolesPermissions')}
         </a>
-        <a href="#" class="nav-item" data-view="courseCategories" onclick="showView('courseCategories'); MoodleUI.openCourseCategories();">
+        <a href="${viewHref('courseCategories')}" class="nav-item" data-view="courseCategories" onclick="return openPlatformView(event, 'courseCategories')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>
             <path d="M12 11v6M9 14h6"/>
           </svg>
           ${t('nav.courseCategories')}
         </a>
-        <a href="#" class="nav-item" data-view="auditLogs" onclick="showView('auditLogs'); MoodleUI.openAuditLogs();">
+        <a href="${viewHref('auditLogs')}" class="nav-item" data-view="auditLogs" onclick="return openPlatformView(event, 'auditLogs')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
             <path d="M14 2v6h6"/>
@@ -428,7 +472,7 @@ const App = {
           </svg>
           ${t('admin.nav.auditLogs')}
         </a>
-        <a href="#" class="nav-item" data-view="scormManager" onclick="showView('scormManager'); MoodleUI.openScormManager();">
+        <a href="${viewHref('scormManager')}" class="nav-item" data-view="scormManager" onclick="return openPlatformView(event, 'scormManager')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
             <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
@@ -436,7 +480,7 @@ const App = {
           </svg>
           ${t('admin.nav.scorm')}
         </a>
-        <a href="#" class="nav-item" data-view="ltiManager" onclick="showView('ltiManager'); MoodleUI.openLtiManager();">
+        <a href="${viewHref('ltiManager')}" class="nav-item" data-view="ltiManager" onclick="return openPlatformView(event, 'ltiManager')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="18" cy="5" r="3"/>
             <circle cx="6" cy="12" r="3"/>
@@ -446,7 +490,7 @@ const App = {
           </svg>
           ${t('admin.nav.lti')}
         </a>
-        <a href="#" class="nav-item" data-view="h5pManager" onclick="showView('h5pManager'); MoodleUI.openH5pManager();">
+        <a href="${viewHref('h5pManager')}" class="nav-item" data-view="h5pManager" onclick="return openPlatformView(event, 'h5pManager')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
             <line x1="8" y1="21" x2="16" y2="21"/>
@@ -455,7 +499,7 @@ const App = {
           </svg>
           ${t('admin.nav.h5p')}
         </a>
-        <a href="#" class="nav-item" onclick="window.location.href='/admin';">
+        <a href="/admin" class="nav-item">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="3" y="3" width="7" height="9"/>
             <rect x="14" y="3" width="7" height="5"/>
@@ -653,7 +697,7 @@ const App = {
         // 學生專屬資料
         if (isStudent) {
           promises.push(this.loadUpcomingDeadlines(user.userId));
-          promises.push(this.loadRecentBadges(user.userId));
+          promises.push(this.loadRecentCertificates(user.userId));
           promises.push(this.loadWeeklyStats(user.userId));
         }
       }
@@ -681,9 +725,15 @@ const App = {
     const teacherDashboard = document.getElementById('teacherDashboardView');
     const urgentSection = document.getElementById('urgentDeadlinesSection');
     const achievementsCard = document.getElementById('recentAchievementsCard');
+    const visibleViews = Array.from(document.querySelectorAll('.dashboard')).filter((view) => !view.hidden);
+    const hasNonDashboardViewVisible = visibleViews.some((view) => !['dashboardView', 'teacherDashboardView'].includes(view.id));
 
-    // 根據角色顯示對應的儀表板
-    if (isTeacher) {
+    // 只有真的停留在 dashboard 時才顯示角色儀表板；
+    // 若目前已切到其他 view，就不要把 dashboard 再打開。
+    if (hasNonDashboardViewVisible) {
+      if (studentDashboard) studentDashboard.hidden = true;
+      if (teacherDashboard) teacherDashboard.hidden = true;
+    } else if (isTeacher) {
       if (studentDashboard) studentDashboard.hidden = true;
       if (teacherDashboard) teacherDashboard.hidden = false;
     } else {
@@ -835,14 +885,14 @@ const App = {
   },
 
   /**
-   * 載入最近獲得的徽章
+   * 載入最近取得的證書
    */
-  async loadRecentBadges(userId) {
+  async loadRecentCertificates(userId) {
     try {
       const result = await API.certificates.getMy();
       if (result.success && result.data) {
         const certificates = Array.isArray(result.data) ? result.data : (result.data.certificates || []);
-        this.updateRecentBadgesUI(certificates.slice(0, 4));
+        this.updateRecentCertificatesUI(certificates.slice(0, 4));
       }
     } catch (error) {
       console.error('Load recent certificates error:', error);
@@ -850,20 +900,20 @@ const App = {
   },
 
   /**
-   * 更新最近徽章的 UI
+   * 更新最近證書的 UI
    */
-  updateRecentBadgesUI(badges) {
-    const badgesList = document.getElementById('recentBadgesList');
-    const badgeCountStat = document.getElementById('statBadgeCount');
+  updateRecentCertificatesUI(certificates) {
+    const certificatesList = document.getElementById('recentCertificatesList');
+    const certificateCountStat = document.getElementById('statCertificateCount');
 
-    if (badgeCountStat) {
-      badgeCountStat.textContent = badges.length;
+    if (certificateCountStat) {
+      certificateCountStat.textContent = certificates.length;
     }
 
-    if (!badgesList) return;
+    if (!certificatesList) return;
 
-    if (badges.length === 0) {
-      badgesList.innerHTML = this.renderDashboardEmptyState(t('dashboard.earnBadges'), {
+    if (certificates.length === 0) {
+      certificatesList.innerHTML = this.renderDashboardEmptyState(t('dashboard.earnBadges'), {
         iconMarkup: `
           <circle cx="12" cy="8" r="6"></circle>
           <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"></path>
@@ -874,7 +924,7 @@ const App = {
 
     const badgeTones = ['tone-gold', 'tone-silver', 'tone-copper', 'tone-success', 'tone-blue', 'tone-olive'];
 
-    badgesList.innerHTML = `<div class="dashboard-badge-grid">${badges.map((badge, index) => `
+    certificatesList.innerHTML = `<div class="dashboard-badge-grid">${certificates.map((badge, index) => `
       <div class="dashboard-badge-card">
         <div class="dashboard-badge-icon ${badgeTones[index % badgeTones.length]}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

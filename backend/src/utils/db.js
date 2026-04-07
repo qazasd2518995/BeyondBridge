@@ -15,6 +15,10 @@ const {
   BatchWriteCommand,
   BatchGetCommand
 } = require('@aws-sdk/lib-dynamodb');
+const {
+  normalizeDottedUpdateMap,
+  splitDottedPath
+} = require('./dotted-keys');
 
 // 初始化 DynamoDB 客戶端
 const client = new DynamoDBClient({
@@ -33,6 +37,31 @@ const docClient = DynamoDBDocumentClient.from(client, {
 });
 
 const TABLE_NAME = process.env.DYNAMODB_TABLE || 'beyondbridge';
+
+const RETRYABLE_ERRORS = [
+  'ProvisionedThroughputExceededException',
+  'ThrottlingException',
+  'InternalServerError',
+  'ServiceUnavailable',
+  'RequestLimitExceeded'
+];
+
+async function withRetry(operation, maxRetries = 3) {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      const isRetryable = RETRYABLE_ERRORS.includes(error.name) ||
+                          RETRYABLE_ERRORS.includes(error.__type);
+      if (!isRetryable || attempt === maxRetries) {
+        throw error;
+      }
+      const delay = Math.min(100 * Math.pow(2, attempt), 2000);
+      console.warn(`[DB] Retryable error (${error.name}), attempt ${attempt + 1}/${maxRetries}, retrying in ${delay}ms`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+}
 
 function applyProjection(params, projection, existingNames = {}) {
   if (!Array.isArray(projection) || projection.length === 0) {
@@ -60,7 +89,7 @@ async function getItem(pk, sk) {
     Key: { PK: pk, SK: sk }
   });
 
-  const response = await docClient.send(command);
+  const response = await withRetry(() => docClient.send(command));
   return response.Item;
 }
 
@@ -73,7 +102,7 @@ async function putItem(item) {
     Item: item
   });
 
-  await docClient.send(command);
+  await withRetry(() => docClient.send(command));
   return item;
 }
 
@@ -81,16 +110,38 @@ async function putItem(item) {
  * 更新項目的特定欄位
  */
 async function updateItem(pk, sk, updates) {
-  const updateExpressions = [];
-  const expressionAttributeNames = {};
-  const expressionAttributeValues = {};
   const validEntries = Object.entries(updates).filter(([, value]) => value !== undefined);
 
   if (validEntries.length === 0) {
     return getItem(pk, sk);
   }
 
-  validEntries.forEach(([key, value], index) => {
+  const updateExpressions = [];
+  const removeExpressions = [];
+  const expressionAttributeNames = {};
+  const expressionAttributeValues = {};
+  const dottedKeys = validEntries
+    .map(([key]) => key)
+    .filter(key => splitDottedPath(key));
+
+  let currentItem = null;
+  let normalizedUpdates = Object.fromEntries(validEntries);
+
+  if (dottedKeys.length > 0) {
+    currentItem = await getItem(pk, sk);
+    const normalizedResult = normalizeDottedUpdateMap(normalizedUpdates, currentItem || {});
+    normalizedUpdates = normalizedResult.updates;
+
+    dottedKeys
+      .filter(key => currentItem && Object.prototype.hasOwnProperty.call(currentItem, key))
+      .forEach((key, index) => {
+        const removeToken = `#remove${index}`;
+        expressionAttributeNames[removeToken] = key;
+        removeExpressions.push(removeToken);
+      });
+  }
+
+  Object.entries(normalizedUpdates).forEach(([key, value], index) => {
     const attrName = `#attr${index}`;
     const attrValue = `:val${index}`;
     updateExpressions.push(`${attrName} = ${attrValue}`);
@@ -98,16 +149,24 @@ async function updateItem(pk, sk, updates) {
     expressionAttributeValues[attrValue] = value;
   });
 
+  const updateClauses = [];
+  if (updateExpressions.length > 0) {
+    updateClauses.push(`SET ${updateExpressions.join(', ')}`);
+  }
+  if (removeExpressions.length > 0) {
+    updateClauses.push(`REMOVE ${removeExpressions.join(', ')}`);
+  }
+
   const command = new UpdateCommand({
     TableName: TABLE_NAME,
     Key: { PK: pk, SK: sk },
-    UpdateExpression: `SET ${updateExpressions.join(', ')}`,
+    UpdateExpression: updateClauses.join(' '),
     ExpressionAttributeNames: expressionAttributeNames,
     ExpressionAttributeValues: expressionAttributeValues,
     ReturnValues: 'ALL_NEW'
   });
 
-  const response = await docClient.send(command);
+  const response = await withRetry(() => docClient.send(command));
   return response.Attributes;
 }
 
@@ -120,7 +179,7 @@ async function deleteItem(pk, sk) {
     Key: { PK: pk, SK: sk }
   });
 
-  await docClient.send(command);
+  await withRetry(() => docClient.send(command));
   return true;
 }
 
@@ -199,7 +258,7 @@ async function query(pk, options = {}) {
     }
 
     const command = new QueryCommand(pageParams);
-    const response = await docClient.send(command);
+    const response = await withRetry(() => docClient.send(command));
     items.push(...(response.Items || []));
     lastEvaluatedKey = response.LastEvaluatedKey;
   } while (lastEvaluatedKey && (!options.limit || items.length < options.limit));
@@ -270,7 +329,7 @@ async function queryByIndex(indexName, pkValue, pkName = 'GSI1PK', options = {})
     }
 
     const command = new QueryCommand(pageParams);
-    const response = await docClient.send(command);
+    const response = await withRetry(() => docClient.send(command));
     items.push(...(response.Items || []));
     lastEvaluatedKey = response.LastEvaluatedKey;
   } while (lastEvaluatedKey && (!options.limit || items.length < options.limit));
@@ -322,7 +381,7 @@ async function scan(options = {}) {
     }
 
     const command = new ScanCommand(pageParams);
-    const response = await docClient.send(command);
+    const response = await withRetry(() => docClient.send(command));
     items.push(...(response.Items || []));
     lastEvaluatedKey = response.LastEvaluatedKey;
   } while (lastEvaluatedKey && (!options.limit || items.length < options.limit));
@@ -350,7 +409,7 @@ async function batchWrite(items) {
       }
     });
 
-    await docClient.send(command);
+    await withRetry(() => docClient.send(command));
   }
 
   return items.length;
@@ -380,7 +439,7 @@ async function batchDelete(keys) {
       }
     });
 
-    await docClient.send(command);
+    await withRetry(() => docClient.send(command));
   }
 
   return keys.length;
@@ -389,7 +448,7 @@ async function batchDelete(keys) {
 /**
  * 批量取得項目
  */
-async function batchGetItems(keys = []) {
+async function batchGetItems(keys = [], options = {}) {
   const batches = [];
   const results = [];
 
@@ -399,17 +458,26 @@ async function batchGetItems(keys = []) {
 
   for (const batch of batches) {
     let requestKeys = batch.map(key => ({ PK: key.PK, SK: key.SK }));
+    const baseRequest = {
+      Keys: requestKeys
+    };
+
+    const projectionNames = applyProjection(baseRequest, options.projection);
+    if (Object.keys(projectionNames).length > 0) {
+      baseRequest.ExpressionAttributeNames = projectionNames;
+    }
 
     while (requestKeys.length > 0) {
       const command = new BatchGetCommand({
         RequestItems: {
           [TABLE_NAME]: {
+            ...baseRequest,
             Keys: requestKeys
           }
         }
       });
 
-      const response = await docClient.send(command);
+      const response = await withRetry(() => docClient.send(command));
       results.push(...(response.Responses?.[TABLE_NAME] || []));
       requestKeys = response.UnprocessedKeys?.[TABLE_NAME]?.Keys || [];
     }
@@ -442,6 +510,15 @@ async function getUsersByIds(userIds = []) {
     PK: `USER#${userId}`,
     SK: 'PROFILE'
   })));
+}
+
+async function getCoursesByIds(courseIds = [], options = {}) {
+  const ids = [...new Set(courseIds.filter(Boolean))];
+  if (ids.length === 0) return [];
+  return batchGetItems(ids.map(courseId => ({
+    PK: `COURSE#${courseId}`,
+    SK: 'META'
+  })), options);
 }
 
 /**
@@ -499,6 +576,13 @@ async function getResourcesByCategory(category) {
  */
 async function getResourcesByStatus(status) {
   return queryByIndex('GSI2', `STATUS#${status}`, 'GSI2PK');
+}
+
+async function getItemsByEntityType(entityType, options = {}) {
+  if (!entityType) return [];
+  return queryByIndex('GSI3', entityType, 'entityType', {
+    ...options
+  });
 }
 
 /**
@@ -601,9 +685,11 @@ module.exports = {
   batchWrite,
   batchDelete,
   batchGetItems,
+  getItemsByEntityType,
   getUserByEmail,
   getUser,
   getUsersByIds,
+  getCoursesByIds,
   getAdmin,
   getAdminByEmail,
   getAllUsers,

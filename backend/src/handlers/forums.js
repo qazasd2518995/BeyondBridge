@@ -122,13 +122,7 @@ async function getManagedCourseIdsForUser(user) {
     return linkedCourseIds;
   }
 
-  const courses = await db.scan({
-    filter: {
-      expression: 'entityType = :type',
-      values: {
-        ':type': 'COURSE'
-      }
-    },
+  const courses = await db.getItemsByEntityType('COURSE', {
     projection: COURSE_PROJECTION
   });
 
@@ -139,17 +133,15 @@ async function getManagedCourseIdsForUser(user) {
   return managedCourses.map(course => course.courseId).filter(Boolean);
 }
 
-async function listAllCourseIds() {
-  const courses = await db.scan({
-    filter: {
-      expression: 'entityType = :type',
-      values: {
-        ':type': 'COURSE'
-      }
-    },
-    projection: ['courseId']
+async function listForumsByCourseScope(courseIds = []) {
+  const ids = [...new Set(courseIds.filter(Boolean))];
+  if (ids.length === 0) return [];
+
+  const forumRows = await db.getItemsByEntityType('FORUM', {
+    projection: FORUM_LIST_PROJECTION
   });
-  return courses.map(course => course.courseId).filter(Boolean);
+  const allowedCourseIds = new Set(ids);
+  return forumRows.filter(item => item?.forumId && allowedCourseIds.has(item.courseId));
 }
 
 async function getForumsForCourseIds(courseIds = []) {
@@ -261,8 +253,9 @@ router.get('/', authMiddleware, async (req, res) => {
 
     let forums = [];
     if (isAdmin) {
-      const adminCourseIds = courseId ? [courseId] : await listAllCourseIds();
-      forums = await getForumsForCourseIds(adminCourseIds);
+      forums = courseId
+        ? await getForumsForCourseIds([courseId])
+        : await db.getItemsByEntityType('FORUM', { projection: FORUM_LIST_PROJECTION });
     } else {
       const [progressList, managedCourseIds] = await Promise.all([
         db.getUserCourseProgress(req.user.userId),
@@ -280,7 +273,9 @@ router.get('/', authMiddleware, async (req, res) => {
         ? (allowedCourseIds.includes(courseId) ? [courseId] : [])
         : allowedCourseIds;
 
-      forums = await getForumsForCourseIds(scopedCourseIds);
+      forums = courseId
+        ? await getForumsForCourseIds(scopedCourseIds)
+        : await listForumsByCourseScope(scopedCourseIds);
     }
 
     const forumsRequiringFallback = forums.filter(forumNeedsDiscussionSummaryFallback);
@@ -1493,9 +1488,11 @@ async function getForumAccessContext(forumId, userId, isAdmin = false) {
     return { ok: false, status: 404, error: 'FORUM_NOT_FOUND', message: '找不到此討論區' };
   }
 
-  const course = await db.getItem(`COURSE#${forum.courseId}`, 'META');
+  const [course, enrollment] = await Promise.all([
+    db.getItem(`COURSE#${forum.courseId}`, 'META'),
+    isAdmin ? Promise.resolve(null) : db.getItem(`USER#${userId}`, `PROG#COURSE#${forum.courseId}`)
+  ]);
   const instructor = isCourseInstructor(course, userId);
-  const enrollment = await db.getItem(`USER#${userId}`, `PROG#COURSE#${forum.courseId}`);
   const enrolled = !!enrollment;
   const canAccess = isAdmin || instructor || enrolled;
 

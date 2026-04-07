@@ -5,9 +5,90 @@
 
 const express = require('express');
 const router = express.Router();
+const crypto = require('crypto');
 const db = require('../utils/db');
 const auth = require('../utils/auth');
+const { sendPasswordResetEmail } = require('../utils/email');
+const { logAuditEvent } = require('./audit-logs');
 const { enrollUserIntoClassLinkedCourse } = require('../utils/class-course-links');
+
+const PASSWORD_RESET_EXPIRY_MS = 60 * 60 * 1000;
+
+function isValidEmail(email = '') {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || '').trim());
+}
+
+function hashPasswordResetToken(token = '') {
+  return crypto.createHash('sha256').update(String(token)).digest('hex');
+}
+
+function buildPasswordResetTokenPk(token) {
+  return `PASSWORD_RESET#${hashPasswordResetToken(token)}`;
+}
+
+function buildPasswordResetOwnerKey(accountType, userId) {
+  return `PASSWORD_RESET_OWNER#${accountType}#${userId}`;
+}
+
+function generatePasswordResetToken() {
+  return crypto.randomBytes(24).toString('base64url');
+}
+
+function maskEmail(email = '') {
+  const [localPart, domain = ''] = String(email).split('@');
+  if (!localPart || !domain) return email;
+  if (localPart.length <= 2) return `${localPart.charAt(0)}***@${domain}`;
+  return `${localPart.slice(0, 2)}***@${domain}`;
+}
+
+async function revokePasswordResetTokens(accountType, userId, exceptPk = null) {
+  const ownerKey = buildPasswordResetOwnerKey(accountType, userId);
+  const existingTokens = await db.queryByIndex('GSI1', ownerKey, 'GSI1PK', {
+    skName: 'GSI1SK',
+    skPrefix: 'TOKEN#',
+    projection: ['PK', 'SK']
+  });
+  const keysToDelete = existingTokens
+    .filter(item => item?.PK && item?.SK && item.PK !== exceptPk)
+    .map(item => ({ PK: item.PK, SK: item.SK }));
+
+  if (keysToDelete.length > 0) {
+    await db.batchDelete(keysToDelete);
+  }
+}
+
+async function getPasswordResetAccountByEmail(email) {
+  let user = await db.getAdminByEmail(email);
+  if (user) {
+    return { user, isAdmin: true };
+  }
+
+  user = await db.getUserByEmail(email);
+  if (user) {
+    return { user, isAdmin: false };
+  }
+
+  return null;
+}
+
+async function getValidPasswordResetRecord(token) {
+  if (!token) return null;
+
+  const resetRecord = await db.getItem(buildPasswordResetTokenPk(token), 'META');
+  if (!resetRecord || resetRecord.entityType !== 'PASSWORD_RESET_TOKEN') {
+    return null;
+  }
+
+  if (resetRecord.consumedAt) {
+    return null;
+  }
+
+  if (!resetRecord.expiresAt || new Date(resetRecord.expiresAt).getTime() <= Date.now()) {
+    return null;
+  }
+
+  return resetRecord;
+}
 
 /**
  * POST /api/auth/login
@@ -370,10 +451,19 @@ router.post('/refresh', async (req, res) => {
       isAdmin: decoded.isAdmin
     });
 
+    // 產生新的 Refresh Token（Token 輪換）
+    const newRefreshToken = auth.generateRefreshToken({
+      userId: decoded.userId,
+      email: user.email,
+      role: user.role || 'user',
+      isAdmin: decoded.isAdmin
+    });
+
     res.json({
       success: true,
       data: {
         accessToken: newAccessToken,
+        refreshToken: newRefreshToken,
         expiresIn: process.env.JWT_EXPIRES_IN || '15m'
       }
     });
@@ -390,6 +480,213 @@ router.post('/refresh', async (req, res) => {
       success: false,
       error: 'INVALID_TOKEN',
       message: '無效的 Token'
+    });
+  }
+});
+
+/**
+ * POST /api/auth/password/reset/request
+ * 請求寄送密碼重設信
+ */
+router.post('/password/reset/request', async (req, res) => {
+  try {
+    const email = String(req.body?.email || '').trim().toLowerCase();
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        error: 'MISSING_EMAIL',
+        message: '請提供 Email'
+      });
+    }
+
+    if (!isValidEmail(email)) {
+      return res.status(400).json({
+        success: false,
+        error: 'INVALID_EMAIL',
+        message: 'Email 格式不正確'
+      });
+    }
+
+    const account = await getPasswordResetAccountByEmail(email);
+    if (account?.user && account.user.status === 'active') {
+      const { user, isAdmin } = account;
+      const userId = user.userId || user.adminId;
+      const accountType = isAdmin ? 'ADMIN' : 'USER';
+      const rawToken = generatePasswordResetToken();
+      const now = new Date().toISOString();
+      const resetItem = {
+        PK: buildPasswordResetTokenPk(rawToken),
+        SK: 'META',
+        GSI1PK: buildPasswordResetOwnerKey(accountType, userId),
+        GSI1SK: `TOKEN#${now}`,
+        entityType: 'PASSWORD_RESET_TOKEN',
+        userId,
+        accountType,
+        email,
+        createdAt: now,
+        expiresAt: new Date(Date.now() + PASSWORD_RESET_EXPIRY_MS).toISOString(),
+        requestedIp: req.ip || req.headers['x-forwarded-for'] || 'unknown',
+        userAgent: req.headers['user-agent'] || ''
+      };
+
+      await revokePasswordResetTokens(accountType, userId);
+      await db.putItem(resetItem);
+      await sendPasswordResetEmail(user, rawToken);
+    }
+
+    res.json({
+      success: true,
+      message: '如果該 Email 存在，重設密碼連結已寄出'
+    });
+  } catch (error) {
+    console.error('Password reset request error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'RESET_REQUEST_FAILED',
+      message: '重設密碼請求失敗，請稍後再試'
+    });
+  }
+});
+
+/**
+ * GET /api/auth/password/reset/validate
+ * 驗證密碼重設 token 是否有效
+ */
+router.get('/password/reset/validate', async (req, res) => {
+  try {
+    const token = String(req.query?.token || '').trim();
+
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        error: 'MISSING_TOKEN',
+        message: '請提供重設密碼 token'
+      });
+    }
+
+    const resetRecord = await getValidPasswordResetRecord(token);
+    if (!resetRecord) {
+      return res.status(400).json({
+        success: false,
+        error: 'INVALID_RESET_TOKEN',
+        message: '重設密碼連結無效或已過期'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        email: maskEmail(resetRecord.email),
+        expiresAt: resetRecord.expiresAt
+      }
+    });
+  } catch (error) {
+    console.error('Password reset validate error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'RESET_VALIDATE_FAILED',
+      message: '驗證重設密碼連結失敗'
+    });
+  }
+});
+
+/**
+ * POST /api/auth/password/reset/confirm
+ * 使用 token 完成密碼重設
+ */
+router.post('/password/reset/confirm', async (req, res) => {
+  try {
+    const token = String(req.body?.token || '').trim();
+    const newPassword = String(req.body?.newPassword || '');
+
+    if (!token || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        error: 'MISSING_FIELDS',
+        message: '請提供 token 與新密碼'
+      });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({
+        success: false,
+        error: 'WEAK_PASSWORD',
+        message: '新密碼長度至少需要 8 個字元'
+      });
+    }
+
+    const resetRecord = await getValidPasswordResetRecord(token);
+    if (!resetRecord) {
+      return res.status(400).json({
+        success: false,
+        error: 'INVALID_RESET_TOKEN',
+        message: '重設密碼連結無效或已過期'
+      });
+    }
+
+    const isAdmin = resetRecord.accountType === 'ADMIN';
+    const userId = resetRecord.userId;
+    const user = isAdmin ? await db.getAdmin(userId) : await db.getUser(userId);
+
+    if (!user || user.status !== 'active') {
+      return res.status(400).json({
+        success: false,
+        error: 'ACCOUNT_UNAVAILABLE',
+        message: '帳號不存在或已停用'
+      });
+    }
+
+    const now = new Date().toISOString();
+    const passwordHash = await auth.hashPassword(newPassword);
+    const userPk = isAdmin ? `ADMIN#${userId}` : `USER#${userId}`;
+
+    await db.updateItem(userPk, 'PROFILE', {
+      passwordHash,
+      updatedAt: now,
+      lastPasswordResetAt: now
+    });
+
+    await db.updateItem(resetRecord.PK, 'META', {
+      consumedAt: now,
+      consumedIp: req.ip || req.headers['x-forwarded-for'] || 'unknown',
+      updatedAt: now
+    });
+
+    await revokePasswordResetTokens(resetRecord.accountType, userId, resetRecord.PK);
+    await db.logActivity(userId, 'password_reset', 'auth', userId, {
+      isAdmin,
+      ip: req.ip || req.headers['x-forwarded-for'] || 'unknown'
+    });
+
+    if (typeof logAuditEvent === 'function') {
+      await logAuditEvent({
+        userId,
+        userEmail: user.email,
+        userName: user.displayName || user.displayNameZh || user.email,
+        eventType: 'user_password_reset',
+        targetType: 'auth',
+        targetId: userId,
+        targetName: user.email,
+        description: '使用密碼重設連結更新密碼',
+        metadata: {
+          accountType: resetRecord.accountType
+        },
+        ipAddress: req.ip || req.headers['x-forwarded-for'] || 'unknown',
+        userAgent: req.headers['user-agent'] || ''
+      });
+    }
+
+    res.json({
+      success: true,
+      message: '密碼已重設，請使用新密碼登入'
+    });
+  } catch (error) {
+    console.error('Password reset confirm error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'RESET_CONFIRM_FAILED',
+      message: '重設密碼失敗，請稍後再試'
     });
   }
 });

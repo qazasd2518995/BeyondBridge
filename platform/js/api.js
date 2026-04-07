@@ -185,6 +185,11 @@ const API = {
         if (result.success) {
           API.accessToken = result.data.accessToken;
           localStorage.setItem('accessToken', result.data.accessToken);
+          // 儲存輪換後的新 Refresh Token
+          if (result.data.refreshToken) {
+            API.refreshToken = result.data.refreshToken;
+            localStorage.setItem('refreshToken', result.data.refreshToken);
+          }
           return true;
         }
       } catch (error) {
@@ -436,34 +441,10 @@ const API = {
       return API.request(`/admin/users?${params}`);
     },
 
-    async getUser(userId) {
-      return API.request(`/admin/users/${userId}`);
-    },
-
     async createUser(userData) {
       return API.request('/admin/users', {
         method: 'POST',
         body: userData
-      });
-    },
-
-    async updateUser(userId, data) {
-      return API.request(`/admin/users/${userId}`, {
-        method: 'PUT',
-        body: data
-      });
-    },
-
-    async resetUserPassword(userId, newPassword) {
-      return API.request(`/admin/users/${userId}/password`, {
-        method: 'PUT',
-        body: { newPassword }
-      });
-    },
-
-    async deleteUser(userId) {
-      return API.request(`/admin/users/${userId}`, {
-        method: 'DELETE'
       });
     },
 
@@ -526,13 +507,6 @@ const API = {
       });
     },
 
-    async updateAnnouncement(announcementId, data) {
-      return API.request(`/announcements/${announcementId}`, {
-        method: 'PUT',
-        body: data
-      });
-    },
-
     async deleteAnnouncement(announcementId) {
       return API.request(`/announcements/${announcementId}`, {
         method: 'DELETE'
@@ -550,10 +524,6 @@ const API = {
 
     // 管理後台模組化 API（給 admin/index.html 使用）
     analytics: {
-      async getOverview() {
-        return API.request('/admin/analytics/overview');
-      },
-
       async getUserActivity(range = '30d', groupBy = 'day') {
         const params = new URLSearchParams({ range, groupBy }).toString();
         return API.request(`/admin/analytics/user-activity?${params}`);
@@ -2462,16 +2432,8 @@ const API = {
       return API.request(`/courses/${courseId}/groups`, { method: 'POST', body: data });
     },
 
-    async update(courseId, groupId, data) {
-      return API.request(`/courses/${courseId}/groups/${groupId}`, { method: 'PUT', body: data });
-    },
-
     async delete(courseId, groupId) {
       return API.request(`/courses/${courseId}/groups/${groupId}`, { method: 'DELETE' });
-    },
-
-    async getMembers(courseId, groupId) {
-      return API.request(`/courses/${courseId}/groups/${groupId}/members`);
     },
 
     async addMember(courseId, groupId, userId) {
@@ -2487,22 +2449,6 @@ const API = {
       });
     },
 
-    async getSettings(courseId) {
-      return API.request(`/courses/${courseId}/group-settings`);
-    },
-
-    async updateSettings(courseId, data) {
-      return API.request(`/courses/${courseId}/group-settings`, { method: 'PUT', body: data });
-    },
-
-    async getMyGroups(courseId) {
-      return API.request(`/courses/${courseId}/my-groups`);
-    },
-
-    async autoCreate(courseId, data) {
-      return API.request(`/courses/${courseId}/auto-create-groups`, { method: 'POST', body: data });
-    },
-
     async getOverview(courseId) {
       return API.request(`/courses/${courseId}/group-overview`);
     }
@@ -2510,20 +2456,8 @@ const API = {
 
   // ===== 課程報告 API =====
   courseReports: {
-    async getParticipation(courseId) {
-      return API.request(`/courses/${courseId}/participation-report`);
-    },
-
     async getActivityReport(courseId) {
       return API.request(`/courses/${courseId}/activity-report`);
-    },
-
-    async getGradeAnalysis(courseId) {
-      return API.request(`/courses/${courseId}/grade-analysis`);
-    },
-
-    async exportReport(courseId, type = 'grades') {
-      return API.request(`/courses/${courseId}/export-report?type=${type}`);
     }
   }
 };

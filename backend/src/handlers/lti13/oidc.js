@@ -26,8 +26,7 @@ const {
  *
  * 這是從 BeyondBridge 啟動外部工具的起點
  * 需要已認證的用戶
- * GET: 前端 iframe/redirect 方式（自動重導向到 Tool OIDC Login）
- * POST: API 方式（回傳 JSON）
+ * 支援 GET（前端 iframe 載入）和 POST
  */
 router.all('/initiate', (req, res, next) => {
   // LTI initiate 支援從 query parameter 取 token（iframe GET 方式）
@@ -39,14 +38,22 @@ router.all('/initiate', (req, res, next) => {
   try {
     // 支援 GET query params 和 POST body
     const params = req.method === 'GET' ? req.query : req.body;
-    const toolId = params.toolId || params.tool_id;
-    const courseId = params.courseId || params.course_id;
-    const resourceId = params.resourceId || params.resource_link_id;
-    const resourceTitle = params.resourceTitle;
-    const messageType = params.messageType || params.message_type || 'LtiResourceLinkRequest';
-    const customParams = params.customParams || {};
+    const {
+      toolId, tool_id,
+      courseId, course_id,
+      resourceId, resource_link_id,
+      resourceTitle,
+      messageType, message_type,
+      customParams = {}
+    } = params;
 
-    if (!toolId) {
+    // 相容兩種命名風格（camelCase 和 snake_case）
+    const finalToolId = toolId || tool_id;
+    const finalCourseId = courseId || course_id;
+    const finalResourceId = resourceId || resource_link_id;
+    const finalMessageType = messageType || message_type || 'LtiResourceLinkRequest';
+
+    if (!finalToolId) {
       return res.status(400).json({
         success: false,
         error: 'MISSING_TOOL_ID',
@@ -55,7 +62,7 @@ router.all('/initiate', (req, res, next) => {
     }
 
     // 取得 Tool 配置
-    const tool = await getItem('LTI_TOOL', `TOOL#${toolId}`);
+    const tool = await getItem('LTI_TOOL', `TOOL#${finalToolId}`);
     if (!tool || tool.status === 'deleted') {
       return res.status(404).json({
         success: false,
@@ -84,8 +91,8 @@ router.all('/initiate', (req, res, next) => {
 
     // 取得課程資訊（如果有）
     let course = null;
-    if (courseId) {
-      course = await getItem(`COURSE#${courseId}`, 'INFO');
+    if (finalCourseId) {
+      course = await getItem(`COURSE#${finalCourseId}`, 'INFO');
     }
 
     // 生成 OIDC 狀態參數
@@ -96,12 +103,12 @@ router.all('/initiate', (req, res, next) => {
     await saveOidcState({
       state,
       nonce,
-      toolId,
+      toolId: finalToolId,
       userId: req.user.userId,
-      courseId: courseId || null,
-      resourceId: resourceId || null,
+      courseId: finalCourseId || null,
+      resourceId: finalResourceId || null,
       resourceTitle: resourceTitle || tool.name,
-      messageType,
+      messageType: finalMessageType,
       customParams,
       targetLinkUri: tool.targetLinkUri || tool.toolUrl
     });
@@ -112,22 +119,23 @@ router.all('/initiate', (req, res, next) => {
       target_link_uri: tool.targetLinkUri || tool.toolUrl,
       login_hint: req.user.userId,
       lti_message_hint: JSON.stringify({
-        courseId,
-        resourceId,
-        messageType
+        courseId: finalCourseId,
+        resourceId: finalResourceId,
+        messageType: finalMessageType
       }),
       client_id: tool.clientId,
       lti_deployment_id: tool.deploymentId
     });
 
+    // OIDC 登入 URL
     const oidcLoginUrl = `${tool.oidcLoginUrl}?${loginParams.toString()}`;
 
-    // GET 請求（iframe/redirect）：直接重導向到 Tool 的 OIDC Login URL
+    // GET 請求（iframe/重導向）：直接跳轉到 Tool 的 OIDC Login URL
     if (req.method === 'GET') {
       return res.redirect(oidcLoginUrl);
     }
 
-    // POST 請求：回傳 JSON
+    // POST 請求：回傳 JSON 讓前端決定如何處理
     res.json({
       success: true,
       data: {

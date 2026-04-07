@@ -19,7 +19,9 @@ const onlineAdmins = new Map(); // adminId -> { socketId, name, status }
 function initSocketServer(httpServer) {
   const io = new Server(httpServer, {
     cors: {
-      origin: '*',
+      origin: process.env.NODE_ENV === 'production'
+        ? (process.env.CORS_ORIGINS || '').split(',').filter(Boolean)
+        : true,
       methods: ['GET', 'POST'],
       credentials: true
     },

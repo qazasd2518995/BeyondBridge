@@ -6436,7 +6436,7 @@
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="sidebar-header">
-                <a href="#" class="sidebar-logo" onclick="event.preventDefault(); showView('dashboard'); document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active')); document.querySelector('.nav-item[data-view=dashboard]')?.classList.add('active');">
+                <a href="/platform" class="sidebar-logo" onclick="return openPlatformView(event, 'dashboard')">
                     <img src="/images/logo-white.png" alt="BeyondBridge">
                     <span data-i18n="sidebar.platformName">教育資源平台</span>
                 </a>
@@ -6445,14 +6445,14 @@
             <nav class="sidebar-nav">
                 <div class="nav-section">
                     <div class="nav-section-title" data-i18n="sidebar.mainFeatures">主要功能</div>
-                    <a href="#" class="nav-item active" onclick="showView('dashboard')">
+                    <a href="/platform" class="nav-item active" data-view="dashboard" onclick="return openPlatformView(event, 'dashboard')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
                             <polyline points="9,22 9,12 15,12 15,22"/>
                         </svg>
                         <span data-i18n="sidebar.dashboard">儀表板</span>
                     </a>
-                    <a href="#" class="nav-item" onclick="showView('library')">
+                    <a href="/platform/library" class="nav-item" data-view="library" onclick="return openPlatformView(event, 'library')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M4 19.5A2.5 2.5 0 016.5 17H20"/>
                             <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>
@@ -6460,7 +6460,7 @@
                         <span data-i18n="sidebar.library">知識建材庫</span>
                         <span class="nav-badge">128</span>
                     </a>
-                    <a href="#" class="nav-item" onclick="showView('courses')">
+                    <a href="/platform/my-courses" class="nav-item" data-view="courses" onclick="return openPlatformView(event, 'courses')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polygon points="12,2 2,7 12,12 22,7"/>
                             <polyline points="2,17 12,22 22,17"/>
@@ -6468,7 +6468,7 @@
                         </svg>
                         <span data-i18n="sidebar.myCourses">我的課程</span>
                     </a>
-                    <a href="#" class="nav-item" onclick="showView('licenses')">
+                    <a href="/platform/licenses" class="nav-item" data-view="licenses" onclick="return openPlatformView(event, 'licenses')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
                             <polyline points="14,2 14,8 20,8"/>
@@ -6478,7 +6478,7 @@
                         </svg>
                         <span data-i18n="sidebar.licenses">授權管理</span>
                     </a>
-                    <a href="#" class="nav-item" onclick="showView('classes')">
+                    <a href="/platform/classes" class="nav-item" data-view="classes" onclick="return openPlatformView(event, 'classes')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
                             <circle cx="9" cy="7" r="4"/>
@@ -6491,14 +6491,14 @@
 
                 <div class="nav-section">
                     <div class="nav-section-title" data-i18n="sidebar.learningTools">學習工具</div>
-                    <a href="#" class="nav-item" onclick="showView('videos')">
+                    <a href="/platform/videos" class="nav-item" data-view="videos" onclick="return openPlatformView(event, 'videos')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polygon points="23,7 16,12 23,17"/>
                             <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
                         </svg>
                         <span data-i18n="sidebar.videos">影音橋段</span>
                     </a>
-                    <a href="#" class="nav-item" onclick="showView('quizzes')">
+                    <a href="/platform/legacy-quizzes" class="nav-item" data-view="quizzes" onclick="return openPlatformView(event, 'quizzes')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <circle cx="12" cy="12" r="10"/>
                             <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/>
@@ -6506,7 +6506,7 @@
                         </svg>
                         <span data-i18n="sidebar.quizBank">測驗題庫</span>
                     </a>
-                    <a href="#" class="nav-item" onclick="showView('discussions')">
+                    <a href="/platform/forums" class="nav-item" data-view="discussions" onclick="return openPlatformView(event, 'discussions')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
                         </svg>
@@ -6516,14 +6516,14 @@
 
                 <div class="nav-section">
                     <div class="nav-section-title" data-i18n="sidebar.courseStudy">課程學習</div>
-                    <a href="#" class="nav-item" onclick="showView('moodleCourses'); MoodleUI.loadCourses();">
+                    <a href="/platform/courses" class="nav-item" data-view="moodleCourses" onclick="return openPlatformView(event, 'moodleCourses')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/>
                             <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>
                         </svg>
                         <span data-i18n="sidebar.courseCenter">課程中心</span>
                     </a>
-                    <a href="#" class="nav-item" onclick="showView('moodleAssignments'); MoodleUI.loadAssignments();">
+                    <a href="/platform/assignments" class="nav-item" data-view="moodleAssignments" onclick="return openPlatformView(event, 'moodleAssignments')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
                             <polyline points="14,2 14,8 20,8"/>
@@ -6532,7 +6532,7 @@
                         </svg>
                         <span data-i18n="sidebar.myAssignments">我的作業</span>
                     </a>
-                    <a href="#" class="nav-item" onclick="showView('moodleQuizzes'); MoodleUI.loadQuizzes();">
+                    <a href="/platform/quizzes" class="nav-item" data-view="moodleQuizzes" onclick="return openPlatformView(event, 'moodleQuizzes')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <circle cx="12" cy="12" r="10"/>
                             <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/>
@@ -6540,27 +6540,27 @@
                         </svg>
                         <span data-i18n="sidebar.quizCenter">測驗中心</span>
                     </a>
-                    <a href="#" class="nav-item" onclick="showView('moodleForums'); MoodleUI.loadForums();">
+                    <a href="/platform/forums" class="nav-item" data-view="moodleForums" onclick="return openPlatformView(event, 'moodleForums')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
                         </svg>
                         <span data-i18n="sidebar.forums">討論區</span>
                     </a>
-                    <a href="#" class="nav-item" onclick="showView('moodleGradebook'); MoodleUI.loadGradebook();">
+                    <a href="/platform/gradebook" class="nav-item" data-view="moodleGradebook" onclick="return openPlatformView(event, 'moodleGradebook')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
                             <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
                         </svg>
                         <span data-i18n="sidebar.gradebook">成績簿</span>
                     </a>
-                    <a href="#" class="nav-item" onclick="showView('moodleCalendar'); MoodleUI.loadCalendar();">
+                    <a href="/platform/calendar" class="nav-item" data-view="moodleCalendar" onclick="return openPlatformView(event, 'moodleCalendar')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
                             <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
                         </svg>
                         <span data-i18n="sidebar.calendar">行事曆</span>
                     </a>
-                    <a href="#" class="nav-item" onclick="showView('moodleNotifications'); MoodleUI.loadNotifications();">
+                    <a href="/platform/notifications" class="nav-item" data-view="moodleNotifications" onclick="return openPlatformView(event, 'moodleNotifications')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                             <path d="M13.73 21a2 2 0 01-3.46 0"/>
@@ -6568,19 +6568,19 @@
                         <span data-i18n="sidebar.notifications">通知中心</span>
                         <span class="nav-badge" id="notificationBadge" hidden>0</span>
                     </a>
-                    <a href="#" class="nav-item" onclick="showView('badges'); MoodleUI.openBadges();">
+                    <a href="/platform/certificates" class="nav-item" data-view="certificates" onclick="return openPlatformView(event, 'certificates')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <circle cx="12" cy="8" r="6"/>
                             <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/>
                         </svg>
-                        <span data-i18n="sidebar.badges">成就徽章</span>
+                        <span data-i18n="sidebar.certificates">課程證書</span>
                     </a>
                 </div>
 
                 <!-- 教師專用功能區 -->
                 <div class="nav-section teacher-only-nav" id="teacherNavSection" hidden>
                     <div class="nav-section-title" data-i18n="sidebar.teachingMgmt">教學管理</div>
-                    <a href="#" class="nav-item" onclick="showView('gradebookManagement'); MoodleUI.openGradebookManagement();">
+                    <a href="/platform/gradebook/manage" class="nav-item" data-view="gradebookManagement" onclick="return openPlatformView(event, 'gradebookManagement')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
                             <line x1="3" y1="9" x2="21" y2="9"/>
@@ -6590,7 +6590,7 @@
                         </svg>
                         <span data-i18n="sidebar.gradebookMgmt">成績簿管理</span>
                     </a>
-                    <a href="#" class="nav-item" onclick="showView('learningProgress'); MoodleUI.openLearningProgress();">
+                    <a href="/platform/learning-progress" class="nav-item" data-view="learningProgress" onclick="return openPlatformView(event, 'learningProgress')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
                         </svg>
@@ -6601,21 +6601,21 @@
                 <!-- 管理員專用功能區 -->
                 <div class="nav-section admin-only-nav" id="adminNavSection" hidden>
                     <div class="nav-section-title" data-i18n="sidebar.systemAdmin">系統管理</div>
-                    <a href="#" class="nav-item" onclick="showView('rolesManagement'); MoodleUI.openRolesManagement();">
+                    <a href="/platform/roles" class="nav-item" data-view="rolesManagement" onclick="return openPlatformView(event, 'rolesManagement')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/>
                             <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
                         </svg>
                         <span data-i18n="sidebar.roles">角色權限</span>
                     </a>
-                    <a href="#" class="nav-item" onclick="showView('courseCategories'); MoodleUI.openCourseCategories();">
+                    <a href="/platform/course-categories" class="nav-item" data-view="courseCategories" onclick="return openPlatformView(event, 'courseCategories')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>
                             <path d="M12 11v6M9 14h6"/>
                         </svg>
                         <span data-i18n="sidebar.courseCategories">課程類別</span>
                     </a>
-                    <a href="#" class="nav-item" onclick="showView('auditLogs'); MoodleUI.openAuditLogs();">
+                    <a href="/platform/audit-logs" class="nav-item" data-view="auditLogs" onclick="return openPlatformView(event, 'auditLogs')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
                             <path d="M14 2v6h6"/>
@@ -6623,7 +6623,7 @@
                         </svg>
                         <span data-i18n="sidebar.auditLogs">審計日誌</span>
                     </a>
-                    <a href="#" class="nav-item" onclick="showView('scormManager'); MoodleUI.openScormManager();">
+                    <a href="/platform/scorm" class="nav-item" data-view="scormManager" onclick="return openPlatformView(event, 'scormManager')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
                             <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
@@ -6631,7 +6631,7 @@
                         </svg>
                         <span data-i18n="sidebar.scorm">SCORM 管理</span>
                     </a>
-                    <a href="#" class="nav-item" onclick="showView('ltiManager'); MoodleUI.openLtiManager();">
+                    <a href="/platform/lti" class="nav-item" data-view="ltiManager" onclick="return openPlatformView(event, 'ltiManager')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <circle cx="18" cy="5" r="3"/>
                             <circle cx="6" cy="12" r="3"/>
@@ -6641,7 +6641,7 @@
                         </svg>
                         <span data-i18n="sidebar.lti">LTI 外部工具</span>
                     </a>
-                    <a href="#" class="nav-item" onclick="showView('h5pManager'); MoodleUI.openH5pManager();">
+                    <a href="/platform/h5p" class="nav-item" data-view="h5pManager" onclick="return openPlatformView(event, 'h5pManager')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
                             <line x1="8" y1="21" x2="16" y2="21"/>
@@ -6650,7 +6650,7 @@
                         </svg>
                         <span data-i18n="sidebar.h5p">H5P 內容</span>
                     </a>
-                    <a href="#" class="nav-item" onclick="window.location.href='/admin';">
+                    <a href="/admin" class="nav-item">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <rect x="3" y="3" width="7" height="9"/>
                             <rect x="14" y="3" width="7" height="5"/>
@@ -6663,14 +6663,14 @@
 
                 <div class="nav-section">
                     <div class="nav-section-title" data-i18n="sidebar.userProfile">建橋者檔案</div>
-                    <a href="#" class="nav-item" onclick="showView('settings')">
+                    <a href="/platform/settings" class="nav-item" data-view="settings" onclick="return openPlatformView(event, 'settings')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <circle cx="12" cy="12" r="3"/>
                             <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
                         </svg>
                         <span data-i18n="sidebar.settings">橋樑設定</span>
                     </a>
-                    <a href="#" class="nav-item" onclick="showView('logout')">
+                    <a href="/platform" class="nav-item" data-view="logout" onclick="return openPlatformView(event, 'logout')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
                             <polyline points="16,17 21,12 16,7"/>
@@ -6838,7 +6838,7 @@
                                 </svg>
                             </div>
                         </div>
-                        <div class="stat-value" id="statBadgeCount">0</div>
+                        <div class="stat-value" id="statCertificateCount">0</div>
                         <div class="stat-label" data-i18n="dashboard.badgesEarned">獲得徽章</div>
                     </div>
                 </div>
@@ -6882,10 +6882,10 @@
                                     </svg>
                                     <span data-i18n="dashboard.recentAchievements">最近成就</span>
                                 </h2>
-                                <a href="#" class="card-action" data-i18n="common.viewAll" onclick="showView('badges'); MoodleUI.openBadges();">查看全部</a>
+                                <a href="/platform/certificates" class="card-action" data-i18n="common.viewAll" onclick="return openPlatformView(event, 'certificates')">查看全部</a>
                             </div>
                             <div class="card-body">
-                                <div class="badges-grid" id="recentBadgesList">
+                                <div class="badges-grid" id="recentCertificatesList">
                                     <div class="empty-state">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                                             <circle cx="12" cy="8" r="6"/>
@@ -7353,22 +7353,22 @@
                 </div>
             </div>
 
-            <!-- Student Classes View - 探橋者的橋隊 -->
+            <!-- Student Classes View - 已加入課程 -->
             <div class="dashboard" id="studentClassesView" hidden>
                 <!-- Student Classes Header -->
                 <div class="bridge-view-toolbar">
                     <div>
-                        <p class="bridge-view-description" data-i18n="classes.studentDescription">查看您已加入的橋隊和探橋進度</p>
+                        <p class="bridge-view-description" data-i18n="classes.studentDescription">查看您已加入的課程與學習進度</p>
                     </div>
                     <button onclick="openStudentJoinClassModal()" class="bridge-primary-btn">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                        <span data-i18n="classes.joinNew">加入新橋隊</span>
+                        <span data-i18n="classes.joinNew">加入課程</span>
                     </button>
                 </div>
 
                 <!-- Enrolled Classes List -->
                 <div id="studentClassesList">
-                    <!-- 橋隊卡片會由 JavaScript 動態載入 -->
+                    <!-- 課程卡片會由 JavaScript 動態載入 -->
                     <div class="bridge-state">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
                             <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
@@ -7385,18 +7385,18 @@
             <div id="studentJoinClassModal" class="bridge-modal-overlay" onclick="if(event.target === this) closeStudentJoinClassModal()">
                 <div class="bridge-modal-panel">
                     <div class="bridge-modal-header">
-                        <h3 class="bridge-modal-title" data-i18n="classes.joinTitle">加入橋隊</h3>
+                        <h3 class="bridge-modal-title" data-i18n="classes.joinTitle">加入課程</h3>
                         <button onclick="closeStudentJoinClassModal()" class="bridge-modal-close">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                         </button>
                     </div>
                     <div class="bridge-modal-body">
-                        <p class="bridge-modal-desc" data-i18n="classes.joinDescription">請輸入建橋者提供的橋樑通行碼來加入橋隊：</p>
+                        <p class="bridge-modal-desc" data-i18n="classes.joinDescription">請輸入老師提供的課程通行碼來加入課程：</p>
                         <input type="text" id="studentInviteCodeInput" data-i18n-placeholder="classes.inviteCodePlaceholder" placeholder="例如：ABC123" maxlength="6" class="bridge-join-code-input">
                     </div>
                     <div class="bridge-modal-footer">
                         <button onclick="closeStudentJoinClassModal()" class="bridge-secondary-btn" data-i18n="common.cancel">取消</button>
-                        <button onclick="submitStudentJoinClass()" class="bridge-primary-btn" data-i18n="classes.joinSubmit">加入橋隊</button>
+                        <button onclick="submitStudentJoinClass()" class="bridge-primary-btn" data-i18n="classes.joinSubmit">加入課程</button>
                     </div>
                 </div>
             </div>
@@ -7687,8 +7687,8 @@
                         <span class="library-result-count" id="libraryResultCount">找到 <strong>128</strong> 個建材</span>
                     </div>
                     <div class="library-toolbar-actions">
-                        <button id="libraryGridViewBtn" class="icon-btn is-active" title="卡片檢視" aria-pressed="true" onclick="setLibraryViewMode('grid')"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></button>
-                        <button id="libraryListViewBtn" class="icon-btn" title="列表檢視" aria-pressed="false" onclick="setLibraryViewMode('list')"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></button>
+                        <button id="libraryGridViewBtn" class="icon-btn is-active" title="卡片檢視" aria-label="卡片檢視" aria-pressed="true" onclick="setLibraryViewMode('grid')"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></button>
+                        <button id="libraryListViewBtn" class="icon-btn" title="列表檢視" aria-label="列表檢視" aria-pressed="false" onclick="setLibraryViewMode('list')"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></button>
                         <button class="btn-primary library-request-btn" onclick="openCustomMaterialRequestModal()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span data-i18n="library.requestCustom">申請客製建材</span></button>
                     </div>
                 </div>
@@ -7875,9 +7875,9 @@
                 <div id="learningPathsContent"></div>
             </div>
 
-            <!-- 徽章視圖 -->
-            <div class="dashboard" id="badgesView" hidden>
-                <div id="badgesContent"></div>
+            <!-- 證書視圖 -->
+            <div class="dashboard" id="certificatesView" hidden>
+                <div id="certificatesContent"></div>
             </div>
 
             <!-- SCORM 管理視圖 -->
@@ -11726,7 +11726,7 @@
     </style>
 
     <!-- Toast -->
-    <div id="toast" class="toast"></div>
+    <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
     <!-- Login View -->
     <div id="loginView" class="login-view" hidden>
@@ -12214,7 +12214,7 @@
             courseCategories: '/platform/course-categories',
             auditLogs: '/platform/audit-logs',
             learningProgress: '/platform/learning-progress',
-            badges: '/platform/badges',
+            certificates: '/platform/certificates',
             scormManager: '/platform/scorm',
             ltiManager: '/platform/lti',
             h5pManager: '/platform/h5p',
@@ -12231,13 +12231,27 @@
                 }
                 return map;
             }, {
-                'learning-paths': 'learningProgress'
+                'learning-paths': 'learningProgress',
+                'badges': 'certificates'
             })
         );
 
         function getDefaultPlatformPathForView(viewName) {
             const normalizedView = resolvePrimaryViewName(viewName);
             return PLATFORM_VIEW_PATHS[normalizedView] || null;
+        }
+
+        function buildPlatformViewPath(viewName, query = null) {
+            const basePath = getDefaultPlatformPathForView(viewName);
+            if (!basePath) return null;
+            const url = new URL(basePath, window.location.origin);
+            if (query && typeof query === 'object') {
+                Object.entries(query).forEach(([key, value]) => {
+                    if (value === undefined || value === null || value === '') return;
+                    url.searchParams.set(key, value);
+                });
+            }
+            return `${url.pathname}${url.search}`;
         }
 
         function updatePlatformHistory(path, { replace = false } = {}) {
@@ -12287,19 +12301,20 @@
                 return {
                     type: 'view',
                     viewName,
-                    path: PLATFORM_VIEW_PATHS[viewName]
+                    courseId: url.searchParams.get('courseId') || '',
+                    path: `${url.pathname}${url.search}`
                 };
             }
 
             switch (routeKey) {
                 case 'course':
-                    return { type: 'detail', entity: 'course', id: decodedId, path: url.pathname };
+                    return { type: 'detail', entity: 'course', id: decodedId, tab: url.searchParams.get('tab') || '', path: `${url.pathname}${url.search}` };
                 case 'assignment':
-                    return { type: 'detail', entity: 'assignment', id: decodedId, path: url.pathname };
+                    return { type: 'detail', entity: 'assignment', id: decodedId, path: `${url.pathname}${url.search}` };
                 case 'quiz':
-                    return { type: 'detail', entity: 'quiz', id: decodedId, path: url.pathname };
+                    return { type: 'detail', entity: 'quiz', id: decodedId, path: `${url.pathname}${url.search}` };
                 case 'forum':
-                    return { type: 'detail', entity: 'forum', id: decodedId, path: url.pathname };
+                    return { type: 'detail', entity: 'forum', id: decodedId, path: `${url.pathname}${url.search}` };
                 default:
                     return { type: 'view', viewName: 'dashboard', path: '/platform' };
             }
@@ -12330,7 +12345,7 @@
 
             if (route.type === 'detail' && route.id && typeof MoodleUI !== 'undefined') {
                 if (route.entity === 'course' && typeof MoodleUI.openCourse === 'function') {
-                    await MoodleUI.openCourse(route.id, { path: route.path, replaceHistory: replace });
+                    await MoodleUI.openCourse(route.id, { path: route.path, tab: route.tab, replaceHistory: replace });
                     return true;
                 }
                 if (route.entity === 'assignment' && typeof MoodleUI.openAssignment === 'function') {
@@ -12358,20 +12373,27 @@
             const viewLoaders = {
                 library: () => typeof App !== 'undefined' && typeof App.loadResources === 'function' ? App.loadResources() : null,
                 moodleCourses: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.loadCourses === 'function' ? MoodleUI.loadCourses() : null,
-                moodleAssignments: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.loadAssignments === 'function' ? MoodleUI.loadAssignments() : null,
-                moodleQuizzes: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.loadQuizzes === 'function' ? MoodleUI.loadQuizzes() : null,
-                moodleForums: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.loadForums === 'function' ? MoodleUI.loadForums() : null,
+                classes: () => route.courseId && typeof MoodleUI !== 'undefined' && typeof MoodleUI.openCourseParticipantsWorkspace === 'function'
+                    ? MoodleUI.openCourseParticipantsWorkspace(route.courseId)
+                    : (typeof App !== 'undefined' && typeof App.loadClasses === 'function' ? App.loadClasses() : null),
+                moodleAssignments: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.loadAssignments === 'function' ? MoodleUI.loadAssignments(route.courseId || undefined) : null,
+                moodleQuizzes: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.loadQuizzes === 'function' ? MoodleUI.loadQuizzes(route.courseId || undefined) : null,
+                moodleForums: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.loadForums === 'function' ? MoodleUI.loadForums(route.courseId || undefined) : null,
                 moodleCalendar: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.loadCalendar === 'function' ? MoodleUI.loadCalendar() : null,
                 moodleNotifications: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.loadNotifications === 'function' ? MoodleUI.loadNotifications() : null,
-                moodleGradebook: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.loadGradebook === 'function' ? MoodleUI.loadGradebook() : null,
+                moodleGradebook: () => typeof MoodleUI !== 'undefined'
+                    ? (route.courseId && typeof MoodleUI.loadGradebookForCourse === 'function'
+                        ? MoodleUI.loadGradebookForCourse(route.courseId)
+                        : (typeof MoodleUI.loadGradebook === 'function' ? MoodleUI.loadGradebook() : null))
+                    : null,
                 gradebookManagement: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.openGradebookManagement === 'function' ? MoodleUI.openGradebookManagement() : null,
-                teacherAnalytics: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.openTeacherAnalytics === 'function' ? MoodleUI.openTeacherAnalytics() : null,
+                teacherAnalytics: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.openTeacherAnalytics === 'function' ? MoodleUI.openTeacherAnalytics(route.courseId || undefined) : null,
                 questionBank: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.openQuestionBank === 'function' ? MoodleUI.openQuestionBank() : null,
                 rolesManagement: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.openRolesManagement === 'function' ? MoodleUI.openRolesManagement() : null,
                 courseCategories: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.openCourseCategories === 'function' ? MoodleUI.openCourseCategories() : null,
                 auditLogs: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.openAuditLogs === 'function' ? MoodleUI.openAuditLogs() : null,
                 learningProgress: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.openLearningProgress === 'function' ? MoodleUI.openLearningProgress() : null,
-                badges: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.openBadges === 'function' ? MoodleUI.openBadges() : null,
+                certificates: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.openCertificates === 'function' ? MoodleUI.openCertificates(route.courseId || undefined) : null,
                 scormManager: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.openScormManager === 'function' ? MoodleUI.openScormManager() : null,
                 ltiManager: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.openLtiManager === 'function' ? MoodleUI.openLtiManager() : null,
                 h5pManager: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.openH5pManager === 'function' ? MoodleUI.openH5pManager() : null,
@@ -12388,10 +12410,45 @@
 
         window.PlatformRouter = {
             getCurrentRoute: getPlatformRoute,
+            getPathForView: buildPlatformViewPath,
             syncPath: updatePlatformHistory,
             applyCurrentRoute: applyPlatformRoute,
             renderAuthScreen: () => renderAuthRouteFromLocation()
         };
+
+        function shouldHandlePlatformLink(event) {
+            if (!event) return true;
+            if (event.defaultPrevented) return false;
+            return !(event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey);
+        }
+
+        function openPlatformPath(event, path, options = {}) {
+            if (event && !shouldHandlePlatformLink(event)) return true;
+            event?.preventDefault?.();
+
+            if (path) {
+                updatePlatformHistory(path, { replace: Boolean(options.replaceHistory) });
+            }
+
+            if (typeof window.PlatformRouter?.applyCurrentRoute === 'function') {
+                window.PlatformRouter.applyCurrentRoute({ replace: Boolean(options.replaceHistory) }).catch((error) => {
+                    console.error('Open platform path error:', error);
+                });
+            }
+            return false;
+        }
+
+        function openPlatformView(event, viewName, options = {}) {
+            if (viewName === 'logout') {
+                if (event && !shouldHandlePlatformLink(event)) return true;
+                event?.preventDefault?.();
+                showView('logout');
+                return false;
+            }
+
+            const path = options.path || buildPlatformViewPath(viewName, options.query || null);
+            return openPlatformPath(event, path, options);
+        }
 
         window.addEventListener('popstate', () => {
             if (window.PlatformRouter?.applyCurrentRoute) {
@@ -12405,6 +12462,7 @@
             const user = getCurrentPlatformUser();
             if (viewName === 'discussions') return 'moodleForums';
             if (viewName === 'learningPaths') return 'learningProgress';
+            if (viewName === 'badges') return 'certificates';
             if (viewName === 'dashboard' && user && isTeachingRole(user) && !isStudentRole(user)) {
                 return 'teacherDashboard';
             }
@@ -12464,7 +12522,8 @@
                 'auditLogs': 'auditLogsView',
                 'learningProgress': 'learningPathsView',
                 'learningPaths': 'learningPathsView',
-                'badges': 'badgesView',
+                'certificates': 'certificatesView',
+                'badges': 'certificatesView',
                 'scormManager': 'scormManagerView',
                 'ltiManager': 'ltiManagerView',
                 'h5pManager': 'h5pManagerView',
@@ -12495,6 +12554,7 @@
 
             // 動態載入視圖資料
             const viewLoaders = {
+                'dashboard': 'loadDashboardData',
                 'courses': 'loadMyCoursesView',
                 'licenses': 'loadLicensesView',
                 'videos': 'loadVideosView',
@@ -12507,6 +12567,20 @@
                 App[viewLoaders[viewName]]();
             }
 
+            // MoodleUI 視圖自動載入
+            const moodleViewLoaders = {
+                'moodleCourses': 'loadCourses',
+                'moodleAssignments': 'loadAssignments',
+                'moodleQuizzes': 'loadQuizzes',
+                'moodleForums': 'loadForums',
+                'moodleGradebook': 'loadGradebook',
+                'moodleCalendar': 'loadCalendar',
+                'moodleNotifications': 'loadNotifications'
+            };
+            if (moodleViewLoaders[viewName] && typeof MoodleUI !== 'undefined' && typeof MoodleUI[moodleViewLoaders[viewName]] === 'function') {
+                MoodleUI[moodleViewLoaders[viewName]]();
+            }
+
             syncPlatformRoute(viewName, options);
 
             return { ok: true, viewName, viewId, pageTitleView };
@@ -12516,44 +12590,13 @@
         function updateNavActiveState(viewName) {
             const navViewName = viewName === 'teacherDashboard' ? 'dashboard' : viewName;
 
-            // 移除所有 nav-item 的 active 狀態
             document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-
-            // 找到對應的 nav-item 並設為 active
-            // 通過檢查 onclick 屬性中是否包含 viewName
-            document.querySelectorAll('.nav-item').forEach(item => {
-                const onclick = item.getAttribute('onclick') || '';
-                // 檢查 onclick 是否包含 showView('viewName') 或 navigateTo(this, 'viewName')
-                if (onclick.includes(`showView('${navViewName}')`) ||
-                    onclick.includes(`navigateTo(this, '${navViewName}')`)) {
-                    item.classList.add('active');
-                }
-            });
-
-            // 特殊處理：dashboard 對應第一個 nav-item (我的學習)
-            if (navViewName === 'dashboard') {
-                const dashboardNav = document.querySelector('.nav-item.active') ||
-                                     document.querySelector('.sidebar-nav .nav-item');
-                if (dashboardNav && !document.querySelector('.nav-item.active')) {
-                    // 找到「我的學習」按鈕
-                    document.querySelectorAll('.nav-item').forEach(item => {
-                        if (item.textContent.includes('我的學習')) {
-                            item.classList.add('active');
-                        }
-                    });
-                }
-            }
+            document.querySelectorAll(`.nav-item[data-view="${navViewName}"]`).forEach(item => item.classList.add('active'));
         }
 
         // 導航到指定頁面並更新 active 狀態
         function navigateTo(element, viewName) {
-            if (typeof event !== 'undefined' && event?.preventDefault) event.preventDefault();
-            // 移除所有 nav-item 的 active 狀態
-            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-            // 設定當前項目為 active
-            element.classList.add('active');
-            // 顯示對應視圖
-            showView(viewName);
+            return openPlatformView(typeof event !== 'undefined' ? event : null, viewName);
         }
 
         // Modal functions
@@ -13088,7 +13131,7 @@
         // Toast
         function showToast(message) {
             const toast = document.getElementById('toast');
-            toast.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg> ${message}`;
+            toast.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="20,6 9,17 4,12"/></svg> ${message}`;
             toast.classList.add('active');
             setTimeout(() => toast.classList.remove('active'), 3000);
         }
@@ -13758,13 +13801,13 @@
                             </div>
                         </div>
                         <div class="video-player-header-actions">
-                            <button type="button" class="video-player-icon-btn" onclick="toggleVideoFullscreen()" title="全螢幕">
+                            <button type="button" class="video-player-icon-btn" onclick="toggleVideoFullscreen()" title="全螢幕" aria-label="全螢幕">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/>
                                     <line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>
                                 </svg>
                             </button>
-                            <button type="button" class="video-player-icon-btn" onclick="closeVideoPlayer()" title="關閉播放器">
+                            <button type="button" class="video-player-icon-btn" onclick="closeVideoPlayer()" title="關閉播放器" aria-label="關閉播放器">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                             </button>
                         </div>
@@ -14989,11 +15032,11 @@
             const counts = getClassDetailCounts(cls);
             const assignments = Array.isArray(cls?.assignments) ? cls.assignments : [];
             const members = Array.isArray(cls?.members) ? cls.members : [];
-            const title = options.titleOverride || cls?.name || '未命名橋隊';
-            const kicker = options.kickerOverride || (isTeacher ? (teacherMembersOnly ? 'Student roster' : 'Teaching bridge') : 'Learning bridge');
+            const title = options.titleOverride || cls?.name || '未命名課程';
+            const kicker = options.kickerOverride || (isTeacher ? (teacherMembersOnly ? 'Student roster' : 'Course workspace') : 'Enrolled course');
             const subtitle = options.subtitleOverride
                 ? escapeHtml(options.subtitleOverride)
-                : `${escapeHtml(cls?.subject || '一般課程')} · ${escapeHtml(cls?.teacherName || '建橋者')}`;
+                : `${escapeHtml(cls?.subject || '一般課程')} · ${escapeHtml(cls?.teacherName || '授課教師')}`;
             const extraPanelsHtml = typeof options.extraPanelsHtml === 'string' ? options.extraPanelsHtml : '';
 
             const statCards = teacherMembersOnly ? [
@@ -15007,28 +15050,28 @@
             ] : [
                 {
                     kicker: 'Members',
-                    label: '橋隊成員',
+                    label: '同課學生',
                     value: counts.members,
                     tone: 'tone-olive',
                     icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>'
                 },
                 {
-                    kicker: 'Library',
-                    label: '建材 / 影片',
+                    kicker: 'Materials',
+                    label: '教材內容',
                     value: counts.materials,
                     tone: 'tone-terracotta',
                     icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>'
                 },
                 {
                     kicker: 'Assessments',
-                    label: '測驗 / 練習',
+                    label: '作業 / 測驗',
                     value: counts.assessments,
                     tone: 'tone-blue',
                     icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'
                 },
                 {
-                    kicker: 'Milestones',
-                    label: '考試',
+                    kicker: 'Activity',
+                    label: '學習節點',
                     value: counts.exams,
                     tone: 'tone-success',
                     icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>'
@@ -15043,7 +15086,7 @@
                             <span class="bridge-detail-chip-label">通行碼</span>
                             <strong class="bridge-detail-chip-value">${escapeHtml(cls?.inviteCode || '------')}</strong>
                         </div>
-                        <button type="button" class="bridge-detail-icon-btn is-subtle" onclick="copyInviteCode('${cls.inviteCode}')" aria-label="複製橋隊通行碼">
+                        <button type="button" class="bridge-detail-icon-btn is-subtle" onclick="copyInviteCode('${cls.inviteCode}')" aria-label="複製課程邀請碼">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
                         </button>
                     </div>
@@ -15063,8 +15106,8 @@
                         <div class="card-header">
                             <div class="bridge-detail-panel-copy">
                                 <span class="bridge-detail-panel-kicker">${escapeHtml(options.memberPanelKicker || 'Learners')}</span>
-                                <h3 class="card-title">${escapeHtml(options.memberSectionTitle || (isTeacher ? '學生名單' : '橋隊成員'))}</h3>
-                                <p class="bridge-detail-panel-note">${escapeHtml(options.memberSectionNote || (isTeacher ? '查看這堂課的學生名單與加入時間。' : '查看目前加入此橋隊的探橋者名單。'))}</p>
+                                <h3 class="card-title">${escapeHtml(options.memberSectionTitle || (isTeacher ? '學生名單' : '同課學生'))}</h3>
+                                <p class="bridge-detail-panel-note">${escapeHtml(options.memberSectionNote || (isTeacher ? '查看這堂課的學生名單與加入時間。' : '查看目前加入這堂課的學生名單與加入時間。'))}</p>
                             </div>
                             <span class="bridge-detail-panel-badge">${counts.members} ${isTeacher ? '位學生' : '位成員'}</span>
                         </div>
@@ -15083,9 +15126,9 @@
                 ${membersPanel}
                 ${extraPanelsHtml}
             ` : `
-                <div class="bridge-detail-tabs" role="tablist" aria-label="橋隊詳情分頁">
-                    <button type="button" id="detail-tab-assignments" class="detail-tab active" role="tab" aria-selected="true" aria-controls="assignmentsPanel" onclick="switchDetailTab(this, 'assignments')">作業與建材</button>
-                    <button type="button" id="detail-tab-members" class="detail-tab" role="tab" aria-selected="false" aria-controls="membersPanel" onclick="switchDetailTab(this, 'members')">橋隊成員</button>
+                <div class="bridge-detail-tabs" role="tablist" aria-label="課程詳情分頁">
+                    <button type="button" id="detail-tab-assignments" class="detail-tab active" role="tab" aria-selected="true" aria-controls="assignmentsPanel" onclick="switchDetailTab(this, 'assignments')">課程內容</button>
+                    <button type="button" id="detail-tab-members" class="detail-tab" role="tab" aria-selected="false" aria-controls="membersPanel" onclick="switchDetailTab(this, 'members')">學生名單</button>
                 </div>
 
                 <section id="assignmentsPanel" class="bridge-detail-panel" role="tabpanel" aria-labelledby="detail-tab-assignments">
@@ -15093,8 +15136,8 @@
                         <div class="card-header">
                             <div class="bridge-detail-panel-copy">
                                 <span class="bridge-detail-panel-kicker">Assignments</span>
-                                <h3 class="card-title">作業與建材</h3>
-                                <p class="bridge-detail-panel-note">整理這個橋隊的教材、測驗與考試內容，讓探橋者知道接下來該完成什麼。</p>
+                                <h3 class="card-title">課程內容</h3>
+                                <p class="bridge-detail-panel-note">整理這堂課的教材、作業與測驗內容，讓學生清楚知道接下來要完成什麼。</p>
                             </div>
                             <span class="bridge-detail-panel-badge">${assignments.length} 項內容</span>
                         </div>
@@ -15109,8 +15152,8 @@
                         <div class="card-header">
                             <div class="bridge-detail-panel-copy">
                                 <span class="bridge-detail-panel-kicker">Learners</span>
-                                <h3 class="card-title">橋隊成員</h3>
-                                <p class="bridge-detail-panel-note">查看目前加入此橋隊的探橋者，並維護橋隊成員名單。</p>
+                                <h3 class="card-title">學生名單</h3>
+                                <p class="bridge-detail-panel-note">查看目前加入這堂課的學生，並維護課程名單。</p>
                             </div>
                             <span class="bridge-detail-panel-badge">${counts.members} 位成員</span>
                         </div>
@@ -15127,8 +15170,8 @@
                         <div class="card-header">
                             <div class="bridge-detail-panel-copy">
                                 <span class="bridge-detail-panel-kicker">Assignments</span>
-                                <h3 class="card-title">橋隊作業</h3>
-                                <p class="bridge-detail-panel-note">依照順序完成建橋者安排的教材、練習與測驗內容。</p>
+                                <h3 class="card-title">課程內容</h3>
+                                <p class="bridge-detail-panel-note">依照順序完成老師安排的教材、作業與測驗內容。</p>
                             </div>
                             <span class="bridge-detail-panel-badge">${assignments.length} 項待完成內容</span>
                         </div>
@@ -15143,7 +15186,7 @@
                 <div class="bridge-detail-shell">
                     <div class="bridge-detail-header">
                         <div class="bridge-detail-heading">
-                            <button type="button" class="bridge-detail-icon-btn" onclick="showView('${backView}')" aria-label="返回橋隊列表">
+                            <button type="button" class="bridge-detail-icon-btn" onclick="showView('${backView}')" aria-label="返回列表">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
                             </button>
                             <div class="bridge-detail-title-stack">
@@ -15325,8 +15368,8 @@
         // 渲染成員列表
         function renderMembersList(members, classId, options = {}) {
             const canManage = options.canManage !== false && Boolean(classId);
-            const emptyTitle = options.emptyTitle || '尚無探橋者加入';
-            const emptyNote = options.emptyNote || '分享通行碼讓探橋者加入橋隊';
+            const emptyTitle = options.emptyTitle || '尚未有學生加入';
+            const emptyNote = options.emptyNote || '分享課程邀請碼讓學生加入這堂課';
             if (members.length === 0) {
                 return `
                     <div class="empty-state">
@@ -15356,8 +15399,8 @@
                                     <tr>
                                         <td>
                                             <div class="bridge-member-info">
-                                                <span class="bridge-member-avatar">${escapeHtml((member.userName || '探橋者').trim().charAt(0) || '探')}</span>
-                                                <span class="bridge-member-name">${escapeHtml(member.userName || '探橋者')}</span>
+                                                <span class="bridge-member-avatar">${escapeHtml((member.userName || '學生').trim().charAt(0) || '學')}</span>
+                                                <span class="bridge-member-name">${escapeHtml(member.userName || '學生')}</span>
                                             </div>
                                         </td>
                                         <td class="bridge-member-meta">${escapeHtml(member.userEmail || '-')}</td>
@@ -15561,21 +15604,21 @@
             }
         }
 
-        // ===== 探橋者橋隊功能 =====
+        // ===== 學生課程邀請功能 =====
 
-        // 開啟探橋者加入橋隊 Modal
+        // 開啟學生加入課程 Modal
         function openStudentJoinClassModal() {
             document.getElementById('studentJoinClassModal').classList.add('open');
             document.getElementById('studentInviteCodeInput').value = '';
             document.getElementById('studentInviteCodeInput').focus();
         }
 
-        // 關閉探橋者加入橋隊 Modal
+        // 關閉學生加入課程 Modal
         function closeStudentJoinClassModal() {
             document.getElementById('studentJoinClassModal').classList.remove('open');
         }
 
-        // 提交加入橋隊
+        // 提交加入課程
         async function submitStudentJoinClass() {
             const code = document.getElementById('studentInviteCodeInput').value.trim().toUpperCase();
             if (!code || code.length < 6) {
@@ -15586,19 +15629,19 @@
             try {
                 const result = await API.classes.joinByCode(code);
                 if (result.success) {
-                    showToast('成功加入橋隊：' + result.data.className);
+                    showToast('成功加入課程：' + result.data.className);
                     closeStudentJoinClassModal();
                     loadStudentClasses();
                 } else {
-                    showToast(result.message || '加入橋隊失敗');
+                    showToast(result.message || '加入課程失敗');
                 }
             } catch (error) {
                 console.error('Join class error:', error);
-                showToast('加入橋隊失敗');
+                showToast('加入課程失敗');
             }
         }
 
-        // 載入探橋者已加入的橋隊
+        // 載入學生已加入的課程
         async function loadStudentClasses() {
             const container = document.getElementById('studentClassesList');
             if (!container) return;
@@ -15608,7 +15651,7 @@
                 if (!result.success) {
                     container.innerHTML = `
                         <div class="bridge-state-error">
-                            <p>載入橋隊失敗，請重試</p>
+                            <p>載入課程失敗，請重試</p>
                         </div>
                     `;
                     return;
@@ -15625,8 +15668,8 @@
                                 <path d="M23 21v-2a4 4 0 00-3-3.87"/>
                                 <path d="M16 3.13a4 4 0 010 7.75"/>
                             </svg>
-                            <p class="bridge-state-title">尚未加入任何橋隊</p>
-                            <p class="bridge-state-desc">請點擊上方「加入新橋隊」輸入建橋者提供的通行碼</p>
+                            <p class="bridge-state-title">尚未加入任何課程</p>
+                            <p class="bridge-state-desc">請點擊上方「加入課程」並輸入老師提供的課程通行碼</p>
                         </div>
                     `;
                     return;
@@ -15642,13 +15685,13 @@
                                         <span class="bridge-student-class-joined-pill">已加入</span>
                                     </div>
                                     <div class="bridge-student-class-cover-copy">
-                                        <p class="bridge-student-class-kicker">Learning team</p>
-                                        <h3 class="bridge-student-class-title">${escapeHtml(cls.name || '未命名橋隊')}</h3>
-                                        <p class="bridge-student-class-cover-note">${escapeHtml(cls.teacherName || '建橋者')} · ${cls.joinedAt ? escapeHtml(formatBridgeDate(cls.joinedAt)) : '尚未記錄加入時間'}</p>
+                                        <p class="bridge-student-class-kicker">Enrolled course</p>
+                                        <h3 class="bridge-student-class-title">${escapeHtml(cls.name || '未命名課程')}</h3>
+                                        <p class="bridge-student-class-cover-note">${escapeHtml(cls.teacherName || '授課教師')} · ${cls.joinedAt ? escapeHtml(formatBridgeDate(cls.joinedAt)) : '尚未記錄加入時間'}</p>
                                     </div>
                                 </div>
                                 <div class="bridge-student-class-body">
-                                    <p class="bridge-student-class-desc">${escapeHtml(cls.description || `${cls.name || '這個橋隊'}正在等你開始探索與完成學習任務。`)}</p>
+                                    <p class="bridge-student-class-desc">${escapeHtml(cls.description || `${cls.name || '這門課程'}已開放學習內容與評量，點擊即可開始。`)}</p>
                                     <div class="bridge-student-class-meta">
                                         <div class="bridge-student-class-stats">
                                             <span class="bridge-student-class-stat">
@@ -15658,18 +15701,20 @@
                                                     <path d="M23 21v-2a4 4 0 00-3-3.87"/>
                                                     <path d="M16 3.13a4 4 0 010 7.75"/>
                                                 </svg>
-                                                ${(Number(cls.memberCount) || (Array.isArray(cls.members) ? cls.members.length : 0) || 0)} 位探索者
+                                                ${(Number(cls.memberCount) || (Array.isArray(cls.members) ? cls.members.length : 0) || 0)} 位學生
                                             </span>
                                             <span class="bridge-student-class-stat">
                                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-                                                    <polyline points="14,2 14,8 20,8"/>
+                                                    <path d="M8 7h8"/>
+                                                    <path d="M8 12h8"/>
+                                                    <path d="M8 17h5"/>
+                                                    <rect x="3" y="4" width="18" height="16" rx="2"/>
                                                 </svg>
-                                                ${(Array.isArray(cls.assignments) ? cls.assignments.length : 0)} 項任務
+                                                ${cls.joinedAt ? `加入於 ${escapeHtml(formatBridgeDate(cls.joinedAt))}` : '已完成報名'}
                                             </span>
                                         </div>
                                         <div class="bridge-class-meta-right">
-                                            <span class="bridge-student-class-teacher">${escapeHtml(cls.teacherName || '建橋者')}</span>
+                                            <span class="bridge-student-class-teacher">${escapeHtml(cls.teacherName || '授課教師')}</span>
                                             <span class="bridge-student-class-link">查看詳情 →</span>
                                         </div>
                                     </div>
@@ -15683,18 +15728,18 @@
                 console.error('Load student classes error:', error);
                 container.innerHTML = `
                     <div class="bridge-state-error">
-                        <p>載入橋隊失敗，請重試</p>
+                        <p>載入課程失敗，請重試</p>
                     </div>
                 `;
             }
         }
 
-        // 開啟探橋者橋隊詳情（顯示作業列表）
+        // 開啟學生課程摘要（若已綁課則直接進課程）
         async function openStudentClassDetail(classId) {
             try {
                 const result = await API.classes.get(classId);
                 if (!result.success) {
-                    showToast('載入橋隊詳情失敗');
+                    showToast('載入課程詳情失敗');
                     return;
                 }
 
@@ -15715,7 +15760,7 @@
 
             } catch (error) {
                 console.error('Load student class detail error:', error);
-                showToast('載入橋隊詳情失敗');
+                showToast('載入課程詳情失敗');
             }
         }
 

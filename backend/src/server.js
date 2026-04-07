@@ -111,6 +111,29 @@ app.use('/api/auth/', authLimiter);
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// XSS sanitization middleware - strip script tags and event handlers from JSON request bodies
+app.use((req, res, next) => {
+  if (req.body && req.is('application/json')) {
+    const sanitize = (obj) => {
+      if (typeof obj === 'string') {
+        return obj
+          .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+          .replace(/\bon\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '');
+      }
+      if (Array.isArray(obj)) return obj.map(sanitize);
+      if (obj && typeof obj === 'object') {
+        for (const key of Object.keys(obj)) {
+          obj[key] = sanitize(obj[key]);
+        }
+      }
+      return obj;
+    };
+    req.body = sanitize(req.body);
+  }
+  next();
+});
+
 app.use(languageMiddleware);
 app.use(stripDbKeysMiddleware);
 

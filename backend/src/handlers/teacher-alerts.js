@@ -129,33 +129,20 @@ function getSeverityOrder(severity) {
 
 async function getTeacherCourses(user) {
   if (user?.isAdmin) {
-    const courses = await db.scan({
-      filter: {
-        expression: 'entityType = :type',
-        values: {
-          ':type': 'COURSE'
-        }
-      },
+    return db.getItemsByEntityType('COURSE', {
       projection: TEACHER_COURSE_PROJECTION
     });
-    return courses.filter(course => canManageCourse(course, user));
   }
 
   const linkedCourseIds = await listManagedCourseIds(user?.userId);
   if (linkedCourseIds.length > 0) {
-    const linkedCourses = await Promise.all(
-      linkedCourseIds.map(courseId => db.getItem(`COURSE#${courseId}`, 'META'))
-    );
+    const linkedCourses = await db.getCoursesByIds(linkedCourseIds, {
+      projection: TEACHER_COURSE_PROJECTION
+    });
     return linkedCourses.filter(course => course && canManageCourse(course, user));
   }
 
-  const courses = await db.scan({
-    filter: {
-      expression: 'entityType = :type',
-      values: {
-        ':type': 'COURSE'
-      }
-    },
+  const courses = await db.getItemsByEntityType('COURSE', {
     projection: TEACHER_COURSE_PROJECTION
   });
 

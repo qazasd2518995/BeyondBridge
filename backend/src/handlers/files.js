@@ -29,6 +29,29 @@ const s3Client = new S3Client({
   region: process.env.AWS_REGION || 'ap-southeast-2'
 });
 
+// 允許的檔案 MIME 類型
+const ALLOWED_MIME_TYPES = new Set([
+  'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
+  'application/pdf',
+  'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'video/mp4', 'video/webm', 'video/quicktime',
+  'audio/mpeg', 'audio/wav', 'audio/ogg',
+  'application/zip', 'application/x-rar-compressed',
+  'text/plain', 'text/html', 'text/csv', 'application/json',
+  'application/octet-stream'
+]);
+
+// 危險的檔案副檔名
+const BLOCKED_EXTENSIONS = new Set([
+  '.exe', '.bat', '.cmd', '.com', '.msi', '.scr', '.pif',
+  '.sh', '.bash', '.csh', '.ksh',
+  '.vbs', '.vbe', '.js', '.jse', '.wsf', '.wsh', '.ps1',
+  '.dll', '.sys', '.drv',
+  '.jsp', '.asp', '.aspx', '.php', '.cgi', '.py', '.rb', '.pl'
+]);
+
 // 本地備援目錄
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, '../../uploads');
 
@@ -97,6 +120,24 @@ router.post('/upload', authMiddleware, async (req, res) => {
       });
     }
 
+    // 驗證檔案類型
+    const ext = path.extname(filename).toLowerCase();
+    if (BLOCKED_EXTENSIONS.has(ext)) {
+      return res.status(400).json({
+        success: false,
+        error: 'BLOCKED_FILE_TYPE',
+        message: '不允許上傳此類型的檔案'
+      });
+    }
+
+    if (contentType && !ALLOWED_MIME_TYPES.has(contentType)) {
+      return res.status(400).json({
+        success: false,
+        error: 'INVALID_MIME_TYPE',
+        message: '不支援的檔案類型'
+      });
+    }
+
     // 檢查檔案大小（限制 50MB）
     const maxSize = 50 * 1024 * 1024;
     const buffer = Buffer.from(content, 'base64');
@@ -110,7 +151,6 @@ router.post('/upload', authMiddleware, async (req, res) => {
 
     // 生成唯一檔案 ID 和存儲路徑
     const fileId = db.generateId('file');
-    const ext = path.extname(filename);
     const hash = crypto.createHash('md5').update(buffer).digest('hex');
     const storageName = `${fileId}${ext}`;
     const storagePath = path.join(UPLOAD_DIR, storageName);
@@ -197,6 +237,24 @@ router.post('/request-upload-url', authMiddleware, async (req, res) => {
       });
     }
 
+    // 驗證檔案類型
+    const ext = path.extname(filename).toLowerCase();
+    if (BLOCKED_EXTENSIONS.has(ext)) {
+      return res.status(400).json({
+        success: false,
+        error: 'BLOCKED_FILE_TYPE',
+        message: '不允許上傳此類型的檔案'
+      });
+    }
+
+    if (!ALLOWED_MIME_TYPES.has(contentType)) {
+      return res.status(400).json({
+        success: false,
+        error: 'INVALID_MIME_TYPE',
+        message: '不支援的檔案類型'
+      });
+    }
+
     // 檢查檔案大小（限制 100MB）
     const maxSize = 100 * 1024 * 1024;
     if (size > maxSize) {
@@ -208,7 +266,6 @@ router.post('/request-upload-url', authMiddleware, async (req, res) => {
     }
 
     const fileId = db.generateId('file');
-    const ext = path.extname(filename) || '';
     const s3Key = `files/${userId}/${fileId}${ext}`;
     const expiresIn = 3600;
 
