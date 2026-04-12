@@ -486,6 +486,12 @@ router.get('/:id/participation-report', authMiddleware, async (req, res) => {
         count + (getStudentGrade(student, column.itemId)?.progressPercentage >= 100 ? 1 : 0)
       ), 0);
 
+      // 活動級別詳細數據（包含外部平台停留時間）
+      const activityTimeMap = progress?.activityTimeMap || {};
+      const activityAccessMap = progress?.activityAccessMap || {};
+      const completedActivities = progress?.completedActivities || [];
+      const totalTimeSpent = progress?.totalTimeSpent || 0;
+
       return {
         studentId: student.userId,
         studentName: student.name || student.email || 'Unknown',
@@ -494,6 +500,13 @@ router.get('/:id/participation-report', authMiddleware, async (req, res) => {
         lastAccessed: progress?.lastAccessedAt || student.lastAccess || null,
         progressPercentage: progress?.progressPercentage || 0,
         status: progress?.status || 'not_started',
+        totalTimeSpent,
+        completedActivitiesCount: completedActivities.length,
+        activityDetails: {
+          timePerActivity: activityTimeMap,
+          lastAccessPerActivity: activityAccessMap,
+          completedActivities
+        },
         activities: {
           assignmentSubmissions,
           totalAssignments: assignmentColumns.length,

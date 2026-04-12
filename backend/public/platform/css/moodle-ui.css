@@ -1777,6 +1777,48 @@
   background: var(--white);
 }
 
+/* 活動追蹤狀態列 */
+.activity-tracking-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 1rem;
+  background: linear-gradient(90deg, #1a3a2a, #2d4a3a);
+  color: #a8d8b8;
+  font-size: 0.8rem;
+  border-radius: 20px 20px 0 0;
+  border-bottom: 1px solid rgba(168, 216, 184, 0.2);
+}
+
+.tracking-dot {
+  width: 8px;
+  height: 8px;
+  background: #4ade80;
+  border-radius: 50%;
+  animation: tracking-pulse 2s ease-in-out infinite;
+}
+
+@keyframes tracking-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.tracking-text {
+  flex: 1;
+}
+
+.tracking-timer {
+  font-family: 'SF Mono', 'Menlo', monospace;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #fff;
+  letter-spacing: 0.05em;
+}
+
+.activity-tracking-bar + .activity-viewer-embed {
+  border-radius: 0 0 20px 20px;
+}
+
 .activity-viewer-frame-pdf {
   background: linear-gradient(180deg, rgba(226, 232, 240, 0.94), rgba(241, 245, 249, 0.98));
 }

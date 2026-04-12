@@ -149,6 +149,8 @@ const MoodleUI = {
   },
 
   contentActivityAutoCompleteMs: 15000,
+  externalPlatformAutoCompleteMs: 300000, // 外部平台活動 5 分鐘後才自動標記完成
+  progressHeartbeatIntervalMs: 60000, // 每 60 秒回報一次停留時間
 
   getLearningProgressUiCopy() {
     const isEnglish = I18n.getLocale() === 'en';
@@ -237,6 +239,8 @@ const MoodleUI = {
     let completionTimer = null;
     let completionRecorded = false;
     let cleanupRan = false;
+    let heartbeatTimer = null;
+    let lastHeartbeatAt = startedAt;
 
     const recordAccess = async (payload = {}) => {
       try {
@@ -277,11 +281,25 @@ const MoodleUI = {
       }, autoCompleteAfterMs);
     };
 
+    // 心跳：定時回報停留時間，確保老師能看到即時數據
+    const startHeartbeat = () => {
+      if (heartbeatTimer) return;
+      const interval = this.progressHeartbeatIntervalMs || 60000;
+      heartbeatTimer = window.setInterval(() => {
+        const elapsed = Math.floor((Date.now() - lastHeartbeatAt) / 1000);
+        if (elapsed > 0) {
+          lastHeartbeatAt = Date.now();
+          recordAccess({ timeSpent: elapsed });
+        }
+      }, interval);
+    };
+
     recordAccess();
 
     return {
       markReady: () => {
         readyForCompletion = true;
+        startHeartbeat();
         scheduleCompletion();
       },
       markCompletedNow: () => recordCompletion(),
@@ -292,13 +310,16 @@ const MoodleUI = {
           if (completionTimer) {
             clearTimeout(completionTimer);
           }
+          if (heartbeatTimer) {
+            clearInterval(heartbeatTimer);
+          }
 
-          const timeSpent = Math.floor((Date.now() - startedAt) / 1000);
+          const timeSpent = Math.floor((Date.now() - lastHeartbeatAt) / 1000);
           if (timeSpent > 0) {
             await recordAccess({ timeSpent });
           }
 
-          if (readyForCompletion && !completionRecorded && timeSpent * 1000 >= autoCompleteAfterMs) {
+          if (readyForCompletion && !completionRecorded && (Date.now() - startedAt) >= autoCompleteAfterMs) {
             await recordCompletion();
           }
         });
@@ -4334,6 +4355,7 @@ const MoodleUI = {
    * 網頁全螢幕 iframe 瀏覽器（不跳出平台）
    */
   openWebViewer(title, url, activity = null, courseId = null) {
+    const isEnglish = I18n.getLocale() === 'en';
     const viewer = this.openActivityViewerShell({
       overlayId: 'web-viewer-overlay',
       title,
@@ -4343,13 +4365,39 @@ const MoodleUI = {
 
     viewer.body.innerHTML = `
       <div class="activity-viewer-frame">
+        <div class="activity-tracking-bar">
+          <span class="tracking-dot"></span>
+          <span class="tracking-text">${isEnglish ? 'Tracking learning time...' : '學習時間追蹤中...'}</span>
+          <span class="tracking-timer" id="web-viewer-timer">00:00</span>
+        </div>
         <iframe src="${this.escapeText(url)}"
                 class="activity-viewer-embed"
                 allow="autoplay; encrypted-media; fullscreen"></iframe>
       </div>
     `;
-    const session = this.createContentProgressSession(activity, courseId);
+
+    // 計時器顯示
+    const timerEl = viewer.body.querySelector('#web-viewer-timer');
+    const timerStart = Date.now();
+    const timerInterval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - timerStart) / 1000);
+      const mins = String(Math.floor(elapsed / 60)).padStart(2, '0');
+      const secs = String(elapsed % 60).padStart(2, '0');
+      if (timerEl) timerEl.textContent = `${mins}:${secs}`;
+    }, 1000);
+
+    // 外部平台用更長的自動完成時間
+    const session = this.createContentProgressSession(activity, courseId, {
+      autoCompleteAfterMs: this.externalPlatformAutoCompleteMs || 300000
+    });
     session?.markReady();
+
+    // 關閉時清除計時器
+    const origCleanup = viewer.overlay._activityViewerCleanup;
+    viewer.overlay._activityViewerCleanup = async () => {
+      clearInterval(timerInterval);
+      if (origCleanup) await origCleanup();
+    };
     session?.attachToCleanup(viewer.overlay, '_activityViewerCleanup');
   },
 
