@@ -1,0 +1,1466 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BeyondBridge 教師使用手冊 — 金門語課程</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  /* ── Reset & Base ───────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --green-deep: #1a4d3e;
+    --green-mid: #2d6a4f;
+    --green-accent: #2ecc71;
+    --navy: #1b2a4a;
+    --cream: #faf8f4;
+    --slate-light: #f1f5f9;
+    --slate-border: #cbd5e1;
+    --font-en: 'Cormorant Garamond', 'Georgia', serif;
+    --font-zh: 'Noto Sans TC', 'Microsoft JhengHei', sans-serif;
+  }
+
+  html { font-size: 10.5pt; }
+
+  body {
+    font-family: var(--font-zh);
+    color: var(--navy);
+    background: #e8e6e2;
+    line-height: 1.7;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* ── A4 Page Shell ──────────────────────────────────── */
+  @page { size: A4; margin: 0; }
+
+  .page {
+    width: 210mm;
+    height: 297mm;
+    padding: 20mm 22mm;
+    position: relative;
+    overflow: hidden;
+    page-break-after: always;
+    box-sizing: border-box;
+    background: var(--cream);
+    margin: 0 auto 4px;
+  }
+  .page:last-child { page-break-after: avoid; }
+
+  /* subtle paper texture */
+  .page::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 20% 50%, rgba(26,77,62,0.012) 0%, transparent 70%),
+      radial-gradient(ellipse at 80% 20%, rgba(45,106,79,0.008) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .page > * { position: relative; z-index: 1; }
+
+  /* ── Page Header (pages 2-12) ───────────────────────── */
+  .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e2e0dc;
+    margin-bottom: 18px;
+    font-size: 8pt;
+    color: #8a8a8a;
+    letter-spacing: 0.5px;
+  }
+  .page-header .header-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .page-header .page-num {
+    font-family: var(--font-en);
+    font-weight: 500;
+    font-size: 9pt;
+    color: var(--green-mid);
+  }
+
+  /* ── Chapter Styling ────────────────────────────────── */
+  .chapter-num-bg {
+    position: absolute;
+    top: 46px;
+    right: 22mm;
+    font-family: var(--font-en);
+    font-size: 120pt;
+    font-weight: 300;
+    color: var(--green-deep);
+    opacity: 0.04;
+    line-height: 1;
+    z-index: 0;
+    user-select: none;
+  }
+
+  .chapter-label {
+    font-family: var(--font-en);
+    font-size: 9pt;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    color: var(--green-accent);
+    margin-bottom: 4px;
+  }
+
+  .chapter-title-en {
+    font-family: var(--font-en);
+    font-size: 15pt;
+    font-weight: 600;
+    color: var(--green-deep);
+    margin-bottom: 2px;
+  }
+
+  .chapter-title-zh {
+    font-family: var(--font-zh);
+    font-size: 22pt;
+    font-weight: 700;
+    color: var(--navy);
+    margin-bottom: 6px;
+  }
+
+  .chapter-divider {
+    width: 48px;
+    height: 2px;
+    background: var(--green-accent);
+    margin-bottom: 18px;
+  }
+
+  /* ── Typography ─────────────────────────────────────── */
+  h3 {
+    font-family: var(--font-zh);
+    font-size: 12pt;
+    font-weight: 700;
+    color: var(--green-deep);
+    margin: 14px 0 6px;
+  }
+
+  p, li {
+    font-size: 10.5pt;
+    line-height: 1.75;
+    color: var(--navy);
+  }
+
+  p { margin-bottom: 8px; }
+
+  ul, ol {
+    padding-left: 20px;
+    margin-bottom: 8px;
+  }
+  li { margin-bottom: 3px; }
+
+  strong { font-weight: 700; }
+
+  code {
+    font-family: 'SF Mono', 'Menlo', monospace;
+    font-size: 9pt;
+    background: #eef2e8;
+    color: var(--green-deep);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  .text-sm { font-size: 9pt; }
+  .text-muted { color: #7a8a8a; }
+
+  /* ── Screenshot Placeholder ─────────────────────────── */
+  .screenshot {
+    width: 100%;
+    max-width: 100%;
+    border: none;
+    border-radius: 6px;
+    background: none;
+    display: block;
+    margin: 12px 0;
+    overflow: hidden;
+  }
+  .screenshot img {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 6px;
+    border: 1px solid #e2e0dc;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+
+  /* ── Info Box ───────────────────────────────────────── */
+  .info-box {
+    border: 1.5px solid var(--green-accent);
+    border-radius: 8px;
+    padding: 14px 18px;
+    background: rgba(46,204,113,0.04);
+  }
+  .info-box h4 {
+    font-size: 10pt;
+    font-weight: 700;
+    color: var(--green-deep);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .info-box table {
+    width: 100%;
+    font-size: 9.5pt;
+    border-collapse: collapse;
+  }
+  .info-box td {
+    padding: 4px 0;
+    vertical-align: top;
+  }
+  .info-box td:first-child {
+    font-weight: 500;
+    color: var(--green-deep);
+    width: 130px;
+    white-space: nowrap;
+  }
+
+  /* ── Note callout ───────────────────────────────────── */
+  .note {
+    background: rgba(26,77,62,0.04);
+    border-left: 3px solid var(--green-accent);
+    padding: 10px 14px;
+    border-radius: 0 6px 6px 0;
+    margin: 10px 0;
+    font-size: 9.5pt;
+  }
+  .note strong { color: var(--green-deep); }
+
+  /* ── TOC Styles ─────────────────────────────────────── */
+  .toc-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .toc-item {
+    display: flex;
+    align-items: baseline;
+    padding: 6px 0;
+    border-bottom: none;
+    font-size: 10.5pt;
+  }
+  .toc-num {
+    font-family: var(--font-en);
+    font-weight: 600;
+    color: var(--green-accent);
+    width: 32px;
+    flex-shrink: 0;
+    font-size: 10pt;
+  }
+  .toc-title {
+    flex: 1;
+    color: var(--navy);
+  }
+  .toc-dots {
+    flex: 1;
+    border-bottom: 1px dotted #c8c4bc;
+    margin: 0 8px;
+    min-width: 30px;
+    position: relative;
+    top: -3px;
+  }
+  .toc-page {
+    font-family: var(--font-en);
+    font-weight: 500;
+    color: var(--green-mid);
+    width: 20px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  /* ── Cover-specific ─────────────────────────────────── */
+  .cover {
+    background: linear-gradient(135deg, #1a4d3e 0%, #2d6a4f 50%, #1a4d3e 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 30mm 26mm;
+  }
+  .cover .bridge-bg {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 100mm;
+    height: 100mm;
+    opacity: 0.06;
+    color: #ffffff;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .cover .tagline {
+    font-family: var(--font-en);
+    font-size: 11pt;
+    font-weight: 400;
+    font-style: italic;
+    color: var(--green-accent);
+    letter-spacing: 2px;
+    margin-bottom: 50px;
+  }
+  .cover .title-block {
+    border-top: 1px solid rgba(255,255,255,0.2);
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+    padding: 28px 0;
+    margin-bottom: 16px;
+    width: 100%;
+    max-width: 360px;
+  }
+  .cover .title-zh {
+    font-family: var(--font-zh);
+    font-size: 24pt;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: 6px;
+    margin-bottom: 10px;
+  }
+  .cover .subtitle {
+    font-family: var(--font-zh);
+    font-size: 16pt;
+    font-weight: 300;
+    color: rgba(255,255,255,0.85);
+    letter-spacing: 4px;
+  }
+  .cover .accent-line {
+    width: 40px;
+    height: 2px;
+    background: var(--green-accent);
+    margin: 14px auto 0;
+  }
+  .cover .date {
+    font-family: var(--font-zh);
+    font-size: 10pt;
+    font-weight: 300;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: 2px;
+    margin-top: 40px;
+  }
+
+  /* ── Compact table ──────────────────────────────────── */
+  .compact-table {
+    width: 100%;
+    font-size: 9.5pt;
+    border-collapse: collapse;
+    margin: 8px 0;
+  }
+  .compact-table th {
+    background: var(--green-deep);
+    color: #fff;
+    padding: 5px 10px;
+    text-align: left;
+    font-weight: 500;
+    font-size: 9pt;
+  }
+  .compact-table td {
+    padding: 5px 10px;
+    border-bottom: 1px solid #e2e0dc;
+  }
+
+  /* ── FAQ ─────────────────────────────────────────────── */
+  .faq-item {
+    margin-bottom: 10px;
+  }
+  .faq-q {
+    font-weight: 700;
+    color: var(--green-deep);
+    font-size: 10pt;
+    margin-bottom: 2px;
+  }
+  .faq-a {
+    font-size: 9.5pt;
+    color: var(--navy);
+    padding-left: 22px;
+    line-height: 1.65;
+  }
+
+  /* ── Footer (last page) ─────────────────────────────── */
+  .page-footer {
+    position: absolute;
+    bottom: 20mm;
+    left: 22mm;
+    right: 22mm;
+    text-align: center;
+    z-index: 1;
+  }
+  .page-footer .footer-brand {
+    font-family: var(--font-en);
+    font-size: 11pt;
+    font-weight: 500;
+    color: var(--green-deep);
+    letter-spacing: 3px;
+  }
+  .page-footer .footer-tagline {
+    font-family: var(--font-en);
+    font-size: 8.5pt;
+    font-style: italic;
+    color: var(--green-accent);
+    margin-top: 2px;
+  }
+  .page-footer .footer-line {
+    width: 30px;
+    height: 1.5px;
+    background: var(--green-accent);
+    margin: 8px auto 6px;
+  }
+
+  /* ── Subsection title ───────────────────────────────── */
+  .sub-title {
+    font-family: var(--font-zh);
+    font-size: 11pt;
+    font-weight: 700;
+    color: var(--green-deep);
+    margin: 12px 0 5px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .sub-title::before {
+    content: '';
+    display: inline-block;
+    width: 3px;
+    height: 14px;
+    background: var(--green-accent);
+    border-radius: 2px;
+  }
+
+  /* ── Step list ──────────────────────────────────────── */
+  .steps {
+    counter-reset: step;
+    list-style: none;
+    padding-left: 0;
+  }
+  .steps li {
+    counter-increment: step;
+    padding-left: 28px;
+    position: relative;
+    margin-bottom: 6px;
+  }
+  .steps li::before {
+    content: counter(step);
+    position: absolute;
+    left: 0;
+    top: 2px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--green-deep);
+    color: #fff;
+    font-size: 8.5pt;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-en);
+  }
+
+  /* ── Print Overrides ────────────────────────────────── */
+  @media print {
+    body { background: none; }
+    .page { margin: 0; box-shadow: none; }
+  }
+
+  /* ── Screen shadow for preview ──────────────────────── */
+  @media screen {
+    .page {
+      box-shadow: 0 2px 16px rgba(0,0,0,0.12);
+      margin-bottom: 12px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════
+     PAGE 1 — COVER
+     ════════════════════════════════════════════════════ -->
+<div class="page cover">
+  <svg class="bridge-bg" xmlns="http://www.w3.org/2000/svg" viewBox="620 230 200 280" version="1.0" aria-hidden="true">
+    <g><path fill="currentColor" d="M 733.851562 495.199219 L 733.796875 429.722656 C 733.800781 425.960938 732.347656 422.4375 729.703125 419.785156 C 727.054688 417.136719 723.535156 415.675781 719.789062 415.675781 L 716.679688 415.675781 C 694.277344 415.675781 673.210938 406.960938 657.355469 391.136719 C 641.503906 375.316406 632.746094 354.265625 632.703125 331.863281 L 632.707031 242.753906 L 645.328125 242.753906 L 645.324219 331.851562 C 645.402344 371.105469 677.410156 403.054688 716.679688 403.054688 L 719.789062 403.054688 C 726.910156 403.054688 733.601562 405.828125 738.636719 410.871094 C 743.664062 415.910156 746.429688 422.609375 746.417969 429.730469 L 746.472656 495.1875 Z"/></g>
+    <g><path fill="currentColor" d="M 754.449219 495.222656 L 754.171875 429.4375 C 754.105469 410.710938 738.816406 395.480469 720.09375 395.480469 L 718.773438 395.480469 C 682.539062 395.480469 653 366 652.925781 329.769531 L 652.917969 242.753906 L 665.542969 242.753906 L 665.546875 329.753906 C 665.609375 359.03125 689.488281 382.859375 718.773438 382.859375 L 720.09375 382.859375 C 745.753906 382.859375 766.703125 403.730469 766.796875 429.390625 L 767.070312 495.167969 Z"/></g>
+    <g><path fill="currentColor" d="M 786.972656 495.195312 L 774.351562 495.191406 L 774.367188 429.773438 C 774.417969 415.21875 768.796875 401.546875 758.539062 391.25 C 748.277344 380.953125 734.625 375.285156 720.089844 375.285156 C 694.46875 375.285156 673.558594 354.441406 673.472656 328.820312 L 673.34375 242.761719 L 685.964844 242.742188 L 686.097656 328.789062 C 686.160156 347.460938 701.40625 362.664062 720.089844 362.664062 C 738.003906 362.664062 754.835938 369.652344 767.480469 382.339844 C 780.125 395.03125 787.050781 411.882812 786.988281 429.796875 Z"/></g>
+    <g><path fill="currentColor" d="M 794.6875 495.199219 L 794.632812 429.710938 C 794.667969 409.777344 786.9375 391.042969 772.867188 376.949219 C 758.796875 362.851562 740.078125 355.089844 720.164062 355.089844 C 705.640625 355.089844 693.78125 343.273438 693.730469 328.75 L 693.5625 242.765625 L 706.183594 242.742188 L 706.351562 328.714844 C 706.378906 336.292969 712.574219 342.46875 720.164062 342.46875 C 743.457031 342.46875 765.34375 351.546875 781.800781 368.03125 C 798.257812 384.515625 807.296875 406.421875 807.253906 429.714844 L 807.3125 495.1875 Z"/></g>
+  </svg>
+
+  <img src="logo-white.png" alt="BeyondBridge" style="width: 280px; margin-bottom: 16px; filter: brightness(1.1);">
+  <div class="tagline">Build The Bridge. Go Beyond.</div>
+
+  <div class="title-block">
+    <div class="title-zh">學習平台 教師使用手冊</div>
+    <div class="subtitle">金門語課程</div>
+    <div class="accent-line"></div>
+  </div>
+
+  <div class="date">2026 年 4 月</div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     PAGE 2 — TOC
+     ════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div class="header-left">
+      <img src="logo-color.png" alt="" style="height:16px;">
+      <span>BeyondBridge 教師使用手冊</span>
+    </div>
+    <span class="page-num">2</span>
+  </div>
+
+  <h3 style="margin-top:0; margin-bottom:14px; font-size:14pt;">目 錄</h3>
+
+  <ul class="toc-list">
+    <li class="toc-item">
+      <span class="toc-num">01</span>
+      <span class="toc-title">登入與帳號 Login</span>
+      <span class="toc-dots"></span>
+      <span class="toc-page">4</span>
+    </li>
+    <li class="toc-item">
+      <span class="toc-num">02</span>
+      <span class="toc-title">儀表板 Dashboard</span>
+      <span class="toc-dots"></span>
+      <span class="toc-page">6</span>
+    </li>
+    <li class="toc-item">
+      <span class="toc-num">03</span>
+      <span class="toc-title">課程管理 Courses</span>
+      <span class="toc-dots"></span>
+      <span class="toc-page">8</span>
+    </li>
+    <li class="toc-item">
+      <span class="toc-num">04</span>
+      <span class="toc-title">學生管理 Students</span>
+      <span class="toc-dots"></span>
+      <span class="toc-page">10</span>
+    </li>
+    <li class="toc-item">
+      <span class="toc-num">05</span>
+      <span class="toc-title">金聲玉語 Kinmen Language</span>
+      <span class="toc-dots"></span>
+      <span class="toc-page">12</span>
+    </li>
+    <li class="toc-item">
+      <span class="toc-num">06</span>
+      <span class="toc-title">作業管理 Assignments</span>
+      <span class="toc-dots"></span>
+      <span class="toc-page">14</span>
+    </li>
+    <li class="toc-item">
+      <span class="toc-num">07</span>
+      <span class="toc-title">測驗管理 Quizzes</span>
+      <span class="toc-dots"></span>
+      <span class="toc-page">16</span>
+    </li>
+    <li class="toc-item">
+      <span class="toc-num">08</span>
+      <span class="toc-title">論壇 Forums</span>
+      <span class="toc-dots"></span>
+      <span class="toc-page">18</span>
+    </li>
+    <li class="toc-item">
+      <span class="toc-num">09</span>
+      <span class="toc-title">成績簿 Gradebook</span>
+      <span class="toc-dots"></span>
+      <span class="toc-page">20</span>
+    </li>
+    <li class="toc-item">
+      <span class="toc-num">10</span>
+      <span class="toc-title">學習進度與報告 Progress</span>
+      <span class="toc-dots"></span>
+      <span class="toc-page">21</span>
+    </li>
+    <li class="toc-item">
+      <span class="toc-num">11</span>
+      <span class="toc-title">日曆與通知 Calendar &amp; Notifications</span>
+      <span class="toc-dots"></span>
+      <span class="toc-page">22</span>
+    </li>
+    <li class="toc-item">
+      <span class="toc-num">12</span>
+      <span class="toc-title">證書與學習分析 Certificates &amp; Analytics</span>
+      <span class="toc-dots"></span>
+      <span class="toc-page">23</span>
+    </li>
+    <li class="toc-item">
+      <span class="toc-num"></span>
+      <span class="toc-title">附錄：常見問題 FAQ</span>
+      <span class="toc-dots"></span>
+      <span class="toc-page">25</span>
+    </li>
+  </ul>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     PAGE 3 — ACCOUNT INFO
+     ════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div class="header-left">
+      <img src="logo-color.png" alt="" style="height:16px;">
+      <span>BeyondBridge 教師使用手冊</span>
+    </div>
+    <span class="page-num">3</span>
+  </div>
+
+  <h3 style="margin-top:0; margin-bottom:14px; font-size:14pt;">帳號資訊與使用須知</h3>
+
+  <p>在開始使用平台之前，請先確認以下測試帳號資訊。教師帳號可管理課程、批改作業與查看分析報告；學生帳號僅供預覽學生端體驗。</p>
+
+  <div class="info-box" style="margin-top:14px;">
+    <h4>測試帳號資訊</h4>
+    <table>
+      <tr><td>平台網址</td><td><code>https://beyondbridge.onrender.com/platform</code></td></tr>
+      <tr><td>教師帳號</td><td><code>kinmen</code> / <code>kinmen123</code></td></tr>
+      <tr><td>學生帳號</td><td><code>student@beyondbridge.com</code> / <code>Student@2025</code></td></tr>
+      <tr><td>學生邀請碼</td><td><code>XL4TK7</code></td></tr>
+    </table>
+  </div>
+
+  <div class="note" style="margin-top:14px;">
+    <strong>提示：</strong>教師帳號可管理課程、批改作業與查看分析報告。學生帳號僅供預覽學生端體驗。邀請碼可讓新學生自行加入課程團隊。
+  </div>
+
+  <div class="sub-title">平台系統需求</div>
+  <ul>
+    <li><strong>建議瀏覽器：</strong>Google Chrome 或 Microsoft Edge 最新版本，相容性最佳</li>
+    <li><strong>螢幕解析度：</strong>建議 1280 x 720 以上，以獲得最佳顯示效果</li>
+    <li><strong>網路連線：</strong>需穩定的網路連線，建議頻寬 10 Mbps 以上</li>
+    <li><strong>行動裝置：</strong>支援 iOS Safari 與 Android Chrome，介面自動適應螢幕</li>
+  </ul>
+
+  <div class="sub-title">首次登入建議</div>
+  <ul>
+    <li>將平台網址加入瀏覽器書籤，方便日後快速存取</li>
+    <li>首次登入後建議立即修改預設密碼，確保帳號安全</li>
+    <li>熟悉側邊欄各功能選項，了解平台整體架構</li>
+    <li>檢查個人資料是否正確，包含姓名與聯絡 Email</li>
+  </ul>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     PAGE 4 — CH01 登入
+     ════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div class="header-left">
+      <img src="logo-color.png" alt="" style="height:16px;">
+      <span>BeyondBridge 教師使用手冊</span>
+    </div>
+    <span class="page-num">4</span>
+  </div>
+  <div class="chapter-num-bg">01</div>
+
+  <div class="chapter-label">Chapter 01</div>
+  <div class="chapter-title-en">Login</div>
+  <div class="chapter-title-zh">登入與帳號</div>
+  <div class="chapter-divider"></div>
+
+  <p>開啟瀏覽器前往 <code>beyondbridge.onrender.com/platform</code>，即可看到登入頁面。請依照以下步驟完成登入：</p>
+
+  <ol class="steps">
+    <li>在帳號欄位輸入教師帳號 <code>kinmen</code></li>
+    <li>在密碼欄位輸入 <code>kinmen123</code></li>
+    <li>點擊「登入」按鈕，系統將自動導向儀表板</li>
+  </ol>
+
+  <div class="screenshot">
+    <img src="shot-login.png" alt="登入頁面">
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     PAGE 5 — CH01 (cont) 學生註冊
+     ════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div class="header-left">
+      <img src="logo-color.png" alt="" style="height:16px;">
+      <span>BeyondBridge 教師使用手冊</span>
+    </div>
+    <span class="page-num">5</span>
+  </div>
+
+  <div class="sub-title">學生註冊流程 (續)</div>
+
+  <p>學生可透過邀請碼自行註冊並加入課程團隊，無需教師手動添加：</p>
+  <ol class="steps">
+    <li>學生進入平台首頁，點擊「建立帳號」</li>
+    <li>填寫基本資料（姓名、Email、密碼）</li>
+    <li>在「邀請碼」欄位輸入 <code>XL4TK7</code></li>
+    <li>完成註冊後，系統自動將學生加入對應的課程團隊</li>
+  </ol>
+
+  <div class="sub-title">註冊完成後的流程</div>
+  <ol class="steps">
+    <li>系統自動將學生加入邀請碼對應的課程團隊</li>
+    <li>學生登入後會看到儀表板，顯示已加入的課程</li>
+    <li>學生可立即瀏覽課程內容、查看作業與參加測驗</li>
+    <li>教師端「我的學生」頁面會同步顯示新加入的學生</li>
+  </ol>
+
+  <div class="sub-title">邀請碼常見問題</div>
+  <ul>
+    <li><strong>邀請碼無效：</strong>請確認碼是否正確輸入（注意大小寫），或該邀請碼是否已過期</li>
+    <li><strong>無法加入團隊：</strong>確認該團隊尚有名額，或聯繫教師重新產生邀請碼</li>
+    <li><strong>重複註冊：</strong>若學生已有帳號，可直接登入後在「加入團隊」頁面輸入邀請碼</li>
+  </ul>
+
+  <div class="note">
+    <strong>提示：</strong>首次登入後建議立即修改預設密碼。若忘記密碼，可透過 Email 重設。教師可在「學生管理」頁面隨時查看邀請碼使用狀況。
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     PAGE 6 — CH02 儀表板
+     ════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div class="header-left">
+      <img src="logo-color.png" alt="" style="height:16px;">
+      <span>BeyondBridge 教師使用手冊</span>
+    </div>
+    <span class="page-num">6</span>
+  </div>
+  <div class="chapter-num-bg">02</div>
+
+  <div class="chapter-label">Chapter 02</div>
+  <div class="chapter-title-en">Dashboard</div>
+  <div class="chapter-title-zh">儀表板</div>
+  <div class="chapter-divider"></div>
+
+  <p>登入後首先看到的是儀表板頁面。儀表板提供課程、學生活動與待辦事項的全覽視圖，讓教師快速掌握教學現況。</p>
+
+  <div class="screenshot">
+    <img src="shot-dashboard-zh.png" alt="儀表板總覽">
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     PAGE 7 — CH02 (cont) 儀表板重點
+     ════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div class="header-left">
+      <img src="logo-color.png" alt="" style="height:16px;">
+      <span>BeyondBridge 教師使用手冊</span>
+    </div>
+    <span class="page-num">7</span>
+  </div>
+
+  <div class="sub-title">儀表板重點區域 (續)</div>
+
+  <ul>
+    <li><strong>我的課程：</strong>顯示所有授課中的課程卡片，點擊即可進入課程詳情</li>
+    <li><strong>近期活動：</strong>最新的作業繳交、論壇發言與測驗完成紀錄</li>
+    <li><strong>待辦事項：</strong>需要批改的作業數量及即將到期的活動提醒</li>
+    <li><strong>快速導航：</strong>側邊欄提供日曆、通知、成績簿等常用功能的快捷入口</li>
+  </ul>
+
+  <div class="sub-title">側邊欄功能選單說明</div>
+  <table class="compact-table">
+    <tr><th>選單項目</th><th>功能說明</th></tr>
+    <tr><td>儀表板</td><td>回到首頁總覽，查看待辦事項與近期活動</td></tr>
+    <tr><td>我的課程</td><td>瀏覽所有授課課程，進入課程內容管理</td></tr>
+    <tr><td>我的學生</td><td>查看學生名冊、管理團隊與邀請碼</td></tr>
+    <tr><td>日曆</td><td>月曆視圖顯示作業截止日與課程事件</td></tr>
+    <tr><td>通知</td><td>彙整系統通知，包含繳交、回覆等提醒</td></tr>
+    <tr><td>作業</td><td>管理所有課程的作業項目與批改進度</td></tr>
+    <tr><td>測驗</td><td>建立與管理測驗，查看作答結果統計</td></tr>
+    <tr><td>論壇</td><td>參與課程討論，管理討論串與回覆</td></tr>
+  </table>
+
+  <div class="sub-title">每日工作流程建議</div>
+  <ul>
+    <li>登入後先檢查儀表板的待辦事項與未讀通知</li>
+    <li>處理需要批改的作業，給予學生即時回饋</li>
+    <li>查看論壇是否有新的討論需要回應</li>
+    <li>每週檢視學習進度報告，追蹤學生學習狀況</li>
+  </ul>
+
+  <div class="note">
+    <strong>提示：</strong>儀表板資料會即時更新。若學生提交新的作業或論壇發言，重新整理頁面即可看到最新資訊。
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     PAGE 8 — CH03 課程管理
+     ════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div class="header-left">
+      <img src="logo-color.png" alt="" style="height:16px;">
+      <span>BeyondBridge 教師使用手冊</span>
+    </div>
+    <span class="page-num">8</span>
+  </div>
+  <div class="chapter-num-bg">03</div>
+
+  <div class="chapter-label">Chapter 03</div>
+  <div class="chapter-title-en">Courses</div>
+  <div class="chapter-title-zh">課程管理</div>
+  <div class="chapter-divider"></div>
+
+  <p>點擊側邊欄「課程中心」可瀏覽所有可用課程。目前平台已建立四門課程，包含金門語系列與示範課程。</p>
+
+  <div class="screenshot">
+    <img src="shot-course-center.png" alt="課程中心列表">
+  </div>
+
+  <div class="sub-title">建立新課程</div>
+  <ol class="steps">
+    <li>在課程中心頁面點擊「建立課程」按鈕</li>
+    <li>填寫課程名稱、簡介與封面圖片</li>
+    <li>設定課程開始與結束日期</li>
+    <li>選擇課程可見性（公開或僅限邀請）</li>
+    <li>點擊「儲存」完成建立，即可開始新增單元內容</li>
+  </ol>
+
+  <div class="sub-title">課程設定說明</div>
+  <ul>
+    <li><strong>可見性：</strong>設為「公開」則所有學生皆可瀏覽；「僅限邀請」需透過邀請碼加入</li>
+    <li><strong>選課密碼：</strong>可設定選課密碼，學生須輸入密碼方可加入課程</li>
+    <li><strong>課程日期：</strong>超過結束日期後課程自動轉為唯讀模式</li>
+  </ul>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     PAGE 9 — CH03 (cont) 課程詳情
+     ════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div class="header-left">
+      <img src="logo-color.png" alt="" style="height:16px;">
+      <span>BeyondBridge 教師使用手冊</span>
+    </div>
+    <span class="page-num">9</span>
+  </div>
+
+  <div class="sub-title">課程詳情頁 (續)</div>
+
+  <p>點擊任一課程卡片即可進入課程詳情。詳情頁依「單元」組織內容，每個單元包含教材、作業與測驗等活動項目。</p>
+
+  <div class="screenshot">
+    <img src="shot-course-detail.png" alt="課程詳情與單元結構">
+  </div>
+
+  <ul>
+    <li><strong>單元結構：</strong>課程分為多個主題單元，展開可見教材與活動</li>
+    <li><strong>活動類型：</strong>包含作業、測驗、論壇討論、外部連結等</li>
+    <li><strong>進度追蹤：</strong>每項活動旁顯示學生完成狀態</li>
+  </ul>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     PAGE 10 — CH04 學生管理
+     ════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div class="header-left">
+      <img src="logo-color.png" alt="" style="height:16px;">
+      <span>BeyondBridge 教師使用手冊</span>
+    </div>
+    <span class="page-num">10</span>
+  </div>
+  <div class="chapter-num-bg">04</div>
+
+  <div class="chapter-label">Chapter 04</div>
+  <div class="chapter-title-en">Students</div>
+  <div class="chapter-title-zh">學生管理</div>
+  <div class="chapter-divider"></div>
+
+  <p>點擊側邊欄「我的學生」可查看所有已註冊學生的總覽，包含姓名、Email 與所屬團隊。</p>
+
+  <div class="screenshot">
+    <img src="shot-my-students.png" alt="學生總覽列表">
+  </div>
+
+  <div class="sub-title">手動新增學生</div>
+  <ol class="steps">
+    <li>點擊「新增學生」按鈕開啟表單</li>
+    <li>輸入學生姓名與 Email 地址</li>
+    <li>選擇要加入的團隊與課程</li>
+    <li>系統會自動寄送帳號啟用信件給學生</li>
+  </ol>
+
+  <div class="sub-title">移除學生與重新產生邀請碼</div>
+  <ul>
+    <li><strong>移除學生：</strong>在學生名單中點擊該學生旁的「移除」按鈕，確認後即完成</li>
+    <li><strong>重新產生邀請碼：</strong>進入團隊詳情頁，點擊「重新產生」即可取得新的邀請碼，舊碼將失效</li>
+    <li><strong>學生角色：</strong>學生僅能查看課程內容、繳交作業與參加測驗，無法編輯課程或查看其他學生成績</li>
+  </ul>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     PAGE 11 — CH04 (cont) 團隊詳情
+     ════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div class="header-left">
+      <img src="logo-color.png" alt="" style="height:16px;">
+      <span>BeyondBridge 教師使用手冊</span>
+    </div>
+    <span class="page-num">11</span>
+  </div>
+
+  <div class="sub-title">團隊詳情與邀請碼 (續)</div>
+
+  <p>點擊任一團隊名稱可進入團隊詳情頁，查看成員名單、分組設定與邀請碼。教師可在此管理學生分組並產生新的邀請碼。</p>
+
+  <div class="screenshot">
+    <img src="shot-team-detail.png" alt="團隊詳情、邀請碼與分組">
+  </div>
+
+  <ul>
+    <li><strong>邀請碼：</strong>每個團隊有獨立邀請碼，分享給學生即可加入</li>
+    <li><strong>分組管理：</strong>可將學生分派至不同小組，方便分組活動</li>
+    <li><strong>成員操作：</strong>可移除學生或調整其所屬小組</li>
+  </ul>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     PAGE 12 — CH05 金聲玉語
+     ════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div class="header-left">
+      <img src="logo-color.png" alt="" style="height:16px;">
+      <span>BeyondBridge 教師使用手冊</span>
+    </div>
+    <span class="page-num">12</span>
+  </div>
+  <div class="chapter-num-bg">05</div>
+
+  <div class="chapter-label">Chapter 05</div>
+  <div class="chapter-title-en">Kinmen Language</div>
+  <div class="chapter-title-zh">金聲玉語</div>
+  <div class="chapter-divider"></div>
+
+  <p>「金聲玉語」是專為金門語教學設計的互動學習模組，透過外部平台提供豐富的語言教材。課程包含六個主題單元：</p>
+
+  <ol>
+    <li><strong>日常問候語</strong> — 基礎打招呼、自我介紹</li>
+    <li><strong>數字與時間</strong> — 數字表達、時間描述</li>
+    <li><strong>飲食文化</strong> — 金門在地食物與點餐用語</li>
+    <li><strong>家庭與稱謂</strong> — 親屬稱呼、家庭描述</li>
+    <li><strong>地方與交通</strong> — 金門地名、方向與交通</li>
+    <li><strong>節慶與民俗</strong> — 傳統節日、民間習俗</li>
+  </ol>
+
+  <div class="screenshot">
+    <img src="shot-kinmen-platform.png" alt="金聲玉語外部學習平台">
+  </div>
+
+  <div class="note">
+    <strong>學習追蹤：</strong>學生在外部平台的學習進度會自動回傳至 BeyondBridge，教師可在成績簿與學習進度報告中查看完成情況。
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     PAGE 14 — CH06 作業管理
+     ════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div class="header-left">
+      <img src="logo-color.png" alt="" style="height:16px;">
+      <span>BeyondBridge 教師使用手冊</span>
+    </div>
+    <span class="page-num">14</span>
+  </div>
+  <div class="chapter-num-bg">06</div>
+
+  <div class="chapter-label">Chapter 06</div>
+  <div class="chapter-title-zh">作業管理</div>
+  <div class="chapter-divider"></div>
+
+  <div class="screenshot">
+    <img src="shot-assignments.png" alt="作業列表">
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     PAGE 15 — CH06 (cont) 批改流程 + 建立新作業
+     ════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div class="header-left">
+      <img src="logo-color.png" alt="" style="height:16px;">
+      <span>BeyondBridge 教師使用手冊</span>
+    </div>
+    <span class="page-num">15</span>
+  </div>
+
+  <div class="sub-title">批改流程</div>
+  <ol class="steps">
+    <li>點擊作業名稱進入作業詳情</li>
+    <li>檢視學生繳交的檔案或文字內容</li>
+    <li>輸入分數與評語回饋</li>
+    <li>點擊「儲存評分」完成批改，學生將收到通知</li>
+  </ol>
+
+  <div class="sub-title">表單欄位說明</div>
+  <ul>
+    <li><strong>作業標題：</strong>簡明扼要的名稱，建議包含單元編號</li>
+    <li><strong>作業說明：</strong>詳細描述要求、格式與評分標準</li>
+    <li><strong>截止日期：</strong>設定繳交期限，逾期會標記為遲交</li>
+    <li><strong>滿分分數：</strong>用於成績簿加權計算</li>
+  </ul>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     PAGE 16 — CH06 (cont) 建立新作業截圖
+     ════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div class="header-left">
+      <img src="logo-color.png" alt="" style="height:16px;">
+      <span>BeyondBridge 教師使用手冊</span>
+    </div>
+    <span class="page-num">16</span>
+  </div>
+
+  <div class="sub-title">建立新作業</div>
+  <p>點擊「建立作業」按鈕開啟建立表單，填寫標題、說明、截止日期與滿分分數即可。</p>
+
+  <div class="screenshot">
+    <img src="shot-create-assignment.png" alt="建立作業視窗">
+  </div>
+
+  <div class="note">
+    <strong>建議：</strong>截止日期建議設在課堂後 3-5 天。成績權重依作業難度分配，總和為 100%。
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     PAGE 16 — CH07 測驗管理
+     ════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div class="header-left">
+      <img src="logo-color.png" alt="" style="height:16px;">
+      <span>BeyondBridge 教師使用手冊</span>
+    </div>
+    <span class="page-num">16</span>
+  </div>
+  <div class="chapter-num-bg">07</div>
+
+  <div class="chapter-label">Chapter 07</div>
+  <div class="chapter-title-en">Quizzes</div>
+  <div class="chapter-title-zh">測驗管理</div>
+  <div class="chapter-divider"></div>
+
+  <p>測驗中心顯示所有已建立的測驗，包含測驗類型、題數與作答狀態。系統支援選擇題、是非題與簡答題。</p>
+
+  <div class="screenshot">
+    <img src="shot-quizzes.png" alt="測驗中心列表">
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     PAGE 17 — CH07 (cont) 建立新測驗
+     ════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div class="header-left">
+      <img src="logo-color.png" alt="" style="height:16px;">
+      <span>BeyondBridge 教師使用手冊</span>
+    </div>
+    <span class="page-num">17</span>
+  </div>
+
+  <div class="sub-title">建立新測驗 (續)</div>
+
+  <p>點擊「建立測驗」按鈕可開啟建立表單。填寫測驗名稱、選擇所屬課程、設定時間限制與及格分數後儲存。</p>
+
+  <div class="screenshot">
+    <img src="shot-create-quiz.png" alt="建立測驗視窗">
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div class="header-left">
+      <img src="logo-color.png" alt="" style="height:16px;">
+      <span>BeyondBridge 教師使用手冊</span>
+    </div>
+    <span class="page-num"></span>
+  </div>
+
+  <div class="sub-title">測驗設定詳解 (續)</div>
+  <ul>
+    <li><strong>時間限制：</strong>設定作答時限（如 30 分鐘），到時自動收卷</li>
+    <li><strong>作答次數：</strong>可設定允許重考次數，並選擇取最高分或最後一次分數</li>
+    <li><strong>開放時段：</strong>設定測驗開放與關閉日期，僅在時段內可作答</li>
+    <li><strong>及格分數：</strong>設定及格門檻，未達標者可依設定重考</li>
+  </ul>
+
+  <div class="sub-title">題型與設計建議</div>
+  <ul>
+    <li><strong>選擇題：</strong>適合測試基礎知識，系統自動批改</li>
+    <li><strong>是非題：</strong>快速確認觀念理解，系統自動批改</li>
+    <li><strong>簡答題：</strong>測試表達能力，需教師手動批改</li>
+  </ul>
+
+  <div class="note">
+    <strong>建議：</strong>每次測驗建議 10-20 題，混合不同題型。選擇題選項建議 4 個，避免過於明顯的誘答選項。
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     PAGE 18 — CH08 論壇
+     ════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div class="header-left">
+      <img src="logo-color.png" alt="" style="height:16px;">
+      <span>BeyondBridge 教師使用手冊</span>
+    </div>
+    <span class="page-num">18</span>
+  </div>
+  <div class="chapter-num-bg">08</div>
+
+  <div class="chapter-label">Chapter 08</div>
+  <div class="chapter-title-en">Forums</div>
+  <div class="chapter-title-zh">論壇</div>
+  <div class="chapter-divider"></div>
+
+  <p>論壇功能讓師生進行課程相關的非同步討論，促進課外學習交流。</p>
+
+  <ul>
+    <li><strong>分類瀏覽：</strong>依課程或主題分類，方便查找討論串</li>
+    <li><strong>回覆通知：</strong>有新回覆時系統會自動發送通知</li>
+    <li><strong>評分連動：</strong>可將論壇參與納入成績計算</li>
+  </ul>
+
+  <div class="screenshot">
+    <img src="shot-forums.png" alt="論壇討論列表">
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     PAGE 19 — CH08 (cont) 發起討論
+     ════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div class="header-left">
+      <img src="logo-color.png" alt="" style="height:16px;">
+      <span>BeyondBridge 教師使用手冊</span>
+    </div>
+    <span class="page-num">19</span>
+  </div>
+
+  <div class="sub-title">發起新討論 (續)</div>
+
+  <p>點擊「發起討論」按鈕開啟表單，選擇所屬論壇、填寫主題與內容後發佈。學生可在下方回覆參與討論。</p>
+
+  <div class="screenshot">
+    <img src="shot-create-discussion.png" alt="發起討論視窗">
+  </div>
+
+  <div class="note">
+    <strong>提示：</strong>教師可釘選重要討論至頂部，確保學生優先看到公告類訊息。
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     PAGE 20 — CH09 成績簿
+     ════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div class="header-left">
+      <img src="logo-color.png" alt="" style="height:16px;">
+      <span>BeyondBridge 教師使用手冊</span>
+    </div>
+    <span class="page-num">20</span>
+  </div>
+  <div class="chapter-num-bg">09</div>
+
+  <div class="chapter-label">Chapter 09</div>
+  <div class="chapter-title-en">Gradebook</div>
+  <div class="chapter-title-zh">成績簿</div>
+  <div class="chapter-divider"></div>
+
+  <p>成績簿以表格形式呈現所有學生在各項活動中的得分。欄位包含作業、測驗與論壇參與等成績項目。</p>
+
+  <div class="screenshot">
+    <img src="shot-gradebook.png" alt="成績簿表格">
+  </div>
+
+  <div class="sub-title">成績匯出</div>
+  <p>點擊「匯出」按鈕可將成績資料下載為 CSV 檔案，方便匯入校務系統或用 Excel 進行進一步分析。</p>
+
+  <div class="sub-title">手動成績項目</div>
+  <p>教師可新增自訂成績項目（如課堂表現），直接在表格中輸入分數，即時儲存。可設定各項目權重進行加權計算。</p>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     PAGE 21 — CH10 學習進度與報告
+     ════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div class="header-left">
+      <img src="logo-color.png" alt="" style="height:16px;">
+      <span>BeyondBridge 教師使用手冊</span>
+    </div>
+    <span class="page-num">21</span>
+  </div>
+  <div class="chapter-num-bg">10</div>
+
+  <div class="chapter-label">Chapter 10</div>
+  <div class="chapter-title-en">Learning Progress</div>
+  <div class="chapter-title-zh">學習進度與報告</div>
+  <div class="chapter-divider"></div>
+
+  <p>學習進度頁面提供每位學生的詳細活動追蹤數據，幫助教師了解個別學生的學習狀態與參與程度。</p>
+
+  <div class="screenshot">
+    <img src="shot-learning-progress.png" alt="學習進度詳情">
+  </div>
+
+  <div class="sub-title">追蹤數據說明</div>
+  <ul>
+    <li><strong>活動完成率：</strong>各單元與活動的完成百分比</li>
+    <li><strong>學習時數：</strong>學生在平台上的累計學習時間</li>
+    <li><strong>最後活動時間：</strong>學生最近一次登入或操作的時間戳記</li>
+    <li><strong>進度趨勢：</strong>以圖表呈現學生的學習進度變化</li>
+  </ul>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     PAGE 22 — CH11 日曆與通知
+     ════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div class="header-left">
+      <img src="logo-color.png" alt="" style="height:16px;">
+      <span>BeyondBridge 教師使用手冊</span>
+    </div>
+    <span class="page-num">22</span>
+  </div>
+  <div class="chapter-num-bg">11</div>
+
+  <div class="chapter-label">Chapter 11</div>
+  <div class="chapter-title-en">Calendar &amp; Notifications</div>
+  <div class="chapter-title-zh">日曆與通知</div>
+  <div class="chapter-divider"></div>
+
+  <div class="sub-title">日曆</div>
+  <p>日曆以月曆視圖顯示所有課程事件，包含作業截止日、測驗時間與自訂事件。點擊日期可新增事件。</p>
+
+  <div class="screenshot">
+    <img src="shot-calendar.png" alt="日曆月視圖">
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     日曆功能（續）+ 公告通知
+     ════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div class="header-left">
+      <img src="logo-color.png" alt="" style="height:16px;">
+      <span>BeyondBridge 教師使用手冊</span>
+    </div>
+    <span class="page-num"></span>
+  </div>
+
+  <div class="sub-title">建立日曆事件</div>
+  <ol class="steps">
+    <li>在日曆頁面點擊目標日期</li>
+    <li>填寫事件名稱與說明（如「金門語期中測驗」）</li>
+    <li>選擇關聯課程（可選），設定起迄時間</li>
+    <li>點擊「儲存」，事件將顯示在所有相關學生的日曆中</li>
+  </ol>
+
+  <div class="sub-title">公告與通知機制</div>
+  <ul>
+    <li><strong>自動通知：</strong>建立作業或測驗時，系統自動在日曆新增事件並通知學生</li>
+    <li><strong>手動公告：</strong>教師可透過論壇或通知中心發送自訂公告</li>
+    <li><strong>提醒設定：</strong>作業截止前 24 小時系統會自動提醒尚未繳交的學生</li>
+  </ul>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     通知中心（續）
+     ════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div class="header-left">
+      <img src="logo-color.png" alt="" style="height:16px;">
+      <span>BeyondBridge 教師使用手冊</span>
+    </div>
+    <span class="page-num"></span>
+  </div>
+
+  <div class="sub-title">通知中心</div>
+  <p>通知中心彙整所有系統通知，包含學生繳交作業、論壇新回覆、成績更新等。未讀通知會以標記提示。</p>
+
+  <div class="screenshot">
+    <img src="shot-notifications.png" alt="通知中心">
+  </div>
+
+  <ul>
+    <li><strong>即時推送：</strong>重要事件發生時會立即推送通知</li>
+    <li><strong>分類篩選：</strong>可依通知類型（作業、論壇、系統）篩選</li>
+    <li><strong>全部已讀：</strong>點擊「全部標為已讀」可快速清除通知標記</li>
+  </ul>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     PAGE 23 — CH12 證書
+     ════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div class="header-left">
+      <img src="logo-color.png" alt="" style="height:16px;">
+      <span>BeyondBridge 教師使用手冊</span>
+    </div>
+    <span class="page-num">23</span>
+  </div>
+  <div class="chapter-num-bg">12</div>
+
+  <div class="chapter-label">Chapter 12</div>
+  <div class="chapter-title-zh">證書發放</div>
+
+  <div class="screenshot">
+    <img src="shot-certificates.png" alt="證書發放設定">
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     PAGE 24 — CH12 (cont) 學習分析
+     ════════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div class="header-left">
+      <img src="logo-color.png" alt="" style="height:16px;">
+      <span>BeyondBridge 教師使用手冊</span>
+    </div>
+    <span class="page-num">24</span>
+  </div>
+
+  <div class="sub-title">學習分析儀表板 (續)</div>
+
+  <p>學習分析提供課程層級的統計數據，包含整體完成率、平均分數、活躍度趨勢與學生參與分布圖表。</p>
+
+  <div class="screenshot">
+    <img src="shot-analytics.png" alt="學習分析儀表板">
+  </div>
+
+  <ul>
+    <li><strong>完成率統計：</strong>各單元與活動的完成人數與百分比</li>
+    <li><strong>分數分布：</strong>以長條圖呈現各分數區間的人數分布</li>
+    <li><strong>報告匯出：</strong>可將分析資料匯出為 PDF 報告</li>
+  </ul>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     PAGE 25 — 附錄 FAQ
+     ════════════════════════════════════════════════════ -->
+<div class="page" style="page-break-after:avoid;">
+  <div class="page-header">
+    <div class="header-left">
+      <img src="logo-color.png" alt="" style="height:16px;">
+      <span>BeyondBridge 教師使用手冊</span>
+    </div>
+    <span class="page-num">25</span>
+  </div>
+
+  <h3 style="margin-top:0; font-size:14pt; margin-bottom:12px;">附錄：常見問題 FAQ</h3>
+
+  <div class="faq-item">
+    <div class="faq-q">Q1：忘記密碼怎麼辦？</div>
+    <div class="faq-a">在登入頁面點擊「忘記密碼」，輸入註冊 Email 後系統會寄送重設連結。若未收到信件，請檢查垃圾郵件匣。</div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q">Q2：如何將新學生加入課程？</div>
+    <div class="faq-a">將團隊邀請碼（如 <code>XL4TK7</code>）提供給學生，學生在註冊時輸入即可自動加入。也可在「學生管理」手動新增。</div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q">Q3：學生在「金聲玉語」的學習進度沒有更新？</div>
+    <div class="faq-a">外部平台資料同步可能有數分鐘延遲。若超過一小時仍未更新，請聯繫系統管理員檢查連線設定。</div>
+  </div>
+
+
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     最後一頁 — FAQ (續) + 快速參考 + Footer
+     ════════════════════════════════════════════════════ -->
+<div class="page" style="page-break-after: avoid;">
+  <div class="page-header">
+    <div class="header-left">
+      <img src="logo-color.png" alt="" style="height:16px;">
+      <span>BeyondBridge 教師使用手冊</span>
+    </div>
+    <span class="page-num"></span>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q">Q4：如何匯出全班成績？</div>
+    <div class="faq-a">進入「成績簿」頁面，點擊右上角「匯出」按鈕，選擇 CSV 格式即可下載，可用 Excel 開啟編輯。</div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q">Q5：平台支援哪些瀏覽器？</div>
+    <div class="faq-a">建議使用 Chrome、Edge 或 Safari 最新版本。行動裝置亦可正常使用，介面會自動適應螢幕大小。</div>
+  </div>
+
+  <div style="margin-top:6px;"></div>
+
+  <h3 style="font-size:11pt; margin-bottom:6px;">快速參考</h3>
+  <table class="compact-table">
+    <tr>
+      <th>功能</th>
+      <th>路徑</th>
+      <th>說明</th>
+    </tr>
+    <tr>
+      <td>課程中心</td>
+      <td>側邊欄 &gt; 課程中心</td>
+      <td>瀏覽與管理所有課程</td>
+    </tr>
+    <tr>
+      <td>學生管理</td>
+      <td>側邊欄 &gt; 我的學生</td>
+      <td>查看學生名冊與團隊</td>
+    </tr>
+    <tr>
+      <td>成績簿</td>
+      <td>側邊欄 &gt; 成績簿</td>
+      <td>檢視與匯出成績</td>
+    </tr>
+    <tr>
+      <td>學習分析</td>
+      <td>側邊欄 &gt; 學習分析</td>
+      <td>課程統計與報告</td>
+    </tr>
+    <tr>
+      <td>日曆</td>
+      <td>側邊欄 &gt; 日曆</td>
+      <td>事件管理與提醒</td>
+    </tr>
+  </table>
+
+  <div style="position:absolute; bottom:18mm; left:22mm; right:22mm; text-align:center; z-index:10;">
+    <div style="width:30px; height:1.5px; background:#2ecc71; margin:0 auto 8px;"></div>
+    <img src="logo-color.png" alt="BeyondBridge" style="height:24px; margin-bottom:6px;">
+    <div style="font-family:'Cormorant Garamond',Georgia,serif; font-size:11pt; font-weight:500; color:#1a4d3e; letter-spacing:3px;">BEYONDBRIDGE</div>
+    <div style="font-family:'Cormorant Garamond',Georgia,serif; font-size:8.5pt; font-style:italic; color:#2ecc71; margin-top:2px;">Build The Bridge. Go Beyond.</div>
+  </div>
+</div>
+
+
+</body>
+</html>
