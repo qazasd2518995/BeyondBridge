@@ -18,6 +18,59 @@ const {
   buildCourseToolStudentDetail
 } = require('../../utils/lti-tool-analytics');
 
+function getToolAllowedOrigins(tool = {}) {
+  const envOrigins = String(process.env.LTI_TOOL_BROWSER_ORIGINS || '')
+    .split(',')
+    .map(origin => origin.trim())
+    .filter(Boolean);
+
+  const toolOrigins = [tool.toolUrl, tool.targetLinkUri]
+    .map((value) => {
+      try {
+        return value ? new URL(value).origin : null;
+      } catch (error) {
+        return null;
+      }
+    })
+    .filter(Boolean);
+
+  return [...new Set([...envOrigins, ...toolOrigins])];
+}
+
+async function toolBrowserCors(req, res, next) {
+  try {
+    const origin = req.headers.origin;
+    if (!origin) {
+      return next();
+    }
+
+    const { toolId } = req.params;
+    if (!toolId) {
+      return next();
+    }
+
+    const tool = await getItem('LTI_TOOL', `TOOL#${toolId}`);
+    const allowedOrigins = getToolAllowedOrigins(tool);
+
+    if (allowedOrigins.includes(origin)) {
+      res.header('Access-Control-Allow-Origin', origin);
+      res.header('Vary', 'Origin');
+      res.header('Access-Control-Allow-Credentials', 'true');
+      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      if (req.method === 'OPTIONS') {
+        return res.sendStatus(204);
+      }
+    } else if (req.method === 'OPTIONS') {
+      return res.sendStatus(403);
+    }
+
+    return next();
+  } catch (error) {
+    return next(error);
+  }
+}
+
 function clampProgress(value) {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return 0;
@@ -147,6 +200,8 @@ async function syncCourseProgress(data) {
  *
  * 混合模式：Tool 只需回報簡單進度，Platform 負責 AGS 格式轉換
  */
+router.use('/tools/:toolId/progress', toolBrowserCors);
+
 router.post('/tools/:toolId/progress', async (req, res) => {
   try {
     const { toolId } = req.params;
