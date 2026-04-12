@@ -80,7 +80,7 @@ async function main() {
     instructorId: userId,
     instructorName: demoUser.displayName || 'Demo Teacher',
 
-    startDate: '2026-03-10',
+    startDate: '2026-04-12',
     endDate: '2026-06-30',
     visibility: 'show',
     status: 'published',
@@ -95,7 +95,7 @@ async function main() {
       showActivityDates: true,
       showActivityReports: true,
       enableCompletion: true,
-      enableGrades: false
+      enableGrades: true
     },
     stats: { totalActivities: 0, totalSections: 0 },
 
@@ -113,6 +113,65 @@ async function main() {
     order: 1, visible: true, createdAt: now, updatedAt: now
   });
 
+  // 第一章活動：課程說明頁
+  const introActivityId = generateId('act');
+  await putItem({
+    PK: `COURSE#${courseId}`, SK: 'ACTIVITY#01#001', entityType: 'COURSE_ACTIVITY',
+    activityId: introActivityId, courseId, sectionId: '01', type: 'page',
+    title: '課程說明與學習目標',
+    description: '了解本課程的學習目標、評量方式與課程大綱。',
+    content: `<h2>歡迎來到金門語課程</h2>
+<p>金門語屬於閩南語系的金門腔，是金門在地獨特的語言文化。本課程透過互動式學習平台，帶領學習者認識金門語的發音、日常用語與文化背景。</p>
+
+<h3>學習目標</h3>
+<ul>
+  <li>認識金門語的語音系統與基礎發音</li>
+  <li>學會 50 句以上的金門日常用語</li>
+  <li>了解金門在地文化故事與傳統</li>
+  <li>能以金門語進行簡單的日常對話</li>
+</ul>
+
+<h3>評量方式</h3>
+<ul>
+  <li>金門日常用語錄音（60 分）— 錄製 10 句日常用語的發音練習</li>
+  <li>金門文化故事蒐集（100 分）— 蒐集一則在地文化故事並附上金門語詞彙</li>
+</ul>
+
+<h3>課程進度建議</h3>
+<ol>
+  <li>第 1-2 週：進入學習平台，完成基礎發音單元</li>
+  <li>第 3-4 週：練習日常對話，準備錄音作業</li>
+  <li>第 5-8 週：深入文化內容，完成文化故事蒐集</li>
+</ol>`,
+    order: 1, visible: true, availability: {}, completion: { type: 'view' },
+    stats: { views: 0, completions: 0 }, createdAt: now, updatedAt: now
+  });
+  console.log(`  ✓ 課程說明頁已建立: ${introActivityId}`);
+
+  // 第一章活動：金門語簡介影片（示範用）
+  const videoActivityId = generateId('act');
+  await putItem({
+    PK: `COURSE#${courseId}`, SK: 'ACTIVITY#01#002', entityType: 'COURSE_ACTIVITY',
+    activityId: videoActivityId, courseId, sectionId: '01', type: 'page',
+    title: '金門語是什麼？',
+    description: '認識金門語的語言背景與特色。',
+    content: `<h2>金門語簡介</h2>
+<p>金門語是閩南語的一個分支，主要使用於金門列島。與台灣本島的閩南語（台語）相比，金門語保留了更多古閩南語的特徵，在聲調、詞彙和語法上都有其獨特之處。</p>
+
+<h3>金門語的特色</h3>
+<ul>
+  <li><strong>聲調系統</strong>：金門語保留了較完整的入聲系統</li>
+  <li><strong>詞彙差異</strong>：許多日常用詞與台灣閩南語不同</li>
+  <li><strong>文化連結</strong>：語言中保留了豐富的金門在地文化元素</li>
+</ul>
+
+<h3>為什麼要學金門語？</h3>
+<p>金門語是珍貴的本土語言文化資產。隨著年輕一代使用減少，保存與傳承金門語成為重要的文化課題。透過學習金門語，我們能更深入了解金門的歷史、文化與在地生活。</p>`,
+    order: 2, visible: true, availability: {}, completion: { type: 'view' },
+    stats: { views: 0, completions: 0 }, createdAt: now, updatedAt: now
+  });
+  console.log(`  ✓ 金門語簡介頁已建立: ${videoActivityId}`);
+
   // 學習平台章節
   const activityId = generateId('act');
   await putItem({
@@ -127,14 +186,14 @@ async function main() {
     activityId, courseId, sectionId: '02', type: 'url',
     title: '金門語學習平台',
     description: '互動式金門語學習平台，包含發音練習、日常對話及文化介紹。',
-    url: 'https://kinmen-learning-platfrom.vercel.app',
+    url: 'https://kinmen-learning-platform.vercel.app',
     order: 1, visible: true, availability: {}, completion: { type: 'view' },
     stats: { views: 0, completions: 0 }, createdAt: now, updatedAt: now
   });
   console.log(`  ✓ 學習平台活動已建立: ${activityId}`);
 
   // 更新課程統計
-  await putItem({ ...courseItem, stats: { totalActivities: 1, totalSections: 2 }, updatedAt: new Date().toISOString() });
+  await putItem({ ...courseItem, stats: { totalActivities: 3, totalSections: 2 }, updatedAt: new Date().toISOString() });
 
   // 加入講師
   await putItem({
@@ -174,7 +233,7 @@ async function main() {
   console.log('════════════════════════════════════════════');
   console.log(`  課程 ID:    ${courseId}`);
   console.log(`  課程名稱:   ${COURSE_TITLE}`);
-  console.log(`  學習平台:   https://kinmen-learning-platfrom.vercel.app`);
+  console.log(`  學習平台:   https://kinmen-learning-platform.vercel.app`);
   console.log(`  授權老師:   ${demoUser.displayName} (${DEMO_EMAIL})`);
   console.log('════════════════════════════════════════════\n');
 }

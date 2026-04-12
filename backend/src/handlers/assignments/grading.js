@@ -413,6 +413,73 @@ router.post('/:id/submissions/:studentId/grade', authMiddleware, async (req, res
 });
 
 /**
+ * POST /api/assignments/:id/submissions/:studentId/return
+ * 退回作業請學生修改
+ */
+router.post('/:id/submissions/:studentId/return', authMiddleware, async (req, res) => {
+  try {
+    const { id, studentId } = req.params;
+    const { feedback } = req.body;
+
+    const assignment = await db.getItem(`ASSIGNMENT#${id}`, 'META');
+    if (!assignment) {
+      return res.status(404).json({
+        success: false,
+        error: 'ASSIGNMENT_NOT_FOUND',
+        message: '找不到此作業'
+      });
+    }
+
+    const course = await db.getItem(`COURSE#${assignment.courseId}`, 'META');
+    if (!canManageCourse(course, req.user)) {
+      return res.status(403).json({
+        success: false,
+        error: 'FORBIDDEN',
+        message: '沒有權限操作此作業'
+      });
+    }
+
+    const submission = await db.getItem(`ASSIGNMENT#${id}`, `SUBMISSION#${studentId}`);
+    if (!submission) {
+      return res.status(404).json({
+        success: false,
+        error: 'SUBMISSION_NOT_FOUND',
+        message: '找不到提交記錄'
+      });
+    }
+
+    const now = new Date().toISOString();
+    const updatedSubmission = await db.updateItem(
+      `ASSIGNMENT#${id}`,
+      `SUBMISSION#${studentId}`,
+      {
+        status: 'returned',
+        returnedAt: now,
+        returnedBy: req.user.userId,
+        returnFeedback: feedback || '請修改後重新提交',
+        updatedAt: now
+      }
+    );
+
+    delete updatedSubmission.PK;
+    delete updatedSubmission.SK;
+
+    res.json({
+      success: true,
+      message: '作業已退回',
+      data: updatedSubmission
+    });
+  } catch (error) {
+    console.error('Return submission error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'RETURN_FAILED',
+      message: '退回作業失敗'
+    });
+  }
+});
+
+/**
  * POST /api/assignments/:id/extend
  * 延長截止日期
  */

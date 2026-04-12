@@ -609,4 +609,227 @@ router.delete('/:id/activities/:activityId', authMiddleware, async (req, res) =>
   }
 });
 
+/**
+ * PUT /api/courses/:id/sections/reorder
+ * 重新排序章節
+ */
+router.put('/:id/sections/reorder', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { order } = req.body; // Array of { sectionId, order }
+
+    const course = await db.getItem(`COURSE#${id}`, 'META');
+    if (!course || !canManageCourse(course, req.user)) {
+      return res.status(403).json({
+        success: false,
+        error: 'FORBIDDEN',
+        message: '沒有權限修改此課程'
+      });
+    }
+
+    if (!Array.isArray(order) || order.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'VALIDATION_ERROR',
+        message: '請提供排序資料'
+      });
+    }
+
+    const now = new Date().toISOString();
+    for (const item of order) {
+      await db.updateItem(`COURSE#${id}`, `SECTION#${item.sectionId}`, {
+        order: item.order,
+        updatedAt: now
+      });
+    }
+
+    res.json({
+      success: true,
+      message: '章節排序已更新'
+    });
+  } catch (error) {
+    console.error('Reorder sections error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'REORDER_FAILED',
+      message: '排序更新失敗'
+    });
+  }
+});
+
+/**
+ * PUT /api/courses/:id/activities/reorder
+ * 重新排序活動
+ */
+router.put('/:id/activities/reorder', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { order } = req.body; // Array of { activityId, sectionId, order }
+
+    const course = await db.getItem(`COURSE#${id}`, 'META');
+    if (!course || !canManageCourse(course, req.user)) {
+      return res.status(403).json({
+        success: false,
+        error: 'FORBIDDEN',
+        message: '沒有權限修改此課程'
+      });
+    }
+
+    if (!Array.isArray(order) || order.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'VALIDATION_ERROR',
+        message: '請提供排序資料'
+      });
+    }
+
+    const activities = await db.query(`COURSE#${id}`, { skPrefix: 'ACTIVITY#' });
+    const now = new Date().toISOString();
+
+    for (const item of order) {
+      const activity = activities.find(a => a.activityId === item.activityId);
+      if (activity) {
+        await db.updateItem(`COURSE#${id}`, activity.SK, {
+          order: item.order,
+          updatedAt: now
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      message: '活動排序已更新'
+    });
+  } catch (error) {
+    console.error('Reorder activities error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'REORDER_FAILED',
+      message: '排序更新失敗'
+    });
+  }
+});
+
+// ==================== 課程公告 ====================
+
+/**
+ * POST /api/courses/:id/announcements
+ * 教師發送課程公告
+ */
+router.post('/:id/announcements', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.userId;
+    const { title, content, priority = 'normal' } = req.body;
+
+    const course = await db.getItem(`COURSE#${id}`, 'META');
+    if (!course || !canManageCourse(course, req.user)) {
+      return res.status(403).json({
+        success: false,
+        error: 'FORBIDDEN',
+        message: '沒有權限發送課程公告'
+      });
+    }
+
+    if (!title || !content) {
+      return res.status(400).json({
+        success: false,
+        error: 'VALIDATION_ERROR',
+        message: '請提供公告標題和內容'
+      });
+    }
+
+    const now = new Date().toISOString();
+    const announcementId = db.generateId('ann');
+
+    // 建立公告記錄
+    await db.putItem({
+      PK: `COURSE#${id}`,
+      SK: `ANNOUNCEMENT#${announcementId}`,
+      entityType: 'COURSE_ANNOUNCEMENT',
+      GSI1PK: `COURSE#${id}`,
+      GSI1SK: `ANN#${now}`,
+      announcementId,
+      courseId: id,
+      courseTitle: course.title,
+      title,
+      content,
+      priority,
+      authorId: userId,
+      authorName: req.user.displayName || req.user.email,
+      createdAt: now,
+      updatedAt: now
+    });
+
+    // 通知所有已報名的學生
+    const enrollments = await db.queryByIndex('GSI1', `COURSE#${id}`, 'GSI1PK', {
+      skPrefix: 'ENROLLED#'
+    });
+
+    const notificationPromises = enrollments
+      .filter(e => e.userId !== userId) // 不通知自己
+      .map(enrollment => {
+        const studentId = enrollment.userId || enrollment.GSI1SK?.replace('ENROLLED#', '');
+        if (!studentId) return null;
+        const notifId = db.generateId('notif');
+        return db.putItem({
+          PK: `USER#${studentId}`,
+          SK: `NOTIF#${now}#${notifId}`,
+          entityType: 'NOTIFICATION',
+          notificationId: notifId,
+          userId: studentId,
+          type: 'course_announcement',
+          title: `${course.title} - 課程公告`,
+          message: title,
+          courseId: id,
+          read: false,
+          createdAt: now
+        });
+      })
+      .filter(Boolean);
+
+    await Promise.all(notificationPromises);
+
+    res.status(201).json({
+      success: true,
+      message: `公告已發送，已通知 ${notificationPromises.length} 位學生`,
+      data: { announcementId, title, content, priority }
+    });
+  } catch (error) {
+    console.error('Create course announcement error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'ANNOUNCEMENT_FAILED',
+      message: '發送公告失敗'
+    });
+  }
+});
+
+/**
+ * GET /api/courses/:id/announcements
+ * 取得課程公告列表
+ */
+router.get('/:id/announcements', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const announcements = await db.query(`COURSE#${id}`, {
+      skPrefix: 'ANNOUNCEMENT#',
+      scanIndexForward: false
+    });
+
+    res.json({
+      success: true,
+      data: announcements
+    });
+  } catch (error) {
+    console.error('Get course announcements error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'FETCH_FAILED',
+      message: '取得公告失敗'
+    });
+  }
+});
+
 module.exports = router;
