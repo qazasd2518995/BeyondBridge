@@ -76,6 +76,13 @@ const { initSocketServer } = require('./realtime/socketServer');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+function parseOriginList(value) {
+  return String(value || '')
+    .split(',')
+    .map(origin => origin.trim())
+    .filter(Boolean);
+}
+
 // 安全 Headers
 app.use(helmet({
   contentSecurityPolicy: false, // 因為有自己的 SPA 頁面
@@ -83,9 +90,23 @@ app.use(helmet({
 }));
 
 // CORS 設定
+const productionCorsOrigins = [...new Set([
+  ...parseOriginList(process.env.CORS_ORIGINS),
+  ...parseOriginList(process.env.LTI_TOOL_BROWSER_ORIGINS),
+  'https://kinmen-learning-platfrom.vercel.app'
+])];
+
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production'
-    ? (process.env.CORS_ORIGINS || '').split(',').filter(Boolean)
+    ? (origin, callback) => {
+        if (!origin) {
+          return callback(null, true);
+        }
+        if (productionCorsOrigins.includes(origin)) {
+          return callback(null, true);
+        }
+        return callback(null, false);
+      }
     : true,
   credentials: true
 };
