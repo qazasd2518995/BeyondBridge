@@ -15,6 +15,9 @@ const {
   listManagedCourseIds,
   backfillCourseOwnerLinks
 } = require('../utils/course-owner-links');
+const {
+  syncInviteClassMembersForCourse
+} = require('../utils/class-course-links');
 
 const TEACHING_ROLES = new Set([
   'manager',
@@ -466,6 +469,15 @@ async function buildCourseInsights(course, nowTs = Date.now(), preloadedData = n
     };
   }
 
+  if (!preloadedData) {
+    await syncInviteClassMembersForCourse(course).catch((error) => {
+      console.error('[TeacherAnalytics] Sync invite class members failed:', {
+        courseId,
+        error: error.message
+      });
+    });
+  }
+
   const analyticsData = preloadedData || await loadTeacherAnalyticsData([course]);
   const enrollments = analyticsData.enrollmentsByCourse.get(courseId) || [];
   const assignments = analyticsData.assignmentsByCourse.get(courseId) || [];
@@ -525,8 +537,8 @@ async function buildCourseInsights(course, nowTs = Date.now(), preloadedData = n
       if (!studentId) return null;
 
       const student = studentMap.get(studentId);
-      const studentName = student?.displayName || student?.email || studentId;
-      const studentEmail = student?.email || '';
+      const studentName = student?.displayName || enrollment.userName || student?.email || enrollment.userEmail || studentId;
+      const studentEmail = student?.email || enrollment.userEmail || '';
       const currentProgress = Number(enrollment.progressPercentage) || 0;
       const progressGap = avgProgress - currentProgress;
 
@@ -641,6 +653,17 @@ async function buildTeacherAnalyticsSnapshot(user, nowTs = Date.now()) {
       }
     };
   }
+
+  await Promise.all(courses.map(async (course) => {
+    try {
+      await syncInviteClassMembersForCourse(course);
+    } catch (error) {
+      console.error('[TeacherAnalytics] Snapshot sync failed:', {
+        courseId: course?.courseId,
+        error: error.message
+      });
+    }
+  }));
 
   const analyticsData = await loadTeacherAnalyticsData(courses);
   const weekAgoTs = nowTs - (7 * MS_PER_DAY);

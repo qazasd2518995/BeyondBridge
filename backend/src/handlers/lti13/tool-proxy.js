@@ -12,6 +12,11 @@ const { getItem, putItem, updateItem, query } = require('../../utils/db');
 const { generateId } = require('../../utils/db');
 const { invalidateGradebookSnapshots } = require('../../utils/gradebook-snapshots');
 const { syncLearningPathCourseStatus } = require('../../utils/learning-path-progress');
+const { tokenAuthMiddleware } = require('./token');
+const {
+  buildCourseToolAnalytics,
+  buildCourseToolStudentDetail
+} = require('../../utils/lti-tool-analytics');
 
 function clampProgress(value) {
   const numeric = Number(value);
@@ -359,6 +364,124 @@ router.get('/tools/:toolId/progress/:userId', async (req, res) => {
       success: false,
       error: 'GET_PROGRESS_ERROR',
       message: 'Failed to get progress'
+    });
+  }
+});
+
+/**
+ * GET /api/lti/13/tools/:toolId/courses/:courseId/stats
+ * 使用 Tool service token 讀取課程統計摘要
+ */
+router.get('/tools/:toolId/courses/:courseId/stats', tokenAuthMiddleware, async (req, res) => {
+  try {
+    const { toolId, courseId } = req.params;
+    if (req.toolId !== toolId) {
+      return res.status(403).json({
+        success: false,
+        error: 'TOOL_MISMATCH',
+        message: 'Token tool does not match route tool'
+      });
+    }
+
+    const analytics = await buildCourseToolAnalytics(toolId, courseId);
+    res.json({
+      success: true,
+      ...analytics.stats
+    });
+  } catch (error) {
+    const status = error.status || (error.message === 'COURSE_NOT_FOUND' ? 404 : 500);
+    res.status(status).json({
+      success: false,
+      error: error.message || 'TEACHER_STATS_FAILED',
+      message: status === 404 ? 'Course not found' : 'Failed to load teacher stats'
+    });
+  }
+});
+
+/**
+ * GET /api/lti/13/tools/:toolId/courses/:courseId/students
+ * 使用 Tool service token 讀取課程學生清單
+ */
+router.get('/tools/:toolId/courses/:courseId/students', tokenAuthMiddleware, async (req, res) => {
+  try {
+    const { toolId, courseId } = req.params;
+    if (req.toolId !== toolId) {
+      return res.status(403).json({
+        success: false,
+        error: 'TOOL_MISMATCH',
+        message: 'Token tool does not match route tool'
+      });
+    }
+
+    const analytics = await buildCourseToolAnalytics(toolId, courseId);
+    res.json({
+      success: true,
+      className: analytics.course.title || analytics.course.name || '課程',
+      students: analytics.students
+    });
+  } catch (error) {
+    const status = error.status || (error.message === 'COURSE_NOT_FOUND' ? 404 : 500);
+    res.status(status).json({
+      success: false,
+      error: error.message || 'TEACHER_STUDENTS_FAILED',
+      message: status === 404 ? 'Course not found' : 'Failed to load students'
+    });
+  }
+});
+
+/**
+ * GET /api/lti/13/tools/:toolId/courses/:courseId/analytics
+ * 使用 Tool service token 讀取課程分析圖表資料
+ */
+router.get('/tools/:toolId/courses/:courseId/analytics', tokenAuthMiddleware, async (req, res) => {
+  try {
+    const { toolId, courseId } = req.params;
+    if (req.toolId !== toolId) {
+      return res.status(403).json({
+        success: false,
+        error: 'TOOL_MISMATCH',
+        message: 'Token tool does not match route tool'
+      });
+    }
+
+    const analytics = await buildCourseToolAnalytics(toolId, courseId);
+    res.json({
+      success: true,
+      ...analytics.analytics
+    });
+  } catch (error) {
+    const status = error.status || (error.message === 'COURSE_NOT_FOUND' ? 404 : 500);
+    res.status(status).json({
+      success: false,
+      error: error.message || 'TEACHER_ANALYTICS_FAILED',
+      message: status === 404 ? 'Course not found' : 'Failed to load analytics'
+    });
+  }
+});
+
+/**
+ * GET /api/lti/13/tools/:toolId/courses/:courseId/students/:userId
+ * 使用 Tool service token 讀取單一學生詳情
+ */
+router.get('/tools/:toolId/courses/:courseId/students/:userId', tokenAuthMiddleware, async (req, res) => {
+  try {
+    const { toolId, courseId, userId } = req.params;
+    if (req.toolId !== toolId) {
+      return res.status(403).json({
+        success: false,
+        error: 'TOOL_MISMATCH',
+        message: 'Token tool does not match route tool'
+      });
+    }
+
+    const detail = await buildCourseToolStudentDetail(toolId, courseId, userId);
+    res.json(detail);
+  } catch (error) {
+    const status = error.status || (error.message === 'COURSE_NOT_FOUND' || error.message === 'STUDENT_NOT_FOUND' ? 404 : 500);
+    res.status(status).json({
+      success: false,
+      error: error.message || 'TEACHER_STUDENT_DETAIL_FAILED',
+      message: status === 404 ? 'Student or course not found' : 'Failed to load student detail'
     });
   }
 });

@@ -2,6 +2,17 @@ const db = require('./db');
 const { canManageCourse } = require('./course-access');
 const { invalidateGradebookSnapshots } = require('./gradebook-snapshots');
 
+const TEACHING_ROLES = new Set([
+  'manager',
+  'coursecreator',
+  'educator',
+  'trainer',
+  'creator',
+  'teacher',
+  'assistant',
+  'instructor'
+]);
+
 function normalizeText(value = '') {
   return String(value || '')
     .trim()
@@ -51,11 +62,29 @@ async function generateUniqueInviteCode(maxAttempts = 12) {
 }
 
 function buildUserProfileForEnrollment(user = {}, fallback = {}) {
+  const normalizedRole = String(
+    user.role ||
+    user.courseRole ||
+    fallback.role ||
+    fallback.courseRole ||
+    'student'
+  ).trim().toLowerCase();
   return {
     userId: user.userId || fallback.userId || null,
-    displayName: user.displayName || fallback.displayName || '學生',
-    email: user.email || fallback.email || null
+    displayName: user.displayName || user.userName || user.name || fallback.displayName || fallback.userName || '學生',
+    email: user.email || user.userEmail || fallback.email || fallback.userEmail || null,
+    role: normalizedRole || 'student'
   };
+}
+
+function isActiveLearnerMember(member = {}) {
+  const status = String(member.status || 'active').trim().toLowerCase();
+  if (status === 'removed' || status === 'inactive') {
+    return false;
+  }
+
+  const role = String(member.role || member.courseRole || 'student').trim().toLowerCase();
+  return !TEACHING_ROLES.has(role);
 }
 
 async function resolveLinkedCourseForClass(classData, { persist = true } = {}) {
@@ -123,8 +152,11 @@ async function createCourseProgressEnrollment(course, userProfile, now = new Dat
     createdAt: now,
 
     userId: userProfile.userId,
+    userName: userProfile.displayName || '學生',
+    userEmail: userProfile.email || null,
     courseId: course.courseId,
     courseTitle: course.title || course.name || '',
+    role: String(userProfile.role || 'student').trim().toLowerCase() || 'student',
     status: 'in_progress',
     progressPercentage: 0,
     completedActivities: [],
@@ -142,6 +174,7 @@ async function createCourseProgressEnrollment(course, userProfile, now = new Dat
   await db.updateItem(`COURSE#${course.courseId}`, 'META', {
     enrollmentCount: (course.enrollmentCount || 0) + 1
   });
+  course.enrollmentCount = (course.enrollmentCount || 0) + 1;
   await invalidateGradebookSnapshots(course.courseId);
   await db.logActivity(userProfile.userId, 'course_enrolled', 'course', course.courseId, {
     courseTitle: course.title || course.name || ''
@@ -160,6 +193,52 @@ async function enrollUserIntoClassLinkedCourse(classData, userProfile, options =
   const course = await resolveLinkedCourseForClass(classData, options);
   if (!course) return null;
   return createCourseProgressEnrollment(course, buildUserProfileForEnrollment(userProfile), options.now || new Date().toISOString());
+}
+
+async function syncClassMembersToLinkedCourse(classData, options = {}) {
+  if (!classData?.classId) {
+    return {
+      courseId: null,
+      classId: classData?.classId || null,
+      syncedCount: 0
+    };
+  }
+
+  const course = await resolveLinkedCourseForClass(classData, options);
+  if (!course?.courseId) {
+    return {
+      courseId: null,
+      classId: classData.classId,
+      syncedCount: 0
+    };
+  }
+
+  const members = await db.query(`CLASS#${classData.classId}`, { skPrefix: 'MEMBER#' });
+  const learnerMembers = members.filter(isActiveLearnerMember);
+  const now = options.now || new Date().toISOString();
+  let syncedCount = 0;
+
+  for (const member of learnerMembers) {
+    try {
+      const result = await createCourseProgressEnrollment(course, buildUserProfileForEnrollment(member), now);
+      if (result?.enrolled) {
+        syncedCount += 1;
+      }
+    } catch (error) {
+      console.error('[ClassCourseLinks] Sync class member to course failed:', {
+        classId: classData.classId,
+        courseId: course.courseId,
+        userId: member?.userId,
+        error: error.message
+      });
+    }
+  }
+
+  return {
+    courseId: course.courseId,
+    classId: classData.classId,
+    syncedCount
+  };
 }
 
 async function findInviteClassForCourse(courseId) {
@@ -199,6 +278,27 @@ async function findLegacyInviteClassForCourse(course) {
     !getExplicitCourseId(item) &&
     normalizeText(item.name || item.className || '') === normalizedTitle
   )) || null;
+}
+
+async function findLinkedOrLegacyInviteClassForCourse(course) {
+  if (!course?.courseId) return null;
+
+  const existing = await findInviteClassForCourse(course.courseId);
+  if (existing) return existing;
+
+  const legacyClass = await findLegacyInviteClassForCourse(course);
+  if (!legacyClass?.classId) return null;
+
+  if (legacyClass.courseId === course.courseId) {
+    return legacyClass;
+  }
+
+  const updatedClass = await db.updateItem(`CLASS#${legacyClass.classId}`, 'META', {
+    courseId: course.courseId,
+    courseTitle: course.title || course.name || '',
+    updatedAt: new Date().toISOString()
+  });
+  return updatedClass;
 }
 
 async function ensureInviteClassForCourse(course, teacherUser) {
@@ -253,6 +353,27 @@ async function ensureInviteClassForCourse(course, teacherUser) {
   return inviteClass;
 }
 
+async function syncInviteClassMembersForCourse(course, options = {}) {
+  if (!course?.courseId) {
+    return {
+      courseId: null,
+      classId: null,
+      syncedCount: 0
+    };
+  }
+
+  const inviteClass = await findLinkedOrLegacyInviteClassForCourse(course);
+  if (!inviteClass?.classId) {
+    return {
+      courseId: course.courseId,
+      classId: null,
+      syncedCount: 0
+    };
+  }
+
+  return syncClassMembersToLinkedCourse(inviteClass, options);
+}
+
 module.exports = {
   buildUserProfileForEnrollment,
   createCourseProgressEnrollment,
@@ -261,5 +382,7 @@ module.exports = {
   findInviteClassForCourse,
   generateInviteCode,
   generateUniqueInviteCode,
-  resolveLinkedCourseForClass
+  resolveLinkedCourseForClass,
+  syncClassMembersToLinkedCourse,
+  syncInviteClassMembersForCourse
 };

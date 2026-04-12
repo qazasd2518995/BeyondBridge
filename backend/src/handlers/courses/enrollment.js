@@ -8,6 +8,7 @@ const router = express.Router();
 const db = require('../../utils/db');
 const { authMiddleware } = require('../../utils/auth');
 const { invalidateGradebookSnapshots } = require('../../utils/gradebook-snapshots');
+const { syncInviteClassMembersForCourse } = require('../../utils/class-course-links');
 
 function canManageCourse(course, user) {
   if (!course || !user) return false;
@@ -225,6 +226,13 @@ router.get('/:id/participants', authMiddleware, async (req, res) => {
       });
     }
 
+    await syncInviteClassMembersForCourse(course).catch((error) => {
+      console.error('[CourseParticipants] Sync invite class members failed:', {
+        courseId: id,
+        error: error.message
+      });
+    });
+
     // 查詢已報名的用戶
     const enrollments = await db.queryByIndex(
       'GSI1',
@@ -237,22 +245,19 @@ router.get('/:id/participants', authMiddleware, async (req, res) => {
     const participants = await Promise.all(
       enrollments.map(async (e) => {
         const user = await db.getUser(e.userId);
-        if (user) {
-          const participant = {
-            userId: e.userId,
-            displayName: user.displayName,
-            role: 'student',
-            enrolledAt: e.enrolledAt
-          };
-          if (canManage) {
-            participant.email = user.email;
-            participant.lastAccess = e.lastAccessedAt;
-            participant.progress = e.progressPercentage;
-            participant.status = e.status;
-          }
-          return participant;
+        const participant = {
+          userId: e.userId,
+          displayName: user?.displayName || e.userName || e.userId,
+          role: 'student',
+          enrolledAt: e.enrolledAt
+        };
+        if (canManage) {
+          participant.email = user?.email || e.userEmail;
+          participant.lastAccess = e.lastAccessedAt;
+          participant.progress = e.progressPercentage;
+          participant.status = e.status;
         }
-        return null;
+        return participant;
       })
     );
 
