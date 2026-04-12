@@ -774,7 +774,7 @@ router.post('/:id/announcements', authMiddleware, async (req, res) => {
         const notifId = db.generateId('notif');
         return db.putItem({
           PK: `USER#${studentId}`,
-          SK: `NOTIF#${now}#${notifId}`,
+          SK: `NOTIFICATION#${now}#${notifId}`,
           entityType: 'NOTIFICATION',
           notificationId: notifId,
           userId: studentId,
