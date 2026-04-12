@@ -186,7 +186,7 @@ async function main() {
     activityId, courseId, sectionId: '02', type: 'url',
     title: '金門語學習平台',
     description: '互動式金門語學習平台，包含發音練習、日常對話及文化介紹。',
-    url: 'https://kinmen-learning-platform.vercel.app',
+    url: 'https://kinmen-learning-platfrom.vercel.app',
     order: 1, visible: true, availability: {}, completion: { type: 'view' },
     stats: { views: 0, completions: 0 }, createdAt: now, updatedAt: now
   });
@@ -233,7 +233,7 @@ async function main() {
   console.log('════════════════════════════════════════════');
   console.log(`  課程 ID:    ${courseId}`);
   console.log(`  課程名稱:   ${COURSE_TITLE}`);
-  console.log(`  學習平台:   https://kinmen-learning-platform.vercel.app`);
+  console.log(`  學習平台:   https://kinmen-learning-platfrom.vercel.app`);
   console.log(`  授權老師:   ${demoUser.displayName} (${DEMO_EMAIL})`);
   console.log('════════════════════════════════════════════\n');
 }
