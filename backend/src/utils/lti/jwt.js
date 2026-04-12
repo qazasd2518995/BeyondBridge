@@ -133,6 +133,7 @@ async function createResourceLinkJwt(options) {
     tool,
     user,
     course,
+    baseUrl,
     resourceLink,
     customParams = {},
     includeAgs = true,
@@ -142,7 +143,7 @@ async function createResourceLinkJwt(options) {
   const signingKey = await getCurrentSigningKey();
   const privateKey = await importPKCS8(signingKey.privateKey, 'RS256');
 
-  const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+  const resolvedBaseUrl = baseUrl || process.env.BASE_URL || 'http://localhost:3000';
   const nonce = generateNonce();
   const now = Math.floor(Date.now() / 1000);
 
@@ -203,7 +204,7 @@ async function createResourceLinkJwt(options) {
     // Launch presentation
     [LTI_CLAIMS.LAUNCH_PRESENTATION]: {
       document_target: tool.launchContainer === 'embed' ? 'iframe' : 'window',
-      return_url: `${baseUrl}/platform`,
+      return_url: `${resolvedBaseUrl}/platform`,
       locale: user.locale || 'zh-TW'
     },
 
@@ -222,7 +223,7 @@ async function createResourceLinkJwt(options) {
         'https://purl.imsglobal.org/spec/lti-ags/scope/result.readonly',
         'https://purl.imsglobal.org/spec/lti-ags/scope/score'
       ],
-      lineitems: `${baseUrl}/api/lti/13/ags/courses/${course?.courseId || 'default'}/lineitems`
+      lineitems: `${resolvedBaseUrl}/api/lti/13/ags/courses/${course?.courseId || 'default'}/lineitems`
     };
   }
 
@@ -250,6 +251,7 @@ async function createDeepLinkingJwt(options) {
     tool,
     user,
     course,
+    baseUrl,
     returnUrl,
     acceptTypes = ['ltiResourceLink'],
     acceptPresentationDocumentTargets = ['iframe', 'window'],
@@ -259,7 +261,7 @@ async function createDeepLinkingJwt(options) {
   const signingKey = await getCurrentSigningKey();
   const privateKey = await importPKCS8(signingKey.privateKey, 'RS256');
 
-  const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+  const resolvedBaseUrl = baseUrl || process.env.BASE_URL || 'http://localhost:3000';
   const nonce = generateNonce();
   const now = Math.floor(Date.now() / 1000);
 
@@ -298,7 +300,7 @@ async function createDeepLinkingJwt(options) {
     },
 
     [LTI_CLAIMS.DEEP_LINKING_SETTINGS]: {
-      deep_link_return_url: returnUrl || `${baseUrl}/api/lti/13/dl/callback`,
+      deep_link_return_url: returnUrl || `${resolvedBaseUrl}/api/lti/13/dl/callback`,
       accept_types: acceptTypes,
       accept_presentation_document_targets: acceptPresentationDocumentTargets,
       accept_multiple: acceptMultiple,

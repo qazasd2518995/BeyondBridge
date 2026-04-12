@@ -20,6 +20,15 @@ const {
   LTI_MESSAGE_TYPES
 } = require('../../utils/lti/jwt');
 
+async function getCourseForLaunch(courseId) {
+  if (!courseId) return null;
+  return (
+    await getItem(`COURSE#${courseId}`, 'META')
+  ) || (
+    await getItem(`COURSE#${courseId}`, 'INFO')
+  ) || null;
+}
+
 /**
  * GET/POST /api/lti/13/initiate
  * 啟動 LTI 1.3 OIDC 登入流程
@@ -90,10 +99,7 @@ router.all('/initiate', (req, res, next) => {
     }
 
     // 取得課程資訊（如果有）
-    let course = null;
-    if (finalCourseId) {
-      course = await getItem(`COURSE#${finalCourseId}`, 'INFO');
-    }
+    const course = await getCourseForLaunch(finalCourseId);
 
     // 生成 OIDC 狀態參數
     const state = generateState();
@@ -264,10 +270,8 @@ router.all('/authorize', async (req, res) => {
     }
 
     // 取得課程資訊
-    let course = null;
-    if (messageHint.courseId) {
-      course = await getItem(`COURSE#${messageHint.courseId}`, 'INFO');
-    }
+    const course = await getCourseForLaunch(messageHint.courseId);
+    const requestBaseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
 
     // 決定 message type
     const messageType = messageHint.messageType || 'LtiResourceLinkRequest';
@@ -279,13 +283,15 @@ router.all('/authorize', async (req, res) => {
         tool,
         user,
         course,
-        returnUrl: `${process.env.BASE_URL || `${req.protocol}://${req.get('host')}`}/api/lti/13/dl/callback`
+        baseUrl: requestBaseUrl,
+        returnUrl: `${requestBaseUrl}/api/lti/13/dl/callback`
       });
     } else {
       jwtResult = await createResourceLinkJwt({
         tool,
         user,
         course,
+        baseUrl: requestBaseUrl,
         resourceLink: {
           id: messageHint.resourceId || `resource_${tool.toolId}`,
           title: tool.name
