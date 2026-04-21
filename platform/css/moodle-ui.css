@@ -1575,6 +1575,287 @@
   padding-top: 0.35rem;
 }
 
+.activity-builder-shell {
+  gap: 1.1rem;
+}
+
+.activity-builder-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.activity-builder-shortcut {
+  position: relative;
+  border-style: dashed;
+}
+
+.activity-builder-shortcut::after {
+  content: '';
+  position: absolute;
+  inset: auto 1.2rem 1.2rem auto;
+  width: 52px;
+  height: 52px;
+  border-radius: 18px;
+  background: radial-gradient(circle, rgba(87, 109, 72, 0.16), transparent 72%);
+  pointer-events: none;
+}
+
+.builder-toolbar,
+.builder-summary-row,
+.builder-badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.builder-toolbar {
+  margin-bottom: 1rem;
+}
+
+.builder-summary-row {
+  margin-bottom: 0.95rem;
+}
+
+.builder-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.72rem;
+  border-radius: 999px;
+  border: 1px solid rgba(87, 109, 72, 0.18);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--charcoal);
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.builder-kv-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.9rem;
+  margin-top: 1rem;
+}
+
+.builder-kv-card {
+  padding: 1rem 1.05rem;
+  border-radius: 18px;
+  border: 1px solid rgba(26, 58, 92, 0.08);
+  background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248,245,239,0.92));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.72);
+}
+
+.builder-kv-card .label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--gray-500);
+}
+
+.builder-kv-card .value {
+  display: block;
+  margin-top: 0.28rem;
+  color: var(--charcoal);
+  font-size: 1rem;
+}
+
+.builder-kv-card p {
+  margin: 0.45rem 0 0;
+  color: var(--gray-500);
+  line-height: 1.6;
+  font-size: 0.86rem;
+}
+
+.builder-checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.8rem;
+  margin-top: 1rem;
+}
+
+.builder-checkbox-grid .checkbox-label {
+  min-width: 0;
+  align-items: flex-start;
+  gap: 0.72rem;
+  padding: 0.9rem 1rem;
+  border-radius: 18px;
+  border: 1px solid rgba(26, 58, 92, 0.08);
+  background: rgba(255,255,255,0.84);
+}
+
+.builder-checkbox-grid .checkbox-label span {
+  line-height: 1.55;
+}
+
+.builder-question-list,
+.quiz-bank-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.builder-question-empty {
+  padding: 1.2rem;
+  border-radius: 20px;
+  border: 1px dashed rgba(87, 109, 72, 0.22);
+  background: rgba(255,255,255,0.72);
+  text-align: center;
+  color: var(--gray-500);
+}
+
+.builder-question-empty strong {
+  display: block;
+  color: var(--charcoal);
+  font-size: 1rem;
+}
+
+.builder-question-empty p {
+  margin: 0.45rem 0 0;
+  line-height: 1.6;
+}
+
+.builder-question-card {
+  padding: 1.05rem 1.15rem;
+  border-radius: 20px;
+  border: 1px solid rgba(26, 58, 92, 0.08);
+  background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248,245,239,0.92));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.74);
+}
+
+.builder-question-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.builder-question-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.42rem;
+  min-width: 0;
+}
+
+.builder-question-copy h4 {
+  margin: 0;
+  color: var(--charcoal);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.builder-question-copy p {
+  margin: 0;
+  color: var(--gray-500);
+  line-height: 1.6;
+  font-size: 0.88rem;
+}
+
+.builder-question-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.builder-option-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.7rem;
+  align-items: center;
+  margin-bottom: 0.7rem;
+}
+
+.builder-option-row input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--olive);
+}
+
+.builder-option-row .option-input {
+  width: 100%;
+}
+
+.builder-option-row .btn-remove {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.26);
+  background: rgba(255,255,255,0.92);
+  color: var(--gray-500);
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.builder-option-row .btn-remove:hover {
+  border-color: rgba(185, 28, 28, 0.22);
+  color: var(--terracotta);
+  background: rgba(254, 242, 242, 0.98);
+}
+
+.quiz-bank-list {
+  max-height: 52vh;
+  overflow: auto;
+  padding-right: 0.15rem;
+}
+
+.quiz-bank-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.9rem;
+  padding: 1rem 1.05rem;
+  border-radius: 20px;
+  border: 1px solid rgba(26, 58, 92, 0.08);
+  background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248,245,239,0.92));
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.quiz-bank-item:hover {
+  transform: translateY(-1px);
+  border-color: rgba(87, 109, 72, 0.24);
+  box-shadow: 0 14px 24px rgba(15, 23, 42, 0.06);
+}
+
+.quiz-bank-item-check {
+  padding-top: 0.2rem;
+}
+
+.quiz-bank-item-check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--olive);
+}
+
+.quiz-bank-item-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.36rem;
+}
+
+.quiz-bank-item-copy h4 {
+  margin: 0;
+  color: var(--charcoal);
+  font-size: 0.98rem;
+  line-height: 1.5;
+}
+
+.quiz-bank-item-copy p {
+  margin: 0;
+  color: var(--gray-500);
+  line-height: 1.6;
+  font-size: 0.86rem;
+}
+
+.assignment-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
 .inline-form-row {
   display: flex;
   gap: 0.5rem;
@@ -3086,6 +3367,37 @@
 
 /* ==================== 響應式設計 ==================== */
 @media (max-width: 768px) {
+  .activity-builder-grid,
+  .builder-checkbox-grid,
+  .assignment-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .builder-toolbar,
+  .builder-question-actions,
+  .builder-question-top {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .builder-toolbar .btn-secondary,
+  .builder-toolbar .btn-primary,
+  .builder-question-actions .btn-sm,
+  .builder-question-actions .btn-primary,
+  .builder-question-actions .btn-secondary,
+  .builder-question-actions .btn-danger {
+    width: 100%;
+  }
+
+  .builder-option-row,
+  .quiz-bank-item {
+    grid-template-columns: 1fr;
+  }
+
+  .quiz-bank-item-check {
+    padding-top: 0;
+  }
+
   .inline-form-row,
   .form-actions,
   .modal-header-actions {
@@ -15196,4 +15508,175 @@
   .section-card-actions {
     width: 100%;
   }
+}
+
+/* === Assignment draft indicator === */
+.assignment-draft-indicator {
+  font-size: 0.8rem;
+  color: rgba(26, 58, 92, 0.5);
+  min-height: 1.1em;
+  transition: color 150ms ease;
+}
+.assignment-draft-indicator[data-state="saving"] { color: rgba(74, 124, 89, 0.8); }
+.assignment-draft-indicator[data-state="saved"]  { color: var(--olive, #4A7C59); }
+.assignment-draft-indicator[data-state="error"]  { color: #B94A48; }
+
+/* === Grading modal === */
+.grading-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.grading-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(26, 58, 92, 0.08);
+}
+.grading-modal-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.grading-modal-section label {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--charcoal);
+}
+.grading-modal-section input[type="number"],
+.grading-modal-section textarea {
+  padding: 0.6rem 0.8rem;
+  border: 1px solid rgba(26, 58, 92, 0.12);
+  border-radius: 10px;
+  font: inherit;
+  background: rgba(255,255,255,0.96);
+}
+.rubric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.6rem;
+}
+.rubric-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.5rem;
+  background: rgba(245, 241, 232, 0.5);
+  border-radius: 8px;
+}
+.rubric-row label {
+  font-size: 0.82rem;
+  color: rgba(26, 58, 92, 0.75);
+}
+.rubric-row .rubric-score-input {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid rgba(26, 58, 92, 0.12);
+  border-radius: 6px;
+  font: inherit;
+}
+.assignment-file-empty {
+  padding: 0.6rem;
+  font-size: 0.85rem;
+  color: rgba(26, 58, 92, 0.5);
+  font-style: italic;
+}
+
+/* === PDF annotator === */
+.pdf-annotator {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+  border: 1px solid rgba(26, 58, 92, 0.12);
+  border-radius: 10px;
+  padding: 0.6rem;
+  background: rgba(245, 241, 232, 0.35);
+}
+.pdf-annotator-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+.pdf-annotator-tools {
+  display: flex;
+  gap: 0.3rem;
+}
+.pdf-tool-btn {
+  padding: 0.35rem 0.65rem;
+  font-size: 0.82rem;
+  border: 1px solid rgba(26, 58, 92, 0.18);
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+}
+.pdf-tool-btn.is-active {
+  background: var(--olive, #4A7C59);
+  color: #fff;
+  border-color: var(--olive, #4A7C59);
+}
+.pdf-annotator-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+}
+.pdf-annotator-stage {
+  display: grid;
+  grid-template-columns: 1fr 220px;
+  gap: 0.6rem;
+}
+@media (max-width: 760px) {
+  .pdf-annotator-stage { grid-template-columns: 1fr; }
+}
+.pdf-annotator-canvas-wrap {
+  position: relative;
+  max-height: 520px;
+  overflow: auto;
+  background: #fff;
+  border: 1px solid rgba(26, 58, 92, 0.1);
+  border-radius: 6px;
+}
+.pdf-annotator-canvas-wrap canvas {
+  display: block;
+}
+.pdf-overlay-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  cursor: crosshair;
+}
+.pdf-annotator-sidebar {
+  background: #fff;
+  border: 1px solid rgba(26, 58, 92, 0.1);
+  border-radius: 6px;
+  padding: 0.55rem;
+  max-height: 520px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.pdf-annotator-sidebar-title {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--charcoal);
+}
+.pdf-annotator-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.4rem;
+  padding: 0.4rem;
+  border-radius: 6px;
+  background: rgba(245, 241, 232, 0.5);
+  font-size: 0.82rem;
+}
+.pdf-annotator-empty {
+  font-style: italic;
+  color: rgba(26, 58, 92, 0.5);
+  font-size: 0.82rem;
+  padding: 0.3rem;
 }

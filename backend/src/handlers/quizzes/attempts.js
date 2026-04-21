@@ -6,7 +6,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../../utils/db');
-const { authMiddleware } = require('../../utils/auth');
+const { authMiddleware, hashPassword, verifyPassword } = require('../../utils/auth');
 const { canManageCourse } = require('../../utils/course-access');
 const { invalidateGradebookSnapshots } = require('../../utils/gradebook-snapshots');
 const { syncCourseCertificates } = require('../../utils/certificates');
@@ -297,7 +297,7 @@ router.post('/:id/attempts/:attemptId/submit', authMiddleware, async (req, res) 
 
     const now = new Date().toISOString();
 
-    // 更新作答記錄
+    // 更新作答記錄（conditional write 防止併發重複提交）
     const updates = {
       answers: allAnswers,
       score,
@@ -310,7 +310,22 @@ router.post('/:id/attempts/:attemptId/submit', authMiddleware, async (req, res) 
       updatedAt: now
     };
 
-    await db.updateItem(`QUIZ#${id}`, attempt.SK, updates);
+    try {
+      await db.updateItem(`QUIZ#${id}`, attempt.SK, updates, {
+        conditionExpression: '#status = :inProgress',
+        conditionAttributeNames: { '#status': 'status' },
+        conditionAttributeValues: { ':inProgress': 'in_progress' }
+      });
+    } catch (error) {
+      if (error.name === 'ConditionalCheckFailedException') {
+        return res.status(409).json({
+          success: false,
+          error: 'ATTEMPT_ALREADY_SUBMITTED',
+          message: '此作答已被提交，請重新整理以查看結果'
+        });
+      }
+      throw error;
+    }
 
     // 更新測驗統計
     const allAttempts = await db.query(`QUIZ#${id}`, { skPrefix: 'ATTEMPT#' });
@@ -620,7 +635,7 @@ router.put('/:id/settings/anti-cheat', authMiddleware, async (req, res) => {
     };
 
     if (requirePassword && quizPassword) {
-      updates.quizPassword = quizPassword;
+      updates.quizPassword = await hashPassword(String(quizPassword));
     } else if (requirePassword === false) {
       updates.quizPassword = null;
     }
@@ -834,12 +849,27 @@ router.post('/:id/verify-password', authMiddleware, async (req, res) => {
       });
     }
 
-    if (password !== quiz.quizPassword) {
+    const isBcryptHash = typeof quiz.quizPassword === 'string' && quiz.quizPassword.startsWith('$2');
+    const matches = isBcryptHash
+      ? await verifyPassword(String(password || ''), quiz.quizPassword)
+      : password === quiz.quizPassword;
+
+    if (!matches) {
       return res.status(401).json({
         success: false,
         error: 'INVALID_PASSWORD',
         message: '密碼錯誤'
       });
+    }
+
+    if (matches && !isBcryptHash) {
+      try {
+        await db.updateItem(`QUIZ#${id}`, 'META', {
+          quizPassword: await hashPassword(String(password))
+        });
+      } catch (upgradeError) {
+        console.warn('Upgrade legacy quiz password hash failed:', upgradeError.message);
+      }
     }
 
     res.json({

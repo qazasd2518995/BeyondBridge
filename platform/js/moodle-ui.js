@@ -12,6 +12,11 @@ const MoodleUI = {
   currentAssignmentCourseId: null,
   currentQuizCourseId: null,
   currentForumCourseId: null,
+  currentAssignmentBuilderState: null,
+  currentQuizBuilderState: null,
+  currentForumBuilderState: null,
+  currentQuizQuestionEditorState: null,
+  currentQuizQuestionBankPicker: null,
   currentAssignmentDetail: null,
   assignmentSubmissionDraft: null,
   currentViewedAssignmentSubmission: null,
@@ -508,6 +513,11 @@ const MoodleUI = {
   normalizeAssignmentSubmissionType(type) {
     if (type === 'online_text') return 'text';
     return type || 'text';
+  },
+
+  toDateTimeLocalValue(value) {
+    if (!value) return '';
+    return String(value).slice(0, 16);
   },
 
   extractAssignmentFileId(file = {}) {
@@ -5063,6 +5073,7 @@ const MoodleUI = {
    */
   selectActivityType(type, triggerEl = null) {
     this.selectedActivityType = type;
+    const isRichBuilderType = ['assignment', 'quiz', 'forum'].includes(type);
 
     // 高亮選中的卡片
     document.querySelectorAll('.activity-type-card').forEach(card => card.classList.remove('selected'));
@@ -5073,6 +5084,14 @@ const MoodleUI = {
     const footer = document.getElementById('activityModalFooter');
     formArea.hidden = false;
     footer.hidden = false;
+    formArea.dataset.selectedType = type;
+    const footerPrimaryButton = footer.querySelector('.btn-primary');
+    if (footerPrimaryButton) {
+      footerPrimaryButton.dataset.selectedType = type;
+      footerPrimaryButton.textContent = isRichBuilderType
+      ? (I18n.getLocale() === 'en' ? 'Continue setup' : '繼續設定')
+      : t('moodleCourse.addActivity');
+    }
 
     // 根據類型顯示不同表單
     formArea.innerHTML = this.getActivityForm(type);
@@ -5163,59 +5182,51 @@ const MoodleUI = {
           ${this.buildInteractiveVideoPromptEditor('')}
         `;
       case 'assignment':
-        return commonFields + `
-          <div class="form-row">
-            <div class="form-group">
-              <label>${t('moodleAddActivity.dueDateLabel')}</label>
-              <input type="datetime-local" id="assignmentDueDate">
-            </div>
-            <div class="form-group">
-              <label>${t('moodleAddActivity.scoreLabel')}</label>
-              <input type="number" id="assignmentPoints" value="100" min="0">
-            </div>
-          </div>
-          <div class="form-group">
-            <label>${t('moodleAddActivity.submitTypeLabel')}</label>
-            <select id="submissionType">
-              <option value="online_text">${t('moodleAddActivity.submitTypeText')}</option>
-              <option value="file">${t('moodleAddActivity.submitTypeFile')}</option>
-              <option value="both">${t('moodleAddActivity.submitTypeBoth')}</option>
-            </select>
+        return `
+          <div class="quiz-create-shell">
+            <section class="quiz-create-card quiz-create-card-primary activity-builder-shortcut">
+              <div class="quiz-create-card-head">
+                <div>
+                  <div class="quiz-create-card-kicker">${I18n.getLocale() === 'en' ? 'Assignment builder' : '作業完整設定'}</div>
+                  <div class="quiz-create-card-title">${I18n.getLocale() === 'en' ? 'Continue to the full assignment builder' : '下一步進入完整作業 builder'}</div>
+                  <p class="quiz-create-card-note">${I18n.getLocale() === 'en'
+                    ? 'You will define the task brief, deadlines, grading rules, submission format, and rubric in the next step.'
+                    : '下一步會設定作業內容、截止時間、評分規則、提交方式與評分規準。'}</p>
+                </div>
+              </div>
+            </section>
           </div>
         `;
       case 'quiz':
-        return commonFields + `
-          <div class="form-row">
-            <div class="form-group">
-              <label>${t('moodleAddActivity.startTimeLabel')}</label>
-              <input type="datetime-local" id="quizOpenDate">
-            </div>
-            <div class="form-group">
-              <label>${t('moodleAddActivity.endTimeLabel')}</label>
-              <input type="datetime-local" id="quizCloseDate">
-            </div>
+        return `
+          <div class="quiz-create-shell">
+            <section class="quiz-create-card quiz-create-card-primary activity-builder-shortcut">
+              <div class="quiz-create-card-head">
+                <div>
+                  <div class="quiz-create-card-kicker">${I18n.getLocale() === 'en' ? 'Quiz builder' : '測驗完整設定'}</div>
+                  <div class="quiz-create-card-title">${I18n.getLocale() === 'en' ? 'Continue to the quiz builder' : '下一步進入測驗 builder'}</div>
+                  <p class="quiz-create-card-note">${I18n.getLocale() === 'en'
+                    ? 'The next step includes schedule, result visibility, and the actual question set instead of creating an empty quiz shell.'
+                    : '下一步會設定測驗時間、結果公布方式與實際題目，不再只是建立空白測驗外殼。'}</p>
+                </div>
+              </div>
+            </section>
           </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label>${t('moodleAddActivity.timeLimitLabel')}</label>
-              <input type="number" id="quizTimeLimit" value="60" min="0">
-            </div>
-            <div class="form-group">
-              <label>${t('moodleAddActivity.attemptsLabel')}</label>
-              <input type="number" id="quizAttempts" value="1" min="0">
-            </div>
-          </div>
-          <p class="form-hint">${t('moodleAddActivity.quizHint')}</p>
         `;
       case 'forum':
-        return commonFields + `
-          <div class="form-group">
-            <label>${t('moodleAddActivity.forumTypeLabel')}</label>
-            <select id="forumType">
-              <option value="general">${t('moodleAddActivity.forumTypeGeneral')}</option>
-              <option value="qanda">${t('moodleAddActivity.forumTypeQA')}</option>
-              <option value="news">${t('moodleAddActivity.forumTypeNews')}</option>
-            </select>
+        return `
+          <div class="quiz-create-shell">
+            <section class="quiz-create-card quiz-create-card-primary activity-builder-shortcut">
+              <div class="quiz-create-card-head">
+                <div>
+                  <div class="quiz-create-card-kicker">${I18n.getLocale() === 'en' ? 'Forum builder' : '討論區完整設定'}</div>
+                  <div class="quiz-create-card-title">${I18n.getLocale() === 'en' ? 'Continue to the forum builder' : '下一步進入討論區 builder'}</div>
+                  <p class="quiz-create-card-note">${I18n.getLocale() === 'en'
+                    ? 'Set forum rules, subscription policy, attachment limits, and optionally publish the first discussion thread.'
+                    : '下一步會設定論壇規則、訂閱模式、附件限制，還能直接發布第一個討論主題。'}</p>
+                </div>
+              </div>
+            </section>
           </div>
         `;
       case 'lti':
@@ -5248,6 +5259,24 @@ const MoodleUI = {
    * 提交新增活動
    */
   async submitAddActivity(courseId, sectionId) {
+    const modalSelectedType = document.getElementById('activityFormArea')?.dataset.selectedType
+      || document.querySelector('#activityModalFooter .btn-primary')?.dataset.selectedType
+      || this.selectedActivityType;
+
+    this.selectedActivityType = modalSelectedType || this.selectedActivityType;
+
+    if (['assignment', 'quiz', 'forum'].includes(modalSelectedType)) {
+      this.closeModal('addActivityModal');
+      if (modalSelectedType === 'assignment') {
+        await this.openAssignmentBuilderModal({ courseId, sectionId, returnTo: 'course' });
+      } else if (modalSelectedType === 'quiz') {
+        await this.openQuizBuilderModal({ courseId, sectionId, returnTo: 'course' });
+      } else {
+        await this.openForumBuilderModal({ courseId, sectionId, returnTo: 'course' });
+      }
+      return;
+    }
+
     const name = document.getElementById('activityName')?.value.trim();
     const description = document.getElementById('activityDescription')?.value.trim();
 
@@ -5443,6 +5472,21 @@ const MoodleUI = {
     if (modalId === 'addActivityModal') {
       this.selectedActivityType = null;
     }
+    if (modalId === 'assignmentBuilderModal') {
+      this.currentAssignmentBuilderState = null;
+    }
+    if (modalId === 'quizBuilderModal') {
+      this.currentQuizBuilderState = null;
+    }
+    if (modalId === 'forumBuilderModal') {
+      this.currentForumBuilderState = null;
+    }
+    if (modalId === 'quizQuestionEditorModal') {
+      this.currentQuizQuestionEditorState = null;
+    }
+    if (modalId === 'quizQuestionBankModal') {
+      this.currentQuizQuestionBankPicker = null;
+    }
     if (modalId === 'ltiLaunchModal') {
       window.removeEventListener('message', this.handleLtiMessage);
       this.currentLtiLaunchUrl = null;
@@ -5608,6 +5652,26 @@ const MoodleUI = {
       social: { label: '社交交流', className: 'type-social' }
     };
     return map[type] || { label: type || '一般討論', className: 'type-general' };
+  },
+
+  getForumModeLabel(mode = 'standard') {
+    const isEnglish = I18n.getLocale() === 'en';
+    const map = {
+      standard: isEnglish ? 'Standard forum' : '一般論壇',
+      single: isEnglish ? 'Single discussion thread' : '單一討論串'
+    };
+    return map[mode] || mode || (isEnglish ? 'Standard forum' : '一般論壇');
+  },
+
+  getForumSubscriptionModeLabel(mode = 'optional') {
+    const isEnglish = I18n.getLocale() === 'en';
+    const map = {
+      optional: isEnglish ? 'Optional subscription' : '自由訂閱',
+      forced: isEnglish ? 'Forced subscription' : '強制訂閱',
+      auto: isEnglish ? 'Auto subscribe' : '自動訂閱',
+      disabled: isEnglish ? 'Subscriptions off' : '停用訂閱'
+    };
+    return map[mode] || mode || (isEnglish ? 'Optional subscription' : '自由訂閱');
   },
 
   renderForumState(message, variant = 'empty') {
@@ -6298,6 +6362,76 @@ const MoodleUI = {
   syncAssignmentSubmissionContent(value) {
     if (!this.assignmentSubmissionDraft) return;
     this.assignmentSubmissionDraft.content = value;
+    this.scheduleAssignmentDraftSave();
+  },
+
+  scheduleAssignmentDraftSave() {
+    const draft = this.assignmentSubmissionDraft;
+    if (!draft || !draft.assignmentId) return;
+    // 已正式提交的草稿不再存（避免覆蓋後端已有提交）
+    if (draft.submittedAt || draft.graded) return;
+    if (this._assignmentDraftTimer) clearTimeout(this._assignmentDraftTimer);
+    this._assignmentDraftTimer = setTimeout(() => {
+      this.persistAssignmentDraft().catch(err => console.warn('Autosave draft failed:', err));
+    }, 1200);
+  },
+
+  async persistAssignmentDraft() {
+    const draft = this.assignmentSubmissionDraft;
+    if (!draft || !draft.assignmentId) return;
+    if (draft.submittedAt || draft.graded) return;
+    if (!API.assignments?.saveDraft) return;
+    try {
+      const indicator = document.getElementById('assignmentDraftIndicator');
+      if (indicator) {
+        indicator.textContent = I18n.getLocale() === 'en' ? 'Saving draft…' : '儲存草稿中…';
+        indicator.dataset.state = 'saving';
+      }
+      const result = await API.assignments.saveDraft(draft.assignmentId, {
+        content: draft.content || '',
+        files: this.normalizeAssignmentFiles(draft.existingFiles || [])
+      });
+      if (indicator) {
+        const now = new Date();
+        const time = now.toLocaleTimeString(I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW', {
+          hour: '2-digit', minute: '2-digit'
+        });
+        indicator.textContent = result?.success
+          ? (I18n.getLocale() === 'en' ? `Draft saved · ${time}` : `草稿已儲存 · ${time}`)
+          : (I18n.getLocale() === 'en' ? 'Autosave failed' : '自動儲存失敗');
+        indicator.dataset.state = result?.success ? 'saved' : 'error';
+      }
+    } catch (error) {
+      const indicator = document.getElementById('assignmentDraftIndicator');
+      if (indicator) {
+        indicator.textContent = I18n.getLocale() === 'en' ? 'Autosave failed' : '自動儲存失敗';
+        indicator.dataset.state = 'error';
+      }
+      console.warn('Persist assignment draft failed:', error);
+    }
+  },
+
+  async hydrateAssignmentDraftFromServer(assignmentId) {
+    const draft = this.assignmentSubmissionDraft;
+    if (!draft || !assignmentId || !API.assignments?.getDraft) return;
+    if (draft.submittedAt || draft.graded) return;
+    try {
+      const result = await API.assignments.getDraft(assignmentId);
+      const data = result?.data;
+      if (!data) return;
+      // 若伺服器草稿比記憶體更新且非空，回填
+      if (data.content && !draft.content) {
+        draft.content = data.content;
+        const textarea = document.getElementById('submissionContent');
+        if (textarea) textarea.value = data.content;
+      }
+      if (Array.isArray(data.files) && data.files.length > 0 && (!draft.existingFiles || draft.existingFiles.length === 0)) {
+        draft.existingFiles = this.normalizeAssignmentFiles(data.files);
+        this.renderAssignmentDraftFiles();
+      }
+    } catch (error) {
+      console.warn('Hydrate draft failed:', error);
+    }
   },
 
   handleAssignmentFileSelect(input) {
@@ -6325,6 +6459,7 @@ const MoodleUI = {
     if (!this.assignmentSubmissionDraft?.existingFiles) return;
     this.assignmentSubmissionDraft.existingFiles = this.assignmentSubmissionDraft.existingFiles.filter((_, fileIndex) => fileIndex !== index);
     this.renderAssignmentDraftFiles();
+    this.scheduleAssignmentDraftSave();
   },
 
   removeAssignmentPendingFile(index) {
@@ -6606,6 +6741,7 @@ const MoodleUI = {
       }
 
       const assignment = this.normalizeAssignmentState(result.data || {});
+      this.currentAssignmentCourseId = assignment.courseId || this.currentAssignmentCourseId;
       const container = document.getElementById('assignmentDetailContent');
       const user = API.getCurrentUser();
       let isTeacher = false;
@@ -6646,6 +6782,11 @@ const MoodleUI = {
       this.assignmentSubmissionDraft = !isTeacher ? this.createAssignmentSubmissionDraft(assignment) : null;
       this.currentViewedAssignmentSubmission = null;
 
+      // 非教師且尚未提交 → 從伺服器回填草稿
+      if (!isTeacher && !assignment.submission && this.assignmentSubmissionDraft) {
+        setTimeout(() => this.hydrateAssignmentDraftFromServer(assignmentId), 0);
+      }
+
       const safeTitle = this.escapeText(assignment.title || t('moodleAssignment.title'));
       const safeCourseName = this.escapeText(assignment.courseName || t('moodleAssignment.course'));
       const isEnglish = I18n.getLocale() === 'en';
@@ -6665,6 +6806,11 @@ const MoodleUI = {
       const briefNote = isTeacher
         ? (isEnglish ? 'Review the task brief, grading basis, and submission requirements before checking student work.' : '先確認這份作業的任務說明、評分依據與提交條件，再開始檢視學生作業。')
         : (isEnglish ? 'Understand the task goal, instructions, and submission requirements before you begin.' : '開始前先理解這次任務的目標、說明與提交方式。');
+      const editAssignmentButton = isTeacher ? `
+        <button type="button" class="btn-sm" onclick="MoodleUI.editAssignmentSettings(${this.toInlineActionValue(assignment.assignmentId)})">
+          ${t('common.edit')}
+        </button>
+      ` : '';
       const deleteAssignmentButton = isTeacher ? `
         <button type="button" class="btn-sm btn-danger" onclick="MoodleUI.deleteAssignment(${this.toInlineActionValue(assignment.assignmentId)}, ${this.toInlineActionValue(assignment.courseId || this.currentAssignmentCourseId || '')})">
           ${t('common.delete')}
@@ -6690,6 +6836,47 @@ const MoodleUI = {
       const descriptionHtml = assignment.description
         ? this.formatMultilineText(assignment.description)
         : this.escapeText(t('moodleAssignment.noDesc'));
+      const instructionsHtml = assignment.instructions
+        ? this.formatMultilineText(assignment.instructions)
+        : '';
+      const cutoffDateLabel = assignment.cutoffDate
+        ? this.formatPlatformDate(assignment.cutoffDate, { dateStyle: 'medium', timeStyle: 'short' })
+        : (assignment.allowLateSubmission === false
+          ? (isEnglish ? 'No late submissions accepted' : '不接受遲交')
+          : t('moodleAssignment.none'));
+      const passingGradeLabel = assignment.gradeToPass !== undefined && assignment.gradeToPass !== null
+        ? `${assignment.gradeToPass}/${assignment.maxPoints || assignment.maxGrade || 100}`
+        : '—';
+      const latePolicyLabel = assignment.allowLateSubmission === false
+        ? (isEnglish ? 'Late submissions are disabled' : '不允許遲交')
+        : (assignment.cutoffDate
+          ? `${isEnglish ? 'Accepted until' : '接受至'} ${cutoffDateLabel}`
+          : (isEnglish ? 'Late submissions stay open' : '截止後仍可提交'));
+      const lateDeductionLabel = assignment.allowLateSubmission === false
+        ? (isEnglish ? 'Not applicable' : '不適用')
+        : `${assignment.lateDeductionPercent ?? 0}%`;
+      const filePolicyLabel = assignment.submissionType === 'text'
+        ? (isEnglish ? 'Online text only' : '僅限線上文字')
+        : `${assignment.maxFiles || 0} ${isEnglish ? 'file(s)' : '個檔案'} · ${assignment.maxFileSize || 0} MB`;
+      const rubricCriteria = Array.isArray(assignment.rubric?.criteria) ? assignment.rubric.criteria : [];
+      const rubricPreview = assignment.rubric ? `
+        <section class="assignment-panel">
+          <div class="assignment-panel-head">
+            <div class="assignment-panel-copy">
+              <span class="assignment-panel-kicker">${isEnglish ? 'Rubric' : '評分規準'}</span>
+              <h3 class="assignment-panel-title">${this.escapeText(assignment.rubric.name || (isEnglish ? 'Rubric' : '評分規準'))}</h3>
+              <p class="assignment-panel-note">${rubricCriteria.length > 0
+                ? this.escapeText(`${rubricCriteria.length} ${isEnglish ? 'criteria' : '個評分項目'}`)
+                : this.escapeText(isEnglish ? 'Criterion-based grading is enabled for this assignment.' : '這份作業會使用評分項目進行評分。')}</p>
+            </div>
+          </div>
+          <div class="builder-badge-row">
+            ${(rubricCriteria.length > 0
+              ? rubricCriteria.slice(0, 8).map(item => `<span class="builder-badge">${this.escapeText(item.name || (isEnglish ? 'Criterion' : '評分項目'))}</span>`).join('')
+              : `<span class="builder-badge">${isEnglish ? 'Criteria pending' : '尚未設定評分項目'}</span>`)}
+          </div>
+        </section>
+      ` : '';
 
       container.innerHTML = `
         <div class="assignment-detail">
@@ -6700,6 +6887,7 @@ const MoodleUI = {
                 ${t('moodleAssignment.backToList')}
               </button>
               <div class="assignment-hero-actions">
+                ${editAssignmentButton}
                 ${deleteAssignmentButton}
                 <div class="assignment-status ${statusClass}">
                   ${this.escapeText(statusText)}
@@ -6741,6 +6929,73 @@ const MoodleUI = {
             </div>
             <div class="assignment-body">${descriptionHtml}</div>
           </section>
+
+          ${assignment.instructions ? `
+            <section class="assignment-panel">
+              <div class="assignment-panel-head">
+                <div class="assignment-panel-copy">
+                  <span class="assignment-panel-kicker">${isEnglish ? 'Instructions' : '作業內容'}</span>
+                  <h3 class="assignment-panel-title">${isEnglish ? 'What students need to deliver' : '學生要完成的內容'}</h3>
+                  <p class="assignment-panel-note">${isEnglish
+                    ? 'This is the actual task brief, expected output, and grading focus learners should follow.'
+                    : '這裡顯示學生實際要完成的作業要求、輸出格式與評分重點。'}</p>
+                </div>
+              </div>
+              <div class="assignment-body">${instructionsHtml}</div>
+            </section>
+          ` : ''}
+
+          <div class="assignment-detail-grid">
+            <section class="assignment-panel">
+              <div class="assignment-panel-head">
+                <div class="assignment-panel-copy">
+                  <span class="assignment-panel-kicker">${isEnglish ? 'Rules' : '提交規則'}</span>
+                  <h3 class="assignment-panel-title">${isEnglish ? 'Submission policy' : '提交與評分規則'}</h3>
+                  <p class="assignment-panel-note">${isEnglish
+                    ? 'Review the deadlines, submission window, file policy, and the passing threshold in one place.'
+                    : '集中查看截止時間、遲交規則、檔案限制與及格門檻。'}</p>
+                </div>
+              </div>
+              <div class="management-kv-list">
+                <div class="management-kv-item">
+                  <div class="management-kv-label">${t('moodleAssignment.dueDateLabel')}</div>
+                  <div class="management-kv-value">${this.escapeText(dueDateLabel)}</div>
+                </div>
+                <div class="management-kv-item">
+                  <div class="management-kv-label">${isEnglish ? 'Final cutoff' : '最終截止'}</div>
+                  <div class="management-kv-value">${this.escapeText(cutoffDateLabel)}</div>
+                </div>
+                <div class="management-kv-item">
+                  <div class="management-kv-label">${t('moodleAssignment.submitTitle')}</div>
+                  <div class="management-kv-value">${this.escapeText(submissionTypeLabel)}</div>
+                </div>
+                <div class="management-kv-item">
+                  <div class="management-kv-label">${isEnglish ? 'File policy' : '檔案規則'}</div>
+                  <div class="management-kv-value">${this.escapeText(filePolicyLabel)}</div>
+                </div>
+                <div class="management-kv-item">
+                  <div class="management-kv-label">${isEnglish ? 'Late policy' : '遲交規則'}</div>
+                  <div class="management-kv-value">${this.escapeText(latePolicyLabel)}</div>
+                </div>
+                <div class="management-kv-item">
+                  <div class="management-kv-label">${isEnglish ? 'Late deduction' : '遲交扣分'}</div>
+                  <div class="management-kv-value">${this.escapeText(lateDeductionLabel)}</div>
+                </div>
+                <div class="management-kv-item">
+                  <div class="management-kv-label">${isEnglish ? 'Passing score' : '及格分數'}</div>
+                  <div class="management-kv-value">${this.escapeText(passingGradeLabel)}</div>
+                </div>
+                <div class="management-kv-item">
+                  <div class="management-kv-label">${isEnglish ? 'Visibility' : '可見性'}</div>
+                  <div class="management-kv-value">${assignment.visible === false
+                    ? this.escapeText(isEnglish ? 'Hidden from students' : '目前對學生隱藏')
+                    : this.escapeText(isEnglish ? 'Visible to students' : '學生可見')}</div>
+                </div>
+              </div>
+            </section>
+
+            ${rubricPreview}
+          </div>
 
           ${!isTeacher ? this.renderSubmissionArea(assignment) : this.renderGradingArea(assignment)}
         </div>
@@ -6824,6 +7079,18 @@ const MoodleUI = {
           ` : ''}
         </div>
         ${submission.feedback ? `<div class="assignment-feedback-card"><h4>${t('moodleAssignment.teacherFeedback')}</h4><p>${this.formatMultilineText(submission.feedback)}</p></div>` : ''}
+        ${Array.isArray(submission.feedbackFiles) && submission.feedbackFiles.length > 0 ? `
+          <div class="assignment-feedback-card">
+            <h4>${I18n.getLocale() === 'en' ? 'Feedback files' : '教師回饋檔案'}</h4>
+            ${submission.feedbackFiles.map((f, i) => {
+              const name = this.escapeText(f.name || f.filename || `feedback_${i + 1}`);
+              const url = f.downloadUrl || f.viewUrl || '';
+              return url
+                ? `<a class="assignment-file-action" href="${this.escapeText(url)}" target="_blank" rel="noopener noreferrer">${name}</a>`
+                : `<span class="assignment-file-action">${name}</span>`;
+            }).join('')}
+          </div>
+        ` : ''}
       </section>
     ` : '';
 
@@ -6844,6 +7111,7 @@ const MoodleUI = {
             <div class="assignment-form-field">
               <label>${t('moodleAssignment.contentLabel')}</label>
               <textarea id="submissionContent" rows="8" placeholder="${t('moodleAssignment.contentPlaceholder')}" oninput="MoodleUI.syncAssignmentSubmissionContent(this.value)">${this.escapeText(this.assignmentSubmissionDraft?.content || submission?.content || '')}</textarea>
+              <div id="assignmentDraftIndicator" class="assignment-draft-indicator" data-state="idle"></div>
             </div>
             ` : ''}
             ${normalizedAssignment.submissionType !== 'text' ? `
@@ -6876,12 +7144,18 @@ const MoodleUI = {
    */
   renderGradingArea(assignment) {
     const isEnglish = I18n.getLocale() === 'en';
+    const anonymousBadge = assignment?.anonymousGrading
+      ? `<span class="assignment-submission-tag" style="background:var(--olive-deep, #2D5A3D);color:#fff;">${isEnglish ? 'Anonymous grading' : '匿名評分'}</span>`
+      : '';
+    const teamBadge = assignment?.teamSubmission
+      ? `<span class="assignment-submission-tag" style="background:var(--olive, #4A7C59);color:#fff;">${isEnglish ? 'Team submission' : '組別提交'}</span>`
+      : '';
     return `
       <section class="grading-area">
         <div class="assignment-panel-head">
           <div class="assignment-panel-copy">
             <span class="assignment-panel-kicker">${isEnglish ? 'Review' : '批改進度'}</span>
-            <h3 class="assignment-panel-title">${t('moodleAssignment.studentSubmissions')} (${assignment.submissions?.length || 0})</h3>
+            <h3 class="assignment-panel-title">${t('moodleAssignment.studentSubmissions')} (${assignment.submissions?.length || 0}) ${anonymousBadge} ${teamBadge}</h3>
             <p class="assignment-panel-note">${isEnglish ? 'Review submission timestamps, score inputs, and grading actions in one place.' : '在同一個工作區檢視提交時間、分數欄位與批改操作。'}</p>
           </div>
           ${(assignment.submissions || []).length > 0 ? `
@@ -6911,7 +7185,8 @@ const MoodleUI = {
                 <div class="assignment-submission-actions">
                   <button onclick="MoodleUI.viewSubmission('${assignment.assignmentId}', '${s.studentId}')" class="btn-sm">${t('moodleAssignment.viewBtn')}</button>
                   <input type="number" id="grade_${s.studentId}" class="grade-input-compact" value="${s.grade ?? ''}" placeholder="${t('moodleGrade.score')}">
-                  <button onclick="MoodleUI.gradeSubmission('${assignment.assignmentId}', '${s.studentId}')" class="btn-primary">${t('moodleAssignment.gradeBtn')}</button>
+                  <button onclick="MoodleUI.gradeSubmission('${assignment.assignmentId}', '${s.studentId}')" class="btn-sm">${isEnglish ? 'Quick grade' : '快速評分'}</button>
+                  <button onclick="MoodleUI.openGradingModal('${assignment.assignmentId}', '${s.studentId}')" class="btn-primary">${isEnglish ? 'Full review' : '完整批改'}</button>
                 </div>
               </div>
             `).join('')}
@@ -6954,6 +7229,18 @@ const MoodleUI = {
             ` : ''}
             ${submissionData.grade !== undefined && submissionData.grade !== null ? `<p><strong>${t('moodleGrade.score')}：</strong>${this.escapeText(String(submissionData.grade))}</p>` : ''}
             ${submissionData.feedback ? `<p><strong>${t('moodleGrade.feedback')}：</strong>${this.formatMultilineText(submissionData.feedback)}</p>` : ''}
+            ${Array.isArray(submissionData.feedbackFiles) && submissionData.feedbackFiles.length > 0 ? `
+              <div class="submission-files">
+                <strong>${I18n.getLocale() === 'en' ? 'Feedback files' : '回饋檔案'}：</strong>
+                ${submissionData.feedbackFiles.map((f, i) => {
+                  const name = this.escapeText(f.name || f.filename || `feedback_${i + 1}`);
+                  const url = f.downloadUrl || f.viewUrl || '';
+                  return url
+                    ? `<a class="assignment-file-action" href="${this.escapeText(url)}" target="_blank" rel="noopener noreferrer">${name}</a>`
+                    : `<span class="assignment-file-action">${name}</span>`;
+                }).join('')}
+              </div>
+            ` : ''}
           </div>
         `);
       } else {
@@ -6962,6 +7249,512 @@ const MoodleUI = {
     } catch (error) {
       showToast(t('moodleAssignment.loadSubmissionError'));
     }
+  },
+
+  /**
+   * 教師完整評分 modal：分數 + 文字回饋 + 檔案回饋
+   */
+  async openGradingModal(assignmentId, studentId) {
+    try {
+      const result = await API.assignments.getSubmission(assignmentId, studentId);
+      if (!result.success) {
+        showToast(result.message || t('moodleAssignment.loadSubmissionFailed'));
+        return;
+      }
+      const sub = result.data || {};
+      const assignment = this.currentAssignmentDetail || {};
+      this._gradingModalFeedbackFiles = Array.isArray(sub.feedbackFiles) ? sub.feedbackFiles.slice() : [];
+      this._gradingModalAnnotations = Array.isArray(sub.annotations) ? sub.annotations.slice() : [];
+      this._gradingModalSubmissionFiles = Array.isArray(sub.files) ? sub.files.slice() : [];
+      const isEnglish = I18n.getLocale() === 'en';
+      const maxGrade = assignment.maxPoints || assignment.maxGrade || 100;
+      const modalId = 'full-grade-modal';
+
+      const rubricHtml = (assignment.rubric?.criteria || []).map((criterion, idx) => {
+        const cid = criterion.criterionId || criterion.id || `c_${idx}`;
+        const existing = (sub.rubricScores || []).find(r => (r.criterionId || r.id) === cid);
+        const currentScore = existing?.score ?? '';
+        const max = Number(criterion.maxScore ?? criterion.points ?? 0);
+        return `
+          <div class="rubric-row" data-criterion-id="${this.escapeText(cid)}" data-criterion-max="${max}">
+            <label>${this.escapeText(criterion.name || `Criterion ${idx + 1}`)} (${max})</label>
+            <input type="number" class="rubric-score-input" min="0" max="${max}" step="0.1" value="${currentScore}" />
+          </div>
+        `;
+      }).join('');
+
+      MoodleUI.createModal(modalId, isEnglish ? 'Grade submission' : '批改作業', `
+        <div class="grading-modal">
+          <div class="grading-modal-header">
+            <div><strong>${isEnglish ? 'Student' : '學生'}:</strong> ${this.escapeText(sub.studentName || sub.userName || studentId)}</div>
+            ${sub.isLate ? `<span class="assignment-submission-tag is-late">${isEnglish ? 'Late' : '逾時'}</span>` : ''}
+          </div>
+          <div class="grading-modal-section">
+            <label>${isEnglish ? 'Score' : '分數'} (0 - ${maxGrade})</label>
+            <input type="number" id="gradingModalScore" min="0" max="${maxGrade}" step="0.1" value="${sub.grade ?? ''}" ${rubricHtml ? 'placeholder="' + (isEnglish ? 'Leave empty to auto-calc from rubric' : '留空將由評分規準自動計算') + '"' : ''} />
+          </div>
+          ${rubricHtml ? `
+            <div class="grading-modal-section">
+              <label>${isEnglish ? 'Rubric scores' : '評分規準'}</label>
+              <div class="rubric-grid" id="rubricScoresGrid">${rubricHtml}</div>
+            </div>
+          ` : ''}
+          <div class="grading-modal-section">
+            <label>${isEnglish ? 'Feedback' : '文字回饋'}</label>
+            <textarea id="gradingModalFeedback" rows="4" placeholder="${isEnglish ? 'Comments visible to the student' : '將顯示給學生的評語'}">${this.escapeText(sub.feedback || '')}</textarea>
+          </div>
+          <div class="grading-modal-section">
+            <label>${isEnglish ? 'Feedback files' : '回饋檔案'}</label>
+            <button type="button" class="btn-secondary btn-sm" onclick="document.getElementById('gradingModalFiles').click()">
+              ${isEnglish ? 'Upload file' : '上傳檔案'}
+            </button>
+            <input type="file" id="gradingModalFiles" class="hidden-file-input" multiple onchange="MoodleUI.handleGradingFeedbackFileSelect(this, '${assignmentId}')" />
+            <div id="gradingModalFileList"></div>
+          </div>
+          <div class="grading-modal-section">
+            <label>${isEnglish ? 'PDF annotations' : 'PDF 批註'}</label>
+            <div id="gradingModalPdfPicker"></div>
+            <div id="gradingModalPdfAnnotator"></div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn-secondary" onclick="MoodleUI.closeModal('${modalId}')">${t('common.cancel') || '取消'}</button>
+            <button type="button" class="btn-primary" onclick="MoodleUI.submitGradingModal('${assignmentId}', '${studentId}')">${isEnglish ? 'Save grade' : '儲存評分'}</button>
+          </div>
+        </div>
+      `);
+
+      this.renderGradingFeedbackFiles();
+      this.renderGradingPdfPicker();
+    } catch (error) {
+      console.error('Open grading modal error:', error);
+      showToast(t('moodleAssignment.gradeFailed'));
+    }
+  },
+
+  renderGradingFeedbackFiles() {
+    const container = document.getElementById('gradingModalFileList');
+    if (!container) return;
+    const files = this._gradingModalFeedbackFiles || [];
+    if (files.length === 0) {
+      container.innerHTML = `<div class="assignment-file-empty">${I18n.getLocale() === 'en' ? 'No feedback files' : '尚未上傳回饋檔案'}</div>`;
+      return;
+    }
+    container.innerHTML = files.map((f, idx) => `
+      <div class="selected-file assignment-file-row">
+        <div class="assignment-file-copy">
+          <span class="file-name">${this.escapeText(f.name || f.filename || 'file')}</span>
+          ${f.size ? `<span class="file-size">(${this.escapeText(this.formatFileSize(f.size))})</span>` : ''}
+        </div>
+        <div class="assignment-file-actions">
+          <button type="button" class="assignment-file-action is-danger" onclick="MoodleUI.removeGradingFeedbackFile(${idx})">${t('common.remove') || '移除'}</button>
+        </div>
+      </div>
+    `).join('');
+  },
+
+  removeGradingFeedbackFile(index) {
+    if (!Array.isArray(this._gradingModalFeedbackFiles)) return;
+    this._gradingModalFeedbackFiles.splice(index, 1);
+    this.renderGradingFeedbackFiles();
+  },
+
+  async handleGradingFeedbackFileSelect(input, assignmentId) {
+    if (!input?.files?.length) return;
+    const files = Array.from(input.files);
+    const courseId = this.currentAssignmentDetail?.courseId || this.currentAssignmentCourseId || null;
+    try {
+      for (const file of files) {
+        const uploadResult = await API.files.upload(file, {
+          folder: `assignments/${courseId || 'general'}/${assignmentId}/feedback`,
+          courseId,
+          visibility: courseId ? 'course' : 'private'
+        });
+        if (uploadResult?.success && uploadResult.data) {
+          this._gradingModalFeedbackFiles.push({
+            fileId: uploadResult.data.fileId || null,
+            name: uploadResult.data.filename || file.name,
+            filename: uploadResult.data.filename || file.name,
+            size: uploadResult.data.size || file.size,
+            contentType: uploadResult.data.contentType || file.type || 'application/octet-stream',
+            viewUrl: uploadResult.data.viewUrl || null,
+            downloadUrl: uploadResult.data.downloadUrl || null,
+            uploadedAt: new Date().toISOString()
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Upload feedback file failed:', error);
+      showToast(I18n.getLocale() === 'en' ? 'Upload failed' : '上傳失敗');
+    }
+    input.value = '';
+    this.renderGradingFeedbackFiles();
+  },
+
+  async submitGradingModal(assignmentId, studentId) {
+    const scoreEl = document.getElementById('gradingModalScore');
+    const feedbackEl = document.getElementById('gradingModalFeedback');
+    const scoreRaw = scoreEl?.value;
+    const feedback = feedbackEl?.value || '';
+
+    // Rubric scores
+    const rubricScores = [];
+    document.querySelectorAll('#rubricScoresGrid .rubric-row').forEach(row => {
+      const cid = row.dataset.criterionId;
+      const input = row.querySelector('.rubric-score-input');
+      if (!cid || !input) return;
+      const val = input.value;
+      if (val === '' || val === null || val === undefined) return;
+      const score = Number(val);
+      if (Number.isFinite(score)) rubricScores.push({ criterionId: cid, score });
+    });
+
+    const payload = {
+      feedback,
+      feedbackFiles: this._gradingModalFeedbackFiles || [],
+      rubricScores,
+      annotations: this._gradingModalAnnotations || []
+    };
+    if (scoreRaw !== '' && scoreRaw !== null && scoreRaw !== undefined) {
+      payload.grade = parseFloat(scoreRaw);
+    }
+
+    try {
+      const result = await API.assignments.gradeSubmission(assignmentId, studentId, payload);
+      if (result.success) {
+        showToast(t('moodleAssignment.gradeSuccess'));
+        this.closeModal('full-grade-modal');
+        this.openAssignment(assignmentId);
+      } else {
+        showToast(result.message || t('moodleAssignment.gradeFailed'));
+      }
+    } catch (error) {
+      console.error('Submit grading modal error:', error);
+      showToast(t('moodleAssignment.gradeFailed'));
+    }
+  },
+
+  /**
+   * 渲染 PDF 批註檔案選單
+   */
+  renderGradingPdfPicker() {
+    const picker = document.getElementById('gradingModalPdfPicker');
+    if (!picker) return;
+    const pdfFiles = (this._gradingModalSubmissionFiles || []).filter(f => {
+      const ct = String(f?.contentType || f?.mimeType || '').toLowerCase();
+      const name = String(f?.name || f?.filename || '').toLowerCase();
+      return ct.includes('pdf') || name.endsWith('.pdf');
+    });
+    if (pdfFiles.length === 0) {
+      picker.innerHTML = `<div class="assignment-file-empty">${I18n.getLocale() === 'en' ? 'No PDF files to annotate' : '此提交沒有可批註的 PDF 檔案'}</div>`;
+      return;
+    }
+    picker.innerHTML = pdfFiles.map((f, i) => `
+      <button type="button" class="btn-sm" onclick="MoodleUI.openPdfAnnotator(${i})">
+        ${this.escapeText(f.name || f.filename || `file_${i + 1}`)}
+      </button>
+    `).join(' ');
+    this._gradingModalPdfFiles = pdfFiles;
+  },
+
+  /**
+   * 開啟 PDF 標註器
+   */
+  async openPdfAnnotator(fileIndex) {
+    const host = document.getElementById('gradingModalPdfAnnotator');
+    if (!host) return;
+    const file = (this._gradingModalPdfFiles || [])[fileIndex];
+    if (!file) return;
+
+    const fileId = file.fileId || null;
+    const url = file.downloadUrl || file.viewUrl || (fileId ? `/api/files/${fileId}` : null);
+    if (!url) {
+      showToast(I18n.getLocale() === 'en' ? 'Cannot locate PDF URL' : '找不到 PDF 下載位置');
+      return;
+    }
+
+    const isEnglish = I18n.getLocale() === 'en';
+    host.innerHTML = `
+      <div class="pdf-annotator">
+        <div class="pdf-annotator-toolbar">
+          <div class="pdf-annotator-tools">
+            <button type="button" class="pdf-tool-btn is-active" data-tool="highlight">${isEnglish ? 'Highlight' : '標記'}</button>
+            <button type="button" class="pdf-tool-btn" data-tool="comment">${isEnglish ? 'Comment' : '註解'}</button>
+            <button type="button" class="pdf-tool-btn" data-tool="draw">${isEnglish ? 'Draw' : '手寫'}</button>
+          </div>
+          <div class="pdf-annotator-nav">
+            <button type="button" class="btn-sm" id="pdfPrevPage">${isEnglish ? 'Prev' : '上一頁'}</button>
+            <span id="pdfPageLabel">1/1</span>
+            <button type="button" class="btn-sm" id="pdfNextPage">${isEnglish ? 'Next' : '下一頁'}</button>
+          </div>
+        </div>
+        <div class="pdf-annotator-stage">
+          <div class="pdf-annotator-canvas-wrap">
+            <canvas id="pdfBaseCanvas"></canvas>
+            <canvas id="pdfOverlayCanvas" class="pdf-overlay-canvas"></canvas>
+          </div>
+          <aside class="pdf-annotator-sidebar">
+            <div class="pdf-annotator-sidebar-title">${isEnglish ? 'Annotations' : '批註列表'}</div>
+            <div id="pdfAnnotationList"></div>
+          </aside>
+        </div>
+      </div>
+    `;
+
+    this._pdfAnnoState = {
+      fileId,
+      url,
+      pdf: null,
+      page: 1,
+      numPages: 1,
+      scale: 1.2,
+      tool: 'highlight',
+      drawing: false,
+      start: null,
+      path: [],
+      viewport: null
+    };
+
+    const state = this._pdfAnnoState;
+
+    host.querySelectorAll('.pdf-tool-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        host.querySelectorAll('.pdf-tool-btn').forEach(b => b.classList.remove('is-active'));
+        btn.classList.add('is-active');
+        state.tool = btn.dataset.tool;
+      });
+    });
+    host.querySelector('#pdfPrevPage')?.addEventListener('click', () => {
+      if (state.page > 1) { state.page -= 1; this.renderPdfAnnoPage(); }
+    });
+    host.querySelector('#pdfNextPage')?.addEventListener('click', () => {
+      if (state.page < state.numPages) { state.page += 1; this.renderPdfAnnoPage(); }
+    });
+
+    const overlay = host.querySelector('#pdfOverlayCanvas');
+    overlay.addEventListener('mousedown', (e) => this.pdfAnnoMouseDown(e));
+    overlay.addEventListener('mousemove', (e) => this.pdfAnnoMouseMove(e));
+    overlay.addEventListener('mouseup', (e) => this.pdfAnnoMouseUp(e));
+    overlay.addEventListener('mouseleave', (e) => this.pdfAnnoMouseUp(e));
+
+    try {
+      const pdfjsLib = await this.ensurePdfJsLibrary();
+      state.pdf = await pdfjsLib.getDocument({ url, cMapUrl: '/vendor/pdfjs/cmaps/', cMapPacked: true }).promise;
+      state.numPages = state.pdf.numPages || 1;
+      await this.renderPdfAnnoPage();
+      this.renderPdfAnnotationList();
+    } catch (error) {
+      console.error('Open PDF annotator failed:', error);
+      host.innerHTML = `<div class="assignment-file-empty">${I18n.getLocale() === 'en' ? 'Failed to load PDF' : '載入 PDF 失敗'}</div>`;
+    }
+  },
+
+  async renderPdfAnnoPage() {
+    const state = this._pdfAnnoState;
+    if (!state?.pdf) return;
+    const page = await state.pdf.getPage(state.page);
+    const viewport = page.getViewport({ scale: state.scale });
+    state.viewport = viewport;
+
+    const base = document.getElementById('pdfBaseCanvas');
+    const overlay = document.getElementById('pdfOverlayCanvas');
+    if (!base || !overlay) return;
+
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    [base, overlay].forEach(c => {
+      c.width = Math.floor(viewport.width * dpr);
+      c.height = Math.floor(viewport.height * dpr);
+      c.style.width = `${Math.floor(viewport.width)}px`;
+      c.style.height = `${Math.floor(viewport.height)}px`;
+    });
+
+    const ctx = base.getContext('2d', { alpha: false });
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    await page.render({ canvasContext: ctx, viewport }).promise;
+
+    const label = document.getElementById('pdfPageLabel');
+    if (label) label.textContent = `${state.page}/${state.numPages}`;
+    this.redrawPdfOverlay();
+  },
+
+  redrawPdfOverlay() {
+    const state = this._pdfAnnoState;
+    const overlay = document.getElementById('pdfOverlayCanvas');
+    if (!state || !overlay) return;
+    const ctx = overlay.getContext('2d');
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, overlay.width / dpr, overlay.height / dpr);
+
+    const pageAnns = (this._gradingModalAnnotations || [])
+      .filter(a => a.fileId === state.fileId && a.page === state.page);
+
+    pageAnns.forEach(a => this.drawAnnotationOnCanvas(ctx, a));
+  },
+
+  drawAnnotationOnCanvas(ctx, a) {
+    const color = a.color || (a.type === 'highlight' ? '#FFD54F' : '#E53935');
+    if (a.type === 'highlight') {
+      ctx.fillStyle = color + '66';
+      ctx.fillRect(a.x, a.y, a.width, a.height);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(a.x, a.y, a.width, a.height);
+    } else if (a.type === 'comment') {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(a.x + 10, a.y + 10, 10, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 12px sans-serif';
+      ctx.fillText('!', a.x + 7, a.y + 14);
+    } else if (a.type === 'draw' && Array.isArray(a.path) && a.path.length > 1) {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(a.path[0].x, a.path[0].y);
+      a.path.slice(1).forEach(p => ctx.lineTo(p.x, p.y));
+      ctx.stroke();
+    }
+  },
+
+  pdfAnnoEventToCoords(event) {
+    const overlay = document.getElementById('pdfOverlayCanvas');
+    if (!overlay) return { x: 0, y: 0 };
+    const rect = overlay.getBoundingClientRect();
+    return {
+      x: Math.max(0, event.clientX - rect.left),
+      y: Math.max(0, event.clientY - rect.top)
+    };
+  },
+
+  pdfAnnoMouseDown(event) {
+    const state = this._pdfAnnoState;
+    if (!state) return;
+    state.drawing = true;
+    state.start = this.pdfAnnoEventToCoords(event);
+    state.path = [state.start];
+  },
+
+  pdfAnnoMouseMove(event) {
+    const state = this._pdfAnnoState;
+    if (!state?.drawing) return;
+    const pt = this.pdfAnnoEventToCoords(event);
+    if (state.tool === 'draw') {
+      state.path.push(pt);
+      const overlay = document.getElementById('pdfOverlayCanvas');
+      const ctx = overlay.getContext('2d');
+      ctx.strokeStyle = '#E53935';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      const last = state.path[state.path.length - 2] || pt;
+      ctx.moveTo(last.x, last.y);
+      ctx.lineTo(pt.x, pt.y);
+      ctx.stroke();
+    } else if (state.tool === 'highlight') {
+      // 預覽
+      this.redrawPdfOverlay();
+      const overlay = document.getElementById('pdfOverlayCanvas');
+      const ctx = overlay.getContext('2d');
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const w = pt.x - state.start.x;
+      const h = pt.y - state.start.y;
+      ctx.fillStyle = '#FFD54F66';
+      ctx.fillRect(state.start.x, state.start.y, w, h);
+      ctx.strokeStyle = '#FFD54F';
+      ctx.strokeRect(state.start.x, state.start.y, w, h);
+    }
+  },
+
+  async pdfAnnoMouseUp(event) {
+    const state = this._pdfAnnoState;
+    if (!state?.drawing) return;
+    state.drawing = false;
+    const pt = this.pdfAnnoEventToCoords(event);
+    const isEnglish = I18n.getLocale() === 'en';
+
+    if (state.tool === 'highlight') {
+      const x = Math.min(state.start.x, pt.x);
+      const y = Math.min(state.start.y, pt.y);
+      const width = Math.abs(pt.x - state.start.x);
+      const height = Math.abs(pt.y - state.start.y);
+      if (width < 4 || height < 4) { this.redrawPdfOverlay(); return; }
+      this._gradingModalAnnotations.push({
+        id: `ann_${Date.now()}`,
+        fileId: state.fileId,
+        page: state.page,
+        type: 'highlight',
+        x, y, width, height,
+        color: '#FFD54F',
+        comment: '',
+        createdAt: new Date().toISOString()
+      });
+    } else if (state.tool === 'comment') {
+      const text = window.prompt(isEnglish ? 'Comment text:' : '批註文字：', '');
+      if (!text) { this.redrawPdfOverlay(); return; }
+      this._gradingModalAnnotations.push({
+        id: `ann_${Date.now()}`,
+        fileId: state.fileId,
+        page: state.page,
+        type: 'comment',
+        x: state.start.x, y: state.start.y,
+        width: 20, height: 20,
+        color: '#E53935',
+        comment: text.slice(0, 2000),
+        createdAt: new Date().toISOString()
+      });
+    } else if (state.tool === 'draw') {
+      if (state.path.length < 2) { this.redrawPdfOverlay(); return; }
+      this._gradingModalAnnotations.push({
+        id: `ann_${Date.now()}`,
+        fileId: state.fileId,
+        page: state.page,
+        type: 'draw',
+        x: state.start.x, y: state.start.y,
+        width: 0, height: 0,
+        path: state.path.slice(),
+        color: '#E53935',
+        comment: '',
+        createdAt: new Date().toISOString()
+      });
+    }
+
+    state.start = null;
+    state.path = [];
+    this.redrawPdfOverlay();
+    this.renderPdfAnnotationList();
+  },
+
+  renderPdfAnnotationList() {
+    const list = document.getElementById('pdfAnnotationList');
+    if (!list) return;
+    const state = this._pdfAnnoState;
+    const anns = (this._gradingModalAnnotations || []).filter(a => !state?.fileId || a.fileId === state.fileId);
+    const isEnglish = I18n.getLocale() === 'en';
+    if (anns.length === 0) {
+      list.innerHTML = `<div class="pdf-annotator-empty">${isEnglish ? 'No annotations yet' : '尚未新增批註'}</div>`;
+      return;
+    }
+    list.innerHTML = anns.map((a, idx) => `
+      <div class="pdf-annotator-item">
+        <div>
+          <strong>${this.escapeText(a.type)}</strong> · ${isEnglish ? 'p.' : '第'}${a.page}${isEnglish ? '' : '頁'}
+          ${a.comment ? `<div>${this.escapeText(a.comment)}</div>` : ''}
+        </div>
+        <button type="button" class="btn-sm" onclick="MoodleUI.removePdfAnnotation(${idx})">${t('common.remove') || '移除'}</button>
+      </div>
+    `).join('');
+  },
+
+  removePdfAnnotation(index) {
+    const state = this._pdfAnnoState;
+    const all = this._gradingModalAnnotations || [];
+    const filtered = all.filter(a => !state?.fileId || a.fileId === state.fileId);
+    const target = filtered[index];
+    if (!target) return;
+    this._gradingModalAnnotations = all.filter(a => a !== target);
+    this.redrawPdfOverlay();
+    this.renderPdfAnnotationList();
   },
 
   /**
@@ -7289,7 +8082,7 @@ const MoodleUI = {
     container.innerHTML = `
       <div class="quiz-header">
         <div class="quiz-kicker">${isEnglish ? 'Quiz workspace' : '測驗工作區'}</div>
-        <h2>${attempt.quizTitle || t('moodleQuiz.title')}</h2>
+        <h2>${this.escapeText(attempt.quizTitle || t('moodleQuiz.title'))}</h2>
         <div class="quiz-progress">
           <div class="quiz-progress-copy">
             <span class="quiz-progress-value">${isEnglish ? `Question ${this.currentQuestionIndex + 1}` : `第 ${this.currentQuestionIndex + 1} 題`}</span>
@@ -7313,7 +8106,7 @@ const MoodleUI = {
         <div class="quiz-question-panel">
           <div class="question-content">
             <div class="question-kicker">${isEnglish ? 'Question prompt' : '題目內容'}</div>
-            <h3>${question.text}</h3>
+            <h3>${this.escapeText(question.text)}</h3>
             ${this.renderQuestionOptions(question)}
           </div>
         </div>
@@ -7347,7 +8140,7 @@ const MoodleUI = {
             ${question.options.map((opt, i) => `
               <label class="question-option ${question.answer === i ? 'selected' : ''}" onclick="MoodleUI.selectAnswer(${i})">
                 <input type="radio" name="answer" value="${i}" ${question.answer === i ? 'checked' : ''}>
-                <span class="question-option-text">${opt}</span>
+                <span class="question-option-text">${this.escapeText(opt)}</span>
               </label>
             `).join('')}
           </div>
@@ -7358,7 +8151,7 @@ const MoodleUI = {
             ${question.options.map((opt, i) => `
               <label class="question-option ${(question.answer || []).includes(i) ? 'selected' : ''}">
                 <input type="checkbox" value="${i}" ${(question.answer || []).includes(i) ? 'checked' : ''} onchange="MoodleUI.selectMultipleAnswer(${i})">
-                <span class="question-option-text">${opt}</span>
+                <span class="question-option-text">${this.escapeText(opt)}</span>
               </label>
             `).join('')}
           </div>
@@ -7367,7 +8160,7 @@ const MoodleUI = {
       case 'essay':
         return `
           <div class="form-group">
-            <textarea id="answerText" rows="${question.type === 'essay' ? 8 : 2}" placeholder="${t('moodleQuiz.answerPlaceholder')}">${question.answer || ''}</textarea>
+            <textarea id="answerText" rows="${question.type === 'essay' ? 8 : 2}" placeholder="${this.escapeText(t('moodleQuiz.answerPlaceholder'))}">${this.escapeText(question.answer || '')}</textarea>
           </div>
         `;
       default:
@@ -7775,6 +8568,7 @@ const MoodleUI = {
       }
 
       const forum = result.data;
+      this.currentForumCourseId = forum.courseId || this.currentForumCourseId;
       const container = document.getElementById('forumDetailContent');
       const typeMeta = this.getForumTypeMeta(forum.type);
       const discussions = Array.isArray(forum.discussions) ? forum.discussions : [];
@@ -7786,6 +8580,10 @@ const MoodleUI = {
         : !!forum.subscribed;
       const safeTitle = this.escapeText(forum.title || forum.name || t('moodleForum.title'));
       const safeDescription = this.escapeText(forum.description || (I18n.getLocale() === 'en' ? 'No additional description is available for this forum yet.' : '這個討論區暫時沒有補充說明。'));
+      const canStartNewDiscussion = forum.forumMode !== 'single' || discussions.length === 0;
+      const postingModeLabel = this.getForumModeLabel(forum.forumMode || 'standard');
+      const subscriptionModeLabel = this.getForumSubscriptionModeLabel(forum.subscriptionMode || 'optional');
+      const attachmentLabel = `${Number(forum.maxAttachments ?? 0)} ${I18n.getLocale() === 'en' ? 'attachments' : '個附件'} · ${Number(forum.maxAttachmentSize ?? 10)} MB`;
       const backAction = this.currentForumCourseId
         ? `showView('moodleForums'); MoodleUI.loadForums(${this.toInlineActionValue(this.currentForumCourseId)})`
         : `showView('moodleForums')`;
@@ -7819,15 +8617,21 @@ const MoodleUI = {
                   <span>${isSubscribed ? (I18n.getLocale() === 'en' ? 'Unsubscribe' : '取消訂閱') : (I18n.getLocale() === 'en' ? 'Subscribe' : '訂閱討論區')}</span>
                 </button>
                 ${canManageForum ? `
+                  <button type="button" class="btn-secondary" onclick="MoodleUI.editForumSettings(${this.toInlineActionValue(forumId)})">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 20 7-7"/><path d="M16 4h4v4"/><path d="m4 20 4-4"/><path d="M4 4h7v7"/></svg>
+                    <span>${t('common.edit')}</span>
+                  </button>
                   <button type="button" class="btn-danger" onclick="MoodleUI.deleteForum(${this.toInlineActionValue(forumId)}, ${this.toInlineActionValue(forum.courseId || this.currentForumCourseId || '')})">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
                     <span>${t('common.delete')}</span>
                   </button>
                 ` : ''}
-                <button type="button" class="btn-primary" onclick="MoodleUI.openNewDiscussionModal(${this.toInlineActionValue(forumId)})">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                  <span>${t('moodleForum.newDiscussion')}</span>
-                </button>
+                ${canStartNewDiscussion ? `
+                  <button type="button" class="btn-primary" onclick="MoodleUI.openNewDiscussionModal(${this.toInlineActionValue(forumId)})">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    <span>${t('moodleForum.newDiscussion')}</span>
+                  </button>
+                ` : ''}
               </div>
             </div>
             <div class="forum-count-row">
@@ -7839,6 +8643,30 @@ const MoodleUI = {
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 10h.01"/><path d="M12 10h.01"/><path d="M16 10h.01"/><path d="M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 0 1-4-.84L3 20l1.34-3.22A7.318 7.318 0 0 1 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8Z"/></svg>
                 <span>${discussions.reduce((sum, item) => sum + Number(item.replyCount || 0), 0)} ${t('moodleForum.replies')}</span>
               </span>
+              <span class="forum-chip">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18"/><path d="M7 12h10"/><path d="M10 19h4"/></svg>
+                <span>${this.escapeText(postingModeLabel)}</span>
+              </span>
+              <span class="forum-chip">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0"/><path d="M18 8v8a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V8"/><path d="M10 12h4"/></svg>
+                <span>${this.escapeText(subscriptionModeLabel)}</span>
+              </span>
+              <span class="forum-chip">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>
+                <span>${this.escapeText(attachmentLabel)}</span>
+              </span>
+              ${forum.visible === false ? `
+                <span class="forum-chip">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 3 18 18"/><path d="M10.58 10.58A2 2 0 0 0 12 14a2 2 0 0 0 1.42-.58"/><path d="M9.88 5.09A9.77 9.77 0 0 1 12 4c5 0 9.27 3 11 8a11.8 11.8 0 0 1-2.17 3.19"/><path d="M6.61 6.61A11.76 11.76 0 0 0 1 12a11.82 11.82 0 0 0 4.18 5.19"/></svg>
+                  <span>${I18n.getLocale() === 'en' ? 'Hidden from students' : '目前對學生隱藏'}</span>
+                </span>
+              ` : ''}
+              ${!canStartNewDiscussion ? `
+                <span class="forum-chip">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 12h6"/></svg>
+                  <span>${I18n.getLocale() === 'en' ? 'Single-thread forum already started' : '單一討論論壇已建立主題'}</span>
+                </span>
+              ` : ''}
             </div>
           </div>
           <div class="forum-topic-list">
@@ -8206,6 +9034,11 @@ const MoodleUI = {
                   onclick: `MoodleUI.showCreateQuizModal(${this.toInlineActionValue(targetCourseId)})`
                 }] : []),
                 {
+                  label: I18n.getLocale() === 'en' ? 'Edit quiz' : '編輯測驗',
+                  className: 'btn-sm',
+                  onclick: `MoodleUI.editQuizSettings(${this.toInlineActionValue(quiz.quizId || quizMeta.quizId || '')})`
+                },
+                {
                   label: t('common.delete'),
                   className: 'btn-sm btn-danger',
                   onclick: `MoodleUI.deleteQuiz(${this.toInlineActionValue(quiz.quizId || quizMeta.quizId || '')}, ${this.toInlineActionValue(targetCourseId || '')})`
@@ -8548,83 +9381,14 @@ const MoodleUI = {
    * 開啟新增討論 Modal
    */
   openCreateForumModal(courseId) {
-    this.closeModal('createForumModal');
-    const modal = document.createElement('div');
-    modal.id = 'createForumModal';
-    modal.className = 'modal-overlay active';
-    modal.innerHTML = `
-      <div class="modal active discussion-modal discussion-modal-md" role="dialog" aria-modal="true" aria-labelledby="createForumModalTitle">
-        <div class="modal-header">
-          <h2 id="createForumModalTitle">新增討論區</h2>
-          <button onclick="MoodleUI.closeModal('createForumModal')" class="modal-close">&times;</button>
-        </div>
-        <form id="createForumForm">
-          <div class="modal-body">
-            <div class="discussion-modal-intro">
-              <div class="discussion-modal-intro-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8"/><path d="M8 13h5"/></svg>
-              </div>
-              <div>
-                <div class="discussion-modal-intro-title">先定義清楚這個論壇的用途</div>
-                <p class="discussion-modal-intro-copy">例如公告、問答或課堂交流。名稱和說明越清楚，學生越知道什麼內容應該發在哪裡。</p>
-              </div>
-            </div>
-            <div class="bridge-form-group">
-              <label class="bridge-form-label" for="newForumTitle">討論區名稱 *</label>
-              <input type="text" id="newForumTitle" class="bridge-form-control" placeholder="例如：課程公告、學習交流">
-            </div>
-            <div class="discussion-modal-grid">
-              <div class="bridge-form-group">
-                <label class="bridge-form-label" for="newForumType">類型</label>
-                <select id="newForumType" class="bridge-form-control">
-                  <option value="general">一般討論</option>
-                  <option value="news">公告</option>
-                  <option value="qanda">問與答</option>
-                </select>
-              </div>
-              <div class="bridge-form-group">
-                <label class="bridge-form-label" for="newForumDesc">說明</label>
-                <textarea id="newForumDesc" rows="4" class="bridge-form-control" placeholder="簡短說明這個討論區適合發什麼內容。"></textarea>
-              </div>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <div class="discussion-modal-note">建立後即可在課程論壇中開放新主題，教師與學生都能更有方向地使用。</div>
-            <button type="button" onclick="MoodleUI.closeModal('createForumModal')" class="btn-secondary">取消</button>
-            <button type="submit" class="btn-primary">建立討論區</button>
-          </div>
-        </form>
-      </div>
-    `;
-    document.body.appendChild(modal);
-    modal.onclick = (e) => { if (e.target === modal) this.closeModal('createForumModal'); };
-    modal.querySelector('#createForumForm')?.addEventListener('submit', (event) => {
-      event.preventDefault();
-      this.submitCreateForum(courseId);
+    return this.openForumBuilderModal({
+      courseId,
+      returnTo: 'forums'
     });
-    window.requestAnimationFrame(() => modal.querySelector('#newForumTitle')?.focus());
   },
 
   async submitCreateForum(courseId) {
-    const title = document.getElementById('newForumTitle').value.trim();
-    const description = document.getElementById('newForumDesc').value.trim();
-    const type = document.getElementById('newForumType').value;
-
-    if (!title) { showToast('請輸入討論區名稱'); return; }
-
-    try {
-      const result = await API.forums.create({ courseId, title, description, type });
-      if (result.success) {
-        showToast('討論區已建立');
-        this.closeModal('createForumModal');
-        this.loadForums(courseId);
-      } else {
-        showToast(result.message || '建立失敗');
-      }
-    } catch (error) {
-      console.error('Create forum error:', error);
-      showToast('建立討論區失敗');
-    }
+    return this.saveForumBuilder(courseId);
   },
 
   openNewDiscussionModal(forumId, discussion = null) {
@@ -14522,104 +15286,401 @@ const MoodleUI = {
    * 建立作業 Modal
    */
   async showCreateAssignmentModal(preselectedCourseId) {
-    let courseOptions = `<option value="">${t('moodleCourseCreate.selectCourse')}</option>`;
-    try {
-      const courses = await this.getRoleScopedCourses({ manageOnly: true });
-      if (courses.length === 0) {
-        showToast(t('moodleGradebook.noCourses'));
-        return;
-      }
-      courses.forEach(c => {
-        const cid = c.courseId || c.id;
-        courseOptions += `<option value="${cid}" ${cid === preselectedCourseId ? 'selected' : ''}>${c.title || c.name}</option>`;
-      });
-    } catch (e) { /* ignore */ }
-
-    const modal = document.createElement('div');
-    modal.id = 'createAssignmentModal';
-    modal.className = 'modal-overlay active';
-    modal.innerHTML = `
-      <div class="modal-content modal-lg">
-        <div class="modal-header">
-          <h3>${t('moodleAssignmentCreate.title')}</h3>
-          <button onclick="MoodleUI.closeModal('createAssignmentModal')" class="modal-close">&times;</button>
-        </div>
-        <div class="modal-body">
-          <div class="form-group">
-            <label>${t('moodleAssignmentCreate.titleLabel')} *</label>
-            <input type="text" id="newAssignmentTitle" placeholder="${t('moodleAssignmentCreate.titlePlaceholder')}">
-          </div>
-          <div class="form-group">
-            <label>${t('moodleAssignmentCreate.courseLabel')} *</label>
-            <select id="newAssignmentCourse">${courseOptions}</select>
-          </div>
-          <div class="form-group">
-            <label>${t('common.description')}</label>
-            <textarea id="newAssignmentDescription" rows="3" placeholder="${t('moodleAssignmentCreate.descPlaceholder')}"></textarea>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label>${t('moodleAddActivity.dueDateLabel')}</label>
-              <input type="datetime-local" id="newAssignmentDueDate" required>
-            </div>
-            <div class="form-group">
-              <label>${t('moodleRubrics.maxScore')}</label>
-              <input type="number" id="newAssignmentMaxScore" value="100" min="0">
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label>${t('moodleAddActivity.submitTypeLabel')}</label>
-              <select id="newAssignmentSubmitType">
-                <option value="online_text">${t('moodleAddActivity.submitTypeText')}</option>
-                <option value="file">${t('moodleAddActivity.submitTypeFile')}</option>
-                <option value="both">${t('moodleAssignmentCreate.typeBoth')}</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>${t('moodleAssignmentCreate.allowLate')}</label>
-              <select id="newAssignmentLateSubmit">
-                <option value="true">${t('common.allow')}</option>
-                <option value="false">${t('common.disallow')}</option>
-              </select>
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button onclick="MoodleUI.closeModal('createAssignmentModal')" class="btn-secondary">${t('common.cancel')}</button>
-          <button onclick="MoodleUI.saveNewAssignment()" class="btn-primary">${t('moodleAssignmentCreate.createBtn')}</button>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(modal);
-    modal.onclick = (e) => { if (e.target === modal) this.closeModal('createAssignmentModal'); };
+    return this.openAssignmentBuilderModal({
+      courseId: preselectedCourseId || null,
+      returnTo: 'assignments'
+    });
   },
 
   async saveNewAssignment() {
-    const title = document.getElementById('newAssignmentTitle')?.value?.trim();
-    const courseId = document.getElementById('newAssignmentCourse')?.value;
-    const dueDate = document.getElementById('newAssignmentDueDate')?.value;
-    if (!title || !courseId || !dueDate) { showToast(t('moodleAssignmentCreate.fieldsRequired')); return; }
+    return this.saveAssignmentBuilder();
+  },
+
+  async loadAssignmentBuilderRubrics(courseId) {
+    if (!courseId) return [];
     try {
-      const result = await API.assignments.create({
-        title,
-        courseId,
-        description: document.getElementById('newAssignmentDescription')?.value || '',
-        dueDate,
-        maxGrade: parseInt(document.getElementById('newAssignmentMaxScore')?.value) || 100,
-        submissionType: document.getElementById('newAssignmentSubmitType')?.value || 'online_text',
-        allowLateSubmission: document.getElementById('newAssignmentLateSubmit')?.value === 'true'
-      });
-      if (result.success) {
-        showToast(t('moodleAssignmentCreate.success'));
-        this.closeModal('createAssignmentModal');
-        if (typeof this.loadAssignments === 'function') this.loadAssignments();
-      } else {
-        showToast(result.error || t('moodleAssignmentCreate.error'));
-      }
+      const result = await API.rubrics.list({ courseId });
+      if (!result?.success) return [];
+      return (Array.isArray(result.data) ? result.data : [])
+        .filter(rubric => rubric && rubric.rubricId)
+        .sort((a, b) => {
+          const scoreA = (a.status || 'draft') === 'active' ? 1 : 0;
+          const scoreB = (b.status || 'draft') === 'active' ? 1 : 0;
+          if (scoreA !== scoreB) return scoreB - scoreA;
+          return new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0);
+        });
     } catch (error) {
-      console.error('Create assignment error:', error);
-      showToast(t('moodleAssignmentCreate.createFailed'));
+      console.warn('Load assignment builder rubrics failed:', error);
+      return [];
+    }
+  },
+
+  renderAssignmentBuilderRubricOptions(rubrics = [], selectedRubricId = '') {
+    const noneLabel = I18n.getLocale() === 'en' ? 'No rubric' : '不使用評分規準';
+    const untitledLabel = I18n.getLocale() === 'en' ? 'Untitled rubric' : '未命名評分規準';
+    return [
+      `<option value="">${this.escapeText(noneLabel)}</option>`,
+      ...rubrics.map((rubric) => {
+        const rubricId = rubric.rubricId || rubric.id;
+        const statusLabel = (rubric.status || 'draft') === 'active'
+          ? ''
+          : ` · ${I18n.getLocale() === 'en' ? 'Draft' : '草稿'}`;
+        return `
+          <option value="${this.escapeText(rubricId)}" ${rubricId === selectedRubricId ? 'selected' : ''}>
+            ${this.escapeText(rubric.name || untitledLabel)}${statusLabel}
+          </option>
+        `;
+      })
+    ].join('');
+  },
+
+  renderAssignmentBuilderRubricPreview() {
+    const preview = document.getElementById('assignmentBuilderRubricPreview');
+    if (!preview) return;
+
+    const selectedRubricId = document.getElementById('assignmentBuilderRubric')?.value || '';
+    const rubric = (this.currentAssignmentBuilderState?.rubrics || []).find(
+      item => (item.rubricId || item.id) === selectedRubricId
+    );
+
+    if (!rubric) {
+      preview.innerHTML = `
+        <div class="builder-kv-grid">
+          <div class="builder-kv-card">
+            <span class="label">${I18n.getLocale() === 'en' ? 'Assessment' : '評分方式'}</span>
+            <strong class="value">${I18n.getLocale() === 'en' ? 'Direct grading' : '直接評分'}</strong>
+            <p>${I18n.getLocale() === 'en'
+              ? 'Use the total score and feedback fields when you do not need criterion-based grading.'
+              : '若不指定評分規準，老師會直接輸入總分與文字回饋。'}</p>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    const criteria = Array.isArray(rubric.criteria) ? rubric.criteria : [];
+    const criteriaPreview = criteria.length > 0
+      ? criteria.slice(0, 4).map(item => `<span class="builder-badge">${this.escapeText(item.name || (I18n.getLocale() === 'en' ? 'Criterion' : '評分項目'))}</span>`).join('')
+      : `<span class="builder-badge">${I18n.getLocale() === 'en' ? 'No criteria yet' : '尚未設定評分項目'}</span>`;
+
+    preview.innerHTML = `
+      <div class="builder-kv-grid">
+        <div class="builder-kv-card">
+          <span class="label">${I18n.getLocale() === 'en' ? 'Selected rubric' : '已套用評分規準'}</span>
+          <strong class="value">${this.escapeText(rubric.name || (I18n.getLocale() === 'en' ? 'Untitled rubric' : '未命名評分規準'))}</strong>
+          <p>${criteria.length} ${I18n.getLocale() === 'en' ? 'criteria' : '個評分項目'} · ${rubric.maxScore || 0} ${I18n.getLocale() === 'en' ? 'points total' : '分總分'}</p>
+          <div class="builder-badge-row">${criteriaPreview}</div>
+        </div>
+      </div>
+    `;
+  },
+
+  async refreshAssignmentBuilderRubrics(selectedRubricId = null) {
+    const state = this.currentAssignmentBuilderState;
+    if (!state) return;
+
+    const courseId = document.getElementById('assignmentBuilderCourse')?.value || state.courseId;
+    state.courseId = courseId;
+    state.rubrics = await this.loadAssignmentBuilderRubrics(courseId);
+
+    const rubricSelect = document.getElementById('assignmentBuilderRubric');
+    if (rubricSelect) {
+      const nextSelectedRubricId = selectedRubricId !== null ? selectedRubricId : rubricSelect.value;
+      rubricSelect.innerHTML = this.renderAssignmentBuilderRubricOptions(state.rubrics, nextSelectedRubricId);
+    }
+
+    this.renderAssignmentBuilderRubricPreview();
+  },
+
+  editAssignmentSettings(assignmentId) {
+    return this.openAssignmentBuilderModal({
+      assignmentId,
+      returnTo: 'assignmentDetail'
+    });
+  },
+
+  async openAssignmentBuilderModal({ assignmentId = null, courseId = null, sectionId = null, returnTo = null } = {}) {
+    const isEditing = !!assignmentId;
+    const isEnglish = I18n.getLocale() === 'en';
+
+    let assignment = null;
+    if (isEditing) {
+      const detailResult = await API.assignments.get(assignmentId);
+      if (!detailResult?.success) {
+        showToast(detailResult?.message || t('moodleAssignment.loadFailed'));
+        return;
+      }
+      assignment = this.normalizeAssignmentState(detailResult.data || {});
+      courseId = assignment.courseId || courseId;
+    }
+
+    let courses = [];
+    try {
+      courses = await this.getRoleScopedCourses({ manageOnly: true });
+    } catch (error) {
+      console.warn('Load assignment builder courses failed:', error);
+    }
+
+    if (courses.length === 0) {
+      showToast(t('moodleGradebook.noCourses'));
+      return;
+    }
+
+    const resolvedCourseId = courseId || courses[0]?.courseId || courses[0]?.id || '';
+    const courseOptions = courses.map((course) => {
+      const currentCourseId = course.courseId || course.id;
+      return `<option value="${this.escapeText(currentCourseId)}" ${currentCourseId === resolvedCourseId ? 'selected' : ''}>${this.escapeText(course.title || course.name || (isEnglish ? 'Untitled course' : '未命名課程'))}</option>`;
+    }).join('');
+
+    const rubrics = await this.loadAssignmentBuilderRubrics(resolvedCourseId);
+    const selectedRubricId = assignment?.rubric?.rubricId || assignment?.rubric?.id || '';
+
+    this.currentAssignmentBuilderState = {
+      assignmentId,
+      sectionId,
+      returnTo: returnTo || (sectionId ? 'course' : 'assignments'),
+      courseId: resolvedCourseId,
+      rubrics
+    };
+
+    const modal = this.createModal('assignmentBuilderModal', isEditing
+      ? (isEnglish ? 'Edit assignment' : '編輯作業')
+      : t('moodleAssignmentCreate.title'), `
+      <form id="assignmentBuilderForm" onsubmit="event.preventDefault(); MoodleUI.saveAssignmentBuilder()">
+        <div class="quiz-create-shell activity-builder-shell">
+          <section class="quiz-create-card quiz-create-card-primary">
+            <div class="quiz-create-card-head">
+              <div>
+                <div class="quiz-create-card-kicker">${isEnglish ? 'Assignment' : '作業工作區'}</div>
+                <div class="quiz-create-card-title">${isEnglish ? 'Task brief' : '任務內容'}</div>
+                <p class="quiz-create-card-note">${isEnglish
+                  ? 'Write the assignment title, short summary, and the detailed brief learners will follow when they submit.'
+                  : '先定義作業標題、簡短摘要與學生實際要遵循的作業內容。'}</p>
+              </div>
+            </div>
+            <div class="activity-builder-grid">
+              <div class="form-group">
+                <label>${t('moodleAssignmentCreate.titleLabel')} *</label>
+                <input type="text" id="assignmentBuilderTitle" value="${this.escapeText(assignment?.title || '')}" placeholder="${t('moodleAssignmentCreate.titlePlaceholder')}" required>
+              </div>
+              <div class="form-group">
+                <label>${t('moodleAssignmentCreate.courseLabel')} *</label>
+                <select id="assignmentBuilderCourse" ${isEditing ? 'disabled' : ''}>${courseOptions}</select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>${t('common.description')}</label>
+              <textarea id="assignmentBuilderDescription" rows="3" placeholder="${t('moodleAssignmentCreate.descPlaceholder')}">${this.escapeText(assignment?.description || '')}</textarea>
+            </div>
+            <div class="form-group">
+              <label>${isEnglish ? 'Assignment brief & instructions' : '作業內容與要求'}</label>
+              <textarea id="assignmentBuilderInstructions" rows="8" placeholder="${isEnglish ? 'Explain what students should deliver, the expected format, and any grading focus.' : '請具體說明學生要完成什麼、提交格式，以及評分重點。'}">${this.escapeText(assignment?.instructions || '')}</textarea>
+            </div>
+          </section>
+
+          <section class="quiz-create-card">
+            <div class="quiz-create-card-head">
+              <div>
+                <div class="quiz-create-card-kicker">${isEnglish ? 'Schedule' : '時間與成績'}</div>
+                <div class="quiz-create-card-title">${isEnglish ? 'Deadlines and grading basis' : '截止時間與評分基準'}</div>
+                <p class="quiz-create-card-note">${isEnglish
+                  ? 'Set the due window, scoring range, and the passing threshold learners should hit.'
+                  : '設定截止區間、總分與及格門檻，讓學生知道這份作業的時程與成績標準。'}</p>
+              </div>
+            </div>
+            <div class="activity-builder-grid">
+              <div class="form-group">
+                <label>${t('moodleAddActivity.dueDateLabel')} *</label>
+                <input type="datetime-local" id="assignmentBuilderDueDate" value="${this.escapeText(this.toDateTimeLocalValue(assignment?.dueDate))}" required>
+              </div>
+              <div class="form-group">
+                <label>${isEnglish ? 'Final cutoff' : '最終截止'}</label>
+                <input type="datetime-local" id="assignmentBuilderCutoffDate" value="${this.escapeText(this.toDateTimeLocalValue(assignment?.cutoffDate))}">
+              </div>
+              <div class="form-group">
+                <label>${t('moodleRubrics.maxScore')}</label>
+                <input type="number" id="assignmentBuilderMaxGrade" value="${this.escapeText(assignment?.maxGrade ?? assignment?.maxPoints ?? 100)}" min="1">
+              </div>
+              <div class="form-group">
+                <label>${t('app.passingScore') || (isEnglish ? 'Passing score' : '及格分數')}</label>
+                <input type="number" id="assignmentBuilderGradeToPass" value="${this.escapeText(assignment?.gradeToPass ?? 60)}" min="0">
+              </div>
+            </div>
+          </section>
+
+          <section class="quiz-create-card">
+            <div class="quiz-create-card-head">
+              <div>
+                <div class="quiz-create-card-kicker">${isEnglish ? 'Submission' : '提交規則'}</div>
+                <div class="quiz-create-card-title">${isEnglish ? 'How learners will submit' : '學生如何提交作業'}</div>
+                <p class="quiz-create-card-note">${isEnglish
+                  ? 'Decide whether students type online, upload files, submit both, and how late work should be handled.'
+                  : '決定學生是在線上輸入、上傳檔案或兩者皆可，並設定遲交處理方式。'}</p>
+              </div>
+            </div>
+            <div class="activity-builder-grid">
+              <div class="form-group">
+                <label>${t('moodleAddActivity.submitTypeLabel')}</label>
+                <select id="assignmentBuilderSubmitType">
+                  <option value="online_text" ${this.normalizeAssignmentSubmissionType(assignment?.submissionType) === 'text' ? 'selected' : ''}>${t('moodleAddActivity.submitTypeText')}</option>
+                  <option value="file" ${this.normalizeAssignmentSubmissionType(assignment?.submissionType) === 'file' ? 'selected' : ''}>${t('moodleAddActivity.submitTypeFile')}</option>
+                  <option value="both" ${this.normalizeAssignmentSubmissionType(assignment?.submissionType) === 'both' ? 'selected' : ''}>${t('moodleAssignmentCreate.typeBoth')}</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>${t('moodleAssignmentCreate.allowLate')}</label>
+                <select id="assignmentBuilderAllowLate">
+                  <option value="true" ${assignment?.allowLateSubmission !== false ? 'selected' : ''}>${t('common.allow')}</option>
+                  <option value="false" ${assignment?.allowLateSubmission === false ? 'selected' : ''}>${t('common.disallow')}</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>${isEnglish ? 'Late deduction %' : '遲交扣分 %'}</label>
+                <input type="number" id="assignmentBuilderLateDeduction" value="${this.escapeText(assignment?.lateDeductionPercent ?? 10)}" min="0" max="100">
+              </div>
+              <div class="form-group">
+                <label>${isEnglish ? 'Max files' : '最多檔案數'}</label>
+                <input type="number" id="assignmentBuilderMaxFiles" value="${this.escapeText(assignment?.maxFiles ?? 5)}" min="1" max="20">
+              </div>
+              <div class="form-group">
+                <label>${isEnglish ? 'Max file size (MB)' : '單檔大小上限 (MB)'}</label>
+                <input type="number" id="assignmentBuilderMaxFileSize" value="${this.escapeText(assignment?.maxFileSize ?? 10)}" min="1" max="500">
+              </div>
+              <div class="form-group">
+                <label>${isEnglish ? 'Rubric' : '評分規準'}</label>
+                <select id="assignmentBuilderRubric">${this.renderAssignmentBuilderRubricOptions(rubrics, selectedRubricId)}</select>
+              </div>
+            </div>
+            <div id="assignmentBuilderRubricPreview"></div>
+            <div class="form-group form-checkbox-row">
+              <label class="checkbox-label" for="assignmentBuilderVisible">
+                <input type="checkbox" id="assignmentBuilderVisible" ${assignment?.visible !== false ? 'checked' : ''}>
+                <span>${t('moodleCourseSettings.visibleToStudents')}</span>
+              </label>
+            </div>
+            <div class="form-group form-checkbox-row">
+              <label class="checkbox-label" for="assignmentBuilderAnonymous">
+                <input type="checkbox" id="assignmentBuilderAnonymous" ${assignment?.anonymousGrading ? 'checked' : ''}>
+                <span>${isEnglish ? 'Anonymous grading (hide student identity from graders)' : '匿名評分（評分時隱藏學生姓名）'}</span>
+              </label>
+            </div>
+            <div class="form-group form-checkbox-row">
+              <label class="checkbox-label" for="assignmentBuilderTeamSubmission">
+                <input type="checkbox" id="assignmentBuilderTeamSubmission" ${assignment?.teamSubmission ? 'checked' : ''}>
+                <span>${isEnglish ? 'Team submission (one submission shared by each group)' : '組別提交（同組共用一份提交）'}</span>
+              </label>
+            </div>
+          </section>
+
+          <div class="form-actions quiz-create-actions">
+            <button type="button" onclick="MoodleUI.closeModal('assignmentBuilderModal')" class="btn-secondary">${t('common.cancel')}</button>
+            <button type="submit" class="btn-primary">${isEditing ? t('common.save') : t('moodleAssignmentCreate.createBtn')}</button>
+          </div>
+        </div>
+      </form>
+    `, {
+      maxWidth: '860px',
+      kicker: isEnglish ? 'Assignment workspace' : '作業工作區',
+      description: isEnglish
+        ? 'Create an assignment with a proper task brief, grading baseline, and submission policy.'
+        : '用完整流程設定作業內容、評分基準與提交規則。'
+    });
+
+    modal.querySelector('#assignmentBuilderCourse')?.addEventListener('change', () => {
+      this.refreshAssignmentBuilderRubrics('');
+    });
+    modal.querySelector('#assignmentBuilderRubric')?.addEventListener('change', () => {
+      this.renderAssignmentBuilderRubricPreview();
+    });
+
+    this.renderAssignmentBuilderRubricPreview();
+    window.requestAnimationFrame(() => modal.querySelector('#assignmentBuilderTitle')?.focus());
+  },
+
+  async saveAssignmentBuilder() {
+    const state = this.currentAssignmentBuilderState || {};
+    const isEditing = !!state.assignmentId;
+    const isEnglish = I18n.getLocale() === 'en';
+
+    const title = document.getElementById('assignmentBuilderTitle')?.value?.trim();
+    const courseId = isEditing
+      ? state.courseId
+      : (document.getElementById('assignmentBuilderCourse')?.value || state.courseId);
+    const dueDate = document.getElementById('assignmentBuilderDueDate')?.value;
+    const cutoffDate = document.getElementById('assignmentBuilderCutoffDate')?.value || null;
+
+    if (!title || !courseId || !dueDate) {
+      showToast(t('moodleAssignmentCreate.fieldsRequired'));
+      return;
+    }
+
+    if (cutoffDate && new Date(cutoffDate) < new Date(dueDate)) {
+      showToast(isEnglish ? 'Final cutoff must be after the due date.' : '最終截止時間必須晚於一般截止時間。');
+      return;
+    }
+
+    const selectedRubricId = document.getElementById('assignmentBuilderRubric')?.value || '';
+    const selectedRubric = (state.rubrics || []).find(
+      item => (item.rubricId || item.id) === selectedRubricId
+    ) || null;
+
+    const payload = {
+      courseId,
+      title,
+      description: document.getElementById('assignmentBuilderDescription')?.value || '',
+      instructions: document.getElementById('assignmentBuilderInstructions')?.value || '',
+      dueDate,
+      cutoffDate,
+      maxGrade: parseInt(document.getElementById('assignmentBuilderMaxGrade')?.value, 10) || 100,
+      gradeToPass: parseInt(document.getElementById('assignmentBuilderGradeToPass')?.value, 10) || 0,
+      submissionType: document.getElementById('assignmentBuilderSubmitType')?.value || 'online_text',
+      allowLateSubmission: document.getElementById('assignmentBuilderAllowLate')?.value === 'true',
+      lateDeductionPercent: parseInt(document.getElementById('assignmentBuilderLateDeduction')?.value, 10) || 0,
+      maxFiles: parseInt(document.getElementById('assignmentBuilderMaxFiles')?.value, 10) || 5,
+      maxFileSize: parseInt(document.getElementById('assignmentBuilderMaxFileSize')?.value, 10) || 10,
+      visible: document.getElementById('assignmentBuilderVisible')?.checked !== false,
+      anonymousGrading: !!document.getElementById('assignmentBuilderAnonymous')?.checked,
+      teamSubmission: !!document.getElementById('assignmentBuilderTeamSubmission')?.checked,
+      rubric: selectedRubric
+    };
+
+    if (state.sectionId) {
+      payload.sectionId = state.sectionId;
+    }
+
+    try {
+      const result = isEditing
+        ? await API.assignments.update(state.assignmentId, payload)
+        : await API.assignments.create(payload);
+
+      if (!result?.success) {
+        showToast(result?.message || t('moodleAssignmentCreate.error'));
+        return;
+      }
+
+      const savedAssignment = this.normalizeAssignmentState(result.data || { ...payload, assignmentId: state.assignmentId });
+      this.closeModal('assignmentBuilderModal');
+      showToast(isEditing
+        ? (isEnglish ? 'Assignment updated' : '作業已更新')
+        : t('moodleAssignmentCreate.success'));
+
+      if (state.returnTo === 'course' && courseId) {
+        this.openCourse(courseId);
+        return;
+      }
+
+      if (state.returnTo === 'assignmentDetail') {
+        this.openAssignment(savedAssignment.assignmentId || state.assignmentId);
+        return;
+      }
+
+      showView('moodleAssignments');
+      await this.loadAssignments(courseId || this.currentAssignmentCourseId || undefined);
+    } catch (error) {
+      console.error('Save assignment builder error:', error);
+      showToast(isEditing
+        ? (isEnglish ? 'Failed to update assignment' : '更新作業失敗')
+        : t('moodleAssignmentCreate.createFailed'));
     }
   },
 
@@ -14627,118 +15688,1209 @@ const MoodleUI = {
    * 建立測驗 Modal
    */
   async showCreateQuizModal(preselectedCourseId) {
-    let courseOptions = `<option value="">${t('moodleCourseCreate.selectCourse')}</option>`;
-    try {
-      const courses = await this.getRoleScopedCourses({ manageOnly: true });
-      if (courses.length === 0) {
-        showToast(t('moodleGradebook.noCourses'));
-        return;
-      }
-      courses.forEach(c => {
-        const cid = c.courseId || c.id;
-        courseOptions += `<option value="${cid}" ${cid === preselectedCourseId ? 'selected' : ''}>${c.title || c.name}</option>`;
-      });
-    } catch (e) { /* ignore */ }
-
-    const setupTitle = I18n.getLocale() === 'en' ? 'Quiz setup' : '測驗設定';
-    const setupCopy = I18n.getLocale() === 'en'
-      ? 'Define the quiz name, course, and learner-facing summary before publishing.'
-      : '先設定測驗名稱、所屬課程與學習者會看到的摘要資訊。';
-    const policyTitle = I18n.getLocale() === 'en' ? 'Attempts and schedule' : '作答規則與開放時間';
-    const policyCopy = I18n.getLocale() === 'en'
-      ? 'Configure duration, retry policy, and availability window in one place.'
-      : '在同一個區塊設定時間限制、重試次數與開放區間。';
-
-    this.createModal('createQuizModal', t('moodleQuizCreate.title'), `
-      <div class="quiz-create-shell">
-        <section class="quiz-create-card quiz-create-card-primary">
-          <div class="quiz-create-card-head">
-            <div>
-              <div class="quiz-create-card-kicker">${I18n.getLocale() === 'en' ? 'Assessment' : '測驗工作區'}</div>
-              <div class="quiz-create-card-title">${setupTitle}</div>
-              <p class="quiz-create-card-note">${setupCopy}</p>
-            </div>
-          </div>
-          <div class="form-group">
-            <label>${t('moodleQuizCreate.titleLabel')} *</label>
-            <input type="text" id="newQuizTitle" placeholder="${t('moodleQuizCreate.titlePlaceholder')}">
-          </div>
-          <div class="form-group">
-            <label>${t('moodleQuizCreate.courseLabel')} *</label>
-            <select id="newQuizCourse">${courseOptions}</select>
-          </div>
-          <div class="form-group">
-            <label>${t('common.description')}</label>
-            <textarea id="newQuizDescription" rows="4" placeholder="${t('moodleQuizCreate.descPlaceholder')}"></textarea>
-          </div>
-        </section>
-
-        <section class="quiz-create-card">
-          <div class="quiz-create-card-head">
-            <div>
-              <div class="quiz-create-card-kicker">${I18n.getLocale() === 'en' ? 'Policy' : '測驗規則'}</div>
-              <div class="quiz-create-card-title">${policyTitle}</div>
-              <p class="quiz-create-card-note">${policyCopy}</p>
-            </div>
-          </div>
-          <div class="quiz-create-grid">
-            <div class="form-group">
-              <label>${t('moodleQuizCreate.timeLimitLabel')}</label>
-              <input type="number" id="newQuizTimeLimit" value="60" min="0">
-            </div>
-            <div class="form-group">
-              <label>${t('moodleQuizCreate.maxAttemptsLabel')}</label>
-              <input type="number" id="newQuizMaxAttempts" value="1" min="1">
-            </div>
-            <div class="form-group">
-              <label>${t('moodleQuizCreate.openDate')}</label>
-              <input type="datetime-local" id="newQuizOpenDate">
-            </div>
-            <div class="form-group">
-              <label>${t('moodleQuizCreate.closeDate')}</label>
-              <input type="datetime-local" id="newQuizCloseDate">
-            </div>
-          </div>
-        </section>
-
-        <div class="form-actions quiz-create-actions">
-          <button type="button" onclick="MoodleUI.closeModal('createQuizModal')" class="btn-secondary">${t('common.cancel')}</button>
-          <button type="button" onclick="MoodleUI.saveNewQuiz()" class="btn-primary">${t('moodleQuizCreate.createBtn')}</button>
-        </div>
-      </div>
-    `, {
-      maxWidth: '760px',
-      kicker: I18n.getLocale() === 'en' ? 'Assessment workspace' : '評量工作區',
-      description: I18n.getLocale() === 'en'
-        ? 'Create a quiz with a cleaner setup flow and clear scheduling controls.'
-        : '用更清楚的建立流程設定測驗內容與開放時間。'
+    return this.openQuizBuilderModal({
+      courseId: preselectedCourseId || null,
+      returnTo: 'quizzes'
     });
   },
 
   async saveNewQuiz() {
-    const title = document.getElementById('newQuizTitle')?.value?.trim();
-    const courseId = document.getElementById('newQuizCourse')?.value;
-    if (!title || !courseId) { showToast(t('moodleAssignmentCreate.fieldsRequired')); return; }
-    try {
-      const result = await API.quizzes.create({
-        title,
-        courseId,
-        description: document.getElementById('newQuizDescription')?.value || '',
-        timeLimit: parseInt(document.getElementById('newQuizTimeLimit')?.value) || 60,
-        maxAttempts: parseInt(document.getElementById('newQuizMaxAttempts')?.value) || 1,
-        openDate: document.getElementById('newQuizOpenDate')?.value || undefined,
-        closeDate: document.getElementById('newQuizCloseDate')?.value || undefined
-      });
-      if (result.success) {
-        showToast(t('moodleQuizCreate.success'));
-        this.closeModal('createQuizModal');
-        if (typeof this.loadQuizzes === 'function') this.loadQuizzes();
-      } else {
-        showToast(result.error || t('moodleQuizCreate.error'));
+    return this.saveQuizBuilder();
+  },
+
+  editQuizSettings(quizId) {
+    return this.openQuizBuilderModal({
+      quizId,
+      returnTo: 'quizResults'
+    });
+  },
+
+  createEmptyQuizBuilderQuestion(type = 'multiple_choice') {
+    return this.normalizeQuizBuilderQuestion({
+      type,
+      points: 10
+    });
+  },
+
+  normalizeQuizBuilderQuestion(question = {}) {
+    const type = question.type || 'multiple_choice';
+    const normalized = {
+      questionId: question.questionId || null,
+      bankQuestionId: question.bankQuestionId || null,
+      type,
+      text: String(question.text ?? question.questionText ?? question.content ?? question.title ?? '').trim(),
+      options: Array.isArray(question.options)
+        ? question.options.map(option => (typeof option === 'string' ? option : (option?.text || option?.label || '')))
+        : [],
+      correctAnswer: question.correctAnswer,
+      correctAnswers: Array.isArray(question.correctAnswers)
+        ? question.correctAnswers.map(answer => String(answer).trim()).filter(Boolean)
+        : [],
+      caseSensitive: !!question.caseSensitive,
+      referenceAnswer: String(question.referenceAnswer || ''),
+      minWords: Number.isFinite(Number(question.minWords)) ? Number(question.minWords) : 0,
+      points: Number.isFinite(Number(question.points)) ? Number(question.points) : 10,
+      difficulty: question.difficulty || 'medium',
+      feedback: String(question.feedback || question.explanation || ''),
+      tags: Array.isArray(question.tags) ? question.tags.map(tag => String(tag).trim()).filter(Boolean) : []
+    };
+
+    if (type === 'multiple_choice') {
+      normalized.options = normalized.options.length > 0 ? normalized.options : ['', '', '', ''];
+      const correctIndex = Number(normalized.correctAnswer);
+      normalized.correctAnswer = Number.isFinite(correctIndex)
+        ? Math.max(0, Math.min(normalized.options.length - 1, correctIndex))
+        : 0;
+      normalized.correctAnswers = [];
+    } else if (type === 'true_false') {
+      normalized.options = [];
+      normalized.correctAnswer = normalized.correctAnswer !== false;
+      normalized.correctAnswers = [];
+    } else if (type === 'short_answer' || type === 'fill_blank') {
+      normalized.options = [];
+      if (normalized.correctAnswers.length === 0 && normalized.correctAnswer !== undefined && normalized.correctAnswer !== null) {
+        normalized.correctAnswers = [String(normalized.correctAnswer)];
       }
+      normalized.correctAnswer = null;
+    } else if (type === 'essay') {
+      normalized.options = [];
+      normalized.correctAnswer = null;
+      normalized.correctAnswers = [];
+    }
+
+    return normalized;
+  },
+
+  renderQuizBuilderQuestionList() {
+    const state = this.currentQuizBuilderState;
+    const list = document.getElementById('quizBuilderQuestionList');
+    const summary = document.getElementById('quizBuilderQuestionSummary');
+    if (!state || !list || !summary) return;
+
+    const isEnglish = I18n.getLocale() === 'en';
+    const questions = Array.isArray(state.questions) ? state.questions : [];
+    const totalPoints = questions.reduce((sum, question) => sum + (Number(question.points) || 0), 0);
+
+    summary.innerHTML = `
+      <div class="builder-summary-row">
+        <span class="builder-badge">${questions.length} ${isEnglish ? 'questions' : '題目'}</span>
+        <span class="builder-badge">${totalPoints} ${isEnglish ? 'points total' : '分總分'}</span>
+        <span class="builder-badge">${questions.filter(question => question.bankQuestionId).length} ${isEnglish ? 'from question bank' : '題來自題庫'}</span>
+      </div>
+    `;
+
+    if (questions.length === 0) {
+      list.innerHTML = `
+        <div class="builder-question-empty">
+          <strong>${isEnglish ? 'No questions added yet' : '尚未加入題目'}</strong>
+          <p>${isEnglish
+            ? 'Add at least one question here so this quiz is more than a schedule shell.'
+            : '請直接在這裡新增題目或從題庫加入，讓這份測驗不再只是時間外殼。'}</p>
+        </div>
+      `;
+      return;
+    }
+
+    list.innerHTML = questions.map((rawQuestion, index) => {
+      const question = this.normalizeQuizBuilderQuestion(rawQuestion);
+      const safeText = this.escapeText(this.truncateText(question.text || (isEnglish ? `Question ${index + 1}` : `第 ${index + 1} 題`), 180));
+      const sourceLabel = question.bankQuestionId
+        ? (isEnglish ? 'Question bank' : '題庫題目')
+        : (isEnglish ? 'Manual question' : '手動題目');
+      const typeLabel = this.escapeText(this.getLocalizedQuestionType(question.type));
+      const detailLabel = question.type === 'multiple_choice'
+        ? `${(question.options || []).filter(Boolean).length} ${isEnglish ? 'options' : '個選項'}`
+        : question.type === 'true_false'
+          ? (isEnglish ? 'True / false' : '是非題')
+          : question.type === 'essay'
+            ? (isEnglish ? 'Manual grading required' : '需人工評分')
+            : `${Math.max((question.correctAnswers || []).length, 1)} ${isEnglish ? 'accepted answers' : '個可接受答案'}`;
+
+      return `
+        <article class="builder-question-card">
+          <div class="builder-question-top">
+            <div class="builder-question-copy">
+              <div class="builder-badge-row">
+                <span class="builder-badge">${this.escapeText(sourceLabel)}</span>
+                <span class="builder-badge">${typeLabel}</span>
+                <span class="builder-badge">${this.escapeText(String(question.points || 0))} ${isEnglish ? 'pts' : '分'}</span>
+              </div>
+              <h4>${safeText}</h4>
+              <p>${this.escapeText(detailLabel)}</p>
+            </div>
+            <div class="builder-question-actions">
+              <button type="button" class="btn-sm" onclick="MoodleUI.openQuizQuestionEditorModal(${index})">${t('common.edit')}</button>
+              <button type="button" class="btn-sm" onclick="MoodleUI.duplicateQuizBuilderQuestion(${index})">${t('common.duplicate')}</button>
+              <button type="button" class="btn-sm" onclick="MoodleUI.moveQuizBuilderQuestion(${index}, -1)" ${index === 0 ? 'disabled' : ''}>${isEnglish ? 'Move up' : '上移'}</button>
+              <button type="button" class="btn-sm" onclick="MoodleUI.moveQuizBuilderQuestion(${index}, 1)" ${index === questions.length - 1 ? 'disabled' : ''}>${isEnglish ? 'Move down' : '下移'}</button>
+              <button type="button" class="btn-sm btn-danger" onclick="MoodleUI.removeQuizBuilderQuestion(${index})">${t('common.delete')}</button>
+            </div>
+          </div>
+        </article>
+      `;
+    }).join('');
+  },
+
+  duplicateQuizBuilderQuestion(index) {
+    const state = this.currentQuizBuilderState;
+    if (!state || !Array.isArray(state.questions) || !state.questions[index]) return;
+    const sourceQuestion = this.normalizeQuizBuilderQuestion(state.questions[index]);
+    state.questions.splice(index + 1, 0, {
+      ...sourceQuestion,
+      questionId: null
+    });
+    this.renderQuizBuilderQuestionList();
+  },
+
+  removeQuizBuilderQuestion(index) {
+    const state = this.currentQuizBuilderState;
+    if (!state || !Array.isArray(state.questions)) return;
+    state.questions.splice(index, 1);
+    this.renderQuizBuilderQuestionList();
+  },
+
+  moveQuizBuilderQuestion(index, delta) {
+    const state = this.currentQuizBuilderState;
+    if (!state || !Array.isArray(state.questions)) return;
+    const nextIndex = index + delta;
+    if (nextIndex < 0 || nextIndex >= state.questions.length) return;
+    const [item] = state.questions.splice(index, 1);
+    state.questions.splice(nextIndex, 0, item);
+    this.renderQuizBuilderQuestionList();
+  },
+
+  renderQuizQuestionEditorOptions(type, question = {}) {
+    const isEnglish = I18n.getLocale() === 'en';
+    const normalized = this.normalizeQuizBuilderQuestion({ ...question, type });
+
+    if (type === 'multiple_choice') {
+      const options = normalized.options.length > 0 ? normalized.options : ['', '', '', ''];
+      return `
+        <div class="form-group">
+          <label>${t('moodleNewQuestion.optionsLabel')}</label>
+          <div id="quizQuestionOptionsList">
+            ${options.map((option, index) => `
+              <div class="builder-option-row">
+                <input type="radio" name="quizQuestionCorrect" value="${index}" ${Number(normalized.correctAnswer) === index ? 'checked' : ''}>
+                <input type="text" class="option-input" value="${this.escapeText(option || '')}" placeholder="${this.escapeText((isEnglish ? 'Option' : '選項'))} ${String.fromCharCode(65 + index)}">
+                <button type="button" class="btn-remove" onclick="this.closest('.builder-option-row').remove(); MoodleUI.syncQuizQuestionOptionIndices();">×</button>
+              </div>
+            `).join('')}
+          </div>
+          <button type="button" class="btn-sm" onclick="MoodleUI.addQuizQuestionOptionRow()">${t('moodleNewQuestion.addOption')}</button>
+        </div>
+      `;
+    }
+
+    if (type === 'true_false') {
+      return `
+        <div class="form-group">
+          <label>${t('moodleNewQuestion.correctAnswer')}</label>
+          <div class="radio-group">
+            <label><input type="radio" name="quizQuestionTrueFalse" value="true" ${normalized.correctAnswer !== false ? 'checked' : ''}> ${t('moodleNewQuestion.tfTrue')}</label>
+            <label><input type="radio" name="quizQuestionTrueFalse" value="false" ${normalized.correctAnswer === false ? 'checked' : ''}> ${t('moodleNewQuestion.tfFalse')}</label>
+          </div>
+        </div>
+      `;
+    }
+
+    if (type === 'short_answer' || type === 'fill_blank') {
+      return `
+        <div class="form-group">
+          <label>${t('moodleNewQuestion.correctAnswers')}</label>
+          <textarea id="quizQuestionAcceptedAnswers" rows="4" placeholder="${this.escapeText(isEnglish ? 'One accepted answer per line' : '每行輸入一個可接受答案')}">${this.escapeText((normalized.correctAnswers || []).join('\n'))}</textarea>
+        </div>
+        <div class="form-group form-checkbox-row">
+          <label class="checkbox-label" for="quizQuestionCaseSensitive">
+            <input type="checkbox" id="quizQuestionCaseSensitive" ${normalized.caseSensitive ? 'checked' : ''}>
+            <span>${t('moodleNewQuestion.caseSensitive')}</span>
+          </label>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="form-group">
+        <label>${t('moodleNewQuestion.referenceAnswer')}</label>
+        <textarea id="quizQuestionReferenceAnswer" rows="4" placeholder="${t('moodleNewQuestion.referencePlaceholder')}">${this.escapeText(normalized.referenceAnswer || '')}</textarea>
+      </div>
+      <div class="form-group">
+        <label>${t('moodleNewQuestion.minWords')}</label>
+        <input type="number" id="quizQuestionMinWords" value="${this.escapeText(normalized.minWords || 0)}" min="0">
+      </div>
+    `;
+  },
+
+  updateQuizQuestionEditorForm() {
+    const dynamicArea = document.getElementById('quizQuestionDynamicArea');
+    if (!dynamicArea) return;
+    const type = document.getElementById('quizQuestionType')?.value || 'multiple_choice';
+    const draft = this.currentQuizQuestionEditorState?.draft || this.createEmptyQuizBuilderQuestion(type);
+    this.currentQuizQuestionEditorState = {
+      ...(this.currentQuizQuestionEditorState || {}),
+      draft: this.normalizeQuizBuilderQuestion({ ...draft, type })
+    };
+    dynamicArea.innerHTML = this.renderQuizQuestionEditorOptions(type, this.currentQuizQuestionEditorState.draft);
+    this.syncQuizQuestionOptionIndices();
+  },
+
+  syncQuizQuestionOptionIndices() {
+    const rows = document.querySelectorAll('#quizQuestionOptionsList .builder-option-row');
+    if (rows.length === 0) return;
+    const isEnglish = I18n.getLocale() === 'en';
+    let checkedExists = false;
+
+    rows.forEach((row, index) => {
+      const radio = row.querySelector('input[type="radio"]');
+      const textInput = row.querySelector('input[type="text"]');
+      if (radio) {
+        radio.value = String(index);
+        if (radio.checked) checkedExists = true;
+      }
+      if (textInput) {
+        textInput.placeholder = `${isEnglish ? 'Option' : '選項'} ${String.fromCharCode(65 + index)}`;
+      }
+    });
+
+    if (!checkedExists) {
+      const firstRadio = rows[0]?.querySelector('input[type="radio"]');
+      if (firstRadio) {
+        firstRadio.checked = true;
+      }
+    }
+  },
+
+  addQuizQuestionOptionRow() {
+    const list = document.getElementById('quizQuestionOptionsList');
+    if (!list) return;
+
+    const row = document.createElement('div');
+    row.className = 'builder-option-row';
+    row.innerHTML = `
+      <input type="radio" name="quizQuestionCorrect" value="0">
+      <input type="text" class="option-input" placeholder="${this.escapeText(I18n.getLocale() === 'en' ? 'Option' : '選項')}">
+      <button type="button" class="btn-remove" onclick="this.closest('.builder-option-row').remove(); MoodleUI.syncQuizQuestionOptionIndices();">×</button>
+    `;
+    list.appendChild(row);
+    this.syncQuizQuestionOptionIndices();
+  },
+
+  openQuizQuestionEditorModal(index = null) {
+    const state = this.currentQuizBuilderState;
+    if (!state) return;
+
+    const isEditing = Number.isInteger(index) && index >= 0;
+    const question = this.normalizeQuizBuilderQuestion(
+      isEditing ? (state.questions[index] || {}) : this.createEmptyQuizBuilderQuestion()
+    );
+    const isEnglish = I18n.getLocale() === 'en';
+
+    this.currentQuizQuestionEditorState = {
+      index: isEditing ? index : null,
+      draft: question
+    };
+
+    const modal = this.createModal('quizQuestionEditorModal', isEditing
+      ? (isEnglish ? 'Edit question' : '編輯題目')
+      : t('moodleNewQuestion.title'), `
+      <form onsubmit="event.preventDefault(); MoodleUI.saveQuizQuestionDraft()">
+        <div class="quiz-create-shell">
+          <section class="quiz-create-card quiz-create-card-primary">
+            <div class="quiz-create-card-head">
+              <div>
+                <div class="quiz-create-card-kicker">${isEnglish ? 'Question' : '題目編輯器'}</div>
+                <div class="quiz-create-card-title">${isEnglish ? 'Question content' : '題目內容'}</div>
+                <p class="quiz-create-card-note">${isEnglish
+                  ? 'Define the prompt, answer structure, and grading data for this question.'
+                  : '設定題目敘述、答案格式與評分所需資料。'}</p>
+              </div>
+            </div>
+            <div class="activity-builder-grid">
+              <div class="form-group">
+                <label>${t('moodleNewQuestion.typeLabel')}</label>
+                <select id="quizQuestionType">
+                  <option value="multiple_choice" ${question.type === 'multiple_choice' ? 'selected' : ''}>${t('moodleQuestionBank.multipleChoice')}</option>
+                  <option value="true_false" ${question.type === 'true_false' ? 'selected' : ''}>${t('moodleQuestionBank.trueFalse')}</option>
+                  <option value="short_answer" ${question.type === 'short_answer' ? 'selected' : ''}>${t('moodleQuestionBank.shortAnswer')}</option>
+                  <option value="fill_blank" ${question.type === 'fill_blank' ? 'selected' : ''}>${t('moodleQuestionBank.fillBlank')}</option>
+                  <option value="essay" ${question.type === 'essay' ? 'selected' : ''}>${t('moodleQuestionBank.essay')}</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>${t('moodleAddActivity.scoreLabel')}</label>
+                <input type="number" id="quizQuestionPoints" value="${this.escapeText(question.points || 10)}" min="1">
+              </div>
+              <div class="form-group">
+                <label>${t('moodleNewQuestion.diffLabel')}</label>
+                <select id="quizQuestionDifficulty">
+                  <option value="easy" ${question.difficulty === 'easy' ? 'selected' : ''}>${t('moodleNewQuestion.diffEasy')}</option>
+                  <option value="medium" ${question.difficulty === 'medium' ? 'selected' : ''}>${t('moodleNewQuestion.diffMedium')}</option>
+                  <option value="hard" ${question.difficulty === 'hard' ? 'selected' : ''}>${t('moodleNewQuestion.diffHard')}</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>${t('moodleNewQuestion.contentLabel')}</label>
+              <textarea id="quizQuestionText" rows="4" placeholder="${t('moodleNewQuestion.contentPlaceholder')}">${this.escapeText(question.text || '')}</textarea>
+            </div>
+            <div id="quizQuestionDynamicArea">${this.renderQuizQuestionEditorOptions(question.type, question)}</div>
+            <div class="form-group">
+              <label>${t('moodleNewQuestion.explanationLabel')}</label>
+              <textarea id="quizQuestionFeedback" rows="3" placeholder="${t('moodleNewQuestion.explanationPlaceholder')}">${this.escapeText(question.feedback || '')}</textarea>
+            </div>
+          </section>
+
+          <div class="form-actions">
+            <button type="button" onclick="MoodleUI.closeModal('quizQuestionEditorModal')" class="btn-secondary">${t('common.cancel')}</button>
+            <button type="submit" class="btn-primary">${isEditing ? t('common.save') : t('moodleNewQuestion.create')}</button>
+          </div>
+        </div>
+      </form>
+    `, {
+      maxWidth: '740px',
+      kicker: isEnglish ? 'Assessment workspace' : '評量工作區',
+      description: isEnglish
+        ? 'Edit the question before placing it into the quiz.'
+        : '完成題目設定後，這一題就會加入測驗。'
+    });
+
+    modal.querySelector('#quizQuestionType')?.addEventListener('change', () => this.updateQuizQuestionEditorForm());
+    this.syncQuizQuestionOptionIndices();
+    window.requestAnimationFrame(() => modal.querySelector('#quizQuestionText')?.focus());
+  },
+
+  saveQuizQuestionDraft() {
+    const builderState = this.currentQuizBuilderState;
+    const editorState = this.currentQuizQuestionEditorState;
+    if (!builderState || !editorState) return;
+
+    const type = document.getElementById('quizQuestionType')?.value || 'multiple_choice';
+    const text = document.getElementById('quizQuestionText')?.value?.trim();
+    if (!text) {
+      showToast(t('moodleNewQuestion.contentRequired'));
+      return;
+    }
+
+    const baseQuestion = Number.isInteger(editorState.index) && builderState.questions[editorState.index]
+      ? { ...builderState.questions[editorState.index] }
+      : {};
+
+    const question = {
+      ...baseQuestion,
+      type,
+      text,
+      points: parseInt(document.getElementById('quizQuestionPoints')?.value, 10) || 10,
+      difficulty: document.getElementById('quizQuestionDifficulty')?.value || 'medium',
+      feedback: document.getElementById('quizQuestionFeedback')?.value || ''
+    };
+
+    if (type === 'multiple_choice') {
+      const optionInputs = Array.from(document.querySelectorAll('#quizQuestionOptionsList .option-input'));
+      const options = optionInputs.map(input => input.value.trim()).filter(Boolean);
+      const correctOption = parseInt(document.querySelector('input[name="quizQuestionCorrect"]:checked')?.value, 10) || 0;
+      if (options.length < 2) {
+        showToast(t('moodleNewQuestion.minOptions'));
+        return;
+      }
+      question.options = options;
+      question.correctAnswer = Math.max(0, Math.min(options.length - 1, correctOption));
+      question.correctAnswers = [];
+      question.referenceAnswer = '';
+      question.minWords = 0;
+      question.caseSensitive = false;
+    } else if (type === 'true_false') {
+      question.options = [];
+      question.correctAnswer = document.querySelector('input[name="quizQuestionTrueFalse"]:checked')?.value !== 'false';
+      question.correctAnswers = [];
+      question.referenceAnswer = '';
+      question.minWords = 0;
+      question.caseSensitive = false;
+    } else if (type === 'short_answer' || type === 'fill_blank') {
+      question.options = [];
+      question.correctAnswer = null;
+      question.correctAnswers = String(document.getElementById('quizQuestionAcceptedAnswers')?.value || '')
+        .split('\n')
+        .map(answer => answer.trim())
+        .filter(Boolean);
+      question.referenceAnswer = '';
+      question.minWords = 0;
+      question.caseSensitive = document.getElementById('quizQuestionCaseSensitive')?.checked === true;
+    } else {
+      question.options = [];
+      question.correctAnswer = null;
+      question.correctAnswers = [];
+      question.referenceAnswer = document.getElementById('quizQuestionReferenceAnswer')?.value || '';
+      question.minWords = parseInt(document.getElementById('quizQuestionMinWords')?.value, 10) || 0;
+      question.caseSensitive = false;
+    }
+
+    const normalizedQuestion = this.normalizeQuizBuilderQuestion(question);
+    if (Number.isInteger(editorState.index) && editorState.index >= 0) {
+      builderState.questions.splice(editorState.index, 1, normalizedQuestion);
+    } else {
+      builderState.questions.push(normalizedQuestion);
+    }
+
+    this.closeModal('quizQuestionEditorModal');
+    this.renderQuizBuilderQuestionList();
+  },
+
+  createQuizQuestionFromBankQuestion(question = {}) {
+    return this.normalizeQuizBuilderQuestion({
+      bankQuestionId: question.questionId || question.id || null,
+      type: question.type,
+      text: question.questionText || question.text || question.content || '',
+      options: question.options || [],
+      correctAnswer: question.correctAnswer,
+      correctAnswers: question.correctAnswers || [],
+      caseSensitive: question.caseSensitive,
+      referenceAnswer: question.referenceAnswer || '',
+      minWords: question.minWords || 0,
+      points: question.points || 10,
+      difficulty: question.difficulty || 'medium',
+      feedback: question.explanation || question.feedback || '',
+      tags: question.tags || []
+    });
+  },
+
+  updateQuizQuestionBankSelectionSummary() {
+    const summary = document.getElementById('quizQuestionBankSelectionSummary');
+    if (!summary) return;
+    const selectedCount = this.currentQuizQuestionBankPicker?.selectedIds?.size || 0;
+    summary.textContent = I18n.getLocale() === 'en'
+      ? `${selectedCount} question(s) selected`
+      : `已選擇 ${selectedCount} 題`;
+  },
+
+  renderQuizQuestionBankPickerList() {
+    const picker = this.currentQuizQuestionBankPicker;
+    const list = document.getElementById('quizQuestionBankList');
+    if (!picker || !list) return;
+
+    const isEnglish = I18n.getLocale() === 'en';
+    const search = String(document.getElementById('quizQuestionBankSearch')?.value || '').trim().toLowerCase();
+    const categoryId = document.getElementById('quizQuestionBankCategory')?.value || '';
+    const difficulty = document.getElementById('quizQuestionBankDifficulty')?.value || '';
+
+    const filtered = (picker.questions || []).filter((question) => {
+      const matchesSearch = !search
+        || String(question.questionText || question.text || '').toLowerCase().includes(search)
+        || (Array.isArray(question.tags) && question.tags.some(tag => String(tag).toLowerCase().includes(search)));
+      const matchesCategory = !categoryId || question.categoryId === categoryId;
+      const matchesDifficulty = !difficulty || question.difficulty === difficulty;
+      return matchesSearch && matchesCategory && matchesDifficulty;
+    });
+
+    list.innerHTML = filtered.length === 0
+      ? `
+        <div class="builder-question-empty">
+          <strong>${isEnglish ? 'No matching questions' : '找不到符合條件的題目'}</strong>
+          <p>${isEnglish
+            ? 'Try a different keyword or add new questions in the question bank first.'
+            : '可以換個關鍵字，或先到題庫建立題目。'}</p>
+        </div>
+      `
+      : filtered.map((question) => {
+        const questionId = question.questionId || question.id;
+        const checked = picker.selectedIds.has(questionId) ? 'checked' : '';
+        return `
+          <label class="quiz-bank-item">
+            <div class="quiz-bank-item-check">
+              <input type="checkbox" ${checked} onchange="MoodleUI.toggleQuizQuestionBankSelection(${this.toInlineActionValue(questionId)}, this.checked)">
+            </div>
+            <div class="quiz-bank-item-copy">
+              <div class="builder-badge-row">
+                <span class="builder-badge">${this.escapeText(this.getLocalizedQuestionType(question.type))}</span>
+                <span class="builder-badge">${this.escapeText(String(question.points || 0))} ${isEnglish ? 'pts' : '分'}</span>
+                ${question.category ? `<span class="builder-badge">${this.escapeText(question.category)}</span>` : ''}
+              </div>
+              <h4>${this.escapeText(this.truncateText(question.questionText || question.text || '', 220) || (isEnglish ? 'Untitled question' : '未命名題目'))}</h4>
+              <p>${this.escapeText((question.tags || []).slice(0, 5).join(', ') || (isEnglish ? 'No tags' : '未設定標籤'))}</p>
+            </div>
+          </label>
+        `;
+      }).join('');
+
+    this.updateQuizQuestionBankSelectionSummary();
+  },
+
+  toggleQuizQuestionBankSelection(questionId, checked) {
+    const picker = this.currentQuizQuestionBankPicker;
+    if (!picker) return;
+    if (checked) {
+      picker.selectedIds.add(questionId);
+    } else {
+      picker.selectedIds.delete(questionId);
+    }
+    this.updateQuizQuestionBankSelectionSummary();
+  },
+
+  async openQuizQuestionBankModal() {
+    const builderState = this.currentQuizBuilderState;
+    if (!builderState) return;
+
+    const courseId = document.getElementById('quizBuilderCourse')?.value || builderState.courseId;
+    if (!courseId) {
+      showToast(I18n.getLocale() === 'en' ? 'Please select a course first.' : '請先選擇課程。');
+      return;
+    }
+
+    const [questionsResult, categoriesResult] = await Promise.all([
+      API.questionBank.list({ courseId, limit: 200 }).catch(() => ({ success: false, data: [] })),
+      API.questionBank.getCategories({ courseId }).catch(() => ({ success: false, data: [] }))
+    ]);
+
+    const questions = questionsResult?.success && Array.isArray(questionsResult.data)
+      ? questionsResult.data
+      : [];
+    const categories = categoriesResult?.success && Array.isArray(categoriesResult.data)
+      ? categoriesResult.data
+      : [];
+
+    this.currentQuizQuestionBankPicker = {
+      courseId,
+      questions,
+      categories,
+      selectedIds: new Set()
+    };
+
+    const isEnglish = I18n.getLocale() === 'en';
+    const modal = this.createModal('quizQuestionBankModal', isEnglish ? 'Add from question bank' : '從題庫加入題目', `
+      <form onsubmit="event.preventDefault(); MoodleUI.appendSelectedBankQuestionsToQuizBuilder()">
+        <div class="quiz-create-shell">
+          <section class="quiz-create-card quiz-create-card-primary">
+            <div class="quiz-create-card-head">
+              <div>
+                <div class="quiz-create-card-kicker">${isEnglish ? 'Question bank' : '題庫'}</div>
+                <div class="quiz-create-card-title">${isEnglish ? 'Pick reusable questions' : '選擇可重用題目'}</div>
+                <p class="quiz-create-card-note">${isEnglish
+                  ? 'Search this course question bank and add selected questions into the quiz builder.'
+                  : '從這門課的題庫挑選題目，直接加入目前的測驗編排。'}</p>
+              </div>
+              <span id="quizQuestionBankSelectionSummary" class="builder-badge">0</span>
+            </div>
+            <div class="activity-builder-grid">
+              <div class="form-group">
+                <label>${isEnglish ? 'Search' : '搜尋'}</label>
+                <input type="text" id="quizQuestionBankSearch" placeholder="${this.escapeText(isEnglish ? 'Search question text or tags' : '搜尋題目內容或標籤')}">
+              </div>
+              <div class="form-group">
+                <label>${t('moodleQuestionBank.categoriesTitle')}</label>
+                <select id="quizQuestionBankCategory">
+                  <option value="">${t('moodleQuestionBank.allQuestions')}</option>
+                  ${categories.map(category => `<option value="${this.escapeText(category.categoryId)}">${this.escapeText(category.name)}</option>`).join('')}
+                </select>
+              </div>
+              <div class="form-group">
+                <label>${t('moodleNewQuestion.diffLabel')}</label>
+                <select id="quizQuestionBankDifficulty">
+                  <option value="">${isEnglish ? 'All levels' : '全部難度'}</option>
+                  <option value="easy">${t('moodleNewQuestion.diffEasy')}</option>
+                  <option value="medium">${t('moodleNewQuestion.diffMedium')}</option>
+                  <option value="hard">${t('moodleNewQuestion.diffHard')}</option>
+                </select>
+              </div>
+            </div>
+            <div id="quizQuestionBankList" class="quiz-bank-list"></div>
+          </section>
+
+          <div class="form-actions">
+            <button type="button" onclick="MoodleUI.closeModal('quizQuestionBankModal')" class="btn-secondary">${t('common.cancel')}</button>
+            <button type="submit" class="btn-primary">${isEnglish ? 'Add selected questions' : '加入所選題目'}</button>
+          </div>
+        </div>
+      </form>
+    `, {
+      maxWidth: '860px',
+      kicker: isEnglish ? 'Assessment workspace' : '評量工作區',
+      description: isEnglish
+        ? 'Bring existing question bank items into this quiz without leaving the builder.'
+        : '不用離開測驗 builder，就能把題庫題目帶進來。'
+    });
+
+    modal.querySelector('#quizQuestionBankSearch')?.addEventListener('input', () => this.renderQuizQuestionBankPickerList());
+    modal.querySelector('#quizQuestionBankCategory')?.addEventListener('change', () => this.renderQuizQuestionBankPickerList());
+    modal.querySelector('#quizQuestionBankDifficulty')?.addEventListener('change', () => this.renderQuizQuestionBankPickerList());
+
+    this.renderQuizQuestionBankPickerList();
+  },
+
+  appendSelectedBankQuestionsToQuizBuilder() {
+    const builderState = this.currentQuizBuilderState;
+    const picker = this.currentQuizQuestionBankPicker;
+    if (!builderState || !picker) return;
+
+    const selectedQuestions = (picker.questions || []).filter((question) => picker.selectedIds.has(question.questionId || question.id));
+    if (selectedQuestions.length === 0) {
+      showToast(I18n.getLocale() === 'en' ? 'Please select at least one question.' : '請至少選擇一題。');
+      return;
+    }
+
+    const existingBankIds = new Set(
+      (builderState.questions || [])
+        .map(question => question.bankQuestionId)
+        .filter(Boolean)
+    );
+
+    const appended = selectedQuestions
+      .filter(question => !existingBankIds.has(question.questionId || question.id))
+      .map(question => this.createQuizQuestionFromBankQuestion(question));
+
+    if (appended.length === 0) {
+      showToast(I18n.getLocale() === 'en' ? 'Those question bank items are already in this quiz.' : '這些題庫題目已經在這份測驗裡了。');
+      return;
+    }
+
+    builderState.questions.push(...appended);
+    this.closeModal('quizQuestionBankModal');
+    this.renderQuizBuilderQuestionList();
+    showToast(I18n.getLocale() === 'en'
+      ? `${appended.length} question(s) added`
+      : `已加入 ${appended.length} 題`);
+  },
+
+  async openQuizBuilderModal({ quizId = null, courseId = null, sectionId = null, returnTo = null } = {}) {
+    const isEditing = !!quizId;
+    const isEnglish = I18n.getLocale() === 'en';
+
+    let quiz = null;
+    if (isEditing) {
+      const detailResult = await API.quizzes.get(quizId);
+      if (!detailResult?.success) {
+        showToast(detailResult?.message || t('moodleQuiz.loadFailed'));
+        return;
+      }
+      quiz = this.normalizeQuizState(detailResult.data || {});
+      courseId = quiz.courseId || courseId;
+    }
+
+    let courses = [];
+    try {
+      courses = await this.getRoleScopedCourses({ manageOnly: true });
     } catch (error) {
-      console.error('Create quiz error:', error);
-      showToast(t('moodleQuizCreate.createFailed'));
+      console.warn('Load quiz builder courses failed:', error);
+    }
+
+    if (courses.length === 0) {
+      showToast(t('moodleGradebook.noCourses'));
+      return;
+    }
+
+    const resolvedCourseId = courseId || courses[0]?.courseId || courses[0]?.id || '';
+    const courseOptions = courses.map((course) => {
+      const currentCourseId = course.courseId || course.id;
+      return `<option value="${this.escapeText(currentCourseId)}" ${currentCourseId === resolvedCourseId ? 'selected' : ''}>${this.escapeText(course.title || course.name || (isEnglish ? 'Untitled course' : '未命名課程'))}</option>`;
+    }).join('');
+
+    this.currentQuizBuilderState = {
+      quizId,
+      sectionId,
+      returnTo: returnTo || (sectionId ? 'course' : 'quizzes'),
+      courseId: resolvedCourseId,
+      questions: Array.isArray(quiz?.questions)
+        ? quiz.questions.map(question => this.normalizeQuizBuilderQuestion(question))
+        : []
+    };
+
+    const modal = this.createModal('quizBuilderModal', isEditing
+      ? (isEnglish ? 'Edit quiz' : '編輯測驗')
+      : t('moodleQuizCreate.title'), `
+      <form id="quizBuilderForm" onsubmit="event.preventDefault(); MoodleUI.saveQuizBuilder()">
+        <div class="quiz-create-shell activity-builder-shell">
+          <section class="quiz-create-card quiz-create-card-primary">
+            <div class="quiz-create-card-head">
+              <div>
+                <div class="quiz-create-card-kicker">${isEnglish ? 'Assessment' : '測驗工作區'}</div>
+                <div class="quiz-create-card-title">${isEnglish ? 'Quiz overview' : '測驗主設定'}</div>
+                <p class="quiz-create-card-note">${isEnglish
+                  ? 'Set the learner-facing title, summary, and instructions before arranging the questions.'
+                  : '先設定學生會看到的標題、摘要與說明，再安排題目內容。'}</p>
+              </div>
+            </div>
+            <div class="activity-builder-grid">
+              <div class="form-group">
+                <label>${t('moodleQuizCreate.titleLabel')} *</label>
+                <input type="text" id="quizBuilderTitle" value="${this.escapeText(quiz?.title || '')}" placeholder="${t('moodleQuizCreate.titlePlaceholder')}" required>
+              </div>
+              <div class="form-group">
+                <label>${t('moodleQuizCreate.courseLabel')} *</label>
+                <select id="quizBuilderCourse" ${isEditing ? 'disabled' : ''}>${courseOptions}</select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>${t('common.description')}</label>
+              <textarea id="quizBuilderDescription" rows="3" placeholder="${t('moodleQuizCreate.descPlaceholder')}">${this.escapeText(quiz?.description || '')}</textarea>
+            </div>
+            <div class="form-group">
+              <label>${isEnglish ? 'Quiz instructions' : '測驗說明'}</label>
+              <textarea id="quizBuilderInstructions" rows="6" placeholder="${this.escapeText(isEnglish ? 'Explain how students should complete the quiz and any important rules.' : '說明學生如何完成測驗，以及任何重要作答規則。')}">${this.escapeText(quiz?.instructions || '')}</textarea>
+            </div>
+          </section>
+
+          <section class="quiz-create-card">
+            <div class="quiz-create-card-head">
+              <div>
+                <div class="quiz-create-card-kicker">${isEnglish ? 'Policy' : '作答規則'}</div>
+                <div class="quiz-create-card-title">${isEnglish ? 'Attempts, schedule, and release' : '次數、時間與結果公布'}</div>
+                <p class="quiz-create-card-note">${isEnglish
+                  ? 'Define availability, grading method, and what learners can review after submission.'
+                  : '設定測驗何時開放、如何計分，以及學生交卷後可看到多少資訊。'}</p>
+              </div>
+            </div>
+            <div class="activity-builder-grid">
+              <div class="form-group">
+                <label>${t('moodleQuizCreate.timeLimitLabel')}</label>
+                <input type="number" id="quizBuilderTimeLimit" value="${this.escapeText(quiz?.timeLimit ?? 60)}" min="0">
+              </div>
+              <div class="form-group">
+                <label>${t('moodleQuizCreate.maxAttemptsLabel')}</label>
+                <input type="number" id="quizBuilderMaxAttempts" value="${this.escapeText(quiz?.maxAttempts ?? 1)}" min="0">
+              </div>
+              <div class="form-group">
+                <label>${t('moodleQuizCreate.openDate')}</label>
+                <input type="datetime-local" id="quizBuilderOpenDate" value="${this.escapeText(this.toDateTimeLocalValue(quiz?.openDate))}">
+              </div>
+              <div class="form-group">
+                <label>${t('moodleQuizCreate.closeDate')}</label>
+                <input type="datetime-local" id="quizBuilderCloseDate" value="${this.escapeText(this.toDateTimeLocalValue(quiz?.closeDate))}">
+              </div>
+              <div class="form-group">
+                <label>${t('app.passingScore') || (isEnglish ? 'Passing score' : '及格分數')}</label>
+                <input type="number" id="quizBuilderPassingGrade" value="${this.escapeText(quiz?.passingGrade ?? 60)}" min="0" max="100">
+              </div>
+              <div class="form-group">
+                <label>${isEnglish ? 'Grade method' : '計分方式'}</label>
+                <select id="quizBuilderGradeMethod">
+                  <option value="highest" ${(quiz?.gradeMethod || 'highest') === 'highest' ? 'selected' : ''}>${isEnglish ? 'Highest score' : '最高分'}</option>
+                  <option value="average" ${(quiz?.gradeMethod || 'highest') === 'average' ? 'selected' : ''}>${isEnglish ? 'Average score' : '平均分'}</option>
+                  <option value="first" ${(quiz?.gradeMethod || 'highest') === 'first' ? 'selected' : ''}>${isEnglish ? 'First attempt' : '第一次作答'}</option>
+                  <option value="last" ${(quiz?.gradeMethod || 'highest') === 'last' ? 'selected' : ''}>${isEnglish ? 'Last attempt' : '最後一次作答'}</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>${isEnglish ? 'Results visibility' : '結果公布方式'}</label>
+                <select id="quizBuilderShowResults">
+                  <option value="immediately" ${(quiz?.showResults || 'immediately') === 'immediately' ? 'selected' : ''}>${isEnglish ? 'Immediately after submit' : '提交後立即'}</option>
+                  <option value="after_close" ${(quiz?.showResults || 'immediately') === 'after_close' ? 'selected' : ''}>${isEnglish ? 'After close date' : '截止後公布'}</option>
+                  <option value="never" ${(quiz?.showResults || 'immediately') === 'never' ? 'selected' : ''}>${isEnglish ? 'Do not show' : '不顯示'}</option>
+                </select>
+              </div>
+            </div>
+            <div class="builder-checkbox-grid">
+              <label class="checkbox-label" for="quizBuilderShuffleQuestions">
+                <input type="checkbox" id="quizBuilderShuffleQuestions" ${quiz?.shuffleQuestions ? 'checked' : ''}>
+                <span>${isEnglish ? 'Shuffle question order' : '打亂題目順序'}</span>
+              </label>
+              <label class="checkbox-label" for="quizBuilderShuffleAnswers">
+                <input type="checkbox" id="quizBuilderShuffleAnswers" ${quiz?.shuffleAnswers ? 'checked' : ''}>
+                <span>${isEnglish ? 'Shuffle answer options' : '打亂選項順序'}</span>
+              </label>
+              <label class="checkbox-label" for="quizBuilderShowCorrectAnswers">
+                <input type="checkbox" id="quizBuilderShowCorrectAnswers" ${quiz?.showCorrectAnswers !== false ? 'checked' : ''}>
+                <span>${isEnglish ? 'Show correct answers in review' : '檢視結果時顯示正確答案'}</span>
+              </label>
+              <label class="checkbox-label" for="quizBuilderVisible">
+                <input type="checkbox" id="quizBuilderVisible" ${quiz?.visible !== false ? 'checked' : ''}>
+                <span>${t('moodleCourseSettings.visibleToStudents')}</span>
+              </label>
+            </div>
+          </section>
+
+          <section class="quiz-create-card">
+            <div class="quiz-create-card-head">
+              <div>
+                <div class="quiz-create-card-kicker">${isEnglish ? 'Questions' : '題目工作區'}</div>
+                <div class="quiz-create-card-title">${isEnglish ? 'Build the question set' : '編排測驗題目'}</div>
+                <p class="quiz-create-card-note">${isEnglish
+                  ? 'Add questions manually or bring reusable items from the question bank into this quiz.'
+                  : '可手動新增題目，也能直接把題庫題目帶進這份測驗。'}</p>
+              </div>
+            </div>
+            <div class="builder-toolbar">
+              <button type="button" class="btn-secondary" onclick="MoodleUI.openQuizQuestionEditorModal()">${t('moodleQuestionBank.addQuestion')}</button>
+              <button type="button" class="btn-secondary" onclick="MoodleUI.openQuizQuestionBankModal()">${isEnglish ? 'Add from question bank' : '從題庫加入'}</button>
+            </div>
+            <div id="quizBuilderQuestionSummary"></div>
+            <div id="quizBuilderQuestionList" class="builder-question-list"></div>
+          </section>
+
+          <div class="form-actions quiz-create-actions">
+            <button type="button" onclick="MoodleUI.closeModal('quizBuilderModal')" class="btn-secondary">${t('common.cancel')}</button>
+            <button type="submit" class="btn-primary">${isEditing ? t('common.save') : t('moodleQuizCreate.createBtn')}</button>
+          </div>
+        </div>
+      </form>
+    `, {
+      maxWidth: '960px',
+      kicker: isEnglish ? 'Assessment workspace' : '評量工作區',
+      description: isEnglish
+        ? 'Design the quiz settings and the actual question set in one place.'
+        : '在同一個流程中完成測驗設定與題目內容。'
+    });
+
+    modal.querySelector('#quizBuilderCourse')?.addEventListener('change', (event) => {
+      if (this.currentQuizBuilderState) {
+        this.currentQuizBuilderState.courseId = event.target.value;
+      }
+    });
+
+    this.renderQuizBuilderQuestionList();
+    window.requestAnimationFrame(() => modal.querySelector('#quizBuilderTitle')?.focus());
+  },
+
+  async saveQuizBuilder() {
+    const state = this.currentQuizBuilderState || {};
+    const isEditing = !!state.quizId;
+    const isEnglish = I18n.getLocale() === 'en';
+
+    const title = document.getElementById('quizBuilderTitle')?.value?.trim();
+    const courseId = isEditing
+      ? state.courseId
+      : (document.getElementById('quizBuilderCourse')?.value || state.courseId);
+
+    if (!title || !courseId) {
+      showToast(t('moodleAssignmentCreate.fieldsRequired'));
+      return;
+    }
+
+    const questions = Array.isArray(state.questions) ? state.questions : [];
+    if (questions.length === 0) {
+      showToast(isEnglish ? 'Add at least one question before saving the quiz.' : '請至少加入一題後再儲存測驗。');
+      return;
+    }
+
+    const openDate = document.getElementById('quizBuilderOpenDate')?.value || '';
+    const closeDate = document.getElementById('quizBuilderCloseDate')?.value || '';
+    if (openDate && closeDate && new Date(closeDate) < new Date(openDate)) {
+      showToast(isEnglish ? 'Close date must be after the open date.' : '截止時間必須晚於開放時間。');
+      return;
+    }
+
+    const payload = {
+      courseId,
+      title,
+      description: document.getElementById('quizBuilderDescription')?.value || '',
+      instructions: document.getElementById('quizBuilderInstructions')?.value || '',
+      timeLimit: parseInt(document.getElementById('quizBuilderTimeLimit')?.value, 10) || 0,
+      maxAttempts: parseInt(document.getElementById('quizBuilderMaxAttempts')?.value, 10) || 0,
+      openDate: openDate || undefined,
+      closeDate: closeDate || undefined,
+      passingGrade: parseInt(document.getElementById('quizBuilderPassingGrade')?.value, 10) || 0,
+      gradeMethod: document.getElementById('quizBuilderGradeMethod')?.value || 'highest',
+      shuffleQuestions: document.getElementById('quizBuilderShuffleQuestions')?.checked === true,
+      shuffleAnswers: document.getElementById('quizBuilderShuffleAnswers')?.checked === true,
+      showResults: document.getElementById('quizBuilderShowResults')?.value || 'immediately',
+      showCorrectAnswers: document.getElementById('quizBuilderShowCorrectAnswers')?.checked === true,
+      visible: document.getElementById('quizBuilderVisible')?.checked !== false,
+      questions: questions.map((question, index) => {
+        const normalized = this.normalizeQuizBuilderQuestion(question);
+        return {
+          ...normalized,
+          order: index + 1
+        };
+      })
+    };
+
+    if (state.sectionId) {
+      payload.sectionId = state.sectionId;
+    }
+
+    try {
+      const result = isEditing
+        ? await API.quizzes.update(state.quizId, payload)
+        : await API.quizzes.create(payload);
+
+      if (!result?.success) {
+        showToast(result?.message || t('moodleQuizCreate.error'));
+        return;
+      }
+
+      const savedQuizId = result.data?.quizId || state.quizId;
+      this.closeModal('quizBuilderModal');
+      showToast(isEditing
+        ? (isEnglish ? 'Quiz updated' : '測驗已更新')
+        : t('moodleQuizCreate.success'));
+
+      if (state.returnTo === 'course' && courseId) {
+        this.openCourse(courseId);
+        return;
+      }
+
+      if (state.returnTo === 'quizResults' && savedQuizId) {
+        this.openQuiz(savedQuizId);
+        return;
+      }
+
+      showView('moodleQuizzes');
+      await this.loadQuizzes(courseId || this.currentQuizCourseId || undefined);
+    } catch (error) {
+      console.error('Save quiz builder error:', error);
+      showToast(isEditing
+        ? (isEnglish ? 'Failed to update quiz' : '更新測驗失敗')
+        : t('moodleQuizCreate.createFailed'));
+    }
+  },
+
+  editForumSettings(forumId) {
+    return this.openForumBuilderModal({
+      forumId,
+      returnTo: 'forumDetail'
+    });
+  },
+
+  async openForumBuilderModal({ forumId = null, courseId = null, sectionId = null, returnTo = null } = {}) {
+    const isEditing = !!forumId;
+    const isEnglish = I18n.getLocale() === 'en';
+
+    let forum = null;
+    if (isEditing) {
+      const detailResult = await API.forums.get(forumId);
+      if (!detailResult?.success) {
+        showToast(detailResult?.message || t('moodleForum.loadFailed'));
+        return;
+      }
+      forum = detailResult.data || {};
+      courseId = forum.courseId || courseId;
+    }
+
+    let courses = [];
+    try {
+      courses = await this.getRoleScopedCourses({ manageOnly: true });
+    } catch (error) {
+      console.warn('Load forum builder courses failed:', error);
+    }
+
+    if (courses.length === 0) {
+      showToast(t('moodleGradebook.noCourses'));
+      return;
+    }
+
+    const resolvedCourseId = courseId || courses[0]?.courseId || courses[0]?.id || '';
+    const courseOptions = courses.map((course) => {
+      const currentCourseId = course.courseId || course.id;
+      return `<option value="${this.escapeText(currentCourseId)}" ${currentCourseId === resolvedCourseId ? 'selected' : ''}>${this.escapeText(course.title || course.name || (isEnglish ? 'Untitled course' : '未命名課程'))}</option>`;
+    }).join('');
+
+    this.currentForumBuilderState = {
+      forumId,
+      sectionId,
+      returnTo: returnTo || (sectionId ? 'course' : 'forums'),
+      courseId: resolvedCourseId
+    };
+
+    const modal = this.createModal('forumBuilderModal', isEditing
+      ? (isEnglish ? 'Edit forum' : '編輯討論區')
+      : (isEnglish ? 'Create forum' : '建立討論區'), `
+      <form onsubmit="event.preventDefault(); MoodleUI.saveForumBuilder()">
+        <div class="quiz-create-shell activity-builder-shell">
+          <section class="quiz-create-card quiz-create-card-primary">
+            <div class="quiz-create-card-head">
+              <div>
+                <div class="quiz-create-card-kicker">${isEnglish ? 'Forum' : '討論區工作區'}</div>
+                <div class="quiz-create-card-title">${isEnglish ? 'Purpose and framing' : '用途與定位'}</div>
+                <p class="quiz-create-card-note">${isEnglish
+                  ? 'Clarify what belongs in this forum so learners know where to post and how to participate.'
+                  : '先把這個討論區的用途講清楚，學生才知道哪些內容應該發在這裡。'}</p>
+              </div>
+            </div>
+            <div class="activity-builder-grid">
+              <div class="form-group">
+                <label>${isEnglish ? 'Forum title' : '討論區名稱'} *</label>
+                <input type="text" id="forumBuilderTitle" value="${this.escapeText(forum?.title || '')}" placeholder="${this.escapeText(isEnglish ? 'Announcements, Q&A, weekly discussion...' : '例如：課程公告、問答交流、每週討論')}" required>
+              </div>
+              <div class="form-group">
+                <label>${t('moodleAssignmentCreate.courseLabel')} *</label>
+                <select id="forumBuilderCourse" ${isEditing ? 'disabled' : ''}>${courseOptions}</select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>${t('common.description')}</label>
+              <textarea id="forumBuilderDescription" rows="4" placeholder="${this.escapeText(isEnglish ? 'Explain what learners should post here and what kind of replies are expected.' : '說明這個討論區適合發什麼內容，以及希望學生如何互動。')}">${this.escapeText(forum?.description || '')}</textarea>
+            </div>
+          </section>
+
+          <section class="quiz-create-card">
+            <div class="quiz-create-card-head">
+              <div>
+                <div class="quiz-create-card-kicker">${isEnglish ? 'Rules' : '互動規則'}</div>
+                <div class="quiz-create-card-title">${isEnglish ? 'Posting and notification settings' : '發文與通知設定'}</div>
+                <p class="quiz-create-card-note">${isEnglish
+                  ? 'Set whether this forum behaves like announcements, Q&A, or an open discussion hub.'
+                  : '決定這裡偏公告、問答，還是開放交流的論壇，並補上附件與通知規則。'}</p>
+              </div>
+            </div>
+            <div class="activity-builder-grid">
+              <div class="form-group">
+                <label>${t('moodleAddActivity.forumTypeLabel')}</label>
+                <select id="forumBuilderType">
+                  <option value="general" ${(forum?.type || 'general') === 'general' ? 'selected' : ''}>${t('moodleAddActivity.forumTypeGeneral')}</option>
+                  <option value="qanda" ${(forum?.type || 'general') === 'qanda' ? 'selected' : ''}>${t('moodleAddActivity.forumTypeQA')}</option>
+                  <option value="news" ${(forum?.type || 'general') === 'news' ? 'selected' : ''}>${t('moodleAddActivity.forumTypeNews')}</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>${isEnglish ? 'Posting mode' : '發文模式'}</label>
+                <select id="forumBuilderMode">
+                  <option value="standard" ${(forum?.forumMode || 'standard') === 'standard' ? 'selected' : ''}>${isEnglish ? 'Standard forum' : '一般論壇'}</option>
+                  <option value="single" ${(forum?.forumMode || 'standard') === 'single' ? 'selected' : ''}>${isEnglish ? 'Single discussion thread' : '單一討論串'}</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>${isEnglish ? 'Subscription mode' : '訂閱模式'}</label>
+                <select id="forumBuilderSubscriptionMode">
+                  <option value="optional" ${(forum?.subscriptionMode || 'optional') === 'optional' ? 'selected' : ''}>${isEnglish ? 'Optional' : '自由訂閱'}</option>
+                  <option value="forced" ${(forum?.subscriptionMode || 'optional') === 'forced' ? 'selected' : ''}>${isEnglish ? 'Forced' : '強制訂閱'}</option>
+                  <option value="auto" ${(forum?.subscriptionMode || 'optional') === 'auto' ? 'selected' : ''}>${isEnglish ? 'Auto subscribe' : '自動訂閱'}</option>
+                  <option value="disabled" ${(forum?.subscriptionMode || 'optional') === 'disabled' ? 'selected' : ''}>${isEnglish ? 'No subscriptions' : '停用訂閱'}</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>${isEnglish ? 'Max attachments' : '附件數上限'}</label>
+                <input type="number" id="forumBuilderMaxAttachments" value="${this.escapeText(forum?.maxAttachments ?? 5)}" min="0" max="20">
+              </div>
+              <div class="form-group">
+                <label>${isEnglish ? 'Max attachment size (MB)' : '附件大小上限 (MB)'}</label>
+                <input type="number" id="forumBuilderMaxAttachmentSize" value="${this.escapeText(forum?.maxAttachmentSize ?? 10)}" min="1" max="500">
+              </div>
+            </div>
+            <div class="builder-checkbox-grid">
+              <label class="checkbox-label" for="forumBuilderRatingEnabled">
+                <input type="checkbox" id="forumBuilderRatingEnabled" ${forum?.ratingEnabled ? 'checked' : ''}>
+                <span>${isEnglish ? 'Allow post ratings' : '允許貼文評分'}</span>
+              </label>
+              <label class="checkbox-label" for="forumBuilderVisible">
+                <input type="checkbox" id="forumBuilderVisible" ${forum?.visible !== false ? 'checked' : ''}>
+                <span>${t('moodleCourseSettings.visibleToStudents')}</span>
+              </label>
+            </div>
+          </section>
+
+          ${!isEditing ? `
+            <section class="quiz-create-card">
+              <div class="quiz-create-card-head">
+                <div>
+                  <div class="quiz-create-card-kicker">${isEnglish ? 'Launch thread' : '起始主題'}</div>
+                  <div class="quiz-create-card-title">${isEnglish ? 'Open with the first discussion' : '建立後直接發布第一個主題'}</div>
+                  <p class="quiz-create-card-note">${isEnglish
+                    ? 'Optional, but useful when this forum needs a teacher prompt or a pinned announcement right away.'
+                    : '選填，但如果這裡需要老師先拋出討論題或公告，建議一起設定。'}</p>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>${t('moodleDiscussion.subjectLabel')}</label>
+                <input type="text" id="forumBuilderInitialSubject" placeholder="${this.escapeText(isEnglish ? 'First discussion subject' : '第一個主題標題')}">
+              </div>
+              <div class="form-group">
+                <label>${t('moodleDiscussion.contentLabel')}</label>
+                <textarea id="forumBuilderInitialMessage" rows="5" placeholder="${this.escapeText(isEnglish ? 'Write the opening prompt, announcement, or discussion question.' : '輸入老師要先發布的公告、問題或開場說明。')}"></textarea>
+              </div>
+            </section>
+          ` : ''}
+
+          <div class="form-actions quiz-create-actions">
+            <button type="button" onclick="MoodleUI.closeModal('forumBuilderModal')" class="btn-secondary">${t('common.cancel')}</button>
+            <button type="submit" class="btn-primary">${isEditing ? t('common.save') : (isEnglish ? 'Create forum' : '建立討論區')}</button>
+          </div>
+        </div>
+      </form>
+    `, {
+      maxWidth: '880px',
+      kicker: isEnglish ? 'Learning community workspace' : '課程論壇工作區',
+      description: isEnglish
+        ? 'Build a forum with clear posting rules and an optional opening prompt.'
+        : '把論壇規則與第一個主題一次設定完整。'
+    });
+
+    window.requestAnimationFrame(() => modal.querySelector('#forumBuilderTitle')?.focus());
+  },
+
+  async saveForumBuilder() {
+    const state = this.currentForumBuilderState || {};
+    const isEditing = !!state.forumId;
+    const isEnglish = I18n.getLocale() === 'en';
+
+    const title = document.getElementById('forumBuilderTitle')?.value?.trim();
+    const courseId = isEditing
+      ? state.courseId
+      : (document.getElementById('forumBuilderCourse')?.value || state.courseId);
+
+    if (!title || !courseId) {
+      showToast(t('moodleAssignmentCreate.fieldsRequired'));
+      return;
+    }
+
+    const initialSubject = document.getElementById('forumBuilderInitialSubject')?.value?.trim() || '';
+    const initialMessage = document.getElementById('forumBuilderInitialMessage')?.value?.trim() || '';
+    const forumMode = document.getElementById('forumBuilderMode')?.value || 'standard';
+    if (!isEditing && ((initialSubject && !initialMessage) || (!initialSubject && initialMessage))) {
+      showToast(isEnglish ? 'Please complete both the opening subject and message.' : '請同時填寫起始主題標題與內容。');
+      return;
+    }
+    if (!isEditing && forumMode === 'single' && (!initialSubject || !initialMessage)) {
+      showToast(isEnglish ? 'A single-thread forum needs the opening discussion right away.' : '單一討論串論壇建立時，請一併設定第一個主題。');
+      return;
+    }
+
+    const payload = {
+      courseId,
+      title,
+      description: document.getElementById('forumBuilderDescription')?.value || '',
+      type: document.getElementById('forumBuilderType')?.value || 'general',
+      forumMode,
+      subscriptionMode: document.getElementById('forumBuilderSubscriptionMode')?.value || 'optional',
+      ratingEnabled: document.getElementById('forumBuilderRatingEnabled')?.checked === true,
+      maxAttachments: parseInt(document.getElementById('forumBuilderMaxAttachments')?.value, 10) || 0,
+      maxAttachmentSize: parseInt(document.getElementById('forumBuilderMaxAttachmentSize')?.value, 10) || 10,
+      visible: document.getElementById('forumBuilderVisible')?.checked !== false
+    };
+
+    if (state.sectionId) {
+      payload.sectionId = state.sectionId;
+    }
+
+    try {
+      const result = isEditing
+        ? await API.forums.update(state.forumId, payload)
+        : await API.forums.create(payload);
+
+      if (!result?.success) {
+        showToast(result?.message || (isEnglish ? 'Failed to save forum' : '儲存討論區失敗'));
+        return;
+      }
+
+      const savedForumId = result.data?.forumId || state.forumId;
+      if (!isEditing && savedForumId && initialSubject && initialMessage) {
+        await API.forums.createDiscussion(savedForumId, {
+          subject: initialSubject,
+          message: initialMessage,
+          pinned: payload.type === 'news'
+        }).catch((error) => {
+          console.warn('Create initial forum discussion failed:', error);
+        });
+      }
+
+      this.closeModal('forumBuilderModal');
+      showToast(isEditing
+        ? (isEnglish ? 'Forum updated' : '討論區已更新')
+        : (isEnglish ? 'Forum created' : '討論區已建立'));
+
+      if (state.returnTo === 'course' && courseId) {
+        this.openCourse(courseId);
+        return;
+      }
+
+      if (state.returnTo === 'forumDetail' && savedForumId) {
+        this.openForum(savedForumId);
+        return;
+      }
+
+      showView('moodleForums');
+      await this.loadForums(courseId || this.currentForumCourseId || undefined);
+    } catch (error) {
+      console.error('Save forum builder error:', error);
+      showToast(isEditing
+        ? (isEnglish ? 'Failed to update forum' : '更新討論區失敗')
+        : (isEnglish ? 'Failed to create forum' : '建立討論區失敗'));
     }
   },
 

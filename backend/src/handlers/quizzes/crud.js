@@ -219,7 +219,9 @@ router.get('/:id', authMiddleware, async (req, res) => {
     // 取得課程資訊
     const course = await db.getItem(`COURSE#${quiz.courseId}`, 'META');
     const progress = await db.getItem(`USER#${userId}`, `PROG#COURSE#${quiz.courseId}`);
-    if (!req.user.isAdmin && !canManageCourse(course, req.user) && !progress) {
+    const canManage = req.user.isAdmin || canManageCourse(course, req.user);
+
+    if (!canManage && !progress) {
       return res.status(403).json({
         success: false,
         error: 'FORBIDDEN',
@@ -232,7 +234,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
       skPrefix: `ATTEMPT#${userId}#`
     });
     const gradeVisibility = getGradeVisibility(course, {
-      canManage: req.user.isAdmin || canManageCourse(course, req.user),
+      canManage,
       isAdmin: req.user.isAdmin
     });
 
@@ -242,8 +244,8 @@ router.get('/:id', authMiddleware, async (req, res) => {
     delete quiz.PK;
     delete quiz.SK;
 
-    // 不返回問題的答案
-    if (quiz.questions) {
+    // 只有學生端需要隱藏正確答案，教師與管理員保留完整題目資料供編輯
+    if (quiz.questions && !canManage) {
       quiz.questions = quiz.questions.map(q => {
         const { correctAnswer, correctAnswers, ...rest } = q;
         return rest;

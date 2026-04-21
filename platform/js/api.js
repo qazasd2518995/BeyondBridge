@@ -1263,8 +1263,19 @@ const API = {
       });
     },
 
-    async getSubmission(assignmentId, submissionId) {
-      return API.request(`/assignments/${assignmentId}/submissions/${submissionId}`);
+    async getSubmission(assignmentId, ref) {
+      return API.request(`/assignments/${assignmentId}/submissions/${ref}`);
+    },
+
+    async saveDraft(assignmentId, data) {
+      return API.request(`/assignments/${assignmentId}/draft`, {
+        method: 'PUT',
+        body: data
+      });
+    },
+
+    async getDraft(assignmentId) {
+      return API.request(`/assignments/${assignmentId}/draft`);
     },
 
     async extend(assignmentId, data) {

@@ -452,6 +452,8 @@ router.post('/', authMiddleware, async (req, res) => {
       teamSubmission = false,
       teamSize,
       rubric, // 評分標準
+      anonymousGrading = false, // 匿名評分
+      anonymousGradingUntil = 'graded', // 'graded' | 'never'
       visible = true
     } = req.body;
 
@@ -564,6 +566,10 @@ router.post('/', authMiddleware, async (req, res) => {
 
       // 評分標準
       rubric: rubric || null,
+
+      // 匿名評分
+      anonymousGrading: !!anonymousGrading,
+      anonymousGradingUntil: anonymousGradingUntil === 'never' ? 'never' : 'graded',
 
       visible,
       status: 'active',

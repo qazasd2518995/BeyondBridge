@@ -29,6 +29,113 @@ const s3Client = new S3Client({
   region: process.env.AWS_REGION || 'ap-southeast-2'
 });
 
+/**
+ * 從 rubric 定義與教師給分計算總分
+ * rubricScores 格式:[{ criterionId, score }]
+ * 返回 null 表示無法計算（caller 應 fallback 到手動 grade）
+ */
+function computeGradeFromRubric(rubric, rubricScores, maxGrade) {
+  if (!rubric || !Array.isArray(rubric.criteria) || rubric.criteria.length === 0) return null;
+  if (!Array.isArray(rubricScores) || rubricScores.length === 0) return null;
+
+  const scoreByCriterion = new Map();
+  rubricScores.forEach(entry => {
+    if (!entry) return;
+    const cid = entry.criterionId || entry.id;
+    if (!cid) return;
+    const s = Number(entry.score ?? entry.points ?? 0);
+    if (Number.isFinite(s)) scoreByCriterion.set(cid, s);
+  });
+
+  let totalEarned = 0;
+  let totalMax = 0;
+  for (const criterion of rubric.criteria) {
+    const cid = criterion.criterionId || criterion.id;
+    const max = Number(criterion.maxScore ?? criterion.points ?? 0);
+    if (!Number.isFinite(max) || max <= 0) continue;
+    totalMax += max;
+    const earned = scoreByCriterion.has(cid) ? scoreByCriterion.get(cid) : 0;
+    totalEarned += Math.max(0, Math.min(earned, max));
+  }
+  if (totalMax <= 0) return null;
+
+  const target = Number(maxGrade) > 0 ? Number(maxGrade) : totalMax;
+  const scaled = (totalEarned / totalMax) * target;
+  return Math.round(scaled * 100) / 100;
+}
+
+/**
+ * 建立學生評分通知
+ */
+async function createGradeNotification({ studentId, assignment, finalGrade, feedback, graderId }) {
+  if (!studentId || !assignment) return;
+  try {
+    const notificationId = db.generateId('notif');
+    const now = new Date().toISOString();
+    await db.putItem({
+      PK: `USER#${studentId}`,
+      SK: `NOTIFICATION#${now}#${notificationId}`,
+      entityType: 'NOTIFICATION',
+      notificationId,
+      userId: studentId,
+      type: 'assignment_graded',
+      title: '作業已批改',
+      message: `您的作業「${assignment.title || ''}」已批改完成，得分 ${finalGrade} / ${assignment.maxGrade}`,
+      payload: {
+        assignmentId: assignment.assignmentId,
+        courseId: assignment.courseId,
+        grade: finalGrade,
+        maxGrade: assignment.maxGrade,
+        hasFeedback: !!feedback,
+        gradedBy: graderId
+      },
+      readAt: null,
+      createdAt: now
+    });
+  } catch (error) {
+    console.warn('Create grade notification failed:', error.message);
+  }
+}
+
+/**
+ * 判斷某提交是否要匿名
+ */
+function shouldMaskSubmissionForAnonymous(submission, assignment) {
+  if (!assignment?.anonymousGrading) return false;
+  if (assignment.anonymousGradingUntil === 'never') return true;
+  return !submission?.gradedAt;
+}
+
+/**
+ * 產生匿名代稱
+ */
+function buildAnonymousHandle(submission) {
+  const src = submission?.submissionId || submission?.userId || '';
+  return `ANON-${String(src).slice(-6).toUpperCase() || 'XXXXXX'}`;
+}
+
+/**
+ * 匿名化提交記錄（若作業啟用匿名評分且評分尚未釋出）
+ */
+function maskAnonymousSubmission(submission, assignment) {
+  if (!submission) return submission;
+  if (!assignment?.anonymousGrading) return submission;
+  if (submission.gradedAt && assignment.anonymousGradingUntil === 'never') return submission;
+
+  const anonId = submission.submissionId || submission.userId || '';
+  const suffix = String(anonId).slice(-4).toUpperCase();
+  return {
+    ...submission,
+    studentId: null,
+    userId: submission.userId,
+    studentName: `匿名學生 #${suffix}`,
+    studentEmail: null,
+    userName: `匿名學生 #${suffix}`,
+    userEmail: null,
+    _anonymous: true
+  };
+}
+
 function extractStoredFileId(file = {}) {
   if (!file || typeof file !== 'object') return null;
   const directId = file.fileId || file.id || null;
@@ -131,13 +238,17 @@ router.get('/:id/submissions', authMiddleware, async (req, res) => {
     // 取得所有提交
     let submissions = await db.query(`ASSIGNMENT#${id}`, { skPrefix: 'SUBMISSION#' });
 
-    // 取得用戶資訊
+    // 取得用戶資訊（匿名評分時不揭露姓名，除非批改後解鎖）
+    const isAnonymous = !!assignment.anonymousGrading;
     submissions = await Promise.all(
       submissions.map(async (s) => {
-        const user = await db.getUser(s.userId);
         delete s.PK;
         delete s.SK;
-        return {
+        const shouldMask = isAnonymous && (
+          assignment.anonymousGradingUntil === 'never' || !s.gradedAt
+        );
+        const user = shouldMask ? null : await db.getUser(s.userId);
+        const base = {
           ...s,
           studentId: s.studentId || s.userId,
           studentName: user?.displayName || '未知用戶',
@@ -145,6 +256,7 @@ router.get('/:id/submissions', authMiddleware, async (req, res) => {
           userName: user?.displayName || '未知用戶',
           userEmail: user?.email
         };
+        return shouldMask ? maskAnonymousSubmission(base, assignment) : base;
       })
     );
 
@@ -239,27 +351,33 @@ router.get('/:id/submissions/:submissionRef', authMiddleware, async (req, res) =
       });
     }
 
-    // 取得用戶資訊
-    const user = await db.getUser(submission.userId);
+    // 匿名評分邏輯
+    const shouldMask = !!assignment.anonymousGrading && (
+      assignment.anonymousGradingUntil === 'never' || !submission.gradedAt
+    );
+    const user = shouldMask ? null : await db.getUser(submission.userId);
 
     delete submission.PK;
     delete submission.SK;
 
+    const hydrated = {
+      ...submission,
+      studentId: submission.studentId || submission.userId,
+      studentName: user?.displayName || '未知用戶',
+      studentEmail: user?.email,
+      userName: user?.displayName || '未知用戶',
+      userEmail: user?.email,
+      assignment: {
+        title: assignment.title,
+        maxGrade: assignment.maxGrade,
+        rubric: assignment.rubric,
+        anonymousGrading: !!assignment.anonymousGrading
+      }
+    };
+
     res.json({
       success: true,
-      data: {
-        ...submission,
-        studentId: submission.studentId || submission.userId,
-        studentName: user?.displayName || '未知用戶',
-        studentEmail: user?.email,
-        userName: user?.displayName || '未知用戶',
-        userEmail: user?.email,
-        assignment: {
-          title: assignment.title,
-          maxGrade: assignment.maxGrade,
-          rubric: assignment.rubric
-        }
-      }
+      data: shouldMask ? maskAnonymousSubmission(hydrated, assignment) : hydrated
     });
 
   } catch (error) {
@@ -280,7 +398,7 @@ router.post('/:id/submissions/:studentId/grade', authMiddleware, async (req, res
   try {
     const { id, studentId } = req.params;
     const userId = req.user.userId;
-    const { grade, feedback, rubricScores } = req.body;
+    const { grade, feedback, rubricScores, feedbackFiles = [], annotations = [] } = req.body;
 
     const assignment = await db.getItem(`ASSIGNMENT#${id}`, 'META');
     if (!assignment) {
@@ -301,8 +419,16 @@ router.post('/:id/submissions/:studentId/grade', authMiddleware, async (req, res
       });
     }
 
-    // 取得提交
-    const submission = await db.getItem(`ASSIGNMENT#${id}`, `SUBMISSION#${studentId}`);
+    // 取得提交（組別作業：studentId 可能是 "GROUP#<groupId>" 或任一組員 userId）
+    let submission = await db.getItem(`ASSIGNMENT#${id}`, `SUBMISSION#${studentId}`);
+    if (!submission && assignment.teamSubmission) {
+      // 退而求其次：當傳入的是 userId，透過群組找出組別提交
+      const userGroups = await db.query(`USER#${studentId}`, { skPrefix: `COURSEGROUP#${assignment.courseId}#` });
+      const groupId = userGroups?.[0]?.groupId;
+      if (groupId) {
+        submission = await db.getItem(`ASSIGNMENT#${id}`, `SUBMISSION#GROUP#${groupId}`);
+      }
+    }
     if (!submission) {
       return res.status(404).json({
         success: false,
@@ -311,8 +437,22 @@ router.post('/:id/submissions/:studentId/grade', authMiddleware, async (req, res
       });
     }
 
+    // Rubric 自動計算分數（若 body 未提供 grade 或 rubric 啟用時）
+    const rubricComputed = computeGradeFromRubric(assignment.rubric, rubricScores, assignment.maxGrade);
+    const resolvedGrade = (grade === undefined || grade === null || grade === '')
+      ? rubricComputed
+      : Number(grade);
+
+    if (resolvedGrade === null || resolvedGrade === undefined || Number.isNaN(resolvedGrade)) {
+      return res.status(400).json({
+        success: false,
+        error: 'INVALID_GRADE',
+        message: '請提供分數或完整的 rubric 評分'
+      });
+    }
+
     // 驗證分數
-    if (grade < 0 || grade > assignment.maxGrade) {
+    if (resolvedGrade < 0 || resolvedGrade > assignment.maxGrade) {
       return res.status(400).json({
         success: false,
         error: 'INVALID_GRADE',
@@ -320,28 +460,58 @@ router.post('/:id/submissions/:studentId/grade', authMiddleware, async (req, res
       });
     }
 
-    // 計算最終分數（考慮遲交扣分）
-    let finalGrade = grade;
+    // 計算最終分數（考慮遲交扣分，封頂 100% 避免負分）
+    let finalGrade = resolvedGrade;
     if (submission.isLate && assignment.lateDeductionPercent > 0) {
-      const deduction = grade * (assignment.lateDeductionPercent / 100) * submission.lateBy;
-      finalGrade = Math.max(0, grade - deduction);
+      const lateBy = Math.max(0, Number(submission.lateBy) || 0);
+      const rawPercent = Number(assignment.lateDeductionPercent) * lateBy;
+      const deductionPercent = Math.min(100, Math.max(0, rawPercent));
+      const deduction = resolvedGrade * (deductionPercent / 100);
+      finalGrade = Math.max(0, resolvedGrade - deduction);
     }
 
     const now = new Date().toISOString();
+
+    // PDF 標註：驗證並序列化（僅保留白名單欄位，防止 payload 塞任意資料）
+    const sanitizedAnnotations = Array.isArray(annotations)
+      ? annotations.slice(0, 500).map((a, idx) => ({
+          id: a?.id || `ann_${idx}`,
+          fileId: a?.fileId || null,
+          page: Number.isFinite(Number(a?.page)) ? Number(a.page) : 1,
+          x: Number.isFinite(Number(a?.x)) ? Number(a.x) : 0,
+          y: Number.isFinite(Number(a?.y)) ? Number(a.y) : 0,
+          width: Number.isFinite(Number(a?.width)) ? Number(a.width) : 0,
+          height: Number.isFinite(Number(a?.height)) ? Number(a.height) : 0,
+          type: ['highlight', 'comment', 'strikethrough', 'draw'].includes(a?.type) ? a.type : 'comment',
+          color: typeof a?.color === 'string' ? a.color.slice(0, 20) : '#FFD54F',
+          comment: typeof a?.comment === 'string' ? a.comment.slice(0, 2000) : '',
+          createdBy: userId,
+          createdAt: a?.createdAt || now
+        }))
+      : [];
+
     const updates = {
       grade: finalGrade,
-      originalGrade: grade,
+      originalGrade: resolvedGrade,
       feedback,
+      feedbackFiles: Array.isArray(feedbackFiles) ? feedbackFiles : [],
+      annotations: sanitizedAnnotations,
       rubricScores,
+      rubricAutoCalculated: rubricComputed !== null && (grade === undefined || grade === null || grade === ''),
       gradedAt: now,
       gradedBy: userId,
       status: 'graded',
       updatedAt: now
     };
 
+    // 組別作業的 SK 是 SUBMISSION#GROUP#<groupId>，個人作業是 SUBMISSION#<userId>
+    const submissionSK = submission.SK || (submission.groupId
+      ? `SUBMISSION#GROUP#${submission.groupId}`
+      : `SUBMISSION#${submission.userId || studentId}`);
+
     const updatedSubmission = await db.updateItem(
       `ASSIGNMENT#${id}`,
-      `SUBMISSION#${studentId}`,
+      submissionSK,
       updates
     );
 
@@ -357,9 +527,15 @@ router.post('/:id/submissions/:studentId/grade', authMiddleware, async (req, res
       updatedAt: now
     });
 
-    // 更新用戶課程進度中的成績
-    const progress = await db.getItem(`USER#${studentId}`, `PROG#COURSE#${assignment.courseId}`);
-    if (progress) {
+    // 更新用戶課程進度中的成績（組別作業同步給所有組員）
+    const gradeTargets = submission.groupId && Array.isArray(submission.groupMemberIds) && submission.groupMemberIds.length > 0
+      ? submission.groupMemberIds
+      : [studentId];
+
+    for (const targetUserId of gradeTargets) {
+      const progress = await db.getItem(`USER#${targetUserId}`, `PROG#COURSE#${assignment.courseId}`);
+      if (!progress) continue;
+
       const grades = [...(progress.grades || [])];
       const existingIndex = grades.findIndex(g => g.assignmentId === id);
       const gradeEntry = {
@@ -376,22 +552,33 @@ router.post('/:id/submissions/:studentId/grade', authMiddleware, async (req, res
         grades.push(gradeEntry);
       }
 
-      // 計算整體成績
       const overallGrade = grades.reduce((sum, g) => sum + (g.grade / g.maxGrade * 100), 0) / grades.length;
 
-      await db.updateItem(`USER#${studentId}`, `PROG#COURSE#${assignment.courseId}`, {
+      await db.updateItem(`USER#${targetUserId}`, `PROG#COURSE#${assignment.courseId}`, {
         grades,
         overallGrade: Math.round(overallGrade * 100) / 100,
         updatedAt: now
       });
 
       await syncCourseCertificates(assignment.courseId, {
-        userId: studentId,
+        userId: targetUserId,
         issuedBy: req.user.userId
       });
     }
 
     await invalidateGradebookSnapshots(assignment.courseId);
+
+    // 發送學生通知（組別作業通知所有組員）
+    const notifyTargets = submission.groupId && Array.isArray(submission.groupMemberIds) && submission.groupMemberIds.length > 0
+      ? submission.groupMemberIds
+      : [studentId];
+    await Promise.all(notifyTargets.map(target => createGradeNotification({
+      studentId: target,
+      assignment,
+      finalGrade,
+      feedback,
+      graderId: userId
+    })));
 
     delete updatedSubmission.PK;
     delete updatedSubmission.SK;
@@ -623,9 +810,20 @@ router.get('/:id/download-all', authMiddleware, async (req, res) => {
       });
     }
 
-    // 取得用戶資訊
+    // 取得用戶資訊（匿名時不解析學生）
     const submissionsWithUsers = await Promise.all(
       submissions.map(async (s) => {
+        const mask = shouldMaskSubmissionForAnonymous(s, assignment);
+        if (mask) {
+          const handle = buildAnonymousHandle(s);
+          return {
+            ...s,
+            userName: handle,
+            userEmail: '',
+            _anonymous: true,
+            _anonymousHandle: handle
+          };
+        }
         const user = await db.getUser(s.userId);
         return {
           ...s,
@@ -639,9 +837,10 @@ router.get('/:id/download-all', authMiddleware, async (req, res) => {
       // JSON 格式輸出
       const exportData = submissionsWithUsers.map(s => ({
         submissionId: s.submissionId,
-        studentId: s.userId,
+        studentId: s._anonymous ? s._anonymousHandle : s.userId,
         studentName: s.userName,
         studentEmail: s.userEmail,
+        anonymous: !!s._anonymous,
         submittedAt: s.submittedAt,
         isLate: s.isLate,
         lateBy: s.lateBy,
@@ -707,7 +906,7 @@ router.get('/:id/download-all', authMiddleware, async (req, res) => {
         ? Math.round((s.grade / assignment.maxGrade) * 10000) / 100 + '%'
         : '';
       return [
-        s.userId,
+        s._anonymous ? s._anonymousHandle : s.userId,
         s.userName,
         s.userEmail,
         s.submittedAt,
@@ -733,14 +932,18 @@ router.get('/:id/download-all', authMiddleware, async (req, res) => {
     // 為每個提交建立資料夾
     for (const submission of submissionsWithUsers) {
       const safeName = (submission.userName || 'unknown').replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_');
-      const folderName = `${safeName}_${submission.userId.substring(0, 8)}`;
+      const folderIdSuffix = submission._anonymous
+        ? submission._anonymousHandle
+        : String(submission.userId || '').substring(0, 8);
+      const folderName = `${safeName}_${folderIdSuffix}`;
 
       // 元資料 JSON
       const metadata = {
         submissionId: submission.submissionId,
-        studentId: submission.userId,
+        studentId: submission._anonymous ? submission._anonymousHandle : submission.userId,
         studentName: submission.userName,
         studentEmail: submission.userEmail,
+        anonymous: !!submission._anonymous,
         submittedAt: submission.submittedAt,
         isLate: submission.isLate,
         lateByDays: submission.lateBy,
@@ -876,16 +1079,21 @@ router.get('/:id/export-grades', authMiddleware, async (req, res) => {
     const submissions = await db.query(`ASSIGNMENT#${id}`, { skPrefix: 'SUBMISSION#' });
     const submissionMap = new Map(submissions.map(s => [s.userId, s]));
 
-    // 組合資料
+    // 組合資料（匿名評分時遮罩）
     const exportData = await Promise.all(
       enrollments.map(async (e) => {
-        const user = await db.getUser(e.userId);
         const submission = submissionMap.get(e.userId);
+        const mask = submission
+          ? shouldMaskSubmissionForAnonymous(submission, assignment)
+          : !!assignment.anonymousGrading;
+        const handle = submission ? buildAnonymousHandle(submission) : `ANON-${String(e.userId || '').slice(-6).toUpperCase()}`;
+        const user = mask ? null : await db.getUser(e.userId);
 
         return {
-          '學號': e.userId,
-          '姓名': user?.displayName || '未知用戶',
-          'Email': user?.email || '',
+          '學號': mask ? handle : e.userId,
+          '姓名': mask ? handle : (user?.displayName || '未知用戶'),
+          'Email': mask ? '' : (user?.email || ''),
+          '匿名': mask ? '是' : '否',
           '提交狀態': submission ? (submission.gradedAt ? '已批改' : '已提交') : '未提交',
           '提交時間': submission?.submittedAt || '',
           '遲交': submission?.isLate ? '是' : (submission ? '否' : ''),

@@ -805,6 +805,20 @@ router.post('/:id/discussions', authMiddleware, async (req, res) => {
       });
     }
 
+    if (forum.forumMode === 'single') {
+      const existingDiscussions = await db.query(`FORUM#${id}`, {
+        skPrefix: 'DISCUSSION#',
+        limit: 1
+      });
+      if (existingDiscussions.length > 0) {
+        return res.status(409).json({
+          success: false,
+          error: 'SINGLE_DISCUSSION_EXISTS',
+          message: '此討論區只允許建立一個主題'
+        });
+      }
+    }
+
     // 取得用戶資訊
     const user = await db.getUser(userId) || await db.getAdmin(userId);
 

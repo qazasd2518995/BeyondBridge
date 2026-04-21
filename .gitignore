@@ -30,3 +30,4 @@ temp/
 
 # Runtime artifacts
 backend/uploads/
+.gstack/

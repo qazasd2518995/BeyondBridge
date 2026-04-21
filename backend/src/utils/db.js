@@ -109,7 +109,7 @@ async function putItem(item) {
 /**
  * 更新項目的特定欄位
  */
-async function updateItem(pk, sk, updates) {
+async function updateItem(pk, sk, updates, options = {}) {
   const validEntries = Object.entries(updates).filter(([, value]) => value !== undefined);
 
   if (validEntries.length === 0) {
@@ -157,14 +157,32 @@ async function updateItem(pk, sk, updates) {
     updateClauses.push(`REMOVE ${removeExpressions.join(', ')}`);
   }
 
-  const command = new UpdateCommand({
+  const commandInput = {
     TableName: TABLE_NAME,
     Key: { PK: pk, SK: sk },
     UpdateExpression: updateClauses.join(' '),
     ExpressionAttributeNames: expressionAttributeNames,
     ExpressionAttributeValues: expressionAttributeValues,
     ReturnValues: 'ALL_NEW'
-  });
+  };
+
+  if (options.conditionExpression) {
+    commandInput.ConditionExpression = options.conditionExpression;
+    if (options.conditionAttributeNames) {
+      commandInput.ExpressionAttributeNames = {
+        ...commandInput.ExpressionAttributeNames,
+        ...options.conditionAttributeNames
+      };
+    }
+    if (options.conditionAttributeValues) {
+      commandInput.ExpressionAttributeValues = {
+        ...commandInput.ExpressionAttributeValues,
+        ...options.conditionAttributeValues
+      };
+    }
+  }
+
+  const command = new UpdateCommand(commandInput);
 
   const response = await withRetry(() => docClient.send(command));
   return response.Attributes;
