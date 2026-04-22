@@ -15680,3 +15680,523 @@
   font-size: 0.82rem;
   padding: 0.3rem;
 }
+
+/* ============================================================
+ * ============ RWD 強化層 (mobile / tablet) ==================
+ * 2026-04-23 — 全平台響應式優化
+ * 目標:
+ *  - ≤768px: 平板/大手機 — 雙欄改單欄、模態滿屏、表格變卡片
+ *  - ≤480px: 手機 — 最小觸控目標 44px、字體 ≥16px 避免 iOS 縮放
+ *  - ≤360px: 小型手機 — 極窄字體與間距進一步收斂
+ * ============================================================ */
+
+/* ── iOS 避免自動縮放: 所有 input 至少 16px ───────────────── */
+@media (max-width: 768px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="url"],
+  input[type="search"],
+  input[type="tel"],
+  input[type="number"],
+  input[type="date"],
+  input[type="datetime-local"],
+  input[type="time"],
+  input[type="month"],
+  input[type="week"],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* ── 觸控目標強化 ────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .btn-primary,
+  .btn-secondary,
+  .btn-danger,
+  .btn-sm,
+  .btn-icon,
+  .assignment-file-action,
+  .modal-close,
+  .ql-toolbar button,
+  .pdf-tool-btn,
+  .question-nav-btn,
+  .activity-viewer-pdf-btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  .btn-sm {
+    padding: 0.55rem 0.9rem;
+  }
+  .ql-toolbar {
+    flex-wrap: wrap;
+    row-gap: 0.25rem;
+  }
+  .ql-toolbar button {
+    min-width: 40px !important;
+    min-height: 40px !important;
+  }
+}
+
+/* ── 表格通用:手機以卡片式顯示或橫向捲動 ─────────────────── */
+@media (max-width: 768px) {
+  .gradebook-table-wrapper,
+  .rubric-table-wrapper,
+  .data-table-wrapper,
+  .participants-table-wrapper,
+  .badge-table-wrapper,
+  .audit-log-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 10px;
+  }
+  .gradebook-table,
+  .rubric-table,
+  .data-table,
+  .participants-table,
+  .badge-table {
+    min-width: 560px;
+  }
+  .gradebook-table th,
+  .gradebook-table td,
+  .rubric-table th,
+  .rubric-table td {
+    padding: 0.55rem 0.55rem;
+    font-size: 0.85rem;
+  }
+}
+
+/* ── Rubric 表格在小螢幕退化為卡片 ───────────────────────── */
+@media (max-width: 480px) {
+  .rubric-table,
+  .rubric-table thead,
+  .rubric-table tbody,
+  .rubric-table tr,
+  .rubric-table th,
+  .rubric-table td {
+    display: block;
+    width: 100%;
+  }
+  .rubric-table thead {
+    display: none;
+  }
+  .rubric-table tr {
+    margin-bottom: 0.6rem;
+    padding: 0.75rem;
+    border: 1px solid rgba(26, 58, 92, 0.1);
+    border-radius: 10px;
+    background: #fff;
+  }
+  .rubric-table td {
+    padding: 0.35rem 0;
+    border: 0;
+  }
+  .rubric-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    font-size: 0.78rem;
+    color: rgba(26, 58, 92, 0.6);
+    display: block;
+    margin-bottom: 0.25rem;
+  }
+}
+
+/* ── 日曆 (Calendar) — 7 欄 grid 在手機改為列表 ───────────── */
+@media (max-width: 768px) {
+  .calendar-grid {
+    grid-template-columns: repeat(7, minmax(38px, 1fr));
+    gap: 1px;
+    font-size: 0.8rem;
+  }
+  .calendar-day {
+    min-height: 56px;
+    padding: 0.3rem 0.25rem;
+  }
+  .calendar-header-cell {
+    font-size: 0.72rem;
+    padding: 0.3rem 0.2rem;
+  }
+  .calendar-event-chip,
+  .calendar-day-event {
+    font-size: 0.65rem;
+    padding: 0.15rem 0.3rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+@media (max-width: 480px) {
+  .calendar-view-toolbar,
+  .calendar-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+  .calendar-view-toolbar > *,
+  .calendar-toolbar > * {
+    width: 100%;
+    justify-content: center;
+  }
+  .calendar-grid {
+    grid-template-columns: repeat(7, minmax(32px, 1fr));
+  }
+  .calendar-day {
+    min-height: 48px;
+    padding: 0.2rem;
+  }
+  .calendar-day-number {
+    font-size: 0.78rem;
+  }
+  /* 事件只顯示小圓點,點擊天數看詳情 */
+  .calendar-day-event {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    padding: 0;
+    display: inline-block;
+    font-size: 0;
+    margin: 1px;
+  }
+}
+
+/* ── 測驗作答 — 選項與版面 ──────────────────────────────── */
+@media (max-width: 768px) {
+  .quiz-container,
+  .quiz-body {
+    max-width: 100%;
+  }
+  .quiz-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .quiz-question-panel {
+    order: 1;
+  }
+  .quiz-navigation {
+    order: 2;
+    display: flex;
+    gap: 0.5rem;
+  }
+  .quiz-navigation > * {
+    flex: 1;
+  }
+  .quiz-question-nav {
+    order: 3;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+  }
+  .question-nav-btn {
+    flex: 0 0 auto;
+    width: 44px;
+    height: 44px;
+    font-size: 0.9rem;
+  }
+  .question-options {
+    gap: 0.5rem;
+  }
+  .question-option {
+    padding: 0.75rem;
+    min-height: 52px;
+    align-items: flex-start;
+  }
+  .question-option-text {
+    font-size: 0.95rem;
+    line-height: 1.5;
+    word-break: break-word;
+  }
+  .quiz-header h2 {
+    font-size: 1.15rem;
+  }
+  .quiz-timer {
+    font-size: 0.85rem;
+  }
+}
+@media (max-width: 480px) {
+  .quiz-question-nav {
+    max-height: 132px;
+    overflow-y: auto;
+    padding: 0.25rem;
+  }
+  .question-nav-btn {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+/* ── 作業 — 提交與評分 modal ────────────────────────────── */
+@media (max-width: 768px) {
+  .assignment-detail-grid,
+  .assignment-panel,
+  .assignment-submission-list {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem;
+  }
+  .assignment-submission-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+  .assignment-submission-actions {
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+  .assignment-submission-actions > * {
+    flex: 1 1 auto;
+    min-width: 48%;
+  }
+  .grade-input-compact {
+    width: 100%;
+    min-height: 44px;
+    font-size: 16px;
+  }
+  .grading-modal {
+    gap: 0.75rem;
+  }
+  .grading-modal-section label {
+    font-size: 0.85rem;
+  }
+  .rubric-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .assignment-form-field textarea {
+    min-height: 180px;
+  }
+  .file-upload-area {
+    padding: 1rem;
+  }
+}
+@media (max-width: 480px) {
+  .rubric-grid {
+    grid-template-columns: 1fr;
+  }
+  .assignment-submission-actions > * {
+    min-width: 100%;
+  }
+}
+
+/* ── PDF 標註器 — 小螢幕全寬 ────────────────────────────── */
+@media (max-width: 768px) {
+  .pdf-annotator-stage {
+    grid-template-columns: 1fr;
+  }
+  .pdf-annotator-canvas-wrap {
+    max-height: 420px;
+  }
+  .pdf-annotator-sidebar {
+    max-height: 240px;
+  }
+  .pdf-annotator-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.4rem;
+  }
+  .pdf-annotator-tools {
+    flex-wrap: wrap;
+  }
+  .pdf-tool-btn {
+    flex: 1 0 30%;
+    min-height: 44px;
+  }
+}
+
+/* ── Modal 與對話框滿屏 ────────────────────────────────── */
+@media (max-width: 600px) {
+  .modal-content,
+  .modal-content.modal-md,
+  .modal-content.modal-lg,
+  .modal-content.modal-xl {
+    max-width: 100vw !important;
+    width: 100vw !important;
+    max-height: 100vh;
+    border-radius: 0;
+    margin: 0;
+  }
+  .modal-body,
+  .modal-header,
+  .modal-footer {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  .modal-footer {
+    flex-direction: column-reverse;
+    gap: 0.5rem;
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+  }
+  .modal-footer > button,
+  .modal-footer > .btn-primary,
+  .modal-footer > .btn-secondary {
+    width: 100%;
+    min-height: 48px;
+  }
+  .modal-close {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+/* ── 表單一般性 (form-row 多欄 → 單欄) ───────────────────── */
+@media (max-width: 768px) {
+  .form-row,
+  .form-grid,
+  .activity-builder-grid,
+  .quiz-create-grid,
+  .stats-grid,
+  .management-kv-grid,
+  .courses-grid,
+  .course-picker-grid,
+  .builder-badge-row {
+    grid-template-columns: 1fr !important;
+    gap: 0.65rem !important;
+  }
+  .form-actions,
+  .assignment-form-actions,
+  .quiz-create-actions,
+  .modal-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .form-actions > button,
+  .assignment-form-actions > button,
+  .quiz-create-actions > button {
+    width: 100%;
+    min-height: 48px;
+  }
+}
+
+/* ── 側邊導航 (課程頁面) 在窄螢幕堆疊 ────────────────────── */
+@media (max-width: 900px) {
+  .course-page-layout {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem;
+  }
+  .course-left-sidebar,
+  .course-right-sidebar {
+    position: static !important;
+    max-height: none !important;
+  }
+  .course-main-content {
+    order: 1;
+  }
+  .course-left-sidebar {
+    order: 2;
+  }
+  .course-right-sidebar {
+    order: 3;
+  }
+}
+
+/* ── 題庫 / 角色管理 側欄折疊 ────────────────────────────── */
+@media (max-width: 900px) {
+  .qb-layout,
+  .roles-layout {
+    grid-template-columns: 1fr !important;
+  }
+  .qb-sidebar,
+  .roles-sidebar {
+    max-height: 260px;
+    overflow-y: auto;
+  }
+}
+
+/* ── 論壇/討論區 ───────────────────────────────────────── */
+@media (max-width: 768px) {
+  .forum-header,
+  .discussion-list-item,
+  .discussion-detail-header,
+  .discussion-post-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+  .discussion-post-meta {
+    flex-wrap: wrap;
+  }
+}
+
+/* ── Dashboard / 通知 ───────────────────────────────────── */
+@media (max-width: 768px) {
+  .dashboard-greeting,
+  .notification-detail-hero,
+  .quiz-report-hero,
+  .learning-progress-hero,
+  .assignment-panel-head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+  .quiz-report-stats,
+  .notification-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── 長字串保護 — 避免在手機上溢出 ───────────────────────── */
+@media (max-width: 600px) {
+  .assignment-submission-name,
+  .course-card-title,
+  .forum-title,
+  .notification-title,
+  .assignment-panel-title {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+}
+
+/* ── 小型手機最終收斂 ──────────────────────────────────── */
+@media (max-width: 360px) {
+  html {
+    font-size: 15px;
+  }
+  .btn-primary,
+  .btn-secondary {
+    padding: 0.7rem 1rem;
+  }
+  .page-title {
+    font-size: 1.05rem !important;
+  }
+  .dashboard,
+  .assignment-panel,
+  .quiz-body,
+  .forum-container,
+  .gradebook-container {
+    padding: 0.75rem !important;
+  }
+  .calendar-grid {
+    grid-template-columns: repeat(7, minmax(28px, 1fr));
+  }
+  .calendar-day {
+    min-height: 42px;
+    padding: 0.15rem;
+  }
+}
+
+/* ── iframe 容器 (H5P / SCORM / LTI / Video) ─────────────── */
+@media (max-width: 768px) {
+  .h5p-container,
+  .scorm-container,
+  .lti-launch-modal-shell,
+  .activity-viewer-frame iframe,
+  .interactive-video-player-frame {
+    max-width: 100vw;
+  }
+  .h5p-container iframe,
+  .scorm-container iframe {
+    width: 100% !important;
+    min-height: 360px;
+  }
+}
+
+/* ── 觸控 hover → focus/active fallback ──────────────────── */
+@media (hover: none) {
+  .question-option:active,
+  .question-option:focus-within,
+  .pdf-tool-btn:active,
+  .assignment-submission-item:active {
+    border-color: var(--olive, #4A7C59);
+    background: rgba(74, 124, 89, 0.06);
+  }
+}
