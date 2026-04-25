@@ -378,12 +378,13 @@ async function buildTeacherCourseGradebookSnapshot(courseId, course) {
         if (!item) continue;
         const attempt = interactiveVideoAttemptsByActivity.get(item.itemId)?.get(enrollment.userId) || null;
         const hasStarted = hasInteractiveVideoAttemptStarted(attempt);
-        const score = attempt?.score ?? null;
+        const isCompleted = attempt?.status === 'completed';
+        const score = isCompleted ? (attempt?.score ?? null) : null;
 
         grades[item.itemId] = {
           grade: score,
           submitted: hasStarted,
-          gradedAt: attempt?.completedAt || attempt?.updatedAt || null,
+          gradedAt: isCompleted ? (attempt?.completedAt || attempt?.updatedAt || null) : null,
           progressPercentage: Number(attempt?.progressPercentage || 0) || 0,
           watchedSeconds: Number(attempt?.watchedSeconds || 0) || 0
         };

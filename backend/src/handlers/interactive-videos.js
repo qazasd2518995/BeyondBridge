@@ -109,28 +109,54 @@ function sanitizeConfigForLearner(config = {}) {
   };
 }
 
+function hasPromptAnswer(prompt = {}, answerRecord = null) {
+  if (!answerRecord) return false;
+  if (prompt.questionType === 'short_text_reflection') {
+    return String(answerRecord.answer || '').trim().length > 0;
+  }
+  return Object.prototype.hasOwnProperty.call(answerRecord, 'answer');
+}
+
 function calculateAttemptStats(config = {}, attempt = {}) {
   const prompts = Array.isArray(config.prompts) ? config.prompts : [];
   const answers = attempt.answers && typeof attempt.answers === 'object' ? attempt.answers : {};
   const watchedSeconds = toPositiveSeconds(attempt.watchedSeconds);
   const durationSeconds = Math.max(1, Number(config.durationSeconds) || 1);
-  const watchPercent = Math.min(100, Math.round((watchedSeconds / durationSeconds) * 100));
+  const positionPercent = Math.min(100, Math.round((toPositiveSeconds(attempt.lastPositionSecond) / durationSeconds) * 100));
+  const storedProgressPercent = clampNumber(attempt.progressPercentage, 0, 100, 0);
+  const watchPercent = Math.max(
+    Math.min(100, Math.round((watchedSeconds / durationSeconds) * 100)),
+    positionPercent,
+    storedProgressPercent
+  );
   const requiredPrompts = prompts.filter((prompt) => prompt.required !== false);
-  const answeredRequiredCount = requiredPrompts.filter((prompt) => answers[prompt.promptId]).length;
+  const answeredRequiredCount = requiredPrompts.filter((prompt) => hasPromptAnswer(prompt, answers[prompt.promptId])).length;
   const allRequiredAnswered = requiredPrompts.length === 0 || answeredRequiredCount >= requiredPrompts.length;
 
   let earnedScore = 0;
   let maxScore = 0;
   let correctCount = 0;
+  let gradableCount = 0;
+  let correctGradableCount = 0;
+  let requiredGradableCount = 0;
+  let correctRequiredGradableCount = 0;
 
   prompts.forEach((prompt) => {
     const answerRecord = answers[prompt.promptId];
     const isGradable = ['single_choice', 'true_false'].includes(prompt.questionType) && prompt.points > 0;
     if (isGradable) {
       maxScore += prompt.points;
+      gradableCount += 1;
+      if (prompt.required !== false) {
+        requiredGradableCount += 1;
+      }
       if (answerRecord?.isCorrect) {
         earnedScore += prompt.points;
         correctCount += 1;
+        correctGradableCount += 1;
+        if (prompt.required !== false) {
+          correctRequiredGradableCount += 1;
+        }
       }
     } else if (answerRecord?.isCorrect) {
       correctCount += 1;
@@ -138,11 +164,15 @@ function calculateAttemptStats(config = {}, attempt = {}) {
   });
 
   const scorePercent = maxScore > 0 ? Math.round((earnedScore / maxScore) * 100) : null;
+  const allGradableCorrect = gradableCount === 0 || correctGradableCount >= gradableCount;
+  const allRequiredCorrect = requiredGradableCount === 0 || correctRequiredGradableCount >= requiredGradableCount;
+  const scoreReady = allRequiredAnswered && allGradableCorrect;
   const passedScoreGate = config?.gradingMode === 'graded' && maxScore > 0
-    ? (scorePercent !== null && scorePercent >= clampNumber(config?.passingScore, 0, 100, 70))
+    ? (scoreReady && scorePercent !== null && scorePercent >= clampNumber(config?.passingScore, 0, 100, 70))
     : true;
   const completionEligible = watchPercent >= clampNumber(config?.completionRule?.minWatchPercent, 0, 100, 85)
     && allRequiredAnswered
+    && allGradableCorrect
     && passedScoreGate;
 
   return {
@@ -155,9 +185,26 @@ function calculateAttemptStats(config = {}, attempt = {}) {
     maxScore,
     scorePercent,
     correctCount,
+    gradableCount,
+    correctGradableCount,
+    allGradableCorrect,
+    requiredGradableCount,
+    correctRequiredGradableCount,
+    allRequiredCorrect,
+    scoreReady,
     passedScoreGate,
     completionEligible
   };
+}
+
+function normalizePromptIdList(value, prompts = []) {
+  if (!Array.isArray(value)) return [];
+  const validPromptIds = new Set((prompts || []).map(prompt => prompt.promptId).filter(Boolean));
+  return Array.from(new Set(
+    value
+      .map(item => String(item || '').trim())
+      .filter(item => item && validPromptIds.has(item))
+  ));
 }
 
 function evaluatePromptAnswer(prompt, answer) {
@@ -216,8 +263,9 @@ async function ensureAttempt(userId, courseId, activityId, config = {}) {
     answers: {},
     triggeredPromptIds: [],
     answeredPromptIds: [],
-    score: 0,
-    maxScore: 0,
+    score: null,
+    maxScore: calculateAttemptStats(config, {}).maxScore,
+    scorePercent: null,
     speakerName: config.speakerName || '',
     speakerAvatar: config.speakerAvatar || '',
     startedAt: now,
@@ -333,6 +381,7 @@ router.post('/:courseId/:activityId/heartbeat', authMiddleware, async (req, res)
     const currentTime = Math.max(0, Math.floor(Number(req.body?.currentTime) || 0));
     const playerState = String(req.body?.playerState || '').toLowerCase();
     const visible = req.body?.visible !== false;
+    const triggeredPromptIds = normalizePromptIdList(req.body?.triggeredPromptIds, config.prompts);
     const now = new Date().toISOString();
 
     const shouldCountTime = visible && playerState === 'playing' && playedDelta > 0 && playedDelta <= 15;
@@ -340,11 +389,16 @@ router.post('/:courseId/:activityId/heartbeat', authMiddleware, async (req, res)
     const progressPercentage = config.durationSeconds > 0
       ? Math.min(100, Math.round((Math.max(currentTime, watchedSeconds) / config.durationSeconds) * 100))
       : clampNumber(req.body?.progressPercentage, 0, 100, attempt.progressPercentage || 0);
+    const mergedTriggeredPromptIds = Array.from(new Set([
+      ...(attempt.triggeredPromptIds || []),
+      ...triggeredPromptIds
+    ]));
 
     const updated = await db.updateItem(`USER#${req.user.userId}`, `INTERACTIVE_VIDEO#${activityId}`, {
       watchedSeconds,
       lastPositionSecond: currentTime,
       progressPercentage,
+      triggeredPromptIds: mergedTriggeredPromptIds,
       lastAccessedAt: now,
       updatedAt: now
     });
@@ -353,7 +407,8 @@ router.post('/:courseId/:activityId/heartbeat', authMiddleware, async (req, res)
       success: true,
       data: {
         watchedSeconds: updated.watchedSeconds || watchedSeconds,
-        progressPercentage: updated.progressPercentage || progressPercentage
+        progressPercentage: updated.progressPercentage || progressPercentage,
+        triggeredPromptIds: updated.triggeredPromptIds || mergedTriggeredPromptIds
       }
     });
   } catch (error) {
@@ -412,25 +467,31 @@ router.post('/:courseId/:activityId/answer', authMiddleware, async (req, res) =>
     });
 
     const stats = calculateAttemptStats(config, updated);
+    const persistedScore = stats.scoreReady ? stats.earnedScore : null;
     const savePayload = {
-      score: stats.earnedScore,
-      maxScore: stats.maxScore
+      score: persistedScore,
+      maxScore: stats.maxScore,
+      scorePercent: stats.scoreReady ? stats.scorePercent : null
     };
-    if ((updated.score || 0) !== stats.earnedScore || (updated.maxScore || 0) !== stats.maxScore) {
-      await db.updateItem(`USER#${req.user.userId}`, `INTERACTIVE_VIDEO#${activityId}`, savePayload);
-    }
+    await db.updateItem(`USER#${req.user.userId}`, `INTERACTIVE_VIDEO#${activityId}`, savePayload);
     await invalidateGradebookSnapshots(courseId);
 
     res.json({
       success: true,
       data: {
         promptId,
+        answer: evaluation.normalizedAnswer,
         isCorrect: evaluation.isCorrect,
         feedback: evaluation.isCorrect === false ? (prompt.feedbackIncorrect || '') : (prompt.feedbackCorrect || ''),
-        score: stats.earnedScore,
+        score: persistedScore,
         maxScore: stats.maxScore,
-        scorePercent: stats.scorePercent,
-        answeredPromptIds
+        scorePercent: stats.scoreReady ? stats.scorePercent : null,
+        answeredPromptIds,
+        triggeredPromptIds,
+        scoreReady: stats.scoreReady,
+        allRequiredAnswered: stats.allRequiredAnswered,
+        allRequiredCorrect: stats.allRequiredCorrect,
+        allGradableCorrect: stats.allGradableCorrect
       }
     });
   } catch (error) {
@@ -463,8 +524,9 @@ router.post('/:courseId/:activityId/complete', authMiddleware, async (req, res) 
 
     const updated = await db.updateItem(`USER#${req.user.userId}`, `INTERACTIVE_VIDEO#${activityId}`, {
       status: finalStatus,
-      score: stats.earnedScore,
+      score: stats.scoreReady ? stats.earnedScore : null,
       maxScore: stats.maxScore,
+      scorePercent: stats.scoreReady ? stats.scorePercent : null,
       progressPercentage: Math.max(Number(attempt.progressPercentage || 0), stats.watchPercent),
       lastAccessedAt: now,
       updatedAt: now,
@@ -479,10 +541,13 @@ router.post('/:courseId/:activityId/complete', authMiddleware, async (req, res) 
         completionEligible: stats.completionEligible,
         watchPercent: stats.watchPercent,
         watchedSeconds: stats.watchedSeconds,
-        score: stats.earnedScore,
+        score: stats.scoreReady ? stats.earnedScore : null,
         maxScore: stats.maxScore,
-        scorePercent: stats.scorePercent,
-        allRequiredAnswered: stats.allRequiredAnswered
+        scorePercent: stats.scoreReady ? stats.scorePercent : null,
+        allRequiredAnswered: stats.allRequiredAnswered,
+        allRequiredCorrect: stats.allRequiredCorrect,
+        allGradableCorrect: stats.allGradableCorrect,
+        scoreReady: stats.scoreReady
       }
     });
   } catch (error) {

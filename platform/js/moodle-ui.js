@@ -963,6 +963,7 @@ const MoodleUI = {
         </div>
       </div>
     `;
+    this.applyDynamicUiMetrics(container);
   },
 
   // ==================== 課程頁面 ====================
@@ -1583,6 +1584,7 @@ const MoodleUI = {
         </div>
       </div>
     `;
+    this.applyDynamicUiMetrics(container);
   },
 
   renderCourseInviteCodeSection(inviteLink = null) {
@@ -2165,6 +2167,7 @@ const MoodleUI = {
         </div>
       </div>
     `;
+    this.applyDynamicUiMetrics(container);
   },
 
   /**
@@ -2619,10 +2622,12 @@ const MoodleUI = {
       watchedSeconds: isEnglish ? 'Watched time' : '觀看時間',
       submit: isEnglish ? 'Submit answer' : '送出答案',
       reflectionPlaceholder: isEnglish ? 'Write your reflection…' : '輸入你的想法…',
-      questionRequired: isEnglish ? 'This prompt must be answered before playback continues.' : '這題需先回答，影片才會繼續。',
+      questionRequired: isEnglish
+        ? 'You can answer now or continue playback and return to this prompt later. Scores count only after every required prompt is correct.'
+        : '你可以現在作答，也可以先繼續播放，之後再回來回答。必答題全部答對後才會計分。',
       completed: isEnglish ? 'Interactive video completed' : '互動影片已完成',
       resume: isEnglish ? 'Resume from where you left off' : '將從你上次看到的位置繼續',
-      completionPending: isEnglish ? 'Some required prompts or watch-time thresholds are not yet met.' : '還有必答題或觀看門檻尚未完成。',
+      completionPending: isEnglish ? 'All required prompts must be answered correctly before score and completion are recorded.' : '必答題需全部作答且答對，才會計入分數與完成統計。',
       loading: isEnglish ? 'Preparing interactive video…' : '互動影片準備中…',
       invalidConfig: isEnglish ? 'This interactive video is not configured correctly.' : '這支互動影片尚未設定完成。',
       saved: isEnglish ? 'Answer saved' : '答案已儲存',
@@ -2631,17 +2636,21 @@ const MoodleUI = {
       seekLocked: isEnglish ? 'Fast-forward locked' : '禁止快轉',
       seekAllowed: isEnglish ? 'Seeking allowed' : '允許跳轉',
       seekLockedHint: isEnglish
-        ? 'Learners can only play or pause. The video resumes after each prompt.'
-        : '學生只能播放或暫停，遇到提問會自動停下來作答。',
+        ? 'Learners can only play or pause. Prompts may be answered immediately or later from the sidebar.'
+        : '學生只能播放或暫停，遇到提問會自動停下；也可以先略過，之後從右側回覆。',
       seekAllowedHint: isEnglish
-        ? 'Learners may seek freely. Skipped checkpoints still appear as soon as they are crossed.'
-        : '學生可自由跳轉，但略過的題目時間點仍會立即跳出提問。',
+        ? 'Learners may seek freely. Every crossed checkpoint appears in the sidebar for later answering.'
+        : '學生可自由跳轉；所有已跨過的題目都會出現在右側，可稍後逐題作答。',
       seekBlockedToast: isEnglish
         ? 'Fast-forward is disabled for this interactive video.'
         : '這支互動影片不允許快轉。',
-      answerBeforeContinue: isEnglish
-        ? 'Please answer the current prompt before continuing.'
-        : '請先回答目前這一題，再繼續播放。'
+      deferPrompt: isEnglish ? 'Answer later and continue' : '稍後回答並繼續播放',
+      replyPrompt: isEnglish ? 'Reply' : '回覆這題',
+      retryPrompt: isEnglish ? 'Try again' : '重新作答',
+      correct: isEnglish ? 'Correct' : '答對',
+      incorrect: isEnglish ? 'Incorrect' : '答錯',
+      unanswered: isEnglish ? 'Unanswered' : '未作答',
+      scorePending: isEnglish ? 'Pending' : '待完成'
     };
   },
 
@@ -3469,11 +3478,20 @@ const MoodleUI = {
     const normalized = Number(stateCode);
     if (normalized === 1) {
       runtime.playerState = 'playing';
+      if (runtime.activePromptId) {
+        runtime.activePromptId = null;
+        this.renderInteractiveVideoSidebar(runtime);
+      }
       runtime.lastTrackedTime = Number(runtime.player?.getCurrentTime?.() || runtime.currentTime || 0);
     } else if (normalized === 2) {
       runtime.playerState = 'paused';
     } else if (normalized === 0) {
       runtime.playerState = 'ended';
+      const endSecond = Number(runtime.player?.getDuration?.() || runtime.config?.durationSeconds || runtime.currentTime || 0) || 0;
+      if (endSecond > 0) {
+        runtime.currentTime = Math.max(Number(runtime.currentTime || 0) || 0, endSecond);
+      }
+      this.revealInteractiveVideoPromptsUpTo(runtime, runtime.currentTime, { activate: true, pause: false });
       this.finalizeInteractiveVideo(runtime, { autoComplete: true });
     } else {
       runtime.playerState = 'idle';
@@ -3637,30 +3655,120 @@ const MoodleUI = {
     return matched?.label || String(answerValue || '');
   },
 
+  getInteractiveVideoAnswerState(prompt, answerRecord) {
+    if (!answerRecord) return 'unanswered';
+    if (answerRecord.isCorrect === true) return 'correct';
+    if (answerRecord.isCorrect === false) return 'incorrect';
+    return 'answered';
+  },
+
+  shouldShowInteractiveVideoReplyAction(prompt, answerRecord) {
+    if (!answerRecord) return true;
+    return answerRecord.isCorrect === false;
+  },
+
+  setInteractiveVideoTriggeredPromptIds(runtime, promptIds = []) {
+    if (!runtime) return [];
+    const validPromptIds = new Set((runtime.prompts || []).map(prompt => prompt.promptId).filter(Boolean));
+    const normalized = Array.from(new Set(
+      (promptIds || [])
+        .map(promptId => String(promptId || '').trim())
+        .filter(promptId => promptId && validPromptIds.has(promptId))
+    ));
+    runtime.attempt = {
+      ...(runtime.attempt || {}),
+      triggeredPromptIds: normalized
+    };
+    return normalized;
+  },
+
+  revealInteractiveVideoPromptsUpTo(runtime, currentTime = 0, options = {}) {
+    if (!runtime) return [];
+    const triggerTime = Math.max(0, Number(currentTime || 0) || 0);
+    const triggeredSet = new Set(runtime.attempt?.triggeredPromptIds || []);
+    const answers = runtime.attempt?.answers || {};
+    const newlyTriggered = (runtime.prompts || [])
+      .filter(prompt => Number(prompt.triggerSecond || 0) <= triggerTime + 0.35)
+      .filter(prompt => !triggeredSet.has(prompt.promptId));
+
+    if (newlyTriggered.length === 0) return [];
+
+    newlyTriggered.forEach(prompt => triggeredSet.add(prompt.promptId));
+    this.setInteractiveVideoTriggeredPromptIds(runtime, Array.from(triggeredSet));
+
+    if (options.activate !== false && !runtime.activePromptId) {
+      const nextPrompt = newlyTriggered.find(prompt => this.shouldShowInteractiveVideoReplyAction(prompt, answers[prompt.promptId]));
+      if (nextPrompt) {
+        runtime.activePromptId = nextPrompt.promptId;
+        if (options.pause !== false && nextPrompt.pauseVideo !== false && runtime.player?.pauseVideo) {
+          runtime.player.pauseVideo();
+        }
+      }
+    }
+
+    return newlyTriggered;
+  },
+
+  openInteractiveVideoPrompt(promptId) {
+    const runtime = this.currentInteractiveVideoRuntime;
+    if (!runtime) return;
+    const prompt = (runtime.prompts || []).find(item => item.promptId === promptId);
+    if (!prompt) return;
+    this.setInteractiveVideoTriggeredPromptIds(runtime, [
+      ...(runtime.attempt?.triggeredPromptIds || []),
+      prompt.promptId
+    ]);
+    runtime.activePromptId = prompt.promptId;
+    if (runtime.player?.pauseVideo) {
+      runtime.player.pauseVideo();
+    }
+    this.renderInteractiveVideoSidebar(runtime, { forceScroll: true });
+  },
+
   buildInteractiveVideoTranscriptHtml(runtime) {
     const copy = this.getInteractiveVideoUiCopy();
     const prompts = runtime.prompts || [];
     const answers = runtime.attempt?.answers || {};
+    const triggeredPromptIds = new Set([
+      ...(runtime.attempt?.triggeredPromptIds || []),
+      ...(runtime.attempt?.answeredPromptIds || [])
+    ]);
     const messages = [];
 
     prompts.forEach((prompt) => {
       const answerRecord = answers[prompt.promptId];
-      if (!answerRecord) return;
+      if (!triggeredPromptIds.has(prompt.promptId) && !answerRecord) return;
+      const answerState = this.getInteractiveVideoAnswerState(prompt, answerRecord);
+      const needsReply = this.shouldShowInteractiveVideoReplyAction(prompt, answerRecord);
+      const stateLabel = answerState === 'correct'
+        ? copy.correct
+        : answerState === 'incorrect'
+          ? copy.incorrect
+          : answerState === 'unanswered'
+            ? copy.unanswered
+            : copy.answered;
+      const actionLabel = answerState === 'incorrect' ? copy.retryPrompt : copy.replyPrompt;
 
       const speakerName = prompt.speakerName || runtime.config.speakerName || (I18n.getLocale() === 'en' ? 'Teacher' : '老師');
       messages.push(`
         <div class="interactive-video-bubble-row teacher">
           ${this.renderInteractiveVideoAvatar(speakerName, prompt.speakerAvatar || runtime.config.speakerAvatar, 'teacher')}
-          <div class="interactive-video-bubble teacher">
+          <div class="interactive-video-bubble teacher ${needsReply ? 'needs-reply' : ''}">
             <div class="interactive-video-bubble-kicker">${this.escapeText(copy.teacherPrompt)}</div>
             <div class="interactive-video-bubble-text">${this.escapeText(prompt.question)}</div>
+            <div class="interactive-video-prompt-state is-${this.escapeText(answerState)}">${this.escapeText(stateLabel)}</div>
+            ${needsReply ? `
+              <button type="button" class="interactive-video-reply-btn" onclick="MoodleUI.openInteractiveVideoPrompt(${this.toInlineActionValue(prompt.promptId)})">${this.escapeText(actionLabel)}</button>
+            ` : ''}
           </div>
         </div>
       `);
 
+      if (!answerRecord) return;
+
       messages.push(`
         <div class="interactive-video-bubble-row learner">
-          <div class="interactive-video-bubble learner">
+          <div class="interactive-video-bubble learner is-${this.escapeText(answerState)}">
             <div class="interactive-video-bubble-kicker">${this.escapeText(copy.learnerReply)}</div>
             <div class="interactive-video-bubble-text">${this.escapeText(this.resolveInteractiveVideoAnswerLabel(prompt, answerRecord))}</div>
           </div>
@@ -3699,24 +3807,26 @@ const MoodleUI = {
       `;
     }
 
+    const answerRecord = runtime.attempt?.answers?.[prompt.promptId];
+    const currentAnswer = answerRecord?.answer;
     const buttons = prompt.questionType === 'true_false'
       ? `
           <div class="interactive-video-options">
-            <button type="button" class="interactive-video-option" onclick="MoodleUI.submitInteractiveVideoChoice(true)">${I18n.getLocale() === 'en' ? 'True' : '是'}</button>
-            <button type="button" class="interactive-video-option" onclick="MoodleUI.submitInteractiveVideoChoice(false)">${I18n.getLocale() === 'en' ? 'False' : '否'}</button>
+            <button type="button" class="interactive-video-option ${String(currentAnswer).toLowerCase() === 'true' ? 'is-selected' : ''}" onclick="MoodleUI.submitInteractiveVideoChoice(true)">${I18n.getLocale() === 'en' ? 'True' : '是'}</button>
+            <button type="button" class="interactive-video-option ${String(currentAnswer).toLowerCase() === 'false' ? 'is-selected' : ''}" onclick="MoodleUI.submitInteractiveVideoChoice(false)">${I18n.getLocale() === 'en' ? 'False' : '否'}</button>
           </div>
         `
       : prompt.questionType === 'short_text_reflection'
         ? `
           <div class="interactive-video-text-answer">
-            <textarea id="interactiveVideoTextAnswer" rows="4" placeholder="${this.escapeText(copy.reflectionPlaceholder)}"></textarea>
+            <textarea id="interactiveVideoTextAnswer" rows="4" placeholder="${this.escapeText(copy.reflectionPlaceholder)}">${this.escapeText(currentAnswer || '')}</textarea>
             <button type="button" class="interactive-video-submit" onclick="MoodleUI.submitInteractiveVideoText()">${this.escapeText(copy.submit)}</button>
           </div>
         `
         : `
           <div class="interactive-video-options">
             ${(prompt.options || []).map((option) => `
-              <button type="button" class="interactive-video-option" onclick="MoodleUI.submitInteractiveVideoChoice(${this.toInlineActionValue(option.value)})">${this.escapeText(option.label)}</button>
+              <button type="button" class="interactive-video-option ${String(currentAnswer) === String(option.value) ? 'is-selected' : ''}" onclick="MoodleUI.submitInteractiveVideoChoice(${this.toInlineActionValue(option.value)})">${this.escapeText(option.label)}</button>
             `).join('')}
           </div>
         `;
@@ -3733,6 +3843,7 @@ const MoodleUI = {
         <div class="interactive-video-prompt-question">${this.escapeText(prompt.question)}</div>
         <div class="interactive-video-prompt-required">${this.escapeText(copy.questionRequired)}</div>
         ${buttons}
+        <button type="button" class="interactive-video-defer-btn" onclick="MoodleUI.resumeInteractiveVideoPlayback()">${this.escapeText(copy.deferPrompt)}</button>
       </div>
     `;
   },
@@ -3741,11 +3852,20 @@ const MoodleUI = {
     const copy = this.getInteractiveVideoUiCopy();
     const durationSeconds = Math.max(1, Number(runtime.config.durationSeconds || 0) || 1);
     const watchedSeconds = Number(runtime.attempt?.watchedSeconds || 0) || 0;
-    const watchPercent = Math.min(100, Math.round((watchedSeconds / durationSeconds) * 100));
+    const positionPercent = Math.min(100, Math.round((Number(runtime.currentTime || runtime.attempt?.lastPositionSecond || 0) / durationSeconds) * 100));
+    const watchPercent = Math.max(
+      Math.min(100, Math.round((watchedSeconds / durationSeconds) * 100)),
+      Number(runtime.attempt?.progressPercentage || 0) || 0,
+      positionPercent
+    );
     const answeredCount = Array.isArray(runtime.attempt?.answeredPromptIds) ? runtime.attempt.answeredPromptIds.length : 0;
     const totalPrompts = Array.isArray(runtime.prompts) ? runtime.prompts.length : 0;
+    const scoreReady = runtime.completedSummary?.scoreReady ?? runtime.attempt?.scoreReady ?? runtime.attempt?.status === 'completed';
     const score = Number(runtime.attempt?.score || 0) || 0;
     const maxScore = Number(runtime.attempt?.maxScore || 0) || 0;
+    const scoreValue = maxScore > 0
+      ? (scoreReady ? `${score}/${maxScore}` : `${copy.scorePending}/${maxScore}`)
+      : '—';
 
     return `
       <div class="interactive-video-summary-card ${runtime.completedSummary?.status === 'completed' ? 'is-complete' : ''}">
@@ -3760,7 +3880,7 @@ const MoodleUI = {
           </div>
           <div class="interactive-video-summary-item">
             <span>${this.escapeText(copy.score)}</span>
-            <strong>${maxScore > 0 ? `${score}/${maxScore}` : '—'}</strong>
+            <strong>${this.escapeText(scoreValue)}</strong>
           </div>
           <div class="interactive-video-summary-item">
             <span>${this.escapeText(copy.watchedSeconds)}</span>
@@ -3837,13 +3957,13 @@ const MoodleUI = {
   toggleInteractiveVideoPlayback() {
     const runtime = this.currentInteractiveVideoRuntime;
     if (!runtime?.player) return;
-    if (runtime.activePromptId) {
-      showToast(this.getInteractiveVideoUiCopy().answerBeforeContinue);
-      return;
-    }
     if (runtime.playerState === 'playing') {
       runtime.player.pauseVideo?.();
     } else {
+      if (runtime.activePromptId) {
+        runtime.activePromptId = null;
+        this.renderInteractiveVideoSidebar(runtime);
+      }
       runtime.player.playVideo?.();
     }
     this.renderInteractiveVideoPlaybackControls(runtime);
@@ -3870,6 +3990,9 @@ const MoodleUI = {
     const durationSeconds = Math.max(1, Number(runtime.config.durationSeconds || 0) || 1);
     const nextWatchedSeconds = Math.max(0, Number(runtime.attempt?.watchedSeconds || 0) || 0) + wholeSeconds;
     const progressPercent = Math.min(100, Math.round((Math.max(currentTime, nextWatchedSeconds) / durationSeconds) * 100));
+    const hasVerifiedCompletion = runtime.completedSummary?.completionEligible === true || runtime.attempt?.status === 'completed';
+    // Course completion is finalized only after the interactive-video endpoint verifies prompt and score gates.
+    const courseActivityProgress = hasVerifiedCompletion ? progressPercent : Math.min(progressPercent, 99);
 
     runtime.pendingWatchSeconds = Math.max(0, Number(runtime.pendingWatchSeconds || 0) - wholeSeconds);
     runtime.attempt = {
@@ -3888,13 +4011,14 @@ const MoodleUI = {
           playedDelta: wholeSeconds,
           playerState: runtime.playerState || 'paused',
           visible: document.visibilityState === 'visible',
-          progressPercentage: progressPercent
+          progressPercentage: progressPercent,
+          triggeredPromptIds: runtime.attempt?.triggeredPromptIds || []
         }),
         API.courses.updateProgress(runtime.courseId, {
           activityId: runtime.activity.activityId,
           currentSectionId: runtime.activity.sectionId,
           timeSpent: wholeSeconds,
-          activityProgress: progressPercent
+          activityProgress: courseActivityProgress
         })
       ]);
     } catch (error) {
@@ -3910,16 +4034,24 @@ const MoodleUI = {
       await this.flushInteractiveVideoProgress(runtime, true);
       const result = await API.interactiveVideos.complete(runtime.courseId, runtime.activityId);
       if (result?.success) {
+        const resultData = result.data || {};
+        const hasScore = Object.prototype.hasOwnProperty.call(resultData, 'score');
+        const hasScorePercent = Object.prototype.hasOwnProperty.call(resultData, 'scorePercent');
         runtime.completedSummary = result.data || null;
         runtime.attempt = {
           ...(runtime.attempt || {}),
-          status: result.data?.status || runtime.attempt?.status,
-          score: result.data?.score ?? runtime.attempt?.score,
-          maxScore: result.data?.maxScore ?? runtime.attempt?.maxScore,
-          watchedSeconds: result.data?.watchedSeconds ?? runtime.attempt?.watchedSeconds
+          status: resultData.status || runtime.attempt?.status,
+          score: hasScore ? resultData.score : runtime.attempt?.score,
+          maxScore: resultData.maxScore ?? runtime.attempt?.maxScore,
+          scorePercent: hasScorePercent ? resultData.scorePercent : runtime.attempt?.scorePercent,
+          scoreReady: resultData.scoreReady ?? runtime.attempt?.scoreReady,
+          allRequiredAnswered: resultData.allRequiredAnswered ?? runtime.attempt?.allRequiredAnswered,
+          allRequiredCorrect: resultData.allRequiredCorrect ?? runtime.attempt?.allRequiredCorrect,
+          watchedSeconds: resultData.watchedSeconds ?? runtime.attempt?.watchedSeconds,
+          progressPercentage: resultData.watchPercent ?? runtime.attempt?.progressPercentage
         };
 
-        if (result.data?.completionEligible) {
+        if (resultData.completionEligible) {
           await API.courses.completeActivity(runtime.courseId, runtime.activityId);
           await this.triggerCourseCompletionCheck(runtime.courseId);
           if (autoComplete) {
@@ -3941,10 +4073,11 @@ const MoodleUI = {
   async submitInteractiveVideoChoice(answer) {
     const runtime = this.currentInteractiveVideoRuntime;
     if (!runtime?.activePromptId) return;
+    const promptId = runtime.activePromptId;
 
     try {
       const result = await API.interactiveVideos.answer(runtime.courseId, runtime.activityId, {
-        promptId: runtime.activePromptId,
+        promptId,
         answer,
         currentTime: Math.floor(Number(runtime.currentTime || 0))
       });
@@ -3953,26 +4086,35 @@ const MoodleUI = {
         return;
       }
 
-      const prompt = runtime.prompts.find((item) => item.promptId === runtime.activePromptId);
+      const resultData = result.data || {};
+      const prompt = runtime.prompts.find((item) => item.promptId === promptId);
+      const hasScore = Object.prototype.hasOwnProperty.call(resultData, 'score');
+      const hasScorePercent = Object.prototype.hasOwnProperty.call(resultData, 'scorePercent');
       runtime.attempt = {
         ...(runtime.attempt || {}),
         answers: {
           ...((runtime.attempt && runtime.attempt.answers) || {}),
-          [runtime.activePromptId]: {
-            answer,
-            isCorrect: result.data?.isCorrect,
-            feedback: result.data?.feedback || '',
-            pointsEarned: result.data?.isCorrect === true ? Number(prompt?.points || 0) || 0 : 0,
+          [promptId]: {
+            answer: resultData.answer ?? answer,
+            isCorrect: resultData.isCorrect,
+            feedback: resultData.feedback || '',
+            pointsEarned: resultData.isCorrect === true ? Number(prompt?.points || 0) || 0 : 0,
             answeredAt: new Date().toISOString()
           }
         },
-        answeredPromptIds: result.data?.answeredPromptIds || runtime.attempt?.answeredPromptIds || [],
-        score: result.data?.score ?? runtime.attempt?.score ?? 0,
-        maxScore: result.data?.maxScore ?? runtime.attempt?.maxScore ?? 0
+        answeredPromptIds: resultData.answeredPromptIds || runtime.attempt?.answeredPromptIds || [],
+        triggeredPromptIds: resultData.triggeredPromptIds || runtime.attempt?.triggeredPromptIds || [],
+        score: hasScore ? resultData.score : runtime.attempt?.score,
+        maxScore: resultData.maxScore ?? runtime.attempt?.maxScore ?? 0,
+        scorePercent: hasScorePercent ? resultData.scorePercent : runtime.attempt?.scorePercent,
+        scoreReady: resultData.scoreReady ?? runtime.attempt?.scoreReady,
+        allRequiredAnswered: resultData.allRequiredAnswered ?? runtime.attempt?.allRequiredAnswered,
+        allRequiredCorrect: resultData.allRequiredCorrect ?? runtime.attempt?.allRequiredCorrect
       };
       runtime.activePromptId = null;
       this.renderInteractiveVideoSidebar(runtime);
       showToast(this.getInteractiveVideoUiCopy().saved);
+      void this.finalizeInteractiveVideo(runtime, { autoComplete: true });
       if (runtime.player?.playVideo) {
         window.setTimeout(() => runtime.player.playVideo(), 320);
       }
@@ -3991,9 +4133,10 @@ const MoodleUI = {
 
   resumeInteractiveVideoPlayback() {
     const runtime = this.currentInteractiveVideoRuntime;
-    if (runtime?.activePromptId) {
-      showToast(this.getInteractiveVideoUiCopy().answerBeforeContinue);
-      return;
+    if (!runtime) return;
+    if (runtime.activePromptId) {
+      runtime.activePromptId = null;
+      this.renderInteractiveVideoSidebar(runtime);
     }
     if (runtime?.player?.playVideo) {
       runtime.player.playVideo();
@@ -4085,7 +4228,12 @@ const MoodleUI = {
           ...(attempt || {}),
           answers: attempt?.answers || {},
           answeredPromptIds: attempt?.answeredPromptIds || [],
-          triggeredPromptIds: attempt?.triggeredPromptIds || []
+          triggeredPromptIds: attempt?.triggeredPromptIds || [],
+          score: Object.prototype.hasOwnProperty.call(attempt || {}, 'score') ? attempt.score : null,
+          maxScore: attempt?.maxScore ?? 0,
+          scoreReady: attempt?.summary?.scoreReady ?? attempt?.scoreReady ?? attempt?.status === 'completed',
+          allRequiredAnswered: attempt?.summary?.allRequiredAnswered ?? attempt?.allRequiredAnswered,
+          allRequiredCorrect: attempt?.summary?.allRequiredCorrect ?? attempt?.allRequiredCorrect
         },
         currentTime: Number(attempt?.lastPositionSecond || 0) || 0,
         pendingWatchSeconds: 0,
@@ -4208,21 +4356,12 @@ const MoodleUI = {
         }
         runtime.lastTrackedTime = currentTime;
 
-        const activePrompt = runtime.activePromptId
-          ? runtime.prompts.find((prompt) => prompt.promptId === runtime.activePromptId)
-          : null;
-        if (!activePrompt) {
-          const nextPrompt = runtime.prompts.find((prompt) => (
-            currentTime >= Number(prompt.triggerSecond || 0)
-            && !(runtime.attempt?.answeredPromptIds || []).includes(prompt.promptId)
-          ));
-          if (nextPrompt) {
-            runtime.activePromptId = nextPrompt.promptId;
-            if (nextPrompt.pauseVideo !== false && runtime.player?.pauseVideo) {
-              runtime.player.pauseVideo();
-            }
-            this.renderInteractiveVideoSidebar(runtime, { forceScroll: true });
-          }
+        const newlyTriggered = this.revealInteractiveVideoPromptsUpTo(runtime, currentTime, {
+          activate: true,
+          pause: runtime.playerState === 'playing'
+        });
+        if (newlyTriggered.length > 0) {
+          this.renderInteractiveVideoSidebar(runtime, { forceScroll: true });
         }
 
         if (Math.floor(runtime.pendingWatchSeconds) >= 5) {
@@ -7905,7 +8044,7 @@ const MoodleUI = {
 
     try {
       container.innerHTML = `<div class="loading">${t('common.loading')}</div>`;
-      const quizzesResult = await API.quizzes.list(courseId);
+      const quizzesResult = await API.quizzes.list(courseId ? { courseId } : {});
       let quizzes = quizzesResult.success ? (quizzesResult.data || []) : [];
 
       let courseName = '';
@@ -8133,18 +8272,32 @@ const MoodleUI = {
    */
   renderQuestionOptions(question) {
     switch (question.type) {
-      case 'multiple_choice':
-      case 'true_false':
+      case 'multiple_choice': {
+        const options = this.normalizeQuizAttemptOptions(question);
         return `
           <div class="question-options">
-            ${question.options.map((opt, i) => `
-              <label class="question-option ${question.answer === i ? 'selected' : ''}" onclick="MoodleUI.selectAnswer(${i})">
-                <input type="radio" name="answer" value="${i}" ${question.answer === i ? 'checked' : ''}>
-                <span class="question-option-text">${this.escapeText(opt)}</span>
+            ${options.map((opt) => `
+              <label class="question-option ${this.quizAnswersEqual(question.answer, opt.value) ? 'selected' : ''}" onclick="MoodleUI.selectAnswer(${this.toInlineActionValue(opt.value)})">
+                <input type="radio" name="answer" value="${this.escapeText(String(opt.value))}" ${this.quizAnswersEqual(question.answer, opt.value) ? 'checked' : ''}>
+                <span class="question-option-text">${this.escapeText(opt.text)}</span>
               </label>
             `).join('')}
           </div>
         `;
+      }
+      case 'true_false': {
+        const options = this.normalizeQuizAttemptOptions(question);
+        return `
+          <div class="question-options">
+            ${options.map((opt) => `
+              <label class="question-option ${this.quizAnswersEqual(question.answer, opt.value) ? 'selected' : ''}" onclick="MoodleUI.selectAnswer(${this.toInlineActionValue(opt.value)})">
+                <input type="radio" name="answer" value="${this.escapeText(String(opt.value))}" ${this.quizAnswersEqual(question.answer, opt.value) ? 'checked' : ''}>
+                <span class="question-option-text">${this.escapeText(opt.text)}</span>
+              </label>
+            `).join('')}
+          </div>
+        `;
+      }
       case 'multiple_select':
         return `
           <div class="question-options">
@@ -8157,10 +8310,11 @@ const MoodleUI = {
           </div>
         `;
       case 'short_answer':
+      case 'fill_blank':
       case 'essay':
         return `
           <div class="form-group">
-            <textarea id="answerText" rows="${question.type === 'essay' ? 8 : 2}" placeholder="${this.escapeText(t('moodleQuiz.answerPlaceholder'))}">${this.escapeText(question.answer || '')}</textarea>
+            <textarea id="answerText" rows="${question.type === 'essay' ? 8 : 2}" placeholder="${this.escapeText(t('moodleQuiz.answerPlaceholder'))}" oninput="MoodleUI.updateCurrentTextAnswer(this.value)">${this.escapeText(question.answer || '')}</textarea>
           </div>
         `;
       default:
@@ -8168,17 +8322,103 @@ const MoodleUI = {
     }
   },
 
+  normalizeQuizAttemptOptions(question = {}) {
+    const isEnglish = I18n.getLocale() === 'en';
+    if (question.type === 'true_false') {
+      const fallback = [
+        { text: t('moodleNewQuestion.tfTrue') || (isEnglish ? 'True' : '是'), value: true },
+        { text: t('moodleNewQuestion.tfFalse') || (isEnglish ? 'False' : '否'), value: false }
+      ];
+      const sourceOptions = Array.isArray(question.options) && question.options.length >= 2
+        ? question.options.slice(0, 2)
+        : fallback;
+      return sourceOptions.map((option, index) => {
+        if (option && typeof option === 'object') {
+          const value = this.normalizeQuizBooleanValue(option.value, index === 0);
+          return {
+            text: String(option.text || option.label || fallback[index].text),
+            value
+          };
+        }
+
+        return {
+          text: String(option || fallback[index].text),
+          value: index === 0
+        };
+      });
+    }
+
+    return (Array.isArray(question.options) ? question.options : []).map((option, index) => {
+      if (option && typeof option === 'object') {
+        return {
+          text: String(option.text ?? option.label ?? option.value ?? ''),
+          value: option.value ?? option.id ?? index
+        };
+      }
+
+      return {
+        text: String(option ?? ''),
+        value: index
+      };
+    });
+  },
+
+  normalizeQuizBooleanValue(value, fallback = null) {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'number') {
+      if (value === 0) return true;
+      if (value === 1) return false;
+    }
+    if (typeof value === 'string') {
+      const normalized = value.trim().toLowerCase();
+      if (['true', 't', 'yes', 'y', '1', '是', '對', '正確'].includes(normalized)) return true;
+      if (['false', 'f', 'no', 'n', '0', '否', '錯', '錯誤'].includes(normalized)) return false;
+    }
+    return fallback;
+  },
+
+  quizAnswersEqual(left, right) {
+    return JSON.stringify(left) === JSON.stringify(right);
+  },
+
+  isQuizTextQuestion(question = {}) {
+    return ['short_answer', 'fill_blank', 'essay'].includes(question.type);
+  },
+
+  updateCurrentTextAnswer(answer) {
+    const question = this.currentQuizAttempt?.questions?.[this.currentQuestionIndex];
+    if (!question || !this.isQuizTextQuestion(question)) return;
+    question.answer = answer;
+    question.answered = String(answer || '').trim().length > 0;
+  },
+
+  async saveCurrentTextAnswer() {
+    const attempt = this.currentQuizAttempt;
+    const question = attempt?.questions?.[this.currentQuestionIndex];
+    if (!attempt || !question || !this.isQuizTextQuestion(question)) return;
+
+    const field = document.getElementById('answerText');
+    if (field) {
+      this.updateCurrentTextAnswer(field.value);
+    }
+
+    await API.quizzes.answer(attempt.quizId, attempt.attemptId, {
+      questionId: question.questionId,
+      answer: question.answer || ''
+    });
+  },
+
   /**
    * 選擇答案
    */
-  async selectAnswer(index) {
+  async selectAnswer(answer) {
     const question = this.currentQuizAttempt.questions[this.currentQuestionIndex];
-    question.answer = index;
+    question.answer = answer;
     question.answered = true;
 
     await API.quizzes.answer(this.currentQuizAttempt.quizId, this.currentQuizAttempt.attemptId, {
       questionId: question.questionId,
-      answer: index
+      answer
     });
 
     this.renderQuizQuestion();
@@ -8187,7 +8427,8 @@ const MoodleUI = {
   /**
    * 下一題
    */
-  nextQuestion() {
+  async nextQuestion() {
+    await this.saveCurrentTextAnswer();
     if (this.currentQuestionIndex < this.currentQuizAttempt.questions.length - 1) {
       this.currentQuestionIndex++;
       this.renderQuizQuestion();
@@ -8197,7 +8438,8 @@ const MoodleUI = {
   /**
    * 上一題
    */
-  prevQuestion() {
+  async prevQuestion() {
+    await this.saveCurrentTextAnswer();
     if (this.currentQuestionIndex > 0) {
       this.currentQuestionIndex--;
       this.renderQuizQuestion();
@@ -8207,7 +8449,8 @@ const MoodleUI = {
   /**
    * 跳轉到指定題目
    */
-  goToQuestion(index) {
+  async goToQuestion(index) {
+    await this.saveCurrentTextAnswer();
     this.currentQuestionIndex = index;
     this.renderQuizQuestion();
   },
@@ -8216,6 +8459,8 @@ const MoodleUI = {
    * 提交測驗
    */
   async submitQuiz() {
+    await this.saveCurrentTextAnswer();
+
     const confirmed = await showConfirmDialog({
       message: t('moodleQuiz.confirmSubmit'),
       confirmLabel: t('common.confirm')
@@ -8223,9 +8468,16 @@ const MoodleUI = {
     if (!confirmed) return;
 
     try {
-      const result = await API.quizzes.submit(
+      const finalAnswers = (this.currentQuizAttempt.questions || []).reduce((answers, question) => {
+        if (question.questionId && question.answer !== undefined) {
+          answers[question.questionId] = question.answer;
+        }
+        return answers;
+      }, {});
+      const result = await API.quizzes.submitAttempt(
         this.currentQuizAttempt.quizId,
-        this.currentQuizAttempt.attemptId
+        this.currentQuizAttempt.attemptId,
+        finalAnswers
       );
 
       if (result.success) {
@@ -8255,11 +8507,22 @@ const MoodleUI = {
 
     const isEnglish = I18n.getLocale() === 'en';
     const attempt = this.currentQuizAttempt;
-    const questions = data.answers || data.questions || attempt?.questions || [];
+    const resultByQuestionId = new Map((data.questionResults || []).map(result => [result.questionId, result]));
+    const correctByQuestionId = new Map((data.correctAnswers || []).map(result => [result.questionId, result]));
+    const questions = Array.isArray(data.questions)
+      ? data.questions
+      : (attempt?.questions || []).map(question => ({
+          ...question,
+          ...(resultByQuestionId.get(question.questionId) || {}),
+          ...(correctByQuestionId.get(question.questionId) || {}),
+          userAnswer: question.answer
+        }));
     const score = data.score ?? data.grade ?? '—';
-    const total = data.totalScore ?? data.maxGrade ?? data.total ?? questions.length;
-    const percentage = total > 0 ? Math.round((parseFloat(score) / parseFloat(total)) * 100) : null;
+    const total = data.totalPoints ?? data.totalScore ?? data.maxGrade ?? data.total ?? questions.reduce((sum, question) => sum + (Number(question.maxPoints || question.points) || 0), 0);
+    const percentage = data.percentage ?? (total > 0 ? Math.round((parseFloat(score) / parseFloat(total)) * 100) : null);
     const passed = percentage !== null && percentage >= 60;
+    const attemptId = data.attemptId || attempt?.attemptId || '';
+    const sectionAnalytics = data.sectionAnalytics || null;
 
     container.innerHTML = `
       <div class="quiz-results">
@@ -8272,6 +8535,15 @@ const MoodleUI = {
             <div class="quiz-results-score-label">${passed ? (isEnglish ? 'Passed' : '通過') : (isEnglish ? 'Not passed' : '未通過')}</div>
           </div>
         </div>
+        ${sectionAnalytics ? `
+          <div class="management-table-shell quiz-results-section-shell">
+            <div class="management-table-heading">
+              <h3>${isEnglish ? 'Section analytics' : '區段分析'}</h3>
+              ${attemptId ? `<button class="btn-sm" onclick="MoodleUI.downloadQuizAttemptCsv(${this.toInlineActionValue(quizId)}, ${this.toInlineActionValue(attemptId)})">${isEnglish ? 'Download CSV' : '下載 CSV'}</button>` : ''}
+            </div>
+            ${this.renderQuizSectionAnalytics(sectionAnalytics, { mode: 'student' })}
+          </div>
+        ` : ''}
         <div class="quiz-results-questions">
           <h3>${isEnglish ? 'Answer Review' : '答案檢視'}</h3>
           ${questions.map((q, i) => {
@@ -8316,6 +8588,7 @@ const MoodleUI = {
         </div>
       </div>
     `;
+    this.applyDynamicUiMetrics(container);
   },
 
   /**
@@ -8994,6 +9267,165 @@ const MoodleUI = {
     }
   },
 
+  renderQuizRadarChart(radar = {}, { title = '' } = {}) {
+    const labels = Array.isArray(radar.labels) ? radar.labels : [];
+    const values = Array.isArray(radar.values) ? radar.values : [];
+    if (labels.length === 0) {
+      return '';
+    }
+
+    const axisCount = Math.max(labels.length, 3);
+    const size = 260;
+    const center = size / 2;
+    const radius = 92;
+    const axisPoints = Array.from({ length: axisCount }, (_, index) => {
+      const angle = (-Math.PI / 2) + (2 * Math.PI * index / axisCount);
+      return {
+        x: center + radius * Math.cos(angle),
+        y: center + radius * Math.sin(angle),
+        labelX: center + (radius + 24) * Math.cos(angle),
+        labelY: center + (radius + 24) * Math.sin(angle),
+        label: labels[index] || '',
+        value: Math.max(0, Math.min(100, Number(values[index] || 0)))
+      };
+    });
+    const valuePoints = axisPoints
+      .map(point => {
+        const scale = point.value / 100;
+        return `${center + (point.x - center) * scale},${center + (point.y - center) * scale}`;
+      })
+      .join(' ');
+    const rings = [25, 50, 75, 100].map(level => {
+      const ringRadius = radius * (level / 100);
+      const points = Array.from({ length: axisCount }, (_, index) => {
+        const angle = (-Math.PI / 2) + (2 * Math.PI * index / axisCount);
+        return `${center + ringRadius * Math.cos(angle)},${center + ringRadius * Math.sin(angle)}`;
+      }).join(' ');
+      return `<polygon points="${points}" class="quiz-radar-ring"></polygon>`;
+    }).join('');
+
+    return `
+      <div class="quiz-radar-card">
+        ${title ? `<h4>${this.escapeText(title)}</h4>` : ''}
+        <svg class="quiz-radar-chart" viewBox="0 0 ${size} ${size}" role="img" aria-label="${this.escapeText(title || 'Section radar')}">
+          ${rings}
+          ${axisPoints.map(point => `
+            <line x1="${center}" y1="${center}" x2="${point.x}" y2="${point.y}" class="quiz-radar-axis"></line>
+          `).join('')}
+          <polygon points="${valuePoints}" class="quiz-radar-value"></polygon>
+          ${axisPoints.map(point => point.label ? `
+            <text x="${point.labelX}" y="${point.labelY}" text-anchor="middle" class="quiz-radar-label">${this.escapeText(this.truncateText(point.label, 14))}</text>
+          ` : '').join('')}
+        </svg>
+      </div>
+    `;
+  },
+
+  renderQuizDistributionBars(distribution = []) {
+    if (!Array.isArray(distribution) || distribution.length === 0) return '';
+    const maxCount = Math.max(1, ...distribution.map(bin => Number(bin.count || 0)));
+    return `
+      <div class="quiz-section-bars">
+        ${distribution.map(bin => {
+          const width = Math.round((Number(bin.count || 0) / maxCount) * 100);
+          return `
+            <div class="quiz-section-bar-row">
+              <span class="quiz-section-bar-label">${this.escapeText(bin.label || bin.key || '')}</span>
+              <div class="quiz-section-bar-track">
+                <div class="quiz-section-bar-fill" data-progress-width="${this.clampProgressValue(width)}"></div>
+              </div>
+              <span class="quiz-section-bar-value">${this.escapeText(String(bin.count || 0))}</span>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  },
+
+  renderQuizCorrectBars(questions = []) {
+    if (!Array.isArray(questions) || questions.length === 0) return '';
+    return `
+      <div class="quiz-section-bars">
+        ${questions.map((question, index) => `
+          <div class="quiz-section-bar-row">
+            <span class="quiz-section-bar-label">${this.escapeText(this.truncateText(question.questionText || `${I18n.getLocale() === 'en' ? 'Q' : '第'}${index + 1}`, 24))}</span>
+            <div class="quiz-section-bar-track">
+              <div class="quiz-section-bar-fill is-correct" data-progress-width="${this.clampProgressValue(question.correctRate || 0)}"></div>
+            </div>
+            <span class="quiz-section-bar-value">${this.escapeText(String(question.correctRate ?? 0))}%</span>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  },
+
+  renderQuizSectionAnalytics(analytics = {}, { mode = 'teacher' } = {}) {
+    const sections = Array.isArray(analytics.sections) ? analytics.sections : [];
+    const isEnglish = I18n.getLocale() === 'en';
+    if (sections.length === 0) {
+      return `
+        <div class="management-empty-preview">${isEnglish ? 'Section analytics will appear after questions are tagged and attempts are submitted.' : '題目標記分析區段且學生作答後，這裡會顯示區段分析。'}</div>
+      `;
+    }
+
+    return `
+      <div class="quiz-section-analytics">
+        ${this.renderQuizRadarChart(analytics.radar, {
+          title: mode === 'teacher'
+            ? (isEnglish ? 'Class section radar' : '全班區段雷達圖')
+            : (isEnglish ? 'Your section radar' : '你的區段雷達圖')
+        })}
+        <div class="quiz-section-grid">
+          ${sections.map(section => `
+            <section class="quiz-section-card">
+              <div class="quiz-section-card-head">
+                <div>
+                  <span class="quiz-report-panel-kicker">${this.escapeText(section.title)}</span>
+                  <h4>${this.escapeText(mode === 'teacher' ? `${section.averageScore ?? 0}%` : `${section.percentage ?? 0}%`)}</h4>
+                </div>
+                <span class="activity-chip">${this.escapeText(`${section.questionCount || 0} ${isEnglish ? 'questions' : '題'}`)}</span>
+              </div>
+              <div class="quiz-section-metrics">
+                <span>${isEnglish ? 'Correct' : '答對率'} <strong>${this.escapeText(String(section.correctRate ?? 0))}%</strong></span>
+                <span>${isEnglish ? 'Points' : '得分'} <strong>${this.escapeText(String(mode === 'teacher' ? section.totalPoints : `${section.earnedPoints}/${section.totalPoints}`))}</strong></span>
+              </div>
+              ${mode === 'teacher' ? `
+                <h5>${isEnglish ? 'Score distribution' : '成績分布'}</h5>
+                ${this.renderQuizDistributionBars(section.scoreDistribution)}
+                <h5>${isEnglish ? 'Correct distribution' : '答對分布'}</h5>
+                ${this.renderQuizCorrectBars(section.questionStats)}
+              ` : `
+                <h5>${isEnglish ? 'Question results' : '題目結果'}</h5>
+                ${this.renderQuizCorrectBars((section.questionResults || []).map((question, index) => ({
+                  questionText: question.questionText || `${isEnglish ? 'Q' : '第'}${index + 1}`,
+                  correctRate: question.isCorrect === true ? 100 : 0
+                })))}
+              `}
+            </section>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  },
+
+  async downloadQuizResultsCsv(quizId) {
+    try {
+      await API.quizzes.downloadResultsCsv(quizId);
+    } catch (error) {
+      console.error('Download quiz results CSV error:', error);
+      showToast(I18n.getLocale() === 'en' ? 'CSV download failed' : 'CSV 下載失敗');
+    }
+  },
+
+  async downloadQuizAttemptCsv(quizId, attemptId) {
+    try {
+      await API.quizzes.downloadAttemptAnalyticsCsv(quizId, attemptId);
+    } catch (error) {
+      console.error('Download quiz attempt CSV error:', error);
+      showToast(I18n.getLocale() === 'en' ? 'CSV download failed' : 'CSV 下載失敗');
+    }
+  },
+
   renderTeacherQuizResultsPage(quiz = {}, report = {}, course = null) {
     const container = document.getElementById('quizAttemptContent');
     if (!container) return;
@@ -9001,11 +9433,14 @@ const MoodleUI = {
     const quizMeta = report.quiz || {};
     const attempts = Array.isArray(report.attempts) ? report.attempts : [];
     const questionStats = Array.isArray(report.questionStats) ? report.questionStats : [];
+    const sectionAnalytics = report.sectionAnalytics || {};
     const stats = report.stats || {};
     const averageScore = Number(stats.averageScore ?? stats.avgScore);
     const highestScore = Number(stats.highestScore ?? stats.maxScore);
     const passingGrade = Number(quizMeta.passingGrade ?? quiz.passingGrade ?? 60);
-    const passedCount = attempts.filter(attempt => Number(attempt.score) >= passingGrade).length;
+    const passedCount = Number.isFinite(Number(stats.passedCount))
+      ? Number(stats.passedCount)
+      : attempts.filter(attempt => Number(attempt.percentage) >= passingGrade).length;
     const latestAttemptAt = attempts
       .map(attempt => attempt.completedAt || attempt.submittedAt || attempt.startedAt)
       .filter(Boolean)
@@ -9037,6 +9472,11 @@ const MoodleUI = {
                   label: I18n.getLocale() === 'en' ? 'Edit quiz' : '編輯測驗',
                   className: 'btn-sm',
                   onclick: `MoodleUI.editQuizSettings(${this.toInlineActionValue(quiz.quizId || quizMeta.quizId || '')})`
+                },
+                {
+                  label: I18n.getLocale() === 'en' ? 'Download CSV' : '下載 CSV',
+                  className: 'btn-sm',
+                  onclick: `MoodleUI.downloadQuizResultsCsv(${this.toInlineActionValue(quiz.quizId || quizMeta.quizId || '')})`
                 },
                 {
                   label: t('common.delete'),
@@ -9133,6 +9573,13 @@ const MoodleUI = {
         </div>
         <div class="management-table-shell">
           <div class="management-table-heading">
+            <h3>${I18n.getLocale() === 'en' ? 'Section analytics' : '區段分析'}</h3>
+            <span class="activity-chip">${(sectionAnalytics.sections || []).length} ${I18n.getLocale() === 'en' ? 'sections' : '個區段'}</span>
+          </div>
+          ${this.renderQuizSectionAnalytics(sectionAnalytics, { mode: 'teacher' })}
+        </div>
+        <div class="management-table-shell">
+          <div class="management-table-heading">
             <h3>${I18n.getLocale() === 'en' ? 'Attempts' : '作答紀錄'}</h3>
             <span class="activity-chip">${attempts.length} ${I18n.getLocale() === 'en' ? 'records' : '筆紀錄'}</span>
           </div>
@@ -9193,6 +9640,7 @@ const MoodleUI = {
         </div>
       </div>
     `;
+    this.applyDynamicUiMetrics(container);
   },
 
   async openQuizResults(quizId, { quiz: preloadedQuiz = null, course: preloadedCourse = null, path = null, replaceHistory = false } = {}) {
@@ -15731,6 +16179,7 @@ const MoodleUI = {
       minWords: Number.isFinite(Number(question.minWords)) ? Number(question.minWords) : 0,
       points: Number.isFinite(Number(question.points)) ? Number(question.points) : 10,
       difficulty: question.difficulty || 'medium',
+      analysisSection: String(question.analysisSection || question.sectionTitle || question.section || question.skill || question.categoryName || question.category || '').trim(),
       feedback: String(question.feedback || question.explanation || ''),
       tags: Array.isArray(question.tags) ? question.tags.map(tag => String(tag).trim()).filter(Boolean) : []
     };
@@ -15798,6 +16247,7 @@ const MoodleUI = {
         ? (isEnglish ? 'Question bank' : '題庫題目')
         : (isEnglish ? 'Manual question' : '手動題目');
       const typeLabel = this.escapeText(this.getLocalizedQuestionType(question.type));
+      const sectionLabel = question.analysisSection || (isEnglish ? 'General' : '通用');
       const detailLabel = question.type === 'multiple_choice'
         ? `${(question.options || []).filter(Boolean).length} ${isEnglish ? 'options' : '個選項'}`
         : question.type === 'true_false'
@@ -15812,6 +16262,7 @@ const MoodleUI = {
             <div class="builder-question-copy">
               <div class="builder-badge-row">
                 <span class="builder-badge">${this.escapeText(sourceLabel)}</span>
+                <span class="builder-badge">${this.escapeText(sectionLabel)}</span>
                 <span class="builder-badge">${typeLabel}</span>
                 <span class="builder-badge">${this.escapeText(String(question.points || 0))} ${isEnglish ? 'pts' : '分'}</span>
               </div>
@@ -16028,6 +16479,11 @@ const MoodleUI = {
                   <option value="hard" ${question.difficulty === 'hard' ? 'selected' : ''}>${t('moodleNewQuestion.diffHard')}</option>
                 </select>
               </div>
+              <div class="form-group">
+                <label>${isEnglish ? 'Analysis section' : '分析區段'}</label>
+                <input type="text" id="quizQuestionAnalysisSection" value="${this.escapeText(question.analysisSection || '')}" placeholder="${this.escapeText(isEnglish ? 'Grammar, Vocabulary, Listening...' : '文法、詞彙、聽力...')}">
+                <p class="form-hint">${isEnglish ? 'Questions with the same section are grouped in bar charts, radar charts, and CSV exports.' : '相同區段的題目會一起進入長條圖、雷達圖與 CSV 匯出。'}</p>
+              </div>
             </div>
             <div class="form-group">
               <label>${t('moodleNewQuestion.contentLabel')}</label>
@@ -16081,6 +16537,8 @@ const MoodleUI = {
       text,
       points: parseInt(document.getElementById('quizQuestionPoints')?.value, 10) || 10,
       difficulty: document.getElementById('quizQuestionDifficulty')?.value || 'medium',
+      analysisSection: document.getElementById('quizQuestionAnalysisSection')?.value?.trim()
+        || (I18n.getLocale() === 'en' ? 'General' : '通用'),
       feedback: document.getElementById('quizQuestionFeedback')?.value || ''
     };
 
@@ -16148,6 +16606,7 @@ const MoodleUI = {
       minWords: question.minWords || 0,
       points: question.points || 10,
       difficulty: question.difficulty || 'medium',
+      analysisSection: question.analysisSection || question.categoryName || question.category || question.skill || '',
       feedback: question.explanation || question.feedback || '',
       tags: question.tags || []
     });

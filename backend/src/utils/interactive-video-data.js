@@ -14,6 +14,7 @@ const INTERACTIVE_VIDEO_ATTEMPT_PROJECTION = [
   'triggeredPromptIds',
   'score',
   'maxScore',
+  'scorePercent',
   'lastAccessedAt',
   'completedAt',
   'updatedAt'
@@ -208,6 +209,10 @@ function hasInteractiveVideoAttemptStarted(attempt = {}) {
 }
 
 function calculateInteractiveVideoScorePercent(attempt = {}, item = {}) {
+  if (attempt?.status !== 'completed') return null;
+  if (Number.isFinite(Number(attempt?.scorePercent))) {
+    return Math.round(Number(attempt.scorePercent) * 100) / 100;
+  }
   const score = Number(attempt?.score);
   const maxScore = Number(attempt?.maxScore ?? item?.maxScore ?? item?.maxGrade);
   if (!Number.isFinite(score) || !Number.isFinite(maxScore) || maxScore <= 0) return null;
