@@ -6877,7 +6877,7 @@
                                     </svg>
                                     <span data-i18n="dashboard.continueLearning">繼續學習</span>
                                 </h2>
-                                <a href="#" class="card-action" data-i18n="common.viewAll" onclick="showView('moodleCourses'); MoodleUI.loadCourses();">查看全部</a>
+                                <a href="/platform/courses" class="card-action" data-i18n="common.viewAll" onclick="return openPlatformView(event, 'moodleCourses')">查看全部</a>
                             </div>
                             <div class="card-body">
                                 <div class="course-list">
@@ -6887,7 +6887,7 @@
                                             <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>
                                         </svg>
                                         <p data-i18n="dashboard.noCourses">尚無進行中的課程</p>
-                                        <a href="#" class="empty-state-link" data-i18n="dashboard.browseCourses" onclick="showView('moodleCourses'); MoodleUI.loadCourses();">瀏覽課程</a>
+                                        <a href="/platform/courses" class="empty-state-link" data-i18n="dashboard.browseCourses" onclick="return openPlatformView(event, 'moodleCourses')">瀏覽課程</a>
                                     </div>
                                 </div>
                             </div>
@@ -7012,14 +7012,14 @@
                             </div>
                             <div class="card-body">
                                 <div class="quick-actions tiles">
-                                    <a href="#" class="quick-action-btn tile" onclick="showView('moodleCourses'); MoodleUI.loadCourses();">
+                                    <a href="/platform/courses" class="quick-action-btn tile" onclick="return openPlatformView(event, 'moodleCourses')">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="var(--olive)" stroke-width="2">
                                             <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/>
                                             <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>
                                         </svg>
                                         <span data-i18n="dashboard.myCourses">我的課程</span>
                                     </a>
-                                    <a href="#" class="quick-action-btn tile" onclick="showView('moodleAssignments'); MoodleUI.loadAssignments();">
+                                    <a href="/platform/assignments" class="quick-action-btn tile" onclick="return openPlatformView(event, 'moodleAssignments')">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="var(--terracotta)" stroke-width="2">
                                             <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
                                             <polyline points="14,2 14,8 20,8"/>
@@ -7028,7 +7028,7 @@
                                         </svg>
                                         <span data-i18n="dashboard.pendingAssignments">待交作業</span>
                                     </a>
-                                    <a href="#" class="quick-action-btn tile" onclick="showView('moodleQuizzes'); MoodleUI.loadQuizzes();">
+                                    <a href="/platform/quizzes" class="quick-action-btn tile" onclick="return openPlatformView(event, 'moodleQuizzes')">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2">
                                             <circle cx="12" cy="12" r="10"/>
                                             <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/>
@@ -7083,19 +7083,19 @@
                         </div>
                         <div class="card-body">
                             <div class="pending-tasks-grid">
-                                <button type="button" class="pending-task-item tone-terracotta" onclick="showView('moodleAssignments'); MoodleUI.loadAssignments();">
+                                <button type="button" class="pending-task-item tone-terracotta" onclick="return openPlatformView(event, 'moodleAssignments')">
                                     <div class="pending-task-count tone-terracotta" id="pendingAssignments">0</div>
                                     <div class="pending-task-label" data-i18n="teacher.pendingAssignments">待批改作業</div>
                                 </button>
-                                <button type="button" class="pending-task-item tone-blue" onclick="showView('moodleQuizzes'); MoodleUI.loadQuizzes();">
+                                <button type="button" class="pending-task-item tone-blue" onclick="return openPlatformView(event, 'moodleQuizzes')">
                                     <div class="pending-task-count tone-blue" id="pendingQuizzes">0</div>
                                     <div class="pending-task-label" data-i18n="teacher.pendingQuizReview">待審核測驗</div>
                                 </button>
-                                <button type="button" class="pending-task-item tone-sand" onclick="showView('moodleForums'); MoodleUI.loadForums();">
+                                <button type="button" class="pending-task-item tone-sand" onclick="return openPlatformView(event, 'moodleForums')">
                                     <div class="pending-task-count tone-sand" id="pendingForums">0</div>
                                     <div class="pending-task-label" data-i18n="teacher.pendingForumReplies">待回覆討論</div>
                                 </button>
-                                <button type="button" class="pending-task-item tone-olive" onclick="showView('moodleNotifications'); MoodleUI.loadNotifications();">
+                                <button type="button" class="pending-task-item tone-olive" onclick="return openPlatformView(event, 'moodleNotifications')">
                                     <div class="pending-task-count tone-olive" id="pendingNotifications">0</div>
                                     <div class="pending-task-label" data-i18n="teacher.newNotifications">新通知</div>
                                 </button>
@@ -7174,7 +7174,7 @@
                                     </svg>
                                     <span data-i18n="teacher.myCourses">我的課程</span>
                                 </h2>
-                                <a href="#" class="card-action" data-i18n="teacher.manageCourses" onclick="showView('moodleCourses'); MoodleUI.loadCourses();">管理課程</a>
+                                <a href="/platform/courses" class="card-action" data-i18n="teacher.manageCourses" onclick="return openPlatformView(event, 'moodleCourses')">管理課程</a>
                             </div>
                             <div class="card-body">
                                 <div class="teacher-course-list" id="teacherCourseList">
@@ -7246,7 +7246,7 @@
                                     </svg>
                                     <span data-i18n="teacher.gradingQueue">待評分佇列</span>
                                 </h2>
-                                <a href="#" class="card-action" data-i18n="common.viewAll" onclick="showView('moodleAssignments'); MoodleUI.loadAssignments();">查看全部</a>
+                                <a href="/platform/assignments" class="card-action" data-i18n="common.viewAll" onclick="return openPlatformView(event, 'moodleAssignments')">查看全部</a>
                             </div>
                             <div class="card-body card-body-flush">
                                 <div id="gradingQueueList">
@@ -7297,7 +7297,7 @@
                                     </svg>
                                     <span data-i18n="teacher.recentSubmissions">最近提交</span>
                                 </h2>
-                                <a href="#" class="card-action" data-i18n="common.viewAll" onclick="showView('moodleAssignments'); MoodleUI.loadAssignments();">查看全部</a>
+                                <a href="/platform/assignments" class="card-action" data-i18n="common.viewAll" onclick="return openPlatformView(event, 'moodleAssignments')">查看全部</a>
                             </div>
                             <div class="card-body">
                                 <div class="recent-submissions-list" id="recentSubmissionsList">
@@ -12386,7 +12386,8 @@
             const viewName = route.viewName || 'dashboard';
             const result = showView(viewName, {
                 path: route.path,
-                replaceHistory: replace
+                replaceHistory: replace,
+                skipAutoLoad: true
             });
 
             if (result?.ok === false) return false;
@@ -12397,6 +12398,7 @@
                 classes: () => route.courseId && typeof MoodleUI !== 'undefined' && typeof MoodleUI.openCourseParticipantsWorkspace === 'function'
                     ? MoodleUI.openCourseParticipantsWorkspace(route.courseId)
                     : (typeof App !== 'undefined' && typeof App.loadClasses === 'function' ? App.loadClasses() : null),
+                studentClasses: () => typeof loadStudentClasses === 'function' ? loadStudentClasses() : null,
                 moodleAssignments: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.loadAssignments === 'function' ? MoodleUI.loadAssignments(route.courseId || undefined) : null,
                 moodleQuizzes: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.loadQuizzes === 'function' ? MoodleUI.loadQuizzes(route.courseId || undefined) : null,
                 moodleForums: () => typeof MoodleUI !== 'undefined' && typeof MoodleUI.loadForums === 'function' ? MoodleUI.loadForums(route.courseId || undefined) : null,
@@ -12584,7 +12586,7 @@
                 'moodleFiles': 'loadFilesView',
                 'groupsManager': 'loadGroupsManagerView'
             };
-            if (viewLoaders[viewName] && typeof App !== 'undefined' && typeof App[viewLoaders[viewName]] === 'function') {
+            if (options.skipAutoLoad !== true && viewLoaders[viewName] && typeof App !== 'undefined' && typeof App[viewLoaders[viewName]] === 'function') {
                 App[viewLoaders[viewName]]();
             }
 
@@ -12598,7 +12600,7 @@
                 'moodleCalendar': 'loadCalendar',
                 'moodleNotifications': 'loadNotifications'
             };
-            if (moodleViewLoaders[viewName] && typeof MoodleUI !== 'undefined' && typeof MoodleUI[moodleViewLoaders[viewName]] === 'function') {
+            if (options.skipAutoLoad !== true && moodleViewLoaders[viewName] && typeof MoodleUI !== 'undefined' && typeof MoodleUI[moodleViewLoaders[viewName]] === 'function') {
                 MoodleUI[moodleViewLoaders[viewName]]();
             }
 
@@ -14738,19 +14740,19 @@
             // 注意：consultations 視圖現已由 chat.js 處理
             if (finalViewName === 'dashboard') {
                 // 初始化學生儀表板
-                if (typeof MoodleUI !== 'undefined' && MoodleUI.initStudentDashboard) {
+                if (options.skipAutoLoad !== true && typeof MoodleUI !== 'undefined' && MoodleUI.initStudentDashboard) {
                     MoodleUI.initStudentDashboard();
                 }
             } else if (finalViewName === 'moodleForums' && viewName === 'discussions') {
-                if (typeof MoodleUI !== 'undefined' && MoodleUI.loadForums) {
+                if (options.skipAutoLoad !== true && typeof MoodleUI !== 'undefined' && MoodleUI.loadForums) {
                     MoodleUI.loadForums();
                 }
             } else if (finalViewName === 'classes') {
-                if (typeof loadClasses === 'function') loadClasses();
+                if (options.skipAutoLoad !== true && typeof loadClasses === 'function') loadClasses();
             } else if (finalViewName === 'studentClasses') {
-                if (typeof loadStudentClasses === 'function') loadStudentClasses();
+                if (options.skipAutoLoad !== true && typeof loadStudentClasses === 'function') loadStudentClasses();
             } else if (finalViewName === 'quizzes') {
-                App.loadQuizzes();
+                if (options.skipAutoLoad !== true) App.loadQuizzes();
             } else if (finalViewName === 'settings') {
                 // 進入設定頁面時重新載入用戶資料
                 const user = API.getCurrentUser();
@@ -14759,10 +14761,10 @@
                 }
             } else if (finalViewName === 'teacherDashboard') {
                 // 初始化教師儀表板
-                if (typeof MoodleUI !== 'undefined' && MoodleUI.initTeacherDashboard) {
+                if (options.skipAutoLoad !== true && typeof MoodleUI !== 'undefined' && MoodleUI.initTeacherDashboard) {
                     MoodleUI.initTeacherDashboard();
                 }
-                if (typeof App !== 'undefined' && App.loadTeacherDashboardData) {
+                if (options.skipAutoLoad !== true && typeof App !== 'undefined' && App.loadTeacherDashboardData) {
                     App.loadTeacherDashboardData();
                 }
             }
@@ -14857,12 +14859,63 @@
         // ===== 橋隊管理功能（建橋者用）=====
         let classesCache = [];
 
+        function getBridgeCardStableTime(item = {}) {
+            const progress = item.progress && typeof item.progress === 'object' ? item.progress : {};
+            const candidates = [
+                item.joinedAt,
+                item.enrolledAt,
+                progress.enrolledAt,
+                item.createdAt,
+                item.updatedAt
+            ];
+            for (const value of candidates) {
+                if (value === undefined || value === null || value === '') continue;
+                const numeric = Number(value);
+                if (Number.isFinite(numeric)) return numeric;
+                const timestamp = Date.parse(value);
+                if (Number.isFinite(timestamp)) return timestamp;
+            }
+            return 0;
+        }
+
+        function getBridgeCardDisplayOrder(item = {}) {
+            for (const value of [item.sortOrder, item.displayOrder, item.order]) {
+                const numeric = Number(value);
+                if (Number.isFinite(numeric)) return numeric;
+            }
+            return null;
+        }
+
+        function sortBridgeCards(items = []) {
+            return [...(Array.isArray(items) ? items : [])].sort((a = {}, b = {}) => {
+                const orderA = getBridgeCardDisplayOrder(a);
+                const orderB = getBridgeCardDisplayOrder(b);
+                if (orderA !== null || orderB !== null) {
+                    return (orderA ?? Number.MAX_SAFE_INTEGER) - (orderB ?? Number.MAX_SAFE_INTEGER);
+                }
+
+                const timeDiff = getBridgeCardStableTime(b) - getBridgeCardStableTime(a);
+                if (timeDiff !== 0) return timeDiff;
+
+                const titleA = String(a.title || a.name || a.courseTitle || a.className || '').trim();
+                const titleB = String(b.title || b.name || b.courseTitle || b.className || '').trim();
+                const titleDiff = titleA.localeCompare(titleB, 'zh-Hant-u-co-pinyin', { numeric: true, sensitivity: 'base' });
+                if (titleDiff !== 0) return titleDiff;
+
+                return String(a.courseId || a.classId || a.id || '').localeCompare(
+                    String(b.courseId || b.classId || b.id || ''),
+                    undefined,
+                    { numeric: true, sensitivity: 'base' }
+                );
+            });
+        }
+
         // 載入橋隊列表
         async function loadClasses() {
             try {
                 const result = await API.courses.getMyCourses('instructor');
                 if (result.success) {
-                    classesCache = result.data || [];
+                    classesCache = sortBridgeCards(result.data || []);
                     renderClassesList();
                 }
             } catch (error) {
@@ -14874,7 +14927,7 @@
         // 渲染橋隊列表
         function renderClassesList() {
             const container = document.getElementById('classesListContainer');
-            const filtered = classesCache;
+            const filtered = sortBridgeCards(classesCache);
 
             if (filtered.length === 0) {
                 container.innerHTML = `
@@ -15678,7 +15731,7 @@
                     return;
                 }
 
-                const classes = result.data || [];
+                const classes = sortBridgeCards(result.data || []);
 
                 if (classes.length === 0) {
                     container.innerHTML = `

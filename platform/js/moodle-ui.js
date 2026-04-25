@@ -638,6 +638,61 @@ const MoodleUI = {
     return filtered;
   },
 
+  getCourseDisplaySortTime(course = {}) {
+    const progress = course.progressDetails || course.userProgress || (course.progress && typeof course.progress === 'object' ? course.progress : {});
+    const candidates = [
+      course.enrolledAt,
+      progress.enrolledAt,
+      course.joinedAt,
+      course.createdAt,
+      course.updatedAt
+    ];
+
+    for (const value of candidates) {
+      if (value === undefined || value === null || value === '') continue;
+      const numeric = Number(value);
+      if (Number.isFinite(numeric)) return numeric;
+      const timestamp = Date.parse(value);
+      if (Number.isFinite(timestamp)) return timestamp;
+    }
+
+    return 0;
+  },
+
+  getCourseDisplayOrderValue(course = {}) {
+    for (const value of [course.sortOrder, course.displayOrder, course.order]) {
+      const numeric = Number(value);
+      if (Number.isFinite(numeric)) return numeric;
+    }
+    return null;
+  },
+
+  sortCourseCollectionForDisplay(courses = []) {
+    return [...(Array.isArray(courses) ? courses : [])].sort((a = {}, b = {}) => {
+      const orderA = this.getCourseDisplayOrderValue(a);
+      const orderB = this.getCourseDisplayOrderValue(b);
+      if (orderA !== null || orderB !== null) {
+        return (orderA ?? Number.MAX_SAFE_INTEGER) - (orderB ?? Number.MAX_SAFE_INTEGER);
+      }
+
+      const timeDiff = this.getCourseDisplaySortTime(b) - this.getCourseDisplaySortTime(a);
+      if (timeDiff !== 0) return timeDiff;
+
+      const titleA = String(a.title || a.name || '').trim();
+      const titleB = String(b.title || b.name || '').trim();
+      const titleDiff = titleA.localeCompare(titleB, I18n.getLocale() === 'en' ? 'en' : 'zh-Hant-u-co-pinyin', {
+        numeric: true,
+        sensitivity: 'base'
+      });
+      if (titleDiff !== 0) return titleDiff;
+
+      return String(a.courseId || a.id || '').localeCompare(String(b.courseId || b.id || ''), undefined, {
+        numeric: true,
+        sensitivity: 'base'
+      });
+    });
+  },
+
   async getRoleScopedCourses({ manageOnly = false, filters = {} } = {}) {
     const user = API.getCurrentUser();
     if (!user) return [];
@@ -661,7 +716,7 @@ const MoodleUI = {
       courses = courses.filter(course => this.canManageCourse(course, user));
     }
 
-    return courses;
+    return this.sortCourseCollectionForDisplay(courses);
   },
 
   normalizeAssignmentState(assignment = {}) {
@@ -8584,7 +8639,7 @@ const MoodleUI = {
           }).join('')}
         </div>
         <div class="quiz-results-footer">
-          <button class="btn-primary" onclick="showView('moodleQuizzes'); MoodleUI.loadQuizzes();">${isEnglish ? 'Back to quiz list' : '返回測驗列表'}</button>
+          <button class="btn-primary" onclick="return openPlatformView(event, 'moodleQuizzes')">${isEnglish ? 'Back to quiz list' : '返回測驗列表'}</button>
         </div>
       </div>
     `;
@@ -8680,7 +8735,7 @@ const MoodleUI = {
               </div>
               </div>
             <div class="forum-header-actions">
-              <button type="button" class="btn-secondary" onclick="showView('moodleCourses'); MoodleUI.loadCourses();">
+              <button type="button" class="btn-secondary" onclick="return openPlatformView(event, 'moodleCourses')">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
                 <span>${t('sidebar.courseCenter') || '課程中心'}</span>
               </button>
@@ -8877,7 +8932,7 @@ const MoodleUI = {
                 </div>
               </div>
               <div class="forum-header-actions">
-                <button type="button" class="btn-secondary" onclick="showView('moodleCourses'); MoodleUI.loadCourses();">
+                <button type="button" class="btn-secondary" onclick="return openPlatformView(event, 'moodleCourses')">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
                   <span>${t('sidebar.courseCenter') || '課程中心'}</span>
                 </button>
@@ -11314,7 +11369,7 @@ const MoodleUI = {
     return `
       <div class="gradebook-management" data-grade-scale="${this.escapeText(scaleType)}" data-grade-to-pass="${passGrade}">
         <div class="gradebook-header">
-          <button onclick="showView('moodleGradebook'); MoodleUI.loadGradebook()" class="back-btn">
+          <button onclick="return openPlatformView(event, 'moodleGradebook')" class="back-btn">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
             ${t('moodleGradebook.back')}
           </button>
