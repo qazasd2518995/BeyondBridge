@@ -16049,6 +16049,24 @@
 
         const sidebar = document.querySelector('.sidebar');
         const sidebarOverlay = document.getElementById('sidebarOverlay');
+        sidebar.id = sidebar.id || 'platformSidebar';
+        sidebar.setAttribute('aria-label', '平台主選單');
+        mobileMenuBtn.setAttribute('aria-controls', sidebar.id);
+
+        function syncSidebarAccessibility() {
+            const isMobile = window.innerWidth <= 768;
+            const isOpen = sidebar.classList.contains('open');
+            if (isMobile) {
+                sidebar.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+                if ('inert' in sidebar) sidebar.inert = !isOpen;
+            } else {
+                sidebar.setAttribute('aria-hidden', 'false');
+                if ('inert' in sidebar) sidebar.inert = false;
+                sidebarOverlay.classList.remove('visible');
+                mobileMenuBtn.setAttribute('aria-expanded', 'false');
+                document.body.style.overflow = '';
+            }
+        }
 
         // 開啟/關閉側邊欄的函數
         function openSidebar() {
@@ -16056,6 +16074,7 @@
             sidebarOverlay.classList.add('visible');
             mobileMenuBtn.setAttribute('aria-expanded', 'true');
             document.body.style.overflow = 'hidden'; // 防止背景滾動
+            syncSidebarAccessibility();
         }
 
         function closeSidebar() {
@@ -16063,6 +16082,7 @@
             sidebarOverlay.classList.remove('visible');
             mobileMenuBtn.setAttribute('aria-expanded', 'false');
             document.body.style.overflow = '';
+            syncSidebarAccessibility();
         }
 
         function toggleSidebar() {
@@ -16156,6 +16176,9 @@
                 closeSidebar();
             }
         });
+
+        window.addEventListener('resize', syncSidebarAccessibility);
+        syncSidebarAccessibility();
 
         // Activity items click
         document.querySelectorAll('.activity-item').forEach(item => {

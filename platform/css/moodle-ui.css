@@ -16190,6 +16190,110 @@
   }
 }
 
+/* ── 平台功能手機收斂：授權表格 / Rubrics 工具列 ─────────── */
+@media (max-width: 640px) {
+  .license-dashboard .card-body-flush {
+    padding: 0.75rem;
+  }
+
+  .license-dashboard .data-table,
+  .license-dashboard .data-table thead,
+  .license-dashboard .data-table tbody,
+  .license-dashboard .data-table tr,
+  .license-dashboard .data-table th,
+  .license-dashboard .data-table td {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .license-dashboard .data-table {
+    border-collapse: separate;
+    white-space: normal;
+  }
+
+  .license-dashboard .data-table thead {
+    display: none;
+  }
+
+  .license-dashboard .data-table tbody {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .license-dashboard .data-table tr {
+    padding: 0.85rem;
+    border: 1px solid rgba(26, 58, 92, 0.1);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 10px 22px rgba(15, 23, 42, 0.05);
+  }
+
+  .license-dashboard .data-table td {
+    display: grid;
+    grid-template-columns: minmax(6rem, 0.34fr) minmax(0, 1fr);
+    gap: 0.75rem;
+    align-items: start;
+    padding: 0.55rem 0;
+    border: 0;
+    white-space: normal;
+  }
+
+  .license-dashboard .data-table td::before {
+    content: attr(data-label);
+    color: var(--gray-500);
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .license-dashboard .license-table-stack,
+  .license-dashboard .license-table-title,
+  .license-dashboard .license-table-subtitle,
+  .license-dashboard .license-table-note {
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .license-dashboard .license-table-action {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 768px) {
+  .rubrics-container {
+    padding: 1rem;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .rubrics-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.9rem;
+  }
+
+  .rubrics-toolbar {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .rubrics-toolbar .btn-primary,
+  .rubrics-toolbar .btn-secondary {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    justify-content: center;
+    white-space: normal;
+  }
+}
+
 /* ── 觸控 hover → focus/active fallback ──────────────────── */
 @media (hover: none) {
   .question-option:active,

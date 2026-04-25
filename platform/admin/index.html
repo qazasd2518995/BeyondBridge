@@ -251,6 +251,48 @@
             margin-left: 280px;
             padding: 2rem 2.5rem;
             min-height: 100vh;
+            min-width: 0;
+            width: calc(100% - 280px);
+        }
+
+        .admin-mobile-menu-btn {
+            display: none;
+            position: fixed;
+            top: calc(0.75rem + env(safe-area-inset-top));
+            left: calc(1rem + env(safe-area-inset-left));
+            z-index: 1050;
+            width: 44px;
+            height: 44px;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(26, 58, 92, 0.12);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.96);
+            color: var(--olive-deep);
+            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+            cursor: pointer;
+        }
+
+        .admin-mobile-menu-btn svg {
+            width: 22px;
+            height: 22px;
+        }
+
+        .admin-sidebar-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 1090;
+            background: rgba(15, 23, 42, 0.48);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.25s ease, visibility 0.25s ease;
+            overscroll-behavior: contain;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .admin-sidebar-overlay.visible {
+            opacity: 1;
+            visibility: visible;
         }
 
         /* Header */
@@ -4842,12 +4884,75 @@
         }
 
         @media (max-width: 768px) {
+            body.admin-sidebar-open {
+                overflow: hidden;
+            }
+
+            .admin-container {
+                min-width: 0;
+            }
+
+            .admin-sidebar {
+                width: min(280px, calc(100vw - 3rem));
+                z-index: 1100;
+                transform: translateX(-100%);
+                transition: transform 0.25s ease;
+            }
+
+            .admin-sidebar.open {
+                transform: translateX(0);
+            }
+
+            .admin-main {
+                width: 100%;
+                margin-left: 0;
+                padding: calc(4rem + env(safe-area-inset-top)) calc(1rem + env(safe-area-inset-right)) calc(1.25rem + env(safe-area-inset-bottom)) calc(1rem + env(safe-area-inset-left));
+                overflow-x: hidden;
+            }
+
+            .admin-mobile-menu-btn {
+                display: inline-flex;
+            }
+
+            .admin-header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.85rem;
+                margin-bottom: 1.1rem;
+            }
+
+            .admin-header h2 {
+                font-size: 1.35rem;
+                line-height: 1.25;
+                overflow-wrap: anywhere;
+            }
+
+            .admin-header-actions {
+                width: 100%;
+                display: flex;
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.65rem;
+            }
+
+            .admin-header-actions > *,
+            .admin-header-actions .btn,
+            .admin-header-actions select,
+            .admin-header-actions input {
+                width: 100%;
+                max-width: 100%;
+                justify-content: center;
+            }
+
             .system-status-grid,
             .export-options-grid,
             .activity-metrics-grid,
             .role-stats,
-            .dashboard-summary-grid {
-                grid-template-columns: 1fr;
+            .dashboard-summary-grid,
+            .stats-grid,
+            .analytics-metrics,
+            .quick-actions-grid {
+                grid-template-columns: minmax(0, 1fr);
             }
 
             .admin-pending-body,
@@ -4895,6 +5000,116 @@
             .admin-card-grid {
                 grid-template-columns: 1fr;
             }
+
+            .content-grid,
+            .analytics-charts,
+            .analytics-bottom,
+            .admin-panel-split,
+            .role-layout,
+            .activity-charts-grid,
+            .activity-bottom-grid {
+                grid-template-columns: minmax(0, 1fr) !important;
+            }
+
+            .content-grid > *,
+            .analytics-charts > *,
+            .analytics-bottom > *,
+            .admin-panel-split > *,
+            .role-layout > *,
+            .activity-charts-grid > *,
+            .activity-bottom-grid > *,
+            .dashboard-summary-grid > *,
+            .stats-grid > *,
+            .admin-card-grid > * {
+                min-width: 0;
+            }
+
+            .card,
+            .chart-card,
+            .admin-section-card,
+            .support-stat-item,
+            .system-status-card,
+            .export-card,
+            .activity-metric-card {
+                border-radius: 16px;
+            }
+
+            .card-header,
+            .analytics-card-head,
+            .export-card-head,
+            .system-status-card-head,
+            .activity-metric-card .metric-header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.7rem;
+            }
+
+            .card-body,
+            .admin-content-padding {
+                padding: 1rem;
+            }
+
+            .card-body:has(> .data-table),
+            .analytics-table-shell,
+            .recent-exports-table-wrap,
+            .admin-card-body-scroll {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .data-table,
+            .top-resources-table {
+                min-width: 620px;
+            }
+
+            .admin-audit-toolbar {
+                overflow: hidden;
+            }
+
+            .admin-audit-filters {
+                width: 100%;
+            }
+
+            .activity-heatmap-card {
+                overflow: hidden;
+            }
+
+            .export-card-footer,
+            .batch-toolbar,
+            .batch-toolbar-actions {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .export-card-cta,
+            .batch-toolbar-actions .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 420px) {
+            .admin-main {
+                padding-left: calc(0.75rem + env(safe-area-inset-left));
+                padding-right: calc(0.75rem + env(safe-area-inset-right));
+            }
+
+            .admin-mobile-menu-btn {
+                width: 42px;
+                height: 42px;
+            }
+
+            .stat-card,
+            .metric-card,
+            .stat-card-enhanced,
+            .dashboard-summary-card {
+                padding: 1rem;
+            }
+
+            .data-table,
+            .top-resources-table {
+                min-width: 560px;
+            }
         }
     </style>
     <!-- Chart.js -->
@@ -4923,8 +5138,16 @@
 
     <!-- Admin Panel -->
     <div id="adminPanel" class="admin-container" hidden>
+        <button type="button" id="adminMobileMenuBtn" class="admin-mobile-menu-btn" aria-label="開啟管理選單" aria-expanded="false" aria-controls="adminSidebar" onclick="toggleAdminSidebar()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <line x1="3" y1="6" x2="21" y2="6"/>
+                <line x1="3" y1="12" x2="21" y2="12"/>
+                <line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+        </button>
+        <div id="adminSidebarOverlay" class="admin-sidebar-overlay"></div>
         <!-- Sidebar -->
-        <aside class="admin-sidebar">
+        <aside id="adminSidebar" class="admin-sidebar" aria-label="管理後台選單">
             <div class="admin-logo">
                 <img src="/images/logo-white.png" alt="BeyondBridge">
                 <span data-i18n="admin.title">管理後台 Admin Panel</span>
@@ -10043,6 +10266,75 @@
         document.querySelectorAll('.nav-item[data-view]').forEach(item => {
             item.addEventListener('click', () => showView(item.dataset.view));
         });
+
+        function getAdminSidebarElements() {
+            return {
+                button: document.getElementById('adminMobileMenuBtn'),
+                sidebar: document.getElementById('adminSidebar'),
+                overlay: document.getElementById('adminSidebarOverlay')
+            };
+        }
+
+        function syncAdminSidebarAccessibility() {
+            const { button, sidebar, overlay } = getAdminSidebarElements();
+            if (!button || !sidebar || !overlay) return;
+            const isMobile = window.innerWidth <= 768;
+            const isOpen = sidebar.classList.contains('open');
+            if (isMobile) {
+                sidebar.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+                button.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+                if ('inert' in sidebar) sidebar.inert = !isOpen;
+            } else {
+                sidebar.classList.remove('open');
+                overlay.classList.remove('visible');
+                document.body.classList.remove('admin-sidebar-open');
+                sidebar.setAttribute('aria-hidden', 'false');
+                button.setAttribute('aria-expanded', 'false');
+                if ('inert' in sidebar) sidebar.inert = false;
+            }
+        }
+
+        function openAdminSidebar() {
+            const { sidebar, overlay } = getAdminSidebarElements();
+            if (!sidebar || !overlay) return;
+            sidebar.classList.add('open');
+            overlay.classList.add('visible');
+            document.body.classList.add('admin-sidebar-open');
+            syncAdminSidebarAccessibility();
+        }
+
+        function closeAdminSidebar() {
+            const { sidebar, overlay } = getAdminSidebarElements();
+            if (!sidebar || !overlay) return;
+            sidebar.classList.remove('open');
+            overlay.classList.remove('visible');
+            document.body.classList.remove('admin-sidebar-open');
+            syncAdminSidebarAccessibility();
+        }
+
+        function toggleAdminSidebar() {
+            const { sidebar } = getAdminSidebarElements();
+            if (sidebar?.classList.contains('open')) {
+                closeAdminSidebar();
+            } else {
+                openAdminSidebar();
+            }
+        }
+
+        document.getElementById('adminSidebarOverlay')?.addEventListener('click', closeAdminSidebar);
+        document.querySelectorAll('.admin-sidebar .nav-item[data-view]').forEach(item => {
+            item.addEventListener('click', () => {
+                if (window.innerWidth <= 768) closeAdminSidebar();
+            });
+        });
+        document.addEventListener('keydown', (event) => {
+            const { sidebar } = getAdminSidebarElements();
+            if (event.key === 'Escape' && window.innerWidth <= 768 && sidebar?.classList.contains('open')) {
+                closeAdminSidebar();
+            }
+        });
+        window.addEventListener('resize', syncAdminSidebarAccessibility);
+        syncAdminSidebarAccessibility();
 
         // ========== 客服中心功能 ==========
 

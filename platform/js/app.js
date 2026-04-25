@@ -3656,6 +3656,10 @@ const App = {
       const expiredNote = I18n.getLocale() === 'en'
         ? 'Review these first if you need to reassign access.'
         : '若要重新指派內容權限，優先檢查這些授權。';
+      const licenseNameLabel = t('app.licName');
+      const licenseStatusLabel = t('app.licStatus');
+      const licenseExpiryLabel = t('app.licExpiry');
+      const licenseActionsLabel = t('common.actions');
 
       container.innerHTML = `
         <section class="license-dashboard">
@@ -3706,10 +3710,10 @@ const App = {
                 <table class="data-table">
                   <thead>
                     <tr>
-                      <th>${t('app.licName')}</th>
-                      <th>${t('app.licStatus')}</th>
-                      <th>${t('app.licExpiry')}</th>
-                      <th>${t('common.actions')}</th>
+                      <th>${licenseNameLabel}</th>
+                      <th>${licenseStatusLabel}</th>
+                      <th>${licenseExpiryLabel}</th>
+                      <th>${licenseActionsLabel}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -3732,20 +3736,20 @@ const App = {
 
                       return `
                         <tr>
-                          <td>
+                          <td data-label="${this.escapeText(licenseNameLabel)}">
                             <div class="license-table-stack">
                               <div class="license-table-title">${this.escapeText(title)}</div>
                               <div class="license-table-subtitle">${this.escapeText(typeLabel)}</div>
                             </div>
                           </td>
-                          <td><span class="status-badge ${statusMeta.badgeClass}">${this.escapeText(statusMeta.label)}</span></td>
-                          <td>
+                          <td data-label="${this.escapeText(licenseStatusLabel)}"><span class="status-badge ${statusMeta.badgeClass}">${this.escapeText(statusMeta.label)}</span></td>
+                          <td data-label="${this.escapeText(licenseExpiryLabel)}">
                             <div class="license-table-stack">
                               <div class="license-table-title">${this.escapeText(this.formatLocaleDate(expiryDate))}</div>
                               <div class="license-table-note">${this.escapeText(expiryNote)}</div>
                             </div>
                           </td>
-                          <td>
+                          <td data-label="${this.escapeText(licenseActionsLabel)}">
                             ${license.status === 'active' && licenseId
                               ? `<button type="button" class="btn-sm license-table-action" onclick="App.renewLicense(${this.inlineActionValue(licenseId)})">${this.escapeText(t('app.renewLicense'))}</button>`
                               : '<span class="license-table-note">-</span>'}
