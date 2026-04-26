@@ -5555,11 +5555,13 @@ const MoodleUI = {
     modal.onclick = (e) => { if (e.target === modal) this.closeModal(modalId); };
 
     const maxWidth = options.maxWidth || '600px';
+    const contentClassName = options.className ? ` ${String(options.className).trim()}` : '';
+    const bodyClassName = options.bodyClassName ? ` ${String(options.bodyClassName).trim()}` : '';
     const kicker = options.kicker || (I18n.getLocale() === 'en' ? 'Workspace' : '工作區');
     const description = options.description || '';
 
     modal.innerHTML = `
-      <div class="modal-content modal-generic">
+      <div class="modal-content modal-generic${contentClassName}">
         <div class="modal-header">
           <div class="modal-heading">
             <p class="modal-kicker">${this.escapeText(kicker)}</p>
@@ -5568,7 +5570,7 @@ const MoodleUI = {
           </div>
           <button class="modal-close" onclick="MoodleUI.closeModal('${modalId}')">&times;</button>
         </div>
-        <div class="modal-body modal-scroll-body">
+        <div class="modal-body modal-scroll-body${bodyClassName}">
           ${bodyHtml}
         </div>
       </div>
@@ -12750,12 +12752,18 @@ const MoodleUI = {
     modal.className = 'modal-overlay active';
 
     modal.innerHTML = `
-      <div class="modal-content modal-lg">
+      <div class="modal-content modal-lg modal-workspace modal-question-builder-modal">
         <div class="modal-header">
-          <h3>${t('moodleNewQuestion.title')}</h3>
+          <div class="modal-heading">
+            <p class="modal-kicker">${I18n.getLocale() === 'en' ? 'Question bank' : '題庫工作區'}</p>
+            <h3 class="modal-title">${t('moodleNewQuestion.title')}</h3>
+            <p class="modal-description">${I18n.getLocale() === 'en'
+              ? 'Create the full prompt, answer key, and feedback in a larger editing workspace.'
+              : '用較大的編輯空間設定題目、正確答案與解析回饋。'}</p>
+          </div>
           <button onclick="MoodleUI.closeModal('createQuestionModal')" class="modal-close">&times;</button>
         </div>
-        <div class="modal-body">
+        <div class="modal-body modal-scroll-body">
           <div class="form-row">
             <div class="form-group">
               <label>${t('moodleNewQuestion.typeLabel')}</label>
@@ -12815,6 +12823,7 @@ const MoodleUI = {
     `;
 
     document.body.appendChild(modal);
+    modal.querySelector('.modal-content')?.style.setProperty('--modal-max-width', '980px');
     modal.onclick = (e) => { if (e.target === modal) this.closeModal('createQuestionModal'); };
     this.updateQuestionForm();
   },
@@ -12831,27 +12840,39 @@ const MoodleUI = {
     if (type === 'multiple_choice') {
       area.innerHTML = `
         <div class="form-group">
-          <label>${t('moodleNewQuestion.optionsLabel')}</label>
+          <label>${isEnglish ? 'Options and correct answer' : '選項與正確答案'}</label>
           <div id="optionsList">
-            <div class="option-item">
-              <input type="radio" name="correctOption" value="0" checked>
+            <div class="option-item choice-option-item">
+              <label class="correct-option-control">
+                <input type="radio" name="correctOption" value="0" checked>
+                <span>${isEnglish ? 'Correct' : '正確答案'}</span>
+              </label>
               <input type="text" class="option-input" placeholder="${t('moodleNewQuestion.optionA')}">
-              <button type="button" onclick="this.parentElement.remove()" class="btn-remove">×</button>
+              <button type="button" onclick="this.parentElement.remove(); MoodleUI.syncQuestionBankOptionIndices();" class="btn-remove" aria-label="${isEnglish ? 'Remove option' : '刪除選項'}">×</button>
             </div>
-            <div class="option-item">
-              <input type="radio" name="correctOption" value="1">
+            <div class="option-item choice-option-item">
+              <label class="correct-option-control">
+                <input type="radio" name="correctOption" value="1">
+                <span>${isEnglish ? 'Correct' : '正確答案'}</span>
+              </label>
               <input type="text" class="option-input" placeholder="${t('moodleNewQuestion.optionB')}">
-              <button type="button" onclick="this.parentElement.remove()" class="btn-remove">×</button>
+              <button type="button" onclick="this.parentElement.remove(); MoodleUI.syncQuestionBankOptionIndices();" class="btn-remove" aria-label="${isEnglish ? 'Remove option' : '刪除選項'}">×</button>
             </div>
-            <div class="option-item">
-              <input type="radio" name="correctOption" value="2">
+            <div class="option-item choice-option-item">
+              <label class="correct-option-control">
+                <input type="radio" name="correctOption" value="2">
+                <span>${isEnglish ? 'Correct' : '正確答案'}</span>
+              </label>
               <input type="text" class="option-input" placeholder="${t('moodleNewQuestion.optionC')}">
-              <button type="button" onclick="this.parentElement.remove()" class="btn-remove">×</button>
+              <button type="button" onclick="this.parentElement.remove(); MoodleUI.syncQuestionBankOptionIndices();" class="btn-remove" aria-label="${isEnglish ? 'Remove option' : '刪除選項'}">×</button>
             </div>
-            <div class="option-item">
-              <input type="radio" name="correctOption" value="3">
+            <div class="option-item choice-option-item">
+              <label class="correct-option-control">
+                <input type="radio" name="correctOption" value="3">
+                <span>${isEnglish ? 'Correct' : '正確答案'}</span>
+              </label>
               <input type="text" class="option-input" placeholder="${t('moodleNewQuestion.optionD')}">
-              <button type="button" onclick="this.parentElement.remove()" class="btn-remove">×</button>
+              <button type="button" onclick="this.parentElement.remove(); MoodleUI.syncQuestionBankOptionIndices();" class="btn-remove" aria-label="${isEnglish ? 'Remove option' : '刪除選項'}">×</button>
             </div>
           </div>
           <button type="button" onclick="MoodleUI.addQuestionOption()" class="btn-sm">${t('moodleNewQuestion.addOption')}</button>
@@ -12863,10 +12884,13 @@ const MoodleUI = {
           <label>${isEnglish ? 'Options and correct choices' : '選項與正確答案'}</label>
           <div id="optionsList">
             ${[0, 1, 2, 3].map(index => `
-              <div class="option-item">
-                <input type="checkbox" name="correctOptions" value="${index}">
+              <div class="option-item choice-option-item">
+                <label class="correct-option-control">
+                  <input type="checkbox" name="correctOptions" value="${index}">
+                  <span>${isEnglish ? 'Correct' : '正確選項'}</span>
+                </label>
                 <input type="text" class="option-input" placeholder="${this.escapeText((isEnglish ? 'Option' : '選項') + ' ' + String.fromCharCode(65 + index))}">
-                <button type="button" onclick="this.parentElement.remove(); MoodleUI.syncQuestionBankOptionIndices();" class="btn-remove">×</button>
+                <button type="button" onclick="this.parentElement.remove(); MoodleUI.syncQuestionBankOptionIndices();" class="btn-remove" aria-label="${isEnglish ? 'Remove option' : '刪除選項'}">×</button>
               </div>
             `).join('')}
           </div>
@@ -12984,24 +13008,42 @@ const MoodleUI = {
     if (!list) return;
 
     const count = list.children.length;
+    const isEnglish = I18n.getLocale() === 'en';
     const div = document.createElement('div');
-    div.className = 'option-item';
+    div.className = 'option-item choice-option-item';
     div.innerHTML = `
-      <input type="radio" name="correctOption" value="${count}">
+      <label class="correct-option-control">
+        <input type="radio" name="correctOption" value="${count}">
+        <span>${isEnglish ? 'Correct' : '正確答案'}</span>
+      </label>
       <input type="text" class="option-input" placeholder="${t('moodleNewQuestion.optionLabel')} ${String.fromCharCode(65 + count)}">
-      <button type="button" onclick="this.parentElement.remove()" class="btn-remove">×</button>
+      <button type="button" onclick="this.parentElement.remove(); MoodleUI.syncQuestionBankOptionIndices();" class="btn-remove" aria-label="${isEnglish ? 'Remove option' : '刪除選項'}">×</button>
     `;
     list.appendChild(div);
+    this.syncQuestionBankOptionIndices();
   },
 
   syncQuestionBankOptionIndices() {
     const rows = Array.from(document.querySelectorAll('#optionsList .option-item'));
+    const isEnglish = I18n.getLocale() === 'en';
+    let checkedExists = false;
+
     rows.forEach((row, index) => {
       const radio = row.querySelector('input[name="correctOption"]');
       const checkbox = row.querySelector('input[name="correctOptions"]');
+      const textInput = row.querySelector('.option-input');
       if (radio) radio.value = String(index);
       if (checkbox) checkbox.value = String(index);
+      if (radio?.checked) checkedExists = true;
+      if (textInput) {
+        textInput.placeholder = `${isEnglish ? 'Option' : '選項'} ${String.fromCharCode(65 + index)}`;
+      }
     });
+
+    if (!checkedExists) {
+      const firstRadio = rows[0]?.querySelector('input[name="correctOption"]');
+      if (firstRadio) firstRadio.checked = true;
+    }
   },
 
   syncQuestionBankOrderingIndices() {
@@ -13017,13 +13059,17 @@ const MoodleUI = {
     const count = list.children.length;
     const isEnglish = I18n.getLocale() === 'en';
     const div = document.createElement('div');
-    div.className = 'option-item';
+    div.className = 'option-item choice-option-item';
     div.innerHTML = `
-      <input type="checkbox" name="correctOptions" value="${count}">
+      <label class="correct-option-control">
+        <input type="checkbox" name="correctOptions" value="${count}">
+        <span>${isEnglish ? 'Correct' : '正確選項'}</span>
+      </label>
       <input type="text" class="option-input" placeholder="${this.escapeText((isEnglish ? 'Option' : '選項') + ' ' + String.fromCharCode(65 + count))}">
-      <button type="button" onclick="this.parentElement.remove(); MoodleUI.syncQuestionBankOptionIndices();" class="btn-remove">×</button>
+      <button type="button" onclick="this.parentElement.remove(); MoodleUI.syncQuestionBankOptionIndices();" class="btn-remove" aria-label="${isEnglish ? 'Remove option' : '刪除選項'}">×</button>
     `;
     list.appendChild(div);
+    this.syncQuestionBankOptionIndices();
   },
 
   addQuestionMatchingPair() {
@@ -13100,10 +13146,21 @@ const MoodleUI = {
 
     // 根據題型收集答案資料
     if (type === 'multiple_choice') {
-      const optionInputs = document.querySelectorAll('.option-input');
-      const correctRadio = document.querySelector('input[name="correctOption"]:checked');
-      questionData.options = Array.from(optionInputs).map(i => i.value.trim()).filter(v => v);
-      questionData.correctAnswer = correctRadio ? parseInt(correctRadio.value) : 0;
+      const rows = Array.from(document.querySelectorAll('#optionsList .option-item'));
+      const options = [];
+      let correctAnswer = 0;
+      rows.forEach(row => {
+        const optionText = row.querySelector('.option-input')?.value?.trim();
+        if (!optionText) return;
+        const nextIndex = options.length;
+        if (row.querySelector('input[name="correctOption"]')?.checked) {
+          correctAnswer = nextIndex;
+        }
+        options.push(optionText);
+      });
+      questionData.options = options;
+      questionData.correctAnswer = correctAnswer;
+      questionData.correctAnswers = [];
 
       if (questionData.options.length < 2) {
         showToast(t('moodleNewQuestion.minOptions'));
@@ -16572,7 +16629,8 @@ const MoodleUI = {
         </div>
       </form>
     `, {
-      maxWidth: '860px',
+      maxWidth: '1180px',
+      className: 'modal-workspace modal-assignment-builder-modal',
       kicker: isEnglish ? 'Assignment workspace' : '作業工作區',
       description: isEnglish
         ? 'Create an assignment with a proper task brief, grading baseline, and submission policy.'
@@ -16938,13 +16996,16 @@ const MoodleUI = {
       const options = normalized.options.length > 0 ? normalized.options : ['', '', '', ''];
       return `
         <div class="form-group">
-          <label>${t('moodleNewQuestion.optionsLabel')}</label>
+          <label>${isEnglish ? 'Options and correct answer' : '選項與正確答案'}</label>
           <div id="quizQuestionOptionsList">
             ${options.map((option, index) => `
-              <div class="builder-option-row builder-matching-row">
-                <input type="radio" name="quizQuestionCorrect" value="${index}" ${Number(normalized.correctAnswer) === index ? 'checked' : ''}>
+              <div class="builder-option-row builder-choice-row">
+                <label class="correct-option-control">
+                  <input type="radio" name="quizQuestionCorrect" value="${index}" ${Number(normalized.correctAnswer) === index ? 'checked' : ''}>
+                  <span>${isEnglish ? 'Correct' : '正確答案'}</span>
+                </label>
                 <input type="text" class="option-input" value="${this.escapeText(option || '')}" placeholder="${this.escapeText((isEnglish ? 'Option' : '選項'))} ${String.fromCharCode(65 + index)}">
-                <button type="button" class="btn-remove" onclick="this.closest('.builder-option-row').remove(); MoodleUI.syncQuizQuestionOptionIndices();">×</button>
+                <button type="button" class="btn-remove" onclick="this.closest('.builder-option-row').remove(); MoodleUI.syncQuizQuestionOptionIndices();" aria-label="${isEnglish ? 'Remove option' : '刪除選項'}">×</button>
               </div>
             `).join('')}
           </div>
@@ -16961,10 +17022,13 @@ const MoodleUI = {
           <label>${isEnglish ? 'Options and correct choices' : '選項與正確答案'}</label>
           <div id="quizQuestionOptionsList">
             ${options.map((option, index) => `
-              <div class="builder-option-row builder-ordering-row">
-                <input type="checkbox" name="quizQuestionCorrectMulti" value="${index}" ${correctSet.has(String(index)) ? 'checked' : ''}>
+              <div class="builder-option-row builder-choice-row">
+                <label class="correct-option-control">
+                  <input type="checkbox" name="quizQuestionCorrectMulti" value="${index}" ${correctSet.has(String(index)) ? 'checked' : ''}>
+                  <span>${isEnglish ? 'Correct' : '正確選項'}</span>
+                </label>
                 <input type="text" class="option-input" value="${this.escapeText(option || '')}" placeholder="${this.escapeText((isEnglish ? 'Option' : '選項'))} ${String.fromCharCode(65 + index)}">
-                <button type="button" class="btn-remove" onclick="this.closest('.builder-option-row').remove(); MoodleUI.syncQuizQuestionOptionIndices();">×</button>
+                <button type="button" class="btn-remove" onclick="this.closest('.builder-option-row').remove(); MoodleUI.syncQuizQuestionOptionIndices();" aria-label="${isEnglish ? 'Remove option' : '刪除選項'}">×</button>
               </div>
             `).join('')}
           </div>
@@ -17135,13 +17199,17 @@ const MoodleUI = {
   addQuizQuestionOptionRow() {
     const list = document.getElementById('quizQuestionOptionsList');
     if (!list) return;
+    const isEnglish = I18n.getLocale() === 'en';
 
     const row = document.createElement('div');
-    row.className = 'builder-option-row builder-matching-row';
+    row.className = 'builder-option-row builder-choice-row';
     row.innerHTML = `
-      <input type="radio" name="quizQuestionCorrect" value="0">
-      <input type="text" class="option-input" placeholder="${this.escapeText(I18n.getLocale() === 'en' ? 'Option' : '選項')}">
-      <button type="button" class="btn-remove" onclick="this.closest('.builder-option-row').remove(); MoodleUI.syncQuizQuestionOptionIndices();">×</button>
+      <label class="correct-option-control">
+        <input type="radio" name="quizQuestionCorrect" value="0">
+        <span>${isEnglish ? 'Correct' : '正確答案'}</span>
+      </label>
+      <input type="text" class="option-input" placeholder="${this.escapeText(isEnglish ? 'Option' : '選項')}">
+      <button type="button" class="btn-remove" onclick="this.closest('.builder-option-row').remove(); MoodleUI.syncQuizQuestionOptionIndices();" aria-label="${isEnglish ? 'Remove option' : '刪除選項'}">×</button>
     `;
     list.appendChild(row);
     this.syncQuizQuestionOptionIndices();
@@ -17150,13 +17218,17 @@ const MoodleUI = {
   addQuizQuestionMultiSelectOptionRow() {
     const list = document.getElementById('quizQuestionOptionsList');
     if (!list) return;
+    const isEnglish = I18n.getLocale() === 'en';
 
     const row = document.createElement('div');
-    row.className = 'builder-option-row builder-ordering-row';
+    row.className = 'builder-option-row builder-choice-row';
     row.innerHTML = `
-      <input type="checkbox" name="quizQuestionCorrectMulti" value="0">
-      <input type="text" class="option-input" placeholder="${this.escapeText(I18n.getLocale() === 'en' ? 'Option' : '選項')}">
-      <button type="button" class="btn-remove" onclick="this.closest('.builder-option-row').remove(); MoodleUI.syncQuizQuestionOptionIndices();">×</button>
+      <label class="correct-option-control">
+        <input type="checkbox" name="quizQuestionCorrectMulti" value="0">
+        <span>${isEnglish ? 'Correct' : '正確選項'}</span>
+      </label>
+      <input type="text" class="option-input" placeholder="${this.escapeText(isEnglish ? 'Option' : '選項')}">
+      <button type="button" class="btn-remove" onclick="this.closest('.builder-option-row').remove(); MoodleUI.syncQuizQuestionOptionIndices();" aria-label="${isEnglish ? 'Remove option' : '刪除選項'}">×</button>
     `;
     list.appendChild(row);
     this.syncQuizQuestionOptionIndices();
@@ -17287,7 +17359,8 @@ const MoodleUI = {
         </div>
       </form>
     `, {
-      maxWidth: '740px',
+      maxWidth: '980px',
+      className: 'modal-workspace modal-question-builder-modal',
       kicker: isEnglish ? 'Assessment workspace' : '評量工作區',
       description: isEnglish
         ? 'Edit the question before placing it into the quiz.'
@@ -17697,7 +17770,8 @@ const MoodleUI = {
         </div>
       </form>
     `, {
-      maxWidth: '860px',
+      maxWidth: '1040px',
+      className: 'modal-workspace modal-question-bank-picker-modal',
       kicker: isEnglish ? 'Assessment workspace' : '評量工作區',
       description: isEnglish
         ? 'Bring existing question bank items into this quiz without leaving the builder.'
@@ -17917,7 +17991,8 @@ const MoodleUI = {
         </div>
       </form>
     `, {
-      maxWidth: '960px',
+      maxWidth: '1200px',
+      className: 'modal-workspace modal-quiz-builder-modal',
       kicker: isEnglish ? 'Assessment workspace' : '評量工作區',
       description: isEnglish
         ? 'Design the quiz settings and the actual question set in one place.'
@@ -18946,7 +19021,14 @@ const MoodleUI = {
             <button type="submit" class="btn-primary">${t('common.save')}</button>
           </div>
         </form>
-      `);
+      `, {
+        maxWidth: '980px',
+        className: 'modal-workspace modal-question-builder-modal',
+        kicker: I18n.getLocale() === 'en' ? 'Question bank' : '題庫工作區',
+        description: I18n.getLocale() === 'en'
+          ? 'Edit the full prompt, answer key, points, and feedback in one workspace.'
+          : '在同一個清楚的工作區編輯題目、答案、配分與解析。'
+      });
       this.syncQuizQuestionOptionIndices();
       window.requestAnimationFrame(() => modal.querySelector('#eq_text')?.focus());
     } catch (error) {
