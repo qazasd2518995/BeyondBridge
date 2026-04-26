@@ -5296,10 +5296,8 @@ const MoodleUI = {
 
     if (isRichBuilderType) {
       const modal = document.getElementById('addActivityModal');
-      if (modal?.dataset.courseId) {
-        this.openActivityBuilderFromCourse(type, modal.dataset.courseId, modal.dataset.sectionId);
-        return;
-      }
+      this.openActivityBuilderFromCourse(type, modal?.dataset.courseId || null, modal?.dataset.sectionId || null);
+      return;
     }
 
     // 高亮選中的卡片
@@ -5315,9 +5313,7 @@ const MoodleUI = {
     const footerPrimaryButton = footer.querySelector('.btn-primary');
     if (footerPrimaryButton) {
       footerPrimaryButton.dataset.selectedType = type;
-      footerPrimaryButton.textContent = isRichBuilderType
-      ? (I18n.getLocale() === 'en' ? 'Continue setup' : '繼續設定')
-      : t('moodleCourse.addActivity');
+      footerPrimaryButton.textContent = t('moodleCourse.addActivity');
     }
 
     // 根據類型顯示不同表單
@@ -5408,54 +5404,6 @@ const MoodleUI = {
           </div>
           ${this.buildInteractiveVideoPromptEditor('')}
         `;
-      case 'assignment':
-        return `
-          <div class="quiz-create-shell">
-            <section class="quiz-create-card quiz-create-card-primary activity-builder-shortcut">
-              <div class="quiz-create-card-head">
-                <div>
-                  <div class="quiz-create-card-kicker">${I18n.getLocale() === 'en' ? 'Assignment builder' : '作業完整設定'}</div>
-                  <div class="quiz-create-card-title">${I18n.getLocale() === 'en' ? 'Continue to the full assignment builder' : '下一步進入完整作業 builder'}</div>
-                  <p class="quiz-create-card-note">${I18n.getLocale() === 'en'
-                    ? 'You will define the task brief, deadlines, grading rules, submission format, and rubric in the next step.'
-                    : '下一步會設定作業內容、截止時間、評分規則、提交方式與評分規準。'}</p>
-                </div>
-              </div>
-            </section>
-          </div>
-        `;
-      case 'quiz':
-        return `
-          <div class="quiz-create-shell">
-            <section class="quiz-create-card quiz-create-card-primary activity-builder-shortcut">
-              <div class="quiz-create-card-head">
-                <div>
-                  <div class="quiz-create-card-kicker">${I18n.getLocale() === 'en' ? 'Quiz builder' : '測驗完整設定'}</div>
-                  <div class="quiz-create-card-title">${I18n.getLocale() === 'en' ? 'Continue to the quiz builder' : '下一步進入測驗 builder'}</div>
-                  <p class="quiz-create-card-note">${I18n.getLocale() === 'en'
-                    ? 'The next step includes schedule, result visibility, and the actual question set instead of creating an empty quiz shell.'
-                    : '下一步會設定測驗時間、結果公布方式與實際題目，不再只是建立空白測驗外殼。'}</p>
-                </div>
-              </div>
-            </section>
-          </div>
-        `;
-      case 'forum':
-        return `
-          <div class="quiz-create-shell">
-            <section class="quiz-create-card quiz-create-card-primary activity-builder-shortcut">
-              <div class="quiz-create-card-head">
-                <div>
-                  <div class="quiz-create-card-kicker">${I18n.getLocale() === 'en' ? 'Forum builder' : '討論區完整設定'}</div>
-                  <div class="quiz-create-card-title">${I18n.getLocale() === 'en' ? 'Continue to the forum builder' : '下一步進入討論區 builder'}</div>
-                  <p class="quiz-create-card-note">${I18n.getLocale() === 'en'
-                    ? 'Set forum rules, subscription policy, attachment limits, and optionally publish the first discussion thread.'
-                    : '下一步會設定論壇規則、訂閱模式、附件限制，還能直接發布第一個討論主題。'}</p>
-                </div>
-              </div>
-            </section>
-          </div>
-        `;
       case 'lti':
         return commonFields + `
           <div class="form-group">
@@ -5544,24 +5492,6 @@ const MoodleUI = {
           return;
         }
         break;
-      case 'assignment':
-        activityData.dueDate = document.getElementById('assignmentDueDate')?.value;
-        if (!activityData.dueDate) {
-          showToast(I18n.getLocale() === 'en' ? 'Please set a due date.' : '請設定截止時間');
-          return;
-        }
-        activityData.maxGrade = parseInt(document.getElementById('assignmentPoints')?.value) || 100;
-        activityData.submissionType = document.getElementById('submissionType')?.value;
-        break;
-      case 'quiz':
-        activityData.openDate = document.getElementById('quizOpenDate')?.value;
-        activityData.closeDate = document.getElementById('quizCloseDate')?.value;
-        activityData.timeLimit = parseInt(document.getElementById('quizTimeLimit')?.value);
-        activityData.attempts = parseInt(document.getElementById('quizAttempts')?.value);
-        break;
-      case 'forum':
-        activityData.forumType = document.getElementById('forumType')?.value;
-        break;
       case 'lti':
         const toolId = document.getElementById('ltiToolSelect')?.value;
         const useDeepLinking = document.getElementById('ltiDeepLinking')?.checked;
@@ -5581,39 +5511,7 @@ const MoodleUI = {
     try {
       let result;
 
-      if (this.selectedActivityType === 'assignment') {
-        result = await API.assignments.create({
-          courseId,
-          sectionId,
-          title: activityData.title,
-          description: activityData.description,
-          dueDate: activityData.dueDate,
-          maxGrade: activityData.maxGrade,
-          submissionType: activityData.submissionType,
-          visible: true
-        });
-      } else if (this.selectedActivityType === 'quiz') {
-        result = await API.quizzes.create({
-          courseId,
-          sectionId,
-          title: activityData.title,
-          description: activityData.description,
-          openDate: activityData.openDate || undefined,
-          closeDate: activityData.closeDate || undefined,
-          timeLimit: Number.isFinite(activityData.timeLimit) ? activityData.timeLimit : undefined,
-          maxAttempts: Number.isFinite(activityData.attempts) ? activityData.attempts : undefined,
-          visible: true
-        });
-      } else if (this.selectedActivityType === 'forum') {
-        result = await API.forums.create({
-          courseId,
-          sectionId,
-          title: activityData.title,
-          description: activityData.description,
-          type: activityData.forumType || 'general',
-          visible: true
-        });
-      } else if (this.selectedActivityType === 'file') {
+      if (this.selectedActivityType === 'file') {
         const uploadResult = await API.files.upload(activityData.file, `courses/${courseId}`);
         if (!uploadResult.success || !uploadResult.data?.fileId) {
           showToast(uploadResult.message || t('moodleAddActivity.addFailed'));
@@ -19007,37 +18905,20 @@ const MoodleUI = {
     try {
       const result = await API.questionBank.get(questionId, { courseId: this.currentQuestionBankCourseId });
       if (!result.success) { showToast(t('moodleQuestionBank.loadQuestionFailed')); return; }
-      const q = result.data;
+      const q = this.normalizeQuizBuilderQuestion(this.createQuizQuestionFromBankQuestion(result.data || {}));
 
-      this.createModal('editQuestionModal', t('moodleQuestionBank.editTitle'), `
+      const modal = this.createModal('editQuestionModal', t('moodleQuestionBank.editTitle'), `
         <form onsubmit="event.preventDefault(); MoodleUI.saveEditedQuestion('${questionId}')">
           <div class="form-group">
             <label>${t('moodleQuestionBank.typeLabel')}</label>
-            <input type="text" value="${{multiple_choice:t('moodleQuestionBank.multipleChoice'), true_false:t('moodleQuestionBank.trueFalse'), short_answer:t('moodleQuestionBank.shortAnswer'), fill_blank:t('moodleQuestionBank.fillBlank'), essay:'申論題'}[q.type] || q.type}" disabled>
+            <input type="hidden" id="eq_type" value="${this.escapeText(q.type)}">
+            <input type="text" value="${this.escapeText(this.getLocalizedQuestionType(q.type))}" disabled>
           </div>
           <div class="form-group">
             <label>${t('moodleNewQuestion.contentLabel')}</label>
-            <textarea id="eq_text" rows="3" required>${q.questionText || ''}</textarea>
+            <textarea id="eq_text" rows="3" required>${this.escapeText(q.text || '')}</textarea>
           </div>
-          ${q.type === 'multiple_choice' ? `
-            <div class="form-group">
-              <label>${t('moodleQuestionBank.optionsLabel')}</label>
-              <textarea id="eq_options" rows="4">${(q.options || []).join('\\n')}</textarea>
-            </div>
-            <div class="form-group">
-              <label>${t('moodleQuestionBank.correctIndexLabel')}</label>
-              <input type="number" id="eq_correct" value="${q.correctAnswer ?? ''}" min="0">
-            </div>
-          ` : ''}
-          ${q.type === 'true_false' ? `
-            <div class="form-group">
-              <label>${t('moodleQuestionBank.correctAnswer')}</label>
-              <select id="eq_correct_tf">
-                <option value="true" ${q.correctAnswer === true ? 'selected' : ''}>${t('common.trueVal')}</option>
-                <option value="false" ${q.correctAnswer === false ? 'selected' : ''}>${t('common.falseVal')}</option>
-              </select>
-            </div>
-          ` : ''}
+          <div id="eq_answer_fields">${this.renderQuizQuestionEditorOptions(q.type, q)}</div>
           <div class="form-row">
             <div class="form-group">
               <label>${t('moodleAddActivity.scoreLabel')}</label>
@@ -19054,7 +18935,11 @@ const MoodleUI = {
           </div>
           <div class="form-group">
             <label>${t('moodleNewQuestion.tagsLabel')}</label>
-            <input type="text" id="eq_tags" value="${(q.tags || []).join(', ')}">
+            <input type="text" id="eq_tags" value="${this.escapeText((q.tags || []).join(', '))}">
+          </div>
+          <div class="form-group">
+            <label>${t('moodleNewQuestion.explanationLabel')}</label>
+            <textarea id="eq_explanation" rows="3" placeholder="${t('moodleNewQuestion.explanationPlaceholder')}">${this.escapeText(q.feedback || '')}</textarea>
           </div>
           <div class="form-actions">
             <button type="button" onclick="MoodleUI.closeModal('editQuestionModal')" class="btn-secondary">${t('common.cancel')}</button>
@@ -19062,25 +18947,162 @@ const MoodleUI = {
           </div>
         </form>
       `);
+      this.syncQuizQuestionOptionIndices();
+      window.requestAnimationFrame(() => modal.querySelector('#eq_text')?.focus());
     } catch (error) {
       showToast(t('moodleQuestionBank.loadQuestionError'));
     }
   },
 
   async saveEditedQuestion(questionId) {
+    const type = document.getElementById('eq_type')?.value || 'multiple_choice';
+    let questionText = document.getElementById('eq_text')?.value?.trim() || '';
+    const clozeTextDraft = type === 'cloze'
+      ? document.getElementById('quizQuestionClozeText')?.value?.trim()
+      : '';
+    if (!questionText && clozeTextDraft) {
+      questionText = clozeTextDraft;
+    }
+
+    if (!questionText) {
+      showToast(t('moodleNewQuestion.contentRequired'));
+      return;
+    }
+
     const data = {
       courseId: this.currentQuestionBankCourseId,
-      questionText: document.getElementById('eq_text').value,
-      points: parseInt(document.getElementById('eq_points').value) || 1,
-      difficulty: document.getElementById('eq_difficulty').value,
-      tags: document.getElementById('eq_tags').value.split(',').map(t => t.trim()).filter(Boolean)
+      type,
+      questionText,
+      points: parseInt(document.getElementById('eq_points')?.value, 10) || 1,
+      difficulty: document.getElementById('eq_difficulty')?.value || 'medium',
+      tags: document.getElementById('eq_tags')?.value.split(',').map(t => t.trim()).filter(Boolean) || [],
+      explanation: document.getElementById('eq_explanation')?.value || ''
     };
-    const optionsEl = document.getElementById('eq_options');
-    if (optionsEl) data.options = optionsEl.value.split('\\n').filter(Boolean);
-    const correctEl = document.getElementById('eq_correct');
-    if (correctEl) data.correctAnswer = parseInt(correctEl.value);
-    const correctTfEl = document.getElementById('eq_correct_tf');
-    if (correctTfEl) data.correctAnswer = correctTfEl.value === 'true';
+
+    if (type === 'multiple_choice') {
+      const rows = Array.from(document.querySelectorAll('#quizQuestionOptionsList .builder-option-row'));
+      const options = [];
+      let correctAnswer = 0;
+      rows.forEach(row => {
+        const optionText = row.querySelector('.option-input')?.value?.trim();
+        if (!optionText) return;
+        const nextIndex = options.length;
+        if (row.querySelector('input[name="quizQuestionCorrect"]')?.checked) {
+          correctAnswer = nextIndex;
+        }
+        options.push(optionText);
+      });
+      if (options.length < 2) {
+        showToast(t('moodleNewQuestion.minOptions'));
+        return;
+      }
+      data.options = options;
+      data.correctAnswer = correctAnswer;
+      data.correctAnswers = [];
+    } else if (type === 'multiple_select') {
+      const rows = Array.from(document.querySelectorAll('#quizQuestionOptionsList .builder-option-row'));
+      const options = [];
+      const correctAnswers = [];
+      rows.forEach(row => {
+        const optionText = row.querySelector('.option-input')?.value?.trim();
+        if (!optionText) return;
+        const nextIndex = options.length;
+        if (row.querySelector('input[name="quizQuestionCorrectMulti"]')?.checked) {
+          correctAnswers.push(nextIndex);
+        }
+        options.push(optionText);
+      });
+      if (options.length < 2) {
+        showToast(t('moodleNewQuestion.minOptions'));
+        return;
+      }
+      if (correctAnswers.length === 0) {
+        showToast(I18n.getLocale() === 'en' ? 'Select at least one correct option.' : '請至少勾選一個正確選項。');
+        return;
+      }
+      data.options = options;
+      data.correctAnswer = null;
+      data.correctAnswers = correctAnswers;
+    } else if (type === 'true_false') {
+      data.options = [];
+      data.correctAnswer = document.querySelector('input[name="quizQuestionTrueFalse"]:checked')?.value !== 'false';
+      data.correctAnswers = [];
+    } else if (type === 'short_answer' || type === 'fill_blank') {
+      data.options = [];
+      data.correctAnswer = null;
+      data.correctAnswers = String(document.getElementById('quizQuestionAcceptedAnswers')?.value || '')
+        .split('\n')
+        .map(answer => answer.trim())
+        .filter(Boolean);
+      data.caseSensitive = document.getElementById('quizQuestionCaseSensitive')?.checked === true;
+    } else if (type === 'matching') {
+      data.options = [];
+      data.correctAnswer = null;
+      data.correctAnswers = [];
+      data.matchingPairs = Array.from(document.querySelectorAll('#quizMatchingPairsList .builder-option-row'))
+        .map(row => ({
+          prompt: row.querySelector('.matching-prompt-input')?.value?.trim() || '',
+          answer: row.querySelector('.matching-answer-input')?.value?.trim() || ''
+        }))
+        .filter(pair => pair.prompt && pair.answer);
+      if (data.matchingPairs.length < 2) {
+        showToast(I18n.getLocale() === 'en' ? 'Add at least two complete matching pairs.' : '請至少新增兩組完整配對。');
+        return;
+      }
+    } else if (type === 'ordering') {
+      data.options = [];
+      data.correctAnswer = null;
+      data.correctAnswers = [];
+      data.orderingItems = Array.from(document.querySelectorAll('#quizOrderingItemsList .ordering-item-input'))
+        .map(input => input.value.trim())
+        .filter(Boolean);
+      if (data.orderingItems.length < 2) {
+        showToast(I18n.getLocale() === 'en' ? 'Add at least two ordered items.' : '請至少新增兩個排序項目。');
+        return;
+      }
+    } else if (type === 'numerical') {
+      const numericAnswer = Number(document.getElementById('quizQuestionNumericAnswer')?.value);
+      const numericTolerance = Number(document.getElementById('quizQuestionNumericTolerance')?.value || 0);
+      if (!Number.isFinite(numericAnswer)) {
+        showToast(I18n.getLocale() === 'en' ? 'Enter a valid numeric answer.' : '請輸入有效的正確數值。');
+        return;
+      }
+      data.options = [];
+      data.correctAnswer = numericAnswer;
+      data.correctAnswers = [];
+      data.numericAnswer = numericAnswer;
+      data.numericTolerance = Number.isFinite(numericTolerance) && numericTolerance > 0 ? numericTolerance : 0;
+    } else if (type === 'cloze') {
+      data.questionText = clozeTextDraft || questionText;
+      data.clozeText = clozeTextDraft || questionText;
+      data.options = [];
+      data.correctAnswer = null;
+      data.correctAnswers = [];
+      data.clozeAnswers = Array.from(document.querySelectorAll('#quizClozeAnswersList .builder-option-row'))
+        .map((row, index) => {
+          const id = row.querySelector('.cloze-id-input')?.value?.trim() || String(index + 1);
+          const answers = String(row.querySelector('.cloze-answer-input')?.value || '')
+            .split('|')
+            .map(answer => answer.trim())
+            .filter(Boolean);
+          return {
+            id,
+            answers,
+            caseSensitive: row.querySelector('.cloze-case-input')?.checked === true
+          };
+        })
+        .filter(blank => blank.id && blank.answers.length > 0);
+      if (data.clozeAnswers.length === 0) {
+        showToast(I18n.getLocale() === 'en' ? 'Add at least one blank answer.' : '請至少新增一個空格答案。');
+        return;
+      }
+    } else {
+      data.options = [];
+      data.correctAnswer = null;
+      data.correctAnswers = [];
+      data.referenceAnswer = document.getElementById('quizQuestionReferenceAnswer')?.value || '';
+      data.minWords = parseInt(document.getElementById('quizQuestionMinWords')?.value, 10) || 0;
+    }
 
     try {
       const result = await API.questionBank.update(questionId, data);
@@ -19101,28 +19123,24 @@ const MoodleUI = {
     try {
       const result = await API.questionBank.get(questionId, { courseId: this.currentQuestionBankCourseId });
       if (!result.success) { showToast(t('moodleQuestionBank.loadQuestionFailed')); return; }
-      const q = result.data;
-      const typeNames = {multiple_choice:t('moodleQuestionBank.multipleChoice'), true_false:t('moodleQuestionBank.trueFalse'), short_answer:t('moodleQuestionBank.shortAnswer'), fill_blank:t('moodleQuestionBank.fillBlank'), essay:'申論題'};
-
-      let optionsHtml = '';
-      if (q.type === 'multiple_choice' && q.options) {
-        optionsHtml = '<ul class="preview-options">' + q.options.map((opt, i) =>
-          `<li class="${i === q.correctAnswer ? 'correct-answer' : ''}">${String.fromCharCode(65+i)}. ${opt} ${i === q.correctAnswer ? '✓' : ''}</li>`
-        ).join('') + '</ul>';
-      } else if (q.type === 'true_false') {
-        optionsHtml = `<p>${t('moodleQuestionBank.correctAnswer')}：${q.correctAnswer ? t('common.trueVal') : t('common.falseVal')}</p>`;
-      }
+      const q = this.normalizeQuizBuilderQuestion(this.createQuizQuestionFromBankQuestion(result.data || {}));
+      const correctAnswer = this.getQuizResultCorrectAnswer(q);
 
       this.createModal('previewQuestionModal', t('moodleQuestionBank.previewTitle'), `
         <div class="question-preview">
           <div class="preview-meta">
-            <span class="badge">${typeNames[q.type] || q.type}</span>
+            <span class="badge">${this.escapeText(this.getLocalizedQuestionType(q.type))}</span>
             <span class="badge">${q.points || 1} ${t('moodleGradebook.pointsSuffix')}</span>
             <span class="badge difficulty-${q.difficulty || 'medium'}">${{easy:t('moodleQuestionBank.diffEasy'),medium:t('moodleQuestionBank.diffMedium'),hard:t('moodleQuestionBank.diffHard')}[q.difficulty] || t('moodleQuestionBank.diffMedium')}</span>
           </div>
-          <div class="preview-text"><strong>${t('moodleQuestionBank.questionLabel')}：</strong>${q.questionText}</div>
-          ${optionsHtml}
-          ${q.tags?.length ? '<div class="preview-tags">' + q.tags.map(t => '<span class="tag">' + t + '</span>').join('') + '</div>' : ''}
+          <div class="preview-text"><strong>${t('moodleQuestionBank.questionLabel')}：</strong>${this.escapeText(q.text || '')}</div>
+          ${this.hasQuizResultCorrectAnswer(q) ? `
+            <div class="quiz-results-answer quiz-results-correct-answer">
+              <strong>${t('moodleQuestionBank.correctAnswer')}：</strong> ${this.formatQuizResultAnswer(q, correctAnswer)}
+            </div>
+          ` : ''}
+          ${q.feedback ? `<div class="preview-text"><strong>${t('moodleNewQuestion.explanationLabel')}：</strong>${this.escapeText(q.feedback)}</div>` : ''}
+          ${q.tags?.length ? '<div class="preview-tags">' + q.tags.map(tag => '<span class="tag">' + this.escapeText(tag) + '</span>').join('') + '</div>' : ''}
         </div>
       `);
     } catch (error) {
