@@ -494,10 +494,14 @@ const MoodleUI = {
   getLocalizedQuestionType(type) {
     const typeLabels = {
       multiple_choice: t('moodleQuestionBank.multipleChoice'),
+      multiple_select: I18n.getLocale() === 'en' ? 'Multiple select' : '多選題',
       true_false: t('moodleQuestionBank.trueFalse'),
       short_answer: t('moodleQuestionBank.shortAnswer'),
       matching: t('moodleQuestionBank.matching'),
+      ordering: I18n.getLocale() === 'en' ? 'Ordering' : '排序題',
+      numerical: I18n.getLocale() === 'en' ? 'Numerical' : '數值題',
       fill_blank: t('moodleQuestionBank.fillBlank'),
+      cloze: I18n.getLocale() === 'en' ? 'Cloze' : '克漏字',
       essay: t('moodleQuestionBank.essay')
     };
     return typeLabels[type] || type || '—';
@@ -5216,21 +5220,21 @@ const MoodleUI = {
               <span>${I18n.getLocale() === 'en' ? 'Interactive video' : '互動影片'}</span>
               <p>${I18n.getLocale() === 'en' ? 'Pause a YouTube video at timeline checkpoints and ask learners questions in a sidebar.' : '在 YouTube 影片時間點自動停下，於右側 sidebar 提問並記錄作答。'}</p>
             </button>
-            <button type="button" class="activity-type-card" onclick="MoodleUI.selectActivityType('assignment', this)">
+            <button type="button" class="activity-type-card" onclick="MoodleUI.openActivityBuilderFromCourse('assignment', ${this.toInlineActionValue(courseId)}, ${this.toInlineActionValue(sectionId)})">
               <div class="type-icon tone-terracotta">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
               </div>
               <span>${t('moodleAddActivity.typeAssignment')}</span>
               <p>${t('moodleAddActivity.typeAssignmentDesc')}</p>
             </button>
-            <button type="button" class="activity-type-card" onclick="MoodleUI.selectActivityType('quiz', this)">
+            <button type="button" class="activity-type-card" onclick="MoodleUI.openActivityBuilderFromCourse('quiz', ${this.toInlineActionValue(courseId)}, ${this.toInlineActionValue(sectionId)})">
               <div class="type-icon tone-violet">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
               </div>
               <span>${t('moodleAddActivity.typeQuiz')}</span>
               <p>${t('moodleAddActivity.typeQuizDesc')}</p>
             </button>
-            <button type="button" class="activity-type-card" onclick="MoodleUI.selectActivityType('forum', this)">
+            <button type="button" class="activity-type-card" onclick="MoodleUI.openActivityBuilderFromCourse('forum', ${this.toInlineActionValue(courseId)}, ${this.toInlineActionValue(sectionId)})">
               <div class="type-icon tone-amber">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
               </div>
@@ -5256,11 +5260,32 @@ const MoodleUI = {
         </div>
       </div>
     `;
+    modal.dataset.courseId = courseId || '';
+    modal.dataset.sectionId = sectionId || '';
     document.body.appendChild(modal);
     modal.onclick = (e) => { if (e.target === modal) this.closeModal('addActivityModal'); };
   },
 
   selectedActivityType: null,
+
+  async openActivityBuilderFromCourse(type, courseId, sectionId) {
+    const normalizedType = String(type || '').trim();
+    this.closeModal('addActivityModal');
+
+    if (normalizedType === 'assignment') {
+      await this.openAssignmentBuilderModal({ courseId, sectionId, returnTo: 'course' });
+      return;
+    }
+
+    if (normalizedType === 'quiz') {
+      await this.openQuizBuilderModal({ courseId, sectionId, returnTo: 'course' });
+      return;
+    }
+
+    if (normalizedType === 'forum') {
+      await this.openForumBuilderModal({ courseId, sectionId, returnTo: 'course' });
+    }
+  },
 
   /**
    * 選擇活動類型
@@ -5268,6 +5293,14 @@ const MoodleUI = {
   selectActivityType(type, triggerEl = null) {
     this.selectedActivityType = type;
     const isRichBuilderType = ['assignment', 'quiz', 'forum'].includes(type);
+
+    if (isRichBuilderType) {
+      const modal = document.getElementById('addActivityModal');
+      if (modal?.dataset.courseId) {
+        this.openActivityBuilderFromCourse(type, modal.dataset.courseId, modal.dataset.sectionId);
+        return;
+      }
+    }
 
     // 高亮選中的卡片
     document.querySelectorAll('.activity-type-card').forEach(card => card.classList.remove('selected'));
@@ -8300,7 +8333,9 @@ const MoodleUI = {
         <div class="quiz-question-panel">
           <div class="question-content">
             <div class="question-kicker">${isEnglish ? 'Question prompt' : '題目內容'}</div>
-            <h3>${this.escapeText(question.text)}</h3>
+            <h3>${question.type === 'cloze'
+              ? this.escapeText(isEnglish ? 'Complete the blanks' : '完成空格')
+              : this.escapeText(question.text)}</h3>
             ${this.renderQuestionOptions(question)}
           </div>
         </div>
@@ -8353,23 +8388,79 @@ const MoodleUI = {
           </div>
         `;
       }
-      case 'multiple_select':
+      case 'multiple_select': {
+        const options = this.normalizeQuizAttemptOptions(question);
+        const selectedKeys = new Set(this.normalizeQuizAnswerArray(question.answer).map(answer => this.normalizeQuizAnswerKey(answer)));
         return `
           <div class="question-options">
-            ${question.options.map((opt, i) => `
-              <label class="question-option ${(question.answer || []).includes(i) ? 'selected' : ''}">
-                <input type="checkbox" value="${i}" ${(question.answer || []).includes(i) ? 'checked' : ''} onchange="MoodleUI.selectMultipleAnswer(${i})">
-                <span class="question-option-text">${this.escapeText(opt)}</span>
+            ${options.map((opt) => {
+              const selected = selectedKeys.has(this.normalizeQuizAnswerKey(opt.value));
+              return `
+              <label class="question-option ${selected ? 'selected' : ''}">
+                <input type="checkbox" value="${this.escapeText(String(opt.value))}" ${selected ? 'checked' : ''} onchange="MoodleUI.selectMultipleAnswer(${this.toInlineActionValue(opt.value)})">
+                <span class="question-option-text">${this.escapeText(opt.text)}</span>
               </label>
+            `;
+            }).join('')}
+          </div>
+        `;
+      }
+      case 'matching': {
+        const prompts = Array.isArray(question.matchingPrompts) ? question.matchingPrompts : [];
+        const options = this.normalizeQuizAttemptOptions(question);
+        const answerMap = this.normalizeQuizObjectAnswer(question.answer);
+        const placeholder = I18n.getLocale() === 'en' ? 'Select a match' : '選擇配對答案';
+        return `
+          <div class="quiz-matching-list">
+            ${prompts.map((prompt, index) => {
+              const promptId = String(prompt.id ?? index);
+              const selectedValue = answerMap[promptId] ?? '';
+              return `
+                <div class="quiz-matching-row">
+                  <div class="quiz-matching-prompt">${this.escapeText(prompt.text || prompt.prompt || '')}</div>
+                  <select class="quiz-matching-select" data-prompt-id="${this.escapeText(promptId)}" onchange="MoodleUI.updateMatchingAnswer(${this.toInlineActionValue(promptId)}, this.value)">
+                    <option value="">${this.escapeText(placeholder)}</option>
+                    ${options.map(option => `
+                      <option value="${this.escapeText(String(option.value))}" ${this.quizAnswersEqual(selectedValue, option.value) ? 'selected' : ''}>${this.escapeText(option.text)}</option>
+                    `).join('')}
+                  </select>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+      }
+      case 'ordering': {
+        const orderedOptions = this.getCurrentOrderingOptions(question);
+        return `
+          <div class="quiz-ordering-list">
+            ${orderedOptions.map((option, index) => `
+              <div class="quiz-ordering-item" data-value="${this.escapeText(String(option.value))}">
+                <span class="quiz-ordering-rank">${index + 1}</span>
+                <span class="quiz-ordering-text">${this.escapeText(option.text)}</span>
+                <div class="quiz-ordering-actions">
+                  <button type="button" class="btn-icon-sm" ${index === 0 ? 'disabled' : ''} onclick="MoodleUI.moveOrderingAnswer(${index}, -1)" aria-label="${this.escapeText(I18n.getLocale() === 'en' ? 'Move up' : '上移')}">↑</button>
+                  <button type="button" class="btn-icon-sm" ${index === orderedOptions.length - 1 ? 'disabled' : ''} onclick="MoodleUI.moveOrderingAnswer(${index}, 1)" aria-label="${this.escapeText(I18n.getLocale() === 'en' ? 'Move down' : '下移')}">↓</button>
+                </div>
+              </div>
             `).join('')}
           </div>
         `;
+      }
+      case 'numerical':
+        return `
+          <div class="form-group">
+            <input id="answerText" type="number" step="any" value="${this.escapeText(question.answer ?? '')}" placeholder="${this.escapeText(I18n.getLocale() === 'en' ? 'Enter a number' : '輸入數值')}" oninput="MoodleUI.updateCurrentTextAnswer(this.value)">
+          </div>
+        `;
+      case 'cloze':
+        return this.renderClozeAttemptPassage(question);
       case 'short_answer':
       case 'fill_blank':
       case 'essay':
         return `
           <div class="form-group">
-            <textarea id="answerText" rows="${question.type === 'essay' ? 8 : 2}" placeholder="${this.escapeText(t('moodleQuiz.answerPlaceholder'))}" oninput="MoodleUI.updateCurrentTextAnswer(this.value)">${this.escapeText(question.answer || '')}</textarea>
+            <textarea id="answerText" rows="${question.type === 'essay' ? 8 : 2}" placeholder="${this.escapeText(t('moodleQuiz.answerPlaceholder'))}" oninput="MoodleUI.updateCurrentTextAnswer(this.value)">${this.escapeText(question.answer ?? '')}</textarea>
           </div>
         `;
       default:
@@ -8432,12 +8523,30 @@ const MoodleUI = {
     return fallback;
   },
 
+  normalizeQuizAnswerKey(value) {
+    if (value && typeof value === 'object' && 'value' in value) {
+      return this.normalizeQuizAnswerKey(value.value);
+    }
+    return String(value ?? '').trim();
+  },
+
+  normalizeQuizAnswerArray(answer) {
+    if (Array.isArray(answer)) return answer;
+    if (answer === undefined || answer === null || answer === '') return [];
+    return [answer];
+  },
+
+  normalizeQuizObjectAnswer(answer) {
+    return answer && typeof answer === 'object' && !Array.isArray(answer) ? answer : {};
+  },
+
   quizAnswersEqual(left, right) {
-    return JSON.stringify(left) === JSON.stringify(right);
+    return JSON.stringify(left) === JSON.stringify(right)
+      || this.normalizeQuizAnswerKey(left) === this.normalizeQuizAnswerKey(right);
   },
 
   isQuizTextQuestion(question = {}) {
-    return ['short_answer', 'fill_blank', 'essay'].includes(question.type);
+    return ['short_answer', 'fill_blank', 'essay', 'numerical'].includes(question.type);
   },
 
   updateCurrentTextAnswer(answer) {
@@ -8445,22 +8554,181 @@ const MoodleUI = {
     if (!question || !this.isQuizTextQuestion(question)) return;
     question.answer = answer;
     question.answered = String(answer || '').trim().length > 0;
+    this.updateQuizCurrentNavAnsweredState(question.answered);
   },
 
-  async saveCurrentTextAnswer() {
+  getCurrentOrderingOptions(question = {}) {
+    const options = this.normalizeQuizAttemptOptions(question);
+    const optionByKey = new Map(options.map(option => [this.normalizeQuizAnswerKey(option.value), option]));
+    const answerOrder = this.normalizeQuizAnswerArray(question.answer);
+    if (answerOrder.length === 0) return options;
+
+    const used = new Set();
+    const ordered = answerOrder
+      .map(value => {
+        const key = this.normalizeQuizAnswerKey(value);
+        const option = optionByKey.get(key);
+        if (option) used.add(key);
+        return option;
+      })
+      .filter(Boolean);
+
+    options.forEach(option => {
+      const key = this.normalizeQuizAnswerKey(option.value);
+      if (!used.has(key)) ordered.push(option);
+    });
+
+    return ordered;
+  },
+
+  updateMatchingAnswer(promptId, value) {
+    const question = this.currentQuizAttempt?.questions?.[this.currentQuestionIndex];
+    if (!question || question.type !== 'matching') return;
+    const answerMap = { ...this.normalizeQuizObjectAnswer(question.answer) };
+    if (value === '') {
+      delete answerMap[String(promptId)];
+    } else {
+      answerMap[String(promptId)] = value;
+    }
+    question.answer = answerMap;
+    question.answered = this.isQuizAnswerComplete(question, answerMap);
+    this.updateQuizCurrentNavAnsweredState(question.answered);
+  },
+
+  updateClozeAnswer(blankId, value) {
+    const question = this.currentQuizAttempt?.questions?.[this.currentQuestionIndex];
+    if (!question || question.type !== 'cloze') return;
+    const answerMap = { ...this.normalizeQuizObjectAnswer(question.answer), [String(blankId)]: value };
+    question.answer = answerMap;
+    question.answered = this.isQuizAnswerComplete(question, answerMap);
+    this.updateQuizCurrentNavAnsweredState(question.answered);
+  },
+
+  moveOrderingAnswer(index, delta) {
+    const question = this.currentQuizAttempt?.questions?.[this.currentQuestionIndex];
+    if (!question || question.type !== 'ordering') return;
+    const orderedOptions = this.getCurrentOrderingOptions(question);
+    const nextIndex = index + delta;
+    if (nextIndex < 0 || nextIndex >= orderedOptions.length) return;
+    const [item] = orderedOptions.splice(index, 1);
+    orderedOptions.splice(nextIndex, 0, item);
+    question.answer = orderedOptions.map(option => option.value);
+    question.answered = question.answer.length > 0;
+    this.renderQuizQuestion();
+  },
+
+  renderClozeAttemptPassage(question = {}) {
+    const isEnglish = I18n.getLocale() === 'en';
+    const text = String(question.clozeText || question.text || '');
+    const blanks = Array.isArray(question.clozeBlanks) ? question.clozeBlanks : [];
+    const answerMap = this.normalizeQuizObjectAnswer(question.answer);
+    let html = '';
+    let cursor = 0;
+    const usedIds = new Set();
+    const blankPattern = /\[\[([^\]]+)\]\]/g;
+    let match;
+
+    while ((match = blankPattern.exec(text)) !== null) {
+      const blankId = String(match[1] || '').trim();
+      html += this.escapeText(text.slice(cursor, match.index));
+      html += `
+        <input
+          class="quiz-cloze-input"
+          data-blank-id="${this.escapeText(blankId)}"
+          value="${this.escapeText(answerMap[blankId] || '')}"
+          placeholder="${this.escapeText(isEnglish ? `Blank ${blankId}` : `空格 ${blankId}`)}"
+          oninput="MoodleUI.updateClozeAnswer(${this.toInlineActionValue(blankId)}, this.value)"
+        >
+      `;
+      usedIds.add(blankId);
+      cursor = match.index + match[0].length;
+    }
+
+    html += this.escapeText(text.slice(cursor));
+
+    const missingBlankInputs = blanks
+      .map(blank => String(blank.id || '').trim())
+      .filter(blankId => blankId && !usedIds.has(blankId));
+
+    return `
+      <div class="quiz-cloze-passage">${html || this.escapeText(text)}</div>
+      ${missingBlankInputs.length > 0 ? `
+        <div class="quiz-cloze-extra-list">
+          ${missingBlankInputs.map(blankId => `
+            <label class="quiz-cloze-extra">
+              <span>${this.escapeText(isEnglish ? `Blank ${blankId}` : `空格 ${blankId}`)}</span>
+              <input class="quiz-cloze-input" data-blank-id="${this.escapeText(blankId)}" value="${this.escapeText(answerMap[blankId] || '')}" oninput="MoodleUI.updateClozeAnswer(${this.toInlineActionValue(blankId)}, this.value)">
+            </label>
+          `).join('')}
+        </div>
+      ` : ''}
+    `;
+  },
+
+  updateQuizCurrentNavAnsweredState(answered) {
+    const buttons = document.querySelectorAll('.question-nav-btn');
+    const button = buttons[this.currentQuestionIndex];
+    if (button) button.classList.toggle('answered', !!answered);
+  },
+
+  isQuizAnswerComplete(question = {}, answer = question.answer) {
+    if (answer === undefined || answer === null) return false;
+    if (Array.isArray(answer)) return answer.length > 0;
+    if (typeof answer === 'object') {
+      return Object.values(answer).some(value => String(value ?? '').trim().length > 0);
+    }
+    return String(answer).trim().length > 0;
+  },
+
+  collectCurrentQuestionAnswer(question = {}) {
+    if (this.isQuizTextQuestion(question)) {
+      const field = document.getElementById('answerText');
+      return field ? field.value : (question.answer ?? '');
+    }
+
+    if (question.type === 'matching') {
+      return Array.from(document.querySelectorAll('.quiz-matching-select[data-prompt-id]')).reduce((answerMap, select) => {
+        const promptId = select.getAttribute('data-prompt-id');
+        if (promptId && select.value !== '') answerMap[promptId] = select.value;
+        return answerMap;
+      }, {});
+    }
+
+    if (question.type === 'ordering') {
+      return Array.from(document.querySelectorAll('.quiz-ordering-item[data-value]'))
+        .map(item => item.getAttribute('data-value'))
+        .filter(value => value !== null);
+    }
+
+    if (question.type === 'cloze') {
+      return Array.from(document.querySelectorAll('.quiz-cloze-input[data-blank-id]')).reduce((answerMap, input) => {
+        const blankId = input.getAttribute('data-blank-id');
+        if (blankId) answerMap[blankId] = input.value;
+        return answerMap;
+      }, {});
+    }
+
+    return question.answer;
+  },
+
+  async saveCurrentQuestionAnswer() {
     const attempt = this.currentQuizAttempt;
     const question = attempt?.questions?.[this.currentQuestionIndex];
-    if (!attempt || !question || !this.isQuizTextQuestion(question)) return;
+    if (!attempt || !question) return;
 
-    const field = document.getElementById('answerText');
-    if (field) {
-      this.updateCurrentTextAnswer(field.value);
-    }
+    const answer = this.collectCurrentQuestionAnswer(question);
+    if (answer === undefined) return;
+    question.answer = answer;
+    question.answered = this.isQuizAnswerComplete(question, answer);
 
     await API.quizzes.answer(attempt.quizId, attempt.attemptId, {
       questionId: question.questionId,
-      answer: question.answer || ''
+      answer
     });
+  },
+
+  async saveCurrentTextAnswer() {
+    return this.saveCurrentQuestionAnswer();
   },
 
   /**
@@ -8483,7 +8751,7 @@ const MoodleUI = {
    * 下一題
    */
   async nextQuestion() {
-    await this.saveCurrentTextAnswer();
+    await this.saveCurrentQuestionAnswer();
     if (this.currentQuestionIndex < this.currentQuizAttempt.questions.length - 1) {
       this.currentQuestionIndex++;
       this.renderQuizQuestion();
@@ -8494,7 +8762,7 @@ const MoodleUI = {
    * 上一題
    */
   async prevQuestion() {
-    await this.saveCurrentTextAnswer();
+    await this.saveCurrentQuestionAnswer();
     if (this.currentQuestionIndex > 0) {
       this.currentQuestionIndex--;
       this.renderQuizQuestion();
@@ -8505,7 +8773,7 @@ const MoodleUI = {
    * 跳轉到指定題目
    */
   async goToQuestion(index) {
-    await this.saveCurrentTextAnswer();
+    await this.saveCurrentQuestionAnswer();
     this.currentQuestionIndex = index;
     this.renderQuizQuestion();
   },
@@ -8514,7 +8782,7 @@ const MoodleUI = {
    * 提交測驗
    */
   async submitQuiz() {
-    await this.saveCurrentTextAnswer();
+    await this.saveCurrentQuestionAnswer();
 
     const confirmed = await showConfirmDialog({
       message: t('moodleQuiz.confirmSubmit'),
@@ -8551,6 +8819,93 @@ const MoodleUI = {
       console.error('Submit quiz error:', error);
       showToast(t('moodleAssignment.submitFailed'));
     }
+  },
+
+  getQuizOptionTextFromValue(question = {}, value) {
+    const valueKey = this.normalizeQuizAnswerKey(value);
+    const option = this.normalizeQuizAttemptOptions(question)
+      .find(item => this.normalizeQuizAnswerKey(item.value) === valueKey);
+    return option ? option.text : String(value ?? '');
+  },
+
+  getQuizResultCorrectAnswer(question = {}) {
+    if (question.type === 'multiple_select') return question.correctAnswers ?? question.correctAnswer ?? question.correct;
+    if (question.type === 'matching') return question.matchingPairs ?? question.correctAnswer ?? question.correct;
+    if (question.type === 'ordering') return question.orderingItems ?? question.correctAnswer ?? question.correct;
+    if (question.type === 'numerical') return question.numericAnswer ?? question.correctAnswer ?? question.correct;
+    if (question.type === 'cloze') return question.clozeAnswers ?? question.correctAnswers ?? question.correctAnswer ?? question.correct;
+    return question.correctAnswer ?? question.correctAnswers ?? question.correct;
+  },
+
+  hasQuizResultCorrectAnswer(question = {}) {
+    const answer = this.getQuizResultCorrectAnswer(question);
+    if (Array.isArray(answer)) return answer.length > 0;
+    if (answer && typeof answer === 'object') return Object.keys(answer).length > 0;
+    return answer !== undefined && answer !== null && answer !== '';
+  },
+
+  formatQuizResultAnswer(question = {}, answer) {
+    const isEnglish = I18n.getLocale() === 'en';
+    if (answer === null || answer === undefined || answer === '') {
+      return isEnglish ? 'No answer' : '未作答';
+    }
+
+    if (question.type === 'matching') {
+      const pairs = Array.isArray(answer) ? answer : [];
+      if (pairs.length > 0 && typeof pairs[0] === 'object') {
+        return pairs.map(pair => `${this.escapeText(pair.prompt || pair.left || '')} → ${this.escapeText(pair.answer || pair.right || '')}`).join('<br>');
+      }
+
+      const answerMap = this.normalizeQuizObjectAnswer(answer);
+      const prompts = Array.isArray(question.matchingPrompts) ? question.matchingPrompts : [];
+      const correctPairs = Array.isArray(question.matchingPairs) ? question.matchingPairs : [];
+      const rows = Object.entries(answerMap).map(([promptId, selectedValue]) => {
+        const prompt = prompts.find(item => this.normalizeQuizAnswerKey(item.id) === this.normalizeQuizAnswerKey(promptId));
+        const promptText = prompt?.text || correctPairs[Number(promptId)]?.prompt || promptId;
+        const selectedText = this.getQuizOptionTextFromValue(question, selectedValue);
+        return `${this.escapeText(promptText)} → ${this.escapeText(selectedText)}`;
+      });
+      return rows.length > 0 ? rows.join('<br>') : (isEnglish ? 'No answer' : '未作答');
+    }
+
+    if (question.type === 'ordering') {
+      const order = this.normalizeQuizAnswerArray(answer);
+      if (order.length === 0) return isEnglish ? 'No answer' : '未作答';
+      return `<ol class="quiz-results-order-list">${order.map(item => `<li>${this.escapeText(this.getQuizOptionTextFromValue(question, item))}</li>`).join('')}</ol>`;
+    }
+
+    if (question.type === 'cloze') {
+      if (Array.isArray(answer)) {
+        return answer.map(blank => {
+          const blankId = blank?.id || blank?.blankId || '';
+          const answers = Array.isArray(blank?.answers || blank?.acceptedAnswers)
+            ? (blank.answers || blank.acceptedAnswers)
+            : [blank?.answer ?? blank?.value ?? ''];
+          return `${this.escapeText(blankId)}: ${answers.map(item => this.escapeText(item)).join(' / ')}`;
+        }).join('<br>');
+      }
+
+      const answerMap = this.normalizeQuizObjectAnswer(answer);
+      const rows = Object.entries(answerMap)
+        .filter(([, value]) => String(value ?? '').trim() !== '')
+        .map(([blankId, value]) => `${this.escapeText(blankId)}: ${this.escapeText(value)}`);
+      return rows.length > 0 ? rows.join('<br>') : (isEnglish ? 'No answer' : '未作答');
+    }
+
+    if (Array.isArray(answer)) {
+      if (answer.length === 0) return isEnglish ? 'No answer' : '未作答';
+      return answer.map(item => this.escapeText(this.getQuizOptionTextFromValue(question, item))).join(', ');
+    }
+
+    if (question.type === 'multiple_choice' || question.type === 'true_false' || question.type === 'multiple_select') {
+      return this.escapeText(this.getQuizOptionTextFromValue(question, answer));
+    }
+
+    if (question.type === 'numerical' && question.numericTolerance !== undefined && answer === this.getQuizResultCorrectAnswer(question)) {
+      return `${this.escapeText(answer)} ± ${this.escapeText(question.numericTolerance || 0)}`;
+    }
+
+    return this.escapeText(String(answer));
   },
 
   /**
@@ -8603,18 +8958,9 @@ const MoodleUI = {
           <h3>${isEnglish ? 'Answer Review' : '答案檢視'}</h3>
           ${questions.map((q, i) => {
             const studentAnswer = q.studentAnswer ?? q.answer ?? q.userAnswer;
-            const correctAnswer = q.correctAnswer ?? q.correct;
+            const correctAnswer = this.getQuizResultCorrectAnswer(q);
             const isCorrect = q.isCorrect ?? q.correct === studentAnswer;
             const questionText = q.questionText ?? q.text ?? (isEnglish ? `Question ${i + 1}` : `第 ${i + 1} 題`);
-
-            const formatAnswer = (ans, options) => {
-              if (ans === null || ans === undefined || ans === '') return isEnglish ? 'No answer' : '未作答';
-              if (typeof ans === 'number' && Array.isArray(options) && options[ans]) return this.escapeText(options[ans]);
-              if (Array.isArray(ans)) return ans.map(a => typeof a === 'number' && Array.isArray(options) && options[a] ? this.escapeText(options[a]) : this.escapeText(String(a))).join(', ');
-              return this.escapeText(String(ans));
-            };
-
-            const options = q.options || [];
 
             return `
               <div class="quiz-results-question ${isCorrect ? 'is-correct' : 'is-wrong'}">
@@ -8625,13 +8971,13 @@ const MoodleUI = {
                     : `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--rust)" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`
                   }</span>
                 </div>
-                <div class="quiz-results-question-text">${questionText}</div>
+                <div class="quiz-results-question-text">${this.escapeText(questionText)}</div>
                 <div class="quiz-results-answer quiz-results-student-answer ${isCorrect ? 'correct' : 'wrong'}">
-                  <strong>${isEnglish ? 'Your answer:' : '你的答案：'}</strong> ${formatAnswer(studentAnswer, options)}
+                  <strong>${isEnglish ? 'Your answer:' : '你的答案：'}</strong> ${this.formatQuizResultAnswer(q, studentAnswer)}
                 </div>
-                ${!isCorrect && correctAnswer !== undefined && correctAnswer !== null ? `
+                ${!isCorrect && this.hasQuizResultCorrectAnswer(q) ? `
                   <div class="quiz-results-answer quiz-results-correct-answer">
-                    <strong>${isEnglish ? 'Correct answer:' : '正確答案：'}</strong> ${formatAnswer(correctAnswer, options)}
+                    <strong>${isEnglish ? 'Correct answer:' : '正確答案：'}</strong> ${this.formatQuizResultAnswer(q, correctAnswer)}
                   </div>
                 ` : ''}
               </div>
@@ -12296,10 +12642,14 @@ const MoodleUI = {
   renderQuestionBankPage(questions, categories, course = {}) {
     const questionTypes = {
       'multiple_choice': t('moodleQuestionBank.multipleChoice'),
+      'multiple_select': isEnglish ? 'Multiple select' : '多選題',
       'true_false': t('moodleQuestionBank.trueFalse'),
       'short_answer': t('moodleQuestionBank.shortAnswer'),
       'matching': t('moodleQuestionBank.matching'),
+      'ordering': isEnglish ? 'Ordering' : '排序題',
+      'numerical': isEnglish ? 'Numerical' : '數值題',
       'fill_blank': t('moodleQuestionBank.fillBlank'),
+      'cloze': isEnglish ? 'Cloze' : '克漏字',
       'essay': t('moodleQuestionBank.essay')
     };
 
@@ -12513,9 +12863,14 @@ const MoodleUI = {
               <label>${t('moodleNewQuestion.typeLabel')}</label>
               <select id="questionType" onchange="MoodleUI.updateQuestionForm()">
                 <option value="multiple_choice">${t('moodleQuestionBank.multipleChoice')}</option>
+                <option value="multiple_select">${I18n.getLocale() === 'en' ? 'Multiple select' : '多選題'}</option>
                 <option value="true_false">${t('moodleQuestionBank.trueFalse')}</option>
                 <option value="short_answer">${t('moodleQuestionBank.shortAnswer')}</option>
+                <option value="matching">${t('moodleQuestionBank.matching')}</option>
+                <option value="ordering">${I18n.getLocale() === 'en' ? 'Ordering' : '排序題'}</option>
+                <option value="numerical">${I18n.getLocale() === 'en' ? 'Numerical' : '數值題'}</option>
                 <option value="fill_blank">${t('moodleQuestionBank.fillBlank')}</option>
+                <option value="cloze">${I18n.getLocale() === 'en' ? 'Cloze' : '克漏字'}</option>
                 <option value="essay">${t('moodleQuestionBank.essay')}</option>
               </select>
             </div>
@@ -12573,6 +12928,7 @@ const MoodleUI = {
     const type = document.getElementById('questionType')?.value;
     const area = document.getElementById('questionOptionsArea');
     if (!area) return;
+    const isEnglish = I18n.getLocale() === 'en';
 
     if (type === 'multiple_choice') {
       area.innerHTML = `
@@ -12603,6 +12959,23 @@ const MoodleUI = {
           <button type="button" onclick="MoodleUI.addQuestionOption()" class="btn-sm">${t('moodleNewQuestion.addOption')}</button>
         </div>
       `;
+    } else if (type === 'multiple_select') {
+      area.innerHTML = `
+        <div class="form-group">
+          <label>${isEnglish ? 'Options and correct choices' : '選項與正確答案'}</label>
+          <div id="optionsList">
+            ${[0, 1, 2, 3].map(index => `
+              <div class="option-item">
+                <input type="checkbox" name="correctOptions" value="${index}">
+                <input type="text" class="option-input" placeholder="${this.escapeText((isEnglish ? 'Option' : '選項') + ' ' + String.fromCharCode(65 + index))}">
+                <button type="button" onclick="this.parentElement.remove(); MoodleUI.syncQuestionBankOptionIndices();" class="btn-remove">×</button>
+              </div>
+            `).join('')}
+          </div>
+          <button type="button" onclick="MoodleUI.addQuestionMultiSelectOption()" class="btn-sm">${t('moodleNewQuestion.addOption')}</button>
+          <p class="form-hint">${isEnglish ? 'Partial credit is awarded automatically.' : '系統會自動計算部分得分。'}</p>
+        </div>
+      `;
     } else if (type === 'true_false') {
       area.innerHTML = `
         <div class="form-group">
@@ -12623,6 +12996,72 @@ const MoodleUI = {
           <label>
             <input type="checkbox" id="caseSensitive"> ${t('moodleNewQuestion.caseSensitive')}
           </label>
+        </div>
+      `;
+    } else if (type === 'matching') {
+      area.innerHTML = `
+        <div class="form-group">
+          <label>${isEnglish ? 'Matching pairs' : '配對組合'}</label>
+          <div id="matchingPairsList">
+            ${[0, 1, 2].map(() => `
+              <div class="option-item matching-pair-item">
+                <input type="text" class="matching-prompt-input" placeholder="${this.escapeText(isEnglish ? 'Prompt' : '題目/左側')}">
+                <input type="text" class="matching-answer-input" placeholder="${this.escapeText(isEnglish ? 'Matching answer' : '答案/右側')}">
+                <button type="button" onclick="this.parentElement.remove()" class="btn-remove">×</button>
+              </div>
+            `).join('')}
+          </div>
+          <button type="button" onclick="MoodleUI.addQuestionMatchingPair()" class="btn-sm">${isEnglish ? 'Add pair' : '新增配對'}</button>
+        </div>
+      `;
+    } else if (type === 'ordering') {
+      area.innerHTML = `
+        <div class="form-group">
+          <label>${isEnglish ? 'Correct order' : '正確排序'}</label>
+          <div id="orderingItemsList">
+            ${[0, 1, 2].map(index => `
+              <div class="option-item ordering-item">
+                <span class="builder-badge">${index + 1}</span>
+                <input type="text" class="ordering-item-input" placeholder="${this.escapeText(isEnglish ? 'Step or item' : '步驟或項目')}">
+                <button type="button" onclick="this.parentElement.remove(); MoodleUI.syncQuestionBankOrderingIndices();" class="btn-remove">×</button>
+              </div>
+            `).join('')}
+          </div>
+          <button type="button" onclick="MoodleUI.addQuestionOrderingItem()" class="btn-sm">${isEnglish ? 'Add item' : '新增項目'}</button>
+        </div>
+      `;
+    } else if (type === 'numerical') {
+      area.innerHTML = `
+        <div class="form-row">
+          <div class="form-group">
+            <label>${isEnglish ? 'Correct number' : '正確數值'}</label>
+            <input type="number" id="numericAnswer" step="any">
+          </div>
+          <div class="form-group">
+            <label>${isEnglish ? 'Accepted tolerance' : '允許誤差'}</label>
+            <input type="number" id="numericTolerance" min="0" step="any" value="0">
+          </div>
+        </div>
+      `;
+    } else if (type === 'cloze') {
+      area.innerHTML = `
+        <div class="form-group">
+          <label>${isEnglish ? 'Cloze passage' : '克漏字文章'}</label>
+          <textarea id="clozeText" rows="5" placeholder="${this.escapeText(isEnglish ? 'Use [[1]], [[2]]... where blanks should appear.' : '在空格處輸入 [[1]]、[[2]]...')}"></textarea>
+        </div>
+        <div class="form-group">
+          <label>${isEnglish ? 'Accepted answers for blanks' : '各空格可接受答案'}</label>
+          <div id="clozeAnswersList">
+            ${[1, 2].map(id => `
+              <div class="option-item cloze-answer-item">
+                <input type="text" class="cloze-id-input" value="${id}" placeholder="${this.escapeText(isEnglish ? 'Blank ID' : '空格編號')}">
+                <input type="text" class="cloze-answer-input" placeholder="${this.escapeText(isEnglish ? 'Answers separated by |' : '多個答案用 | 分隔')}">
+                <label><input type="checkbox" class="cloze-case-input"> ${t('moodleNewQuestion.caseSensitive')}</label>
+                <button type="button" onclick="this.parentElement.remove()" class="btn-remove">×</button>
+              </div>
+            `).join('')}
+          </div>
+          <button type="button" onclick="MoodleUI.addQuestionClozeBlank()" class="btn-sm">${isEnglish ? 'Add blank' : '新增空格'}</button>
         </div>
       `;
     } else if (type === 'essay') {
@@ -12657,12 +13096,91 @@ const MoodleUI = {
     list.appendChild(div);
   },
 
+  syncQuestionBankOptionIndices() {
+    const rows = Array.from(document.querySelectorAll('#optionsList .option-item'));
+    rows.forEach((row, index) => {
+      const radio = row.querySelector('input[name="correctOption"]');
+      const checkbox = row.querySelector('input[name="correctOptions"]');
+      if (radio) radio.value = String(index);
+      if (checkbox) checkbox.value = String(index);
+    });
+  },
+
+  syncQuestionBankOrderingIndices() {
+    Array.from(document.querySelectorAll('#orderingItemsList .option-item')).forEach((row, index) => {
+      const badge = row.querySelector('.builder-badge');
+      if (badge) badge.textContent = String(index + 1);
+    });
+  },
+
+  addQuestionMultiSelectOption() {
+    const list = document.getElementById('optionsList');
+    if (!list) return;
+    const count = list.children.length;
+    const isEnglish = I18n.getLocale() === 'en';
+    const div = document.createElement('div');
+    div.className = 'option-item';
+    div.innerHTML = `
+      <input type="checkbox" name="correctOptions" value="${count}">
+      <input type="text" class="option-input" placeholder="${this.escapeText((isEnglish ? 'Option' : '選項') + ' ' + String.fromCharCode(65 + count))}">
+      <button type="button" onclick="this.parentElement.remove(); MoodleUI.syncQuestionBankOptionIndices();" class="btn-remove">×</button>
+    `;
+    list.appendChild(div);
+  },
+
+  addQuestionMatchingPair() {
+    const list = document.getElementById('matchingPairsList');
+    if (!list) return;
+    const isEnglish = I18n.getLocale() === 'en';
+    const div = document.createElement('div');
+    div.className = 'option-item matching-pair-item';
+    div.innerHTML = `
+      <input type="text" class="matching-prompt-input" placeholder="${this.escapeText(isEnglish ? 'Prompt' : '題目/左側')}">
+      <input type="text" class="matching-answer-input" placeholder="${this.escapeText(isEnglish ? 'Matching answer' : '答案/右側')}">
+      <button type="button" onclick="this.parentElement.remove()" class="btn-remove">×</button>
+    `;
+    list.appendChild(div);
+  },
+
+  addQuestionOrderingItem() {
+    const list = document.getElementById('orderingItemsList');
+    if (!list) return;
+    const isEnglish = I18n.getLocale() === 'en';
+    const div = document.createElement('div');
+    div.className = 'option-item ordering-item';
+    div.innerHTML = `
+      <span class="builder-badge">${list.children.length + 1}</span>
+      <input type="text" class="ordering-item-input" placeholder="${this.escapeText(isEnglish ? 'Step or item' : '步驟或項目')}">
+      <button type="button" onclick="this.parentElement.remove(); MoodleUI.syncQuestionBankOrderingIndices();" class="btn-remove">×</button>
+    `;
+    list.appendChild(div);
+  },
+
+  addQuestionClozeBlank() {
+    const list = document.getElementById('clozeAnswersList');
+    if (!list) return;
+    const isEnglish = I18n.getLocale() === 'en';
+    const div = document.createElement('div');
+    div.className = 'option-item cloze-answer-item';
+    div.innerHTML = `
+      <input type="text" class="cloze-id-input" value="${list.children.length + 1}" placeholder="${this.escapeText(isEnglish ? 'Blank ID' : '空格編號')}">
+      <input type="text" class="cloze-answer-input" placeholder="${this.escapeText(isEnglish ? 'Answers separated by |' : '多個答案用 | 分隔')}">
+      <label><input type="checkbox" class="cloze-case-input"> ${t('moodleNewQuestion.caseSensitive')}</label>
+      <button type="button" onclick="this.parentElement.remove()" class="btn-remove">×</button>
+    `;
+    list.appendChild(div);
+  },
+
   /**
    * 儲存新題目
    */
   async saveNewQuestion() {
     const type = document.getElementById('questionType').value;
-    const questionText = document.getElementById('questionText').value.trim();
+    let questionText = document.getElementById('questionText').value.trim();
+    const clozeTextDraft = type === 'cloze' ? document.getElementById('clozeText')?.value?.trim() : '';
+    if (!questionText && clozeTextDraft) {
+      questionText = clozeTextDraft;
+    }
     const difficulty = document.getElementById('questionDifficulty').value;
     const tags = document.getElementById('questionTags').value.split(',').map(t => t.trim()).filter(t => t);
     const explanation = document.getElementById('questionExplanation').value.trim();
@@ -12693,12 +13211,86 @@ const MoodleUI = {
         showToast(t('moodleNewQuestion.minOptions'));
         return;
       }
+    } else if (type === 'multiple_select') {
+      const rows = Array.from(document.querySelectorAll('#optionsList .option-item'));
+      const options = [];
+      const correctAnswers = [];
+      rows.forEach(row => {
+        const optionText = row.querySelector('.option-input')?.value?.trim();
+        if (!optionText) return;
+        const nextIndex = options.length;
+        if (row.querySelector('input[name="correctOptions"]')?.checked) {
+          correctAnswers.push(nextIndex);
+        }
+        options.push(optionText);
+      });
+      if (options.length < 2) {
+        showToast(t('moodleNewQuestion.minOptions'));
+        return;
+      }
+      if (correctAnswers.length === 0) {
+        showToast(I18n.getLocale() === 'en' ? 'Select at least one correct option.' : '請至少勾選一個正確選項。');
+        return;
+      }
+      questionData.options = options;
+      questionData.correctAnswers = correctAnswers;
+      questionData.correctAnswer = null;
     } else if (type === 'true_false') {
       const tfRadio = document.querySelector('input[name="tfAnswer"]:checked');
       questionData.correctAnswer = tfRadio?.value === 'true';
     } else if (type === 'short_answer' || type === 'fill_blank') {
       questionData.correctAnswers = document.getElementById('correctAnswers')?.value.split(',').map(a => a.trim()).filter(a => a);
       questionData.caseSensitive = document.getElementById('caseSensitive')?.checked;
+    } else if (type === 'matching') {
+      questionData.matchingPairs = Array.from(document.querySelectorAll('#matchingPairsList .option-item'))
+        .map(row => ({
+          prompt: row.querySelector('.matching-prompt-input')?.value?.trim() || '',
+          answer: row.querySelector('.matching-answer-input')?.value?.trim() || ''
+        }))
+        .filter(pair => pair.prompt && pair.answer);
+      if (questionData.matchingPairs.length < 2) {
+        showToast(I18n.getLocale() === 'en' ? 'Add at least two complete matching pairs.' : '請至少新增兩組完整配對。');
+        return;
+      }
+    } else if (type === 'ordering') {
+      questionData.orderingItems = Array.from(document.querySelectorAll('#orderingItemsList .ordering-item-input'))
+        .map(input => input.value.trim())
+        .filter(Boolean);
+      if (questionData.orderingItems.length < 2) {
+        showToast(I18n.getLocale() === 'en' ? 'Add at least two ordered items.' : '請至少新增兩個排序項目。');
+        return;
+      }
+    } else if (type === 'numerical') {
+      const numericAnswer = Number(document.getElementById('numericAnswer')?.value);
+      const numericTolerance = Number(document.getElementById('numericTolerance')?.value || 0);
+      if (!Number.isFinite(numericAnswer)) {
+        showToast(I18n.getLocale() === 'en' ? 'Enter a valid numeric answer.' : '請輸入有效的正確數值。');
+        return;
+      }
+      questionData.correctAnswer = numericAnswer;
+      questionData.numericAnswer = numericAnswer;
+      questionData.numericTolerance = Number.isFinite(numericTolerance) && numericTolerance > 0 ? numericTolerance : 0;
+    } else if (type === 'cloze') {
+      questionData.questionText = clozeTextDraft || questionText;
+      questionData.clozeText = clozeTextDraft || questionText;
+      questionData.clozeAnswers = Array.from(document.querySelectorAll('#clozeAnswersList .option-item'))
+        .map((row, index) => {
+          const id = row.querySelector('.cloze-id-input')?.value?.trim() || String(index + 1);
+          const answers = String(row.querySelector('.cloze-answer-input')?.value || '')
+            .split('|')
+            .map(answer => answer.trim())
+            .filter(Boolean);
+          return {
+            id,
+            answers,
+            caseSensitive: row.querySelector('.cloze-case-input')?.checked === true
+          };
+        })
+        .filter(blank => blank.id && blank.answers.length > 0);
+      if (questionData.clozeAnswers.length === 0) {
+        showToast(I18n.getLocale() === 'en' ? 'Add at least one blank answer.' : '請至少新增一個空格答案。');
+        return;
+      }
     } else if (type === 'essay') {
       questionData.referenceAnswer = document.getElementById('referenceAnswer')?.value.trim();
       questionData.minWords = parseInt(document.getElementById('minWords')?.value) || 0;
@@ -16236,7 +16828,32 @@ const MoodleUI = {
       difficulty: question.difficulty || 'medium',
       analysisSection: String(question.analysisSection || question.sectionTitle || question.section || question.skill || question.categoryName || question.category || '').trim(),
       feedback: String(question.feedback || question.explanation || ''),
-      tags: Array.isArray(question.tags) ? question.tags.map(tag => String(tag).trim()).filter(Boolean) : []
+      tags: Array.isArray(question.tags) ? question.tags.map(tag => String(tag).trim()).filter(Boolean) : [],
+      matchingPairs: Array.isArray(question.matchingPairs || question.pairs)
+        ? (question.matchingPairs || question.pairs).map(pair => ({
+            prompt: String(pair?.prompt ?? pair?.question ?? pair?.left ?? '').trim(),
+            answer: String(pair?.answer ?? pair?.right ?? pair?.match ?? '').trim()
+          })).filter(pair => pair.prompt || pair.answer)
+        : [],
+      orderingItems: Array.isArray(question.orderingItems || question.orderItems || (type === 'ordering' ? question.options : null))
+        ? (question.orderingItems || question.orderItems || question.options).map(item => String(item?.text ?? item?.label ?? item ?? '').trim()).filter(Boolean)
+        : [],
+      numericAnswer: question.numericAnswer ?? question.correctAnswer ?? '',
+      numericTolerance: Number.isFinite(Number(question.numericTolerance ?? question.tolerance))
+        ? Number(question.numericTolerance ?? question.tolerance)
+        : 0,
+      clozeText: String(question.clozeText || (type === 'cloze' ? question.text || question.questionText || '' : '')).trim(),
+      clozeAnswers: Array.isArray(question.clozeAnswers)
+        ? question.clozeAnswers.map((blank, index) => ({
+            id: String(blank?.id || blank?.blankId || index + 1).trim(),
+            answers: (Array.isArray(blank?.answers || blank?.acceptedAnswers)
+              ? (blank.answers || blank.acceptedAnswers)
+              : [blank?.answer ?? blank?.value ?? ''])
+              .map(answer => String(answer).trim())
+              .filter(Boolean),
+            caseSensitive: !!blank?.caseSensitive
+          })).filter(blank => blank.id && blank.answers.length > 0)
+        : []
     };
 
     if (type === 'multiple_choice') {
@@ -16246,10 +16863,47 @@ const MoodleUI = {
         ? Math.max(0, Math.min(normalized.options.length - 1, correctIndex))
         : 0;
       normalized.correctAnswers = [];
+    } else if (type === 'multiple_select') {
+      normalized.options = normalized.options.length > 0 ? normalized.options : ['', '', '', ''];
+      normalized.correctAnswer = null;
+      normalized.correctAnswers = normalized.correctAnswers
+        .map(answer => Number.isFinite(Number(answer)) ? Number(answer) : answer)
+        .filter(answer => answer !== '');
     } else if (type === 'true_false') {
       normalized.options = [];
       normalized.correctAnswer = normalized.correctAnswer !== false;
       normalized.correctAnswers = [];
+    } else if (type === 'matching') {
+      normalized.options = [];
+      normalized.correctAnswer = null;
+      normalized.correctAnswers = [];
+      normalized.matchingPairs = normalized.matchingPairs.length > 0
+        ? normalized.matchingPairs
+        : [
+            { prompt: '', answer: '' },
+            { prompt: '', answer: '' },
+            { prompt: '', answer: '' }
+          ];
+    } else if (type === 'ordering') {
+      normalized.options = [];
+      normalized.correctAnswer = null;
+      normalized.correctAnswers = [];
+      normalized.orderingItems = normalized.orderingItems.length > 0 ? normalized.orderingItems : ['', '', ''];
+    } else if (type === 'numerical') {
+      normalized.options = [];
+      normalized.correctAnswer = normalized.numericAnswer;
+      normalized.correctAnswers = [];
+    } else if (type === 'cloze') {
+      normalized.options = [];
+      normalized.correctAnswer = null;
+      normalized.correctAnswers = [];
+      if (normalized.clozeAnswers.length === 0) {
+        normalized.clozeAnswers = [
+          { id: '1', answers: [''], caseSensitive: false },
+          { id: '2', answers: [''], caseSensitive: false }
+        ];
+      }
+      normalized.text = normalized.clozeText || normalized.text;
     } else if (type === 'short_answer' || type === 'fill_blank') {
       normalized.options = [];
       if (normalized.correctAnswers.length === 0 && normalized.correctAnswer !== undefined && normalized.correctAnswer !== null) {
@@ -16297,7 +16951,10 @@ const MoodleUI = {
 
     list.innerHTML = questions.map((rawQuestion, index) => {
       const question = this.normalizeQuizBuilderQuestion(rawQuestion);
-      const safeText = this.escapeText(this.truncateText(question.text || (isEnglish ? `Question ${index + 1}` : `第 ${index + 1} 題`), 180));
+      const displayText = question.type === 'cloze'
+        ? (question.clozeText || question.text)
+        : question.text;
+      const safeText = this.escapeText(this.truncateText(displayText || (isEnglish ? `Question ${index + 1}` : `第 ${index + 1} 題`), 180));
       const sourceLabel = question.bankQuestionId
         ? (isEnglish ? 'Question bank' : '題庫題目')
         : (isEnglish ? 'Manual question' : '手動題目');
@@ -16305,11 +16962,21 @@ const MoodleUI = {
       const sectionLabel = question.analysisSection || (isEnglish ? 'General' : '通用');
       const detailLabel = question.type === 'multiple_choice'
         ? `${(question.options || []).filter(Boolean).length} ${isEnglish ? 'options' : '個選項'}`
+        : question.type === 'multiple_select'
+          ? `${(question.correctAnswers || []).length} ${isEnglish ? 'correct choices' : '個正確選項'}`
         : question.type === 'true_false'
           ? (isEnglish ? 'True / false' : '是非題')
-          : question.type === 'essay'
-            ? (isEnglish ? 'Manual grading required' : '需人工評分')
-            : `${Math.max((question.correctAnswers || []).length, 1)} ${isEnglish ? 'accepted answers' : '個可接受答案'}`;
+          : question.type === 'matching'
+            ? `${(question.matchingPairs || []).filter(pair => pair.prompt && pair.answer).length} ${isEnglish ? 'pairs' : '組配對'}`
+            : question.type === 'ordering'
+              ? `${(question.orderingItems || []).filter(Boolean).length} ${isEnglish ? 'ordered items' : '個排序項目'}`
+              : question.type === 'numerical'
+                ? `${isEnglish ? 'Answer' : '答案'} ${question.numericAnswer || '-'} ± ${question.numericTolerance || 0}`
+                : question.type === 'cloze'
+                  ? `${(question.clozeAnswers || []).length} ${isEnglish ? 'blanks' : '個空格'}`
+                  : question.type === 'essay'
+                    ? (isEnglish ? 'Manual grading required' : '需人工評分')
+                    : `${Math.max((question.correctAnswers || []).length, 1)} ${isEnglish ? 'accepted answers' : '個可接受答案'}`;
 
       return `
         <article class="builder-question-card">
@@ -16376,7 +17043,7 @@ const MoodleUI = {
           <label>${t('moodleNewQuestion.optionsLabel')}</label>
           <div id="quizQuestionOptionsList">
             ${options.map((option, index) => `
-              <div class="builder-option-row">
+              <div class="builder-option-row builder-matching-row">
                 <input type="radio" name="quizQuestionCorrect" value="${index}" ${Number(normalized.correctAnswer) === index ? 'checked' : ''}>
                 <input type="text" class="option-input" value="${this.escapeText(option || '')}" placeholder="${this.escapeText((isEnglish ? 'Option' : '選項'))} ${String.fromCharCode(65 + index)}">
                 <button type="button" class="btn-remove" onclick="this.closest('.builder-option-row').remove(); MoodleUI.syncQuizQuestionOptionIndices();">×</button>
@@ -16384,6 +17051,27 @@ const MoodleUI = {
             `).join('')}
           </div>
           <button type="button" class="btn-sm" onclick="MoodleUI.addQuizQuestionOptionRow()">${t('moodleNewQuestion.addOption')}</button>
+        </div>
+      `;
+    }
+
+    if (type === 'multiple_select') {
+      const options = normalized.options.length > 0 ? normalized.options : ['', '', '', ''];
+      const correctSet = new Set((normalized.correctAnswers || []).map(answer => String(answer)));
+      return `
+        <div class="form-group">
+          <label>${isEnglish ? 'Options and correct choices' : '選項與正確答案'}</label>
+          <div id="quizQuestionOptionsList">
+            ${options.map((option, index) => `
+              <div class="builder-option-row builder-ordering-row">
+                <input type="checkbox" name="quizQuestionCorrectMulti" value="${index}" ${correctSet.has(String(index)) ? 'checked' : ''}>
+                <input type="text" class="option-input" value="${this.escapeText(option || '')}" placeholder="${this.escapeText((isEnglish ? 'Option' : '選項'))} ${String.fromCharCode(65 + index)}">
+                <button type="button" class="btn-remove" onclick="this.closest('.builder-option-row').remove(); MoodleUI.syncQuizQuestionOptionIndices();">×</button>
+              </div>
+            `).join('')}
+          </div>
+          <button type="button" class="btn-sm" onclick="MoodleUI.addQuizQuestionMultiSelectOptionRow()">${t('moodleNewQuestion.addOption')}</button>
+          <p class="form-hint">${isEnglish ? 'Students must select every correct choice. Partial credit is awarded automatically.' : '學生需選出所有正確選項，系統會自動計算部分得分。'}</p>
         </div>
       `;
     }
@@ -16411,6 +17099,82 @@ const MoodleUI = {
             <input type="checkbox" id="quizQuestionCaseSensitive" ${normalized.caseSensitive ? 'checked' : ''}>
             <span>${t('moodleNewQuestion.caseSensitive')}</span>
           </label>
+        </div>
+      `;
+    }
+
+    if (type === 'matching') {
+      return `
+        <div class="form-group">
+          <label>${isEnglish ? 'Matching pairs' : '配對組合'}</label>
+          <div id="quizMatchingPairsList">
+            ${(normalized.matchingPairs || []).map(pair => `
+              <div class="builder-option-row builder-cloze-row">
+                <input type="text" class="matching-prompt-input" value="${this.escapeText(pair.prompt || '')}" placeholder="${this.escapeText(isEnglish ? 'Prompt' : '題目/左側')}">
+                <input type="text" class="matching-answer-input" value="${this.escapeText(pair.answer || '')}" placeholder="${this.escapeText(isEnglish ? 'Matching answer' : '答案/右側')}">
+                <button type="button" class="btn-remove" onclick="this.closest('.builder-option-row').remove();">×</button>
+              </div>
+            `).join('')}
+          </div>
+          <button type="button" class="btn-sm" onclick="MoodleUI.addQuizMatchingPairRow()">${isEnglish ? 'Add pair' : '新增配對'}</button>
+        </div>
+      `;
+    }
+
+    if (type === 'ordering') {
+      return `
+        <div class="form-group">
+          <label>${isEnglish ? 'Correct order' : '正確排序'}</label>
+          <div id="quizOrderingItemsList">
+            ${(normalized.orderingItems || []).map((item, index) => `
+              <div class="builder-option-row">
+                <span class="builder-badge">${index + 1}</span>
+                <input type="text" class="ordering-item-input" value="${this.escapeText(item || '')}" placeholder="${this.escapeText(isEnglish ? 'Step or item' : '步驟或項目')}">
+                <button type="button" class="btn-remove" onclick="this.closest('.builder-option-row').remove();">×</button>
+              </div>
+            `).join('')}
+          </div>
+          <button type="button" class="btn-sm" onclick="MoodleUI.addQuizOrderingItemRow()">${isEnglish ? 'Add item' : '新增項目'}</button>
+          <p class="form-hint">${isEnglish ? 'Enter items in the correct order. Learners will receive them shuffled.' : '請依正確順序輸入，學生作答時會看到打亂後的項目。'}</p>
+        </div>
+      `;
+    }
+
+    if (type === 'numerical') {
+      return `
+        <div class="activity-builder-grid">
+          <div class="form-group">
+            <label>${isEnglish ? 'Correct number' : '正確數值'}</label>
+            <input type="number" id="quizQuestionNumericAnswer" value="${this.escapeText(String(normalized.numericAnswer ?? ''))}" step="any">
+          </div>
+          <div class="form-group">
+            <label>${isEnglish ? 'Accepted tolerance' : '允許誤差'}</label>
+            <input type="number" id="quizQuestionNumericTolerance" value="${this.escapeText(String(normalized.numericTolerance || 0))}" min="0" step="any">
+          </div>
+        </div>
+      `;
+    }
+
+    if (type === 'cloze') {
+      return `
+        <div class="form-group">
+          <label>${isEnglish ? 'Cloze passage' : '克漏字文章'}</label>
+          <textarea id="quizQuestionClozeText" rows="5" placeholder="${this.escapeText(isEnglish ? 'Use [[1]], [[2]]... where blanks should appear.' : '在空格處輸入 [[1]]、[[2]]...')}">${this.escapeText(normalized.clozeText || normalized.text || '')}</textarea>
+          <p class="form-hint">${isEnglish ? 'Example: I [[1]] a student and this [[2]] my book.' : '範例：I [[1]] a student and this [[2]] my book.'}</p>
+        </div>
+        <div class="form-group">
+          <label>${isEnglish ? 'Accepted answers for blanks' : '各空格可接受答案'}</label>
+          <div id="quizClozeAnswersList">
+            ${(normalized.clozeAnswers || []).map(blank => `
+              <div class="builder-option-row">
+                <input type="text" class="cloze-id-input" value="${this.escapeText(blank.id || '')}" placeholder="${this.escapeText(isEnglish ? 'Blank ID' : '空格編號')}">
+                <input type="text" class="cloze-answer-input" value="${this.escapeText((blank.answers || []).join(' | '))}" placeholder="${this.escapeText(isEnglish ? 'Answers separated by |' : '多個答案用 | 分隔')}">
+                <label class="checkbox-label"><input type="checkbox" class="cloze-case-input" ${blank.caseSensitive ? 'checked' : ''}> ${t('moodleNewQuestion.caseSensitive')}</label>
+                <button type="button" class="btn-remove" onclick="this.closest('.builder-option-row').remove();">×</button>
+              </div>
+            `).join('')}
+          </div>
+          <button type="button" class="btn-sm" onclick="MoodleUI.addQuizClozeBlankRow()">${isEnglish ? 'Add blank' : '新增空格'}</button>
         </div>
       `;
     }
@@ -16448,10 +17212,14 @@ const MoodleUI = {
 
     rows.forEach((row, index) => {
       const radio = row.querySelector('input[type="radio"]');
+      const checkbox = row.querySelector('input[name="quizQuestionCorrectMulti"]');
       const textInput = row.querySelector('input[type="text"]');
       if (radio) {
         radio.value = String(index);
         if (radio.checked) checkedExists = true;
+      }
+      if (checkbox) {
+        checkbox.value = String(index);
       }
       if (textInput) {
         textInput.placeholder = `${isEnglish ? 'Option' : '選項'} ${String.fromCharCode(65 + index)}`;
@@ -16471,7 +17239,7 @@ const MoodleUI = {
     if (!list) return;
 
     const row = document.createElement('div');
-    row.className = 'builder-option-row';
+    row.className = 'builder-option-row builder-matching-row';
     row.innerHTML = `
       <input type="radio" name="quizQuestionCorrect" value="0">
       <input type="text" class="option-input" placeholder="${this.escapeText(I18n.getLocale() === 'en' ? 'Option' : '選項')}">
@@ -16479,6 +17247,64 @@ const MoodleUI = {
     `;
     list.appendChild(row);
     this.syncQuizQuestionOptionIndices();
+  },
+
+  addQuizQuestionMultiSelectOptionRow() {
+    const list = document.getElementById('quizQuestionOptionsList');
+    if (!list) return;
+
+    const row = document.createElement('div');
+    row.className = 'builder-option-row builder-ordering-row';
+    row.innerHTML = `
+      <input type="checkbox" name="quizQuestionCorrectMulti" value="0">
+      <input type="text" class="option-input" placeholder="${this.escapeText(I18n.getLocale() === 'en' ? 'Option' : '選項')}">
+      <button type="button" class="btn-remove" onclick="this.closest('.builder-option-row').remove(); MoodleUI.syncQuizQuestionOptionIndices();">×</button>
+    `;
+    list.appendChild(row);
+    this.syncQuizQuestionOptionIndices();
+  },
+
+  addQuizMatchingPairRow() {
+    const list = document.getElementById('quizMatchingPairsList');
+    if (!list) return;
+    const isEnglish = I18n.getLocale() === 'en';
+    const row = document.createElement('div');
+    row.className = 'builder-option-row builder-cloze-row';
+    row.innerHTML = `
+      <input type="text" class="matching-prompt-input" placeholder="${this.escapeText(isEnglish ? 'Prompt' : '題目/左側')}">
+      <input type="text" class="matching-answer-input" placeholder="${this.escapeText(isEnglish ? 'Matching answer' : '答案/右側')}">
+      <button type="button" class="btn-remove" onclick="this.closest('.builder-option-row').remove();">×</button>
+    `;
+    list.appendChild(row);
+  },
+
+  addQuizOrderingItemRow() {
+    const list = document.getElementById('quizOrderingItemsList');
+    if (!list) return;
+    const isEnglish = I18n.getLocale() === 'en';
+    const row = document.createElement('div');
+    row.className = 'builder-option-row';
+    row.innerHTML = `
+      <span class="builder-badge">${list.children.length + 1}</span>
+      <input type="text" class="ordering-item-input" placeholder="${this.escapeText(isEnglish ? 'Step or item' : '步驟或項目')}">
+      <button type="button" class="btn-remove" onclick="this.closest('.builder-option-row').remove();">×</button>
+    `;
+    list.appendChild(row);
+  },
+
+  addQuizClozeBlankRow() {
+    const list = document.getElementById('quizClozeAnswersList');
+    if (!list) return;
+    const isEnglish = I18n.getLocale() === 'en';
+    const row = document.createElement('div');
+    row.className = 'builder-option-row';
+    row.innerHTML = `
+      <input type="text" class="cloze-id-input" value="${list.children.length + 1}" placeholder="${this.escapeText(isEnglish ? 'Blank ID' : '空格編號')}">
+      <input type="text" class="cloze-answer-input" placeholder="${this.escapeText(isEnglish ? 'Answers separated by |' : '多個答案用 | 分隔')}">
+      <label class="checkbox-label"><input type="checkbox" class="cloze-case-input"> ${t('moodleNewQuestion.caseSensitive')}</label>
+      <button type="button" class="btn-remove" onclick="this.closest('.builder-option-row').remove();">×</button>
+    `;
+    list.appendChild(row);
   },
 
   openQuizQuestionEditorModal(index = null) {
@@ -16516,9 +17342,14 @@ const MoodleUI = {
                 <label>${t('moodleNewQuestion.typeLabel')}</label>
                 <select id="quizQuestionType">
                   <option value="multiple_choice" ${question.type === 'multiple_choice' ? 'selected' : ''}>${t('moodleQuestionBank.multipleChoice')}</option>
+                  <option value="multiple_select" ${question.type === 'multiple_select' ? 'selected' : ''}>${isEnglish ? 'Multiple select' : '多選題'}</option>
                   <option value="true_false" ${question.type === 'true_false' ? 'selected' : ''}>${t('moodleQuestionBank.trueFalse')}</option>
                   <option value="short_answer" ${question.type === 'short_answer' ? 'selected' : ''}>${t('moodleQuestionBank.shortAnswer')}</option>
+                  <option value="matching" ${question.type === 'matching' ? 'selected' : ''}>${t('moodleQuestionBank.matching')}</option>
+                  <option value="ordering" ${question.type === 'ordering' ? 'selected' : ''}>${isEnglish ? 'Ordering' : '排序題'}</option>
+                  <option value="numerical" ${question.type === 'numerical' ? 'selected' : ''}>${isEnglish ? 'Numerical' : '數值題'}</option>
                   <option value="fill_blank" ${question.type === 'fill_blank' ? 'selected' : ''}>${t('moodleQuestionBank.fillBlank')}</option>
+                  <option value="cloze" ${question.type === 'cloze' ? 'selected' : ''}>${isEnglish ? 'Cloze' : '克漏字'}</option>
                   <option value="essay" ${question.type === 'essay' ? 'selected' : ''}>${t('moodleQuestionBank.essay')}</option>
                 </select>
               </div>
@@ -16576,7 +17407,13 @@ const MoodleUI = {
     if (!builderState || !editorState) return;
 
     const type = document.getElementById('quizQuestionType')?.value || 'multiple_choice';
-    const text = document.getElementById('quizQuestionText')?.value?.trim();
+    let text = document.getElementById('quizQuestionText')?.value?.trim();
+    const clozeTextDraft = type === 'cloze'
+      ? document.getElementById('quizQuestionClozeText')?.value?.trim()
+      : '';
+    if (!text && clozeTextDraft) {
+      text = clozeTextDraft;
+    }
     if (!text) {
       showToast(t('moodleNewQuestion.contentRequired'));
       return;
@@ -16598,9 +17435,18 @@ const MoodleUI = {
     };
 
     if (type === 'multiple_choice') {
-      const optionInputs = Array.from(document.querySelectorAll('#quizQuestionOptionsList .option-input'));
-      const options = optionInputs.map(input => input.value.trim()).filter(Boolean);
-      const correctOption = parseInt(document.querySelector('input[name="quizQuestionCorrect"]:checked')?.value, 10) || 0;
+      const rows = Array.from(document.querySelectorAll('#quizQuestionOptionsList .builder-option-row'));
+      const options = [];
+      let correctOption = 0;
+      rows.forEach(row => {
+        const optionText = row.querySelector('.option-input')?.value?.trim();
+        if (!optionText) return;
+        const nextIndex = options.length;
+        if (row.querySelector('input[name="quizQuestionCorrect"]')?.checked) {
+          correctOption = nextIndex;
+        }
+        options.push(optionText);
+      });
       if (options.length < 2) {
         showToast(t('moodleNewQuestion.minOptions'));
         return;
@@ -16611,6 +17457,39 @@ const MoodleUI = {
       question.referenceAnswer = '';
       question.minWords = 0;
       question.caseSensitive = false;
+      question.matchingPairs = [];
+      question.orderingItems = [];
+      question.clozeAnswers = [];
+    } else if (type === 'multiple_select') {
+      const rows = Array.from(document.querySelectorAll('#quizQuestionOptionsList .builder-option-row'));
+      const options = [];
+      const correctAnswers = [];
+      rows.forEach(row => {
+        const optionText = row.querySelector('.option-input')?.value?.trim();
+        if (!optionText) return;
+        const nextIndex = options.length;
+        if (row.querySelector('input[name="quizQuestionCorrectMulti"]')?.checked) {
+          correctAnswers.push(nextIndex);
+        }
+        options.push(optionText);
+      });
+      if (options.length < 2) {
+        showToast(t('moodleNewQuestion.minOptions'));
+        return;
+      }
+      if (correctAnswers.length === 0) {
+        showToast(I18n.getLocale() === 'en' ? 'Select at least one correct option.' : '請至少勾選一個正確選項。');
+        return;
+      }
+      question.options = options;
+      question.correctAnswer = null;
+      question.correctAnswers = correctAnswers;
+      question.referenceAnswer = '';
+      question.minWords = 0;
+      question.caseSensitive = false;
+      question.matchingPairs = [];
+      question.orderingItems = [];
+      question.clozeAnswers = [];
     } else if (type === 'true_false') {
       question.options = [];
       question.correctAnswer = document.querySelector('input[name="quizQuestionTrueFalse"]:checked')?.value !== 'false';
@@ -16618,6 +17497,9 @@ const MoodleUI = {
       question.referenceAnswer = '';
       question.minWords = 0;
       question.caseSensitive = false;
+      question.matchingPairs = [];
+      question.orderingItems = [];
+      question.clozeAnswers = [];
     } else if (type === 'short_answer' || type === 'fill_blank') {
       question.options = [];
       question.correctAnswer = null;
@@ -16628,6 +17510,99 @@ const MoodleUI = {
       question.referenceAnswer = '';
       question.minWords = 0;
       question.caseSensitive = document.getElementById('quizQuestionCaseSensitive')?.checked === true;
+      question.matchingPairs = [];
+      question.orderingItems = [];
+      question.clozeAnswers = [];
+    } else if (type === 'matching') {
+      const pairs = Array.from(document.querySelectorAll('#quizMatchingPairsList .builder-option-row'))
+        .map(row => ({
+          prompt: row.querySelector('.matching-prompt-input')?.value?.trim() || '',
+          answer: row.querySelector('.matching-answer-input')?.value?.trim() || ''
+        }))
+        .filter(pair => pair.prompt && pair.answer);
+      if (pairs.length < 2) {
+        showToast(I18n.getLocale() === 'en' ? 'Add at least two complete matching pairs.' : '請至少新增兩組完整配對。');
+        return;
+      }
+      question.options = [];
+      question.correctAnswer = null;
+      question.correctAnswers = [];
+      question.matchingPairs = pairs;
+      question.referenceAnswer = '';
+      question.minWords = 0;
+      question.caseSensitive = false;
+      question.orderingItems = [];
+      question.clozeAnswers = [];
+    } else if (type === 'ordering') {
+      const orderingItems = Array.from(document.querySelectorAll('#quizOrderingItemsList .ordering-item-input'))
+        .map(input => input.value.trim())
+        .filter(Boolean);
+      if (orderingItems.length < 2) {
+        showToast(I18n.getLocale() === 'en' ? 'Add at least two ordered items.' : '請至少新增兩個排序項目。');
+        return;
+      }
+      question.options = [];
+      question.correctAnswer = null;
+      question.correctAnswers = [];
+      question.orderingItems = orderingItems;
+      question.referenceAnswer = '';
+      question.minWords = 0;
+      question.caseSensitive = false;
+      question.matchingPairs = [];
+      question.clozeAnswers = [];
+    } else if (type === 'numerical') {
+      const numericAnswer = Number(document.getElementById('quizQuestionNumericAnswer')?.value);
+      const numericTolerance = Number(document.getElementById('quizQuestionNumericTolerance')?.value || 0);
+      if (!Number.isFinite(numericAnswer)) {
+        showToast(I18n.getLocale() === 'en' ? 'Enter a valid numeric answer.' : '請輸入有效的正確數值。');
+        return;
+      }
+      question.options = [];
+      question.correctAnswer = numericAnswer;
+      question.correctAnswers = [];
+      question.numericAnswer = numericAnswer;
+      question.numericTolerance = Number.isFinite(numericTolerance) && numericTolerance > 0 ? numericTolerance : 0;
+      question.referenceAnswer = '';
+      question.minWords = 0;
+      question.caseSensitive = false;
+      question.matchingPairs = [];
+      question.orderingItems = [];
+      question.clozeAnswers = [];
+    } else if (type === 'cloze') {
+      const clozeText = clozeTextDraft || text;
+      const clozeAnswers = Array.from(document.querySelectorAll('#quizClozeAnswersList .builder-option-row'))
+        .map((row, index) => {
+          const id = row.querySelector('.cloze-id-input')?.value?.trim() || String(index + 1);
+          const answers = String(row.querySelector('.cloze-answer-input')?.value || '')
+            .split('|')
+            .map(answer => answer.trim())
+            .filter(Boolean);
+          return {
+            id,
+            answers,
+            caseSensitive: row.querySelector('.cloze-case-input')?.checked === true
+          };
+        })
+        .filter(blank => blank.id && blank.answers.length > 0);
+      if (!clozeText) {
+        showToast(t('moodleNewQuestion.contentRequired'));
+        return;
+      }
+      if (clozeAnswers.length === 0) {
+        showToast(I18n.getLocale() === 'en' ? 'Add at least one blank answer.' : '請至少新增一個空格答案。');
+        return;
+      }
+      question.text = clozeText;
+      question.clozeText = clozeText;
+      question.options = [];
+      question.correctAnswer = null;
+      question.correctAnswers = [];
+      question.clozeAnswers = clozeAnswers;
+      question.referenceAnswer = '';
+      question.minWords = 0;
+      question.caseSensitive = false;
+      question.matchingPairs = [];
+      question.orderingItems = [];
     } else {
       question.options = [];
       question.correctAnswer = null;
@@ -16635,6 +17610,9 @@ const MoodleUI = {
       question.referenceAnswer = document.getElementById('quizQuestionReferenceAnswer')?.value || '';
       question.minWords = parseInt(document.getElementById('quizQuestionMinWords')?.value, 10) || 0;
       question.caseSensitive = false;
+      question.matchingPairs = [];
+      question.orderingItems = [];
+      question.clozeAnswers = [];
     }
 
     const normalizedQuestion = this.normalizeQuizBuilderQuestion(question);
@@ -16659,6 +17637,12 @@ const MoodleUI = {
       caseSensitive: question.caseSensitive,
       referenceAnswer: question.referenceAnswer || '',
       minWords: question.minWords || 0,
+      matchingPairs: question.matchingPairs || question.pairs || [],
+      orderingItems: question.orderingItems || question.orderItems || [],
+      numericAnswer: question.numericAnswer ?? question.correctAnswer ?? '',
+      numericTolerance: question.numericTolerance ?? question.tolerance ?? 0,
+      clozeText: question.clozeText || (question.type === 'cloze' ? question.questionText || question.text || '' : ''),
+      clozeAnswers: question.clozeAnswers || [],
       points: question.points || 10,
       difficulty: question.difficulty || 'medium',
       analysisSection: question.analysisSection || question.categoryName || question.category || question.skill || '',
@@ -17909,26 +18893,38 @@ const MoodleUI = {
   },
 
   // ======== Multi-select Quiz Answer Handler ========
-  selectMultipleAnswer(index) {
+  async selectMultipleAnswer(value) {
     if (!this.currentQuizAttempt) return;
     const q = this.currentQuizAttempt.questions[this.currentQuestionIndex];
     if (!q) return;
     if (!Array.isArray(q.answer)) q.answer = [];
-    const pos = q.answer.indexOf(index);
+    const valueKey = this.normalizeQuizAnswerKey(value);
+    const pos = q.answer.findIndex(answer => this.normalizeQuizAnswerKey(answer) === valueKey);
     if (pos >= 0) {
       q.answer.splice(pos, 1);
     } else {
-      q.answer.push(index);
+      q.answer.push(value);
     }
+    q.answered = q.answer.length > 0;
     // Update visual state
     const labels = document.querySelectorAll('.question-option');
     labels.forEach(label => {
       const checkbox = label.querySelector('input[type="checkbox"]');
       if (checkbox) {
-        const val = parseInt(checkbox.value);
-        label.classList.toggle('selected', q.answer.includes(val));
+        const val = checkbox.value;
+        const selected = q.answer.some(answer => this.normalizeQuizAnswerKey(answer) === this.normalizeQuizAnswerKey(val));
+        label.classList.toggle('selected', selected);
       }
     });
+    this.updateQuizCurrentNavAnsweredState(q.answered);
+    try {
+      await API.quizzes.answer(this.currentQuizAttempt.quizId, this.currentQuizAttempt.attemptId, {
+        questionId: q.questionId,
+        answer: q.answer
+      });
+    } catch (error) {
+      console.error('Save multi-select answer error:', error);
+    }
   },
 
   // ======== Sort Gradebook ========

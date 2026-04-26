@@ -142,6 +142,43 @@ function normalizeOptions(options) {
     .filter(Boolean);
 }
 
+function parseNumber(value, fallback = 0) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function normalizeMatchingPairs(pairs) {
+  return (Array.isArray(pairs) ? pairs : [])
+    .map(pair => ({
+      prompt: String(pair?.prompt ?? pair?.question ?? pair?.left ?? '').trim(),
+      answer: String(pair?.answer ?? pair?.right ?? pair?.match ?? '').trim()
+    }))
+    .filter(pair => pair.prompt && pair.answer);
+}
+
+function normalizeOrderingItems(items) {
+  return (Array.isArray(items) ? items : [])
+    .map(item => String(item?.text ?? item?.label ?? item ?? '').trim())
+    .filter(Boolean);
+}
+
+function normalizeClozeAnswers(blanks) {
+  return (Array.isArray(blanks) ? blanks : [])
+    .map((blank, index) => {
+      const answers = Array.isArray(blank?.answers)
+        ? blank.answers
+        : Array.isArray(blank?.acceptedAnswers)
+          ? blank.acceptedAnswers
+          : [blank?.answer ?? blank?.value ?? ''];
+      return {
+        id: String(blank?.id || blank?.blankId || index + 1).trim(),
+        answers: answers.map(answer => String(answer ?? '').trim()).filter(Boolean),
+        caseSensitive: !!blank?.caseSensitive
+      };
+    })
+    .filter(blank => blank.id && blank.answers.length > 0);
+}
+
 function inferCorrectAnswerFromObjectOptions(options) {
   if (!Array.isArray(options)) return null;
   const idx = options.findIndex(opt => opt && (opt.isCorrect === true || opt.correct === true));
@@ -200,6 +237,12 @@ function normalizeQuestion(item, categoriesMap = new Map()) {
     caseSensitive: !!item.caseSensitive,
     referenceAnswer: item.referenceAnswer || '',
     minWords: item.minWords || 0,
+    matchingPairs: normalizeMatchingPairs(item.matchingPairs || item.pairs),
+    orderingItems: normalizeOrderingItems(item.orderingItems || item.orderItems),
+    numericAnswer: item.numericAnswer ?? null,
+    numericTolerance: parseNumber(item.numericTolerance ?? item.tolerance, 0),
+    clozeText: item.clozeText || (item.type === 'cloze' ? questionText : ''),
+    clozeAnswers: normalizeClozeAnswers(item.clozeAnswers),
     explanation: item.explanation || item.feedback || '',
     points: item.points || 10,
     difficulty: item.difficulty || 'medium',
@@ -371,6 +414,30 @@ function buildQuestionPayload(body, existing = null) {
   payload.minWords = body.minWords !== undefined
     ? parseInteger(body.minWords, 0, { min: 0 })
     : parseInteger(existing?.minWords, 0, { min: 0 });
+
+  payload.matchingPairs = body.matchingPairs !== undefined || body.pairs !== undefined
+    ? normalizeMatchingPairs(body.matchingPairs || body.pairs)
+    : normalizeMatchingPairs(existing?.matchingPairs || existing?.pairs);
+
+  payload.orderingItems = body.orderingItems !== undefined || body.orderItems !== undefined
+    ? normalizeOrderingItems(body.orderingItems || body.orderItems)
+    : normalizeOrderingItems(existing?.orderingItems || existing?.orderItems);
+
+  payload.numericAnswer = body.numericAnswer !== undefined
+    ? parseNumber(body.numericAnswer, null)
+    : (existing?.numericAnswer ?? null);
+
+  payload.numericTolerance = body.numericTolerance !== undefined || body.tolerance !== undefined
+    ? Math.max(0, parseNumber(body.numericTolerance ?? body.tolerance, 0))
+    : Math.max(0, parseNumber(existing?.numericTolerance ?? existing?.tolerance, 0));
+
+  payload.clozeText = body.clozeText !== undefined
+    ? String(body.clozeText || '')
+    : String(existing?.clozeText || (type === 'cloze' ? payload.questionText : ''));
+
+  payload.clozeAnswers = body.clozeAnswers !== undefined
+    ? normalizeClozeAnswers(body.clozeAnswers)
+    : normalizeClozeAnswers(existing?.clozeAnswers);
 
   return payload;
 }

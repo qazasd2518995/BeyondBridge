@@ -23,11 +23,62 @@ function prepareQuestionsForStudent(questions, shuffleQuestions, shuffleAnswers)
 
   let preparedQuestions = questions.map(q => {
     // 移除正確答案
-    const { correctAnswer, correctAnswers, feedback, ...rest } = q;
+    const {
+      correctAnswer,
+      correctAnswers,
+      feedback,
+      matchingPairs,
+      pairs,
+      orderingItems,
+      orderItems,
+      clozeAnswers,
+      numericAnswer,
+      numericTolerance,
+      tolerance,
+      ...rest
+    } = q;
 
-    // 打亂選項（如果需要）
-    if (shuffleAnswers && rest.options) {
-      rest.options = shuffleArray([...rest.options]);
+    if (rest.type === 'true_false') {
+      rest.options = normalizeTrueFalseOptions(rest.options);
+      if (shuffleAnswers) {
+        rest.options = shuffleArray(rest.options);
+      }
+    } else if (rest.type === 'matching') {
+      const normalizedPairs = normalizeMatchingPairs(matchingPairs || pairs);
+      rest.matchingPrompts = normalizedPairs.map((pair, index) => ({
+        id: String(index),
+        text: pair.prompt
+      }));
+      rest.options = normalizedPairs.map((pair, index) => ({
+        text: pair.answer,
+        value: String(index)
+      }));
+      if (shuffleAnswers) {
+        rest.options = shuffleArray(rest.options);
+      }
+      delete rest.matchingPairs;
+      delete rest.pairs;
+    } else if (rest.type === 'ordering') {
+      const normalizedItems = normalizeOrderingItems(orderingItems || orderItems || rest.options);
+      rest.options = normalizedItems.map((item, index) => ({
+        text: item,
+        value: String(index)
+      }));
+      rest.options = shuffleArray(rest.options);
+      delete rest.orderingItems;
+      delete rest.orderItems;
+    } else if (rest.type === 'cloze') {
+      const normalizedBlanks = normalizeClozeAnswers(clozeAnswers || correctAnswers);
+      rest.clozeBlanks = normalizedBlanks.map((blank, index) => ({
+        id: blank.id || String(index + 1)
+      }));
+      delete rest.clozeAnswers;
+    } else if (Array.isArray(rest.options)) {
+      // 選項打亂時仍保留原始 index 作為 answer value，避免顯示順序改變後評分錯位。
+      rest.options = rest.options.map((option, index) => normalizeOptionForStudent(option, index));
+      if (shuffleAnswers) {
+        rest.options = shuffleArray(rest.options);
+      }
     }
 
     return rest;
@@ -39,6 +90,135 @@ function prepareQuestionsForStudent(questions, shuffleQuestions, shuffleAnswers)
   }
 
   return preparedQuestions;
+}
+
+function normalizeOptionForStudent(option, index) {
+  if (option && typeof option === 'object') {
+    return {
+      text: String(option.text ?? option.label ?? option.value ?? ''),
+      value: option.value ?? option.id ?? index
+    };
+  }
+
+  return {
+    text: String(option ?? ''),
+    value: index
+  };
+}
+
+function normalizeTrueFalseOptions(options) {
+  if (Array.isArray(options) && options.length >= 2) {
+    return options.slice(0, 2).map((option, index) => {
+      const normalized = normalizeOptionForStudent(option, index === 0 ? true : false);
+      return {
+        text: normalized.text,
+        value: normalizeBooleanAnswer(normalized.value, index === 0)
+      };
+    });
+  }
+
+  return [
+    { text: 'True', value: true },
+    { text: 'False', value: false }
+  ];
+}
+
+function normalizeChoiceAnswer(value) {
+  if (value && typeof value === 'object' && 'value' in value) {
+    return normalizeChoiceAnswer(value.value);
+  }
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : value.trim();
+  }
+  return value;
+}
+
+function normalizeBooleanAnswer(value, fallback = null) {
+  if (value && typeof value === 'object' && 'value' in value) {
+    return normalizeBooleanAnswer(value.value, fallback);
+  }
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') {
+    if (value === 0) return true;
+    if (value === 1) return false;
+  }
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (['true', 't', 'yes', 'y', '1', '是', '對', '正確'].includes(normalized)) return true;
+    if (['false', 'f', 'no', 'n', '0', '否', '錯', '錯誤'].includes(normalized)) return false;
+  }
+  return fallback;
+}
+
+function normalizeAnswerKey(value) {
+  if (value && typeof value === 'object' && 'value' in value) {
+    return normalizeAnswerKey(value.value);
+  }
+  return String(value ?? '').trim();
+}
+
+function normalizeAnswerArray(value) {
+  if (Array.isArray(value)) return value;
+  if (value === undefined || value === null || value === '') return [];
+  return [value];
+}
+
+function normalizeMatchingPairs(pairs = []) {
+  return (Array.isArray(pairs) ? pairs : [])
+    .map((pair) => {
+      if (Array.isArray(pair)) {
+        return {
+          prompt: String(pair[0] ?? '').trim(),
+          answer: String(pair[1] ?? '').trim()
+        };
+      }
+      return {
+        prompt: String(pair?.prompt ?? pair?.question ?? pair?.left ?? '').trim(),
+        answer: String(pair?.answer ?? pair?.right ?? pair?.match ?? '').trim()
+      };
+    })
+    .filter(pair => pair.prompt && pair.answer);
+}
+
+function normalizeOrderingItems(items = []) {
+  return (Array.isArray(items) ? items : [])
+    .map(item => {
+      if (item && typeof item === 'object') {
+        return String(item.text ?? item.label ?? item.value ?? '').trim();
+      }
+      return String(item ?? '').trim();
+    })
+    .filter(Boolean);
+}
+
+function normalizeClozeAnswers(blanks = []) {
+  return (Array.isArray(blanks) ? blanks : [])
+    .map((blank, index) => {
+      if (blank && typeof blank === 'object') {
+        const accepted = Array.isArray(blank.answers)
+          ? blank.answers
+          : Array.isArray(blank.acceptedAnswers)
+            ? blank.acceptedAnswers
+            : [blank.answer ?? blank.value ?? ''];
+        return {
+          id: String(blank.id || blank.blankId || index + 1),
+          answers: accepted.map(answer => String(answer ?? '').trim()).filter(Boolean),
+          caseSensitive: !!blank.caseSensitive
+        };
+      }
+      return {
+        id: String(index + 1),
+        answers: [String(blank ?? '').trim()].filter(Boolean),
+        caseSensitive: false
+      };
+    })
+    .filter(blank => blank.id && blank.answers.length > 0);
+}
+
+function roundScore(value) {
+  return Math.max(0, Math.round(Number(value || 0) * 100) / 100);
 }
 
 /**
@@ -71,42 +251,109 @@ function gradeQuiz(questions, answers) {
 
     switch (question.type) {
       case 'multiple_choice':
+        isCorrect = normalizeChoiceAnswer(userAnswer) === normalizeChoiceAnswer(question.correctAnswer);
+        earnedPoints = isCorrect ? points : 0;
+        break;
+
       case 'true_false':
-        isCorrect = userAnswer === question.correctAnswer;
+        isCorrect = normalizeBooleanAnswer(userAnswer) === normalizeBooleanAnswer(question.correctAnswer);
         earnedPoints = isCorrect ? points : 0;
         break;
 
       case 'multiple_select':
         // 多選題：部分給分
         if (Array.isArray(userAnswer) && Array.isArray(question.correctAnswers)) {
-          const correctSet = new Set(question.correctAnswers);
-          const userSet = new Set(userAnswer);
+          const correctSet = new Set(question.correctAnswers.map(normalizeAnswerKey));
+          const userSet = new Set(userAnswer.map(normalizeAnswerKey));
           const correctSelected = [...userSet].filter(a => correctSet.has(a)).length;
           const incorrectSelected = [...userSet].filter(a => !correctSet.has(a)).length;
           const totalCorrect = question.correctAnswers.length;
 
-          // 扣除錯誤選擇
-          const rawScore = (correctSelected - incorrectSelected) / totalCorrect;
-          earnedPoints = Math.max(0, Math.round(rawScore * points * 100) / 100);
-          isCorrect = earnedPoints === points;
+          if (totalCorrect > 0) {
+            // 扣除錯誤選擇
+            const rawScore = (correctSelected - incorrectSelected) / totalCorrect;
+            earnedPoints = roundScore(rawScore * points);
+            isCorrect = earnedPoints === points;
+          }
         }
         break;
 
+      case 'matching': {
+        const pairs = normalizeMatchingPairs(question.matchingPairs || question.pairs);
+        const answerMap = userAnswer && typeof userAnswer === 'object' && !Array.isArray(userAnswer) ? userAnswer : {};
+        if (pairs.length > 0) {
+          const correctCount = pairs.reduce((count, pair, index) => {
+            const answer = answerMap[String(index)] ?? answerMap[index];
+            const answerKey = normalizeAnswerKey(answer);
+            return count + (answerKey === String(index) || answerKey === pair.answer ? 1 : 0);
+          }, 0);
+          earnedPoints = roundScore((correctCount / pairs.length) * points);
+          isCorrect = correctCount === pairs.length;
+        }
+        break;
+      }
+
+      case 'ordering': {
+        const items = normalizeOrderingItems(question.orderingItems || question.orderItems || question.options);
+        const answerOrder = normalizeAnswerArray(userAnswer).map(normalizeAnswerKey);
+        if (items.length > 0 && answerOrder.length > 0) {
+          const correctCount = items.reduce((count, _item, index) => {
+            return count + (answerOrder[index] === String(index) ? 1 : 0);
+          }, 0);
+          earnedPoints = roundScore((correctCount / items.length) * points);
+          isCorrect = correctCount === items.length;
+        }
+        break;
+      }
+
+      case 'numerical': {
+        const expected = Number(question.numericAnswer ?? question.correctAnswer);
+        const submitted = Number(userAnswer);
+        const toleranceValue = Math.max(0, Number(question.numericTolerance ?? question.tolerance ?? 0) || 0);
+        if (Number.isFinite(expected) && Number.isFinite(submitted)) {
+          isCorrect = Math.abs(submitted - expected) <= toleranceValue;
+          earnedPoints = isCorrect ? points : 0;
+        }
+        break;
+      }
+
+      case 'cloze': {
+        const blanks = normalizeClozeAnswers(question.clozeAnswers || question.correctAnswers);
+        const answerMap = userAnswer && typeof userAnswer === 'object' && !Array.isArray(userAnswer) ? userAnswer : {};
+        if (blanks.length > 0) {
+          const correctCount = blanks.reduce((count, blank) => {
+            const submitted = String(answerMap[blank.id] ?? '').trim();
+            if (!submitted) return count;
+            const comparable = blank.caseSensitive ? submitted : submitted.toLowerCase();
+            const matches = blank.answers.some(answer => {
+              const expected = blank.caseSensitive ? answer : answer.toLowerCase();
+              return comparable === expected;
+            });
+            return count + (matches ? 1 : 0);
+          }, 0);
+          earnedPoints = roundScore((correctCount / blanks.length) * points);
+          isCorrect = correctCount === blanks.length;
+        }
+        break;
+      }
+
       case 'short_answer':
+      case 'fill_blank':
         // 短答題：檢查是否包含正確答案（不區分大小寫）
         if (userAnswer && question.correctAnswers) {
-          const userLower = userAnswer.toLowerCase().trim();
-          isCorrect = question.correctAnswers.some(ans =>
-            userLower === ans.toLowerCase().trim()
-          );
+          const userText = String(userAnswer).trim();
+          const userComparable = question.caseSensitive ? userText : userText.toLowerCase();
+          isCorrect = question.correctAnswers.some(ans => {
+            const answerText = String(ans).trim();
+            return userComparable === (question.caseSensitive ? answerText : answerText.toLowerCase());
+          });
           earnedPoints = isCorrect ? points : 0;
         }
         break;
 
       case 'essay':
-        // 申論題：需要手動評分，暫時給 0 分
         earnedPoints = 0;
-        isCorrect = null; // 待評分
+        isCorrect = null;
         break;
 
       default:
@@ -118,7 +365,9 @@ function gradeQuiz(questions, answers) {
       questionId: question.questionId,
       isCorrect,
       earnedPoints,
-      maxPoints: points
+      maxPoints: points,
+      needsManualGrading: question.type === 'essay',
+      manualGraded: question.type === 'essay' ? false : undefined
     });
   }
 

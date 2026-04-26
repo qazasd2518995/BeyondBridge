@@ -19,6 +19,10 @@ const {
   calculateRiskLevel,
   generateFlags
 } = require('./utils');
+const {
+  buildStudentQuizAnalytics,
+  buildStudentAnalyticsCsv
+} = require('./analytics');
 
 async function canManageQuiz(quiz, user) {
   if (!quiz || !user) return false;
@@ -30,6 +34,158 @@ async function canManageQuiz(quiz, user) {
     }
   }
   return quiz.createdBy === user.userId;
+}
+
+function getManualGradeSummary(quiz, questionResults = []) {
+  const essayQuestionIds = new Set(
+    (quiz?.questions || [])
+      .filter(question => question?.type === 'essay')
+      .map(question => question.questionId)
+  );
+
+  if (essayQuestionIds.size === 0) {
+    return {
+      manualGradingStatus: 'not_required',
+      needsManualGrading: false,
+      manualQuestionCount: 0,
+      manualPendingCount: 0,
+      manualGradedCount: 0
+    };
+  }
+
+  const manualResults = [...essayQuestionIds].map(questionId => {
+    return questionResults.find(result => result.questionId === questionId) || {
+      questionId,
+      manualGraded: false
+    };
+  });
+  const manualGradedCount = manualResults.filter(result => result.manualGraded === true).length;
+  const manualPendingCount = manualResults.length - manualGradedCount;
+
+  return {
+    manualGradingStatus: manualPendingCount === 0 ? 'graded' : (manualGradedCount > 0 ? 'partial' : 'pending'),
+    needsManualGrading: manualPendingCount > 0,
+    manualQuestionCount: manualResults.length,
+    manualPendingCount,
+    manualGradedCount
+  };
+}
+
+function calculateAttemptScoreFromQuestionResults(questionResults = []) {
+  const score = questionResults.reduce((sum, result) => sum + (Number(result.earnedPoints) || 0), 0);
+  const totalPoints = questionResults.reduce((sum, result) => sum + (Number(result.maxPoints) || 0), 0);
+  return {
+    score: Math.round(score * 100) / 100,
+    totalPoints: Math.round(totalPoints * 100) / 100
+  };
+}
+
+function selectGradebookAttempt(quiz, attempts = []) {
+  const completed = attempts
+    .filter(attempt => attempt?.status === 'completed' && Number.isFinite(Number(attempt.percentage)))
+    .sort((a, b) => Number(a.attemptNumber || 0) - Number(b.attemptNumber || 0));
+
+  if (completed.length === 0) return null;
+
+  if (quiz.gradeMethod === 'first') return completed[0];
+  if (quiz.gradeMethod === 'last') return completed[completed.length - 1];
+
+  return completed.reduce((best, attempt) => {
+    return Number(attempt.percentage || 0) > Number(best.percentage || 0) ? attempt : best;
+  }, completed[0]);
+}
+
+async function updateQuizGradebookEntry(quiz, userId, attemptsForUser = [], actor = 'system') {
+  if (!quiz?.courseId || !userId) return;
+
+  const selectedAttempt = selectGradebookAttempt(quiz, attemptsForUser);
+  if (!selectedAttempt) return;
+
+  const progress = await db.getItem(`USER#${userId}`, `PROG#COURSE#${quiz.courseId}`);
+  if (!progress) return;
+
+  const grades = [...(progress.grades || [])];
+  const existingIndex = grades.findIndex(grade => grade.quizId === quiz.quizId);
+  const gradeEntry = {
+    quizId: quiz.quizId,
+    quizTitle: quiz.title,
+    attemptId: selectedAttempt.attemptId,
+    score: selectedAttempt.score,
+    totalPoints: selectedAttempt.totalPoints,
+    percentage: selectedAttempt.percentage,
+    passed: selectedAttempt.passed,
+    manualGradingStatus: selectedAttempt.manualGradingStatus || 'not_required',
+    gradedAt: selectedAttempt.manualGradedAt || selectedAttempt.submittedAt || new Date().toISOString()
+  };
+
+  if (existingIndex >= 0) {
+    grades[existingIndex] = gradeEntry;
+  } else {
+    grades.push(gradeEntry);
+  }
+
+  const overallGrade = grades.length > 0
+    ? grades.reduce((sum, grade) => sum + (Number(grade.percentage) || 0), 0) / grades.length
+    : 0;
+
+  await db.updateItem(`USER#${userId}`, `PROG#COURSE#${quiz.courseId}`, {
+    grades,
+    overallGrade: Math.round(overallGrade * 100) / 100,
+    updatedAt: new Date().toISOString()
+  });
+
+  await syncCourseCertificates(quiz.courseId, {
+    userId,
+    issuedBy: actor
+  });
+}
+
+async function updateQuizStats(quiz, updatedAttempt = null) {
+  if (!quiz?.quizId) return;
+
+  const attempts = await db.query(`QUIZ#${quiz.quizId}`, { skPrefix: 'ATTEMPT#' });
+  const completedAttempts = attempts
+    .map(attempt => updatedAttempt && attempt.attemptId === updatedAttempt.attemptId ? { ...attempt, ...updatedAttempt } : attempt)
+    .filter(attempt => attempt.status === 'completed');
+
+  if (completedAttempts.length === 0) {
+    await db.updateItem(`QUIZ#${quiz.quizId}`, 'META', {
+      'stats.totalAttempts': 0,
+      'stats.averageScore': 0,
+      'stats.passRate': 0,
+      updatedAt: new Date().toISOString()
+    });
+    return;
+  }
+
+  const totalScore = completedAttempts.reduce((sum, attempt) => sum + (Number(attempt.percentage) || 0), 0);
+  const passCount = completedAttempts.filter(attempt => attempt.passed === true).length;
+
+  await db.updateItem(`QUIZ#${quiz.quizId}`, 'META', {
+    'stats.totalAttempts': completedAttempts.length,
+    'stats.averageScore': Math.round((totalScore / completedAttempts.length) * 100) / 100,
+    'stats.passRate': Math.round((passCount / completedAttempts.length) * 100),
+    updatedAt: new Date().toISOString()
+  });
+}
+
+function normalizeManualGrades(body = {}) {
+  if (Array.isArray(body.grades)) {
+    return body.grades;
+  }
+
+  if (body.questionGrades && typeof body.questionGrades === 'object') {
+    return Object.entries(body.questionGrades).map(([questionId, value]) => ({
+      questionId,
+      ...(typeof value === 'object' && value !== null ? value : { earnedPoints: value })
+    }));
+  }
+
+  if (body.questionId) {
+    return [body];
+  }
+
+  return [];
 }
 
 // ==================== 作答流程（學生） ====================
@@ -50,6 +206,14 @@ router.post('/:id/start', authMiddleware, async (req, res) => {
         success: false,
         error: 'QUIZ_NOT_FOUND',
         message: '找不到此測驗'
+      });
+    }
+
+    if (quiz.visible === false && !(await canManageQuiz(quiz, req.user))) {
+      return res.status(403).json({
+        success: false,
+        error: 'QUIZ_HIDDEN',
+        message: '此測驗尚未開放給學生'
       });
     }
 
@@ -292,7 +456,7 @@ router.post('/:id/attempts/:attemptId/submit', authMiddleware, async (req, res) 
 
     // 評分
     const { score, totalPoints, questionResults } = gradeQuiz(quiz.questions, allAnswers);
-    const percentage = Math.round((score / totalPoints) * 100);
+    const percentage = totalPoints > 0 ? Math.round((score / totalPoints) * 100) : 0;
     const passed = percentage >= quiz.passingGrade;
 
     const now = new Date().toISOString();
@@ -352,7 +516,7 @@ router.post('/:id/attempts/:attemptId/submit', authMiddleware, async (req, res) 
       // 根據評分方式決定是否更新
       let shouldUpdate = false;
       if (quiz.gradeMethod === 'highest') {
-        shouldUpdate = !existingIndex || percentage > (grades[existingIndex]?.percentage || 0);
+        shouldUpdate = existingIndex < 0 || percentage > (grades[existingIndex]?.percentage || 0);
       } else if (quiz.gradeMethod === 'last') {
         shouldUpdate = true;
       } else if (quiz.gradeMethod === 'first') {
@@ -408,11 +572,27 @@ router.post('/:id/attempts/:attemptId/submit', authMiddleware, async (req, res) 
     // 根據設定決定是否顯示詳細結果
     if (gradeVisibility.gradesReleased && quiz.showResults === 'immediately') {
       result.questionResults = questionResults;
+      result.sectionAnalytics = buildStudentQuizAnalytics(quiz, {
+        ...attempt,
+        answers: allAnswers,
+        questionResults,
+        score,
+        totalPoints,
+        percentage,
+        passed,
+        status: 'completed',
+        submittedAt: now
+      });
       if (quiz.showCorrectAnswers) {
         result.correctAnswers = quiz.questions.map(q => ({
           questionId: q.questionId,
           correctAnswer: q.correctAnswer,
           correctAnswers: q.correctAnswers,
+          matchingPairs: q.matchingPairs,
+          orderingItems: q.orderingItems,
+          numericAnswer: q.numericAnswer,
+          numericTolerance: q.numericTolerance ?? q.tolerance,
+          clozeAnswers: q.clozeAnswers,
           feedback: q.feedback
         }));
       }
@@ -521,6 +701,7 @@ router.get('/:id/attempts/:attemptId/review', authMiddleware, async (req, res) =
 
     const result = {
       ...attempt,
+      sectionAnalytics: buildStudentQuizAnalytics(quiz, attempt),
       questions: quiz.questions.map(q => ({
         questionId: q.questionId,
         type: q.type,
@@ -532,6 +713,11 @@ router.get('/:id/attempts/:attemptId/review', authMiddleware, async (req, res) =
         earnedPoints: attempt.questionResults?.find(r => r.questionId === q.questionId)?.earnedPoints,
         correctAnswer: quiz.showCorrectAnswers ? q.correctAnswer : undefined,
         correctAnswers: quiz.showCorrectAnswers ? q.correctAnswers : undefined,
+        matchingPairs: quiz.showCorrectAnswers ? q.matchingPairs : undefined,
+        orderingItems: quiz.showCorrectAnswers ? q.orderingItems : undefined,
+        numericAnswer: quiz.showCorrectAnswers ? q.numericAnswer : undefined,
+        numericTolerance: quiz.showCorrectAnswers ? (q.numericTolerance ?? q.tolerance) : undefined,
+        clozeAnswers: quiz.showCorrectAnswers ? q.clozeAnswers : undefined,
         feedback: quiz.showCorrectAnswers ? q.feedback : undefined
       }))
     };
@@ -547,6 +733,72 @@ router.get('/:id/attempts/:attemptId/review', authMiddleware, async (req, res) =
       success: false,
       error: 'FETCH_FAILED',
       message: '取得測驗結果失敗'
+    });
+  }
+});
+
+/**
+ * GET /api/quizzes/:id/attempts/:attemptId/analytics.csv
+ * 匯出學生單次作答的 section 分析
+ */
+router.get('/:id/attempts/:attemptId/analytics.csv', authMiddleware, async (req, res) => {
+  try {
+    const { id, attemptId } = req.params;
+    const userId = req.user.userId;
+
+    const quiz = await db.getItem(`QUIZ#${id}`, 'META');
+    if (!quiz) {
+      return res.status(404).json({
+        success: false,
+        error: 'QUIZ_NOT_FOUND',
+        message: '找不到此測驗'
+      });
+    }
+
+    const allAttempts = await db.query(`QUIZ#${id}`, { skPrefix: 'ATTEMPT#' });
+    const attempt = allAttempts.find(a => a.attemptId === attemptId);
+    if (!attempt) {
+      return res.status(404).json({
+        success: false,
+        error: 'ATTEMPT_NOT_FOUND',
+        message: '找不到作答記錄'
+      });
+    }
+
+    const canManage = await canManageQuiz(quiz, req.user);
+    if (!canManage && attempt.userId !== userId) {
+      return res.status(403).json({
+        success: false,
+        error: 'FORBIDDEN',
+        message: '沒有權限匯出此作答分析'
+      });
+    }
+
+    const course = quiz.courseId ? await db.getItem(`COURSE#${quiz.courseId}`, 'META') : null;
+    const gradeVisibility = getGradeVisibility(course, {
+      canManage,
+      isAdmin: req.user.isAdmin
+    });
+    if (!gradeVisibility.gradesReleased && !canManage) {
+      return res.status(403).json({
+        success: false,
+        error: 'GRADES_PENDING_RELEASE',
+        message: '此課程成績尚未釋出'
+      });
+    }
+
+    const csv = buildStudentAnalyticsCsv(quiz, attempt);
+    const filename = `quiz-${id}-attempt-${attemptId}-section-analytics.csv`;
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(csv);
+  } catch (error) {
+    console.error('Export student quiz analytics CSV error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'EXPORT_FAILED',
+      message: '匯出作答分析失敗'
     });
   }
 });

@@ -149,8 +149,15 @@ router.get('/', authMiddleware, async (req, res) => {
       quizzes = quizzes.filter(q => q.closeDate && new Date(q.closeDate) < now);
     }
 
-    // 取得用戶的作答狀態
+    // 學生不應看到尚未發布給學生的測驗；教師/管理員可管理隱藏測驗。
     const courseMap = await getQuizCourseMap(quizzes);
+    quizzes = quizzes.filter((q) => {
+      if (q.visible !== false) return true;
+      const course = courseMap.get(q.courseId);
+      return req.user.isAdmin || canManageCourse(course, req.user);
+    });
+
+    // 取得用戶的作答狀態
     const quizzesWithStatus = await Promise.all(
       quizzes.map(async (q) => {
         const attempts = await db.query(`QUIZ#${q.quizId}`, {
@@ -229,6 +236,14 @@ router.get('/:id', authMiddleware, async (req, res) => {
       });
     }
 
+    if (!canManage && quiz.visible === false) {
+      return res.status(403).json({
+        success: false,
+        error: 'QUIZ_HIDDEN',
+        message: '此測驗尚未開放給學生'
+      });
+    }
+
     // 取得用戶的作答記錄
     const attempts = await db.query(`QUIZ#${id}`, {
       skPrefix: `ATTEMPT#${userId}#`
@@ -247,7 +262,19 @@ router.get('/:id', authMiddleware, async (req, res) => {
     // 只有學生端需要隱藏正確答案，教師與管理員保留完整題目資料供編輯
     if (quiz.questions && !canManage) {
       quiz.questions = quiz.questions.map(q => {
-        const { correctAnswer, correctAnswers, ...rest } = q;
+        const {
+          correctAnswer,
+          correctAnswers,
+          matchingPairs,
+          pairs,
+          orderingItems,
+          orderItems,
+          numericAnswer,
+          numericTolerance,
+          tolerance,
+          clozeAnswers,
+          ...rest
+        } = q;
         return rest;
       });
     }
@@ -339,12 +366,16 @@ router.post('/', authMiddleware, async (req, res) => {
     const quizId = db.generateId('quiz');
     const now = new Date().toISOString();
 
-    // 處理問題，加入 ID
-    const processedQuestions = questions.map((q, index) => ({
-      questionId: db.generateId('q'),
-      order: index + 1,
-      ...q
-    }));
+    // 處理問題，加入穩定 ID。前端新題目會送 questionId: null，
+    // 所以 ID 必須在展開題目資料後寫入，避免被 null 覆蓋。
+    const processedQuestions = questions.map((q, index) => {
+      const { questionId, order, ...questionData } = q || {};
+      return {
+        ...questionData,
+        questionId: questionId || db.generateId('q'),
+        order: index + 1
+      };
+    });
 
     // 計算總分
     const totalPoints = processedQuestions.reduce((sum, q) => sum + (q.points || 1), 0);
@@ -492,11 +523,14 @@ router.put('/:id', authMiddleware, async (req, res) => {
 
     // 如果更新問題，重新計算總分
     if (updates.questions) {
-      updates.questions = updates.questions.map((q, index) => ({
-        questionId: q.questionId || db.generateId('q'),
-        order: index + 1,
-        ...q
-      }));
+      updates.questions = updates.questions.map((q, index) => {
+        const { questionId, order, ...questionData } = q || {};
+        return {
+          ...questionData,
+          questionId: questionId || db.generateId('q'),
+          order: index + 1
+        };
+      });
       updates.questionCount = updates.questions.length;
       updates.totalPoints = updates.questions.reduce((sum, q) => sum + (q.points || 1), 0);
     }
