@@ -13377,6 +13377,21 @@ iframe#interactive-video-player {
   color: #1d4ed8;
 }
 
+.management-status-stack {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.management-status-stack small {
+  color: var(--gray-500);
+  font-size: 0.72rem;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
 .management-metric-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -16880,6 +16895,12 @@ iframe#interactive-video-player {
     padding: 0.9rem 0.9rem calc(1rem + env(safe-area-inset-bottom));
   }
 
+  .modal-workspace .activity-builder-grid,
+  .modal-workspace .form-row,
+  .quiz-create-grid {
+    grid-template-columns: 1fr;
+  }
+
   .modal-footer,
   .modal-content .form-actions,
   .modal-content .assignment-form-actions,
@@ -17089,6 +17110,80 @@ iframe#interactive-video-player {
   .question-card .question-actions .btn-sm {
     flex: 1 1 calc(50% - 0.25rem);
     min-height: 44px;
+  }
+
+  .management-table-shell {
+    overflow: visible;
+  }
+
+  .responsive-card-table:not(.gradebook-table) {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    border-collapse: separate;
+  }
+
+  .responsive-card-table:not(.gradebook-table) thead {
+    display: none;
+  }
+
+  .responsive-card-table:not(.gradebook-table) tbody {
+    display: grid;
+    gap: 0.75rem;
+    padding: 0.75rem;
+  }
+
+  .responsive-card-table:not(.gradebook-table) tr {
+    display: grid;
+    gap: 0.55rem;
+    padding: 0.85rem;
+    border: 1px solid rgba(26, 58, 92, 0.1);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 10px 22px rgba(15, 23, 42, 0.05);
+  }
+
+  .responsive-card-table:not(.gradebook-table) td {
+    display: grid;
+    grid-template-columns: minmax(5.8rem, 38%) minmax(0, 1fr);
+    gap: 0.7rem;
+    align-items: start;
+    padding: 0;
+    border: 0;
+    text-align: left;
+    white-space: normal;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .responsive-card-table:not(.gradebook-table) td::before {
+    content: attr(data-label);
+    color: var(--gray-500);
+    font-size: 0.74rem;
+    font-weight: 700;
+    line-height: 1.35;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .responsive-card-table:not(.gradebook-table) td.is-center,
+  .responsive-card-table:not(.gradebook-table) th.is-center {
+    text-align: left;
+  }
+
+  .gradebook-table-wrapper,
+  .attempts-table-container {
+    border-radius: 16px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
+
+  .gradebook-table-wrapper::after,
+  .attempts-table-container::after {
+    content: '';
+    display: block;
+    height: 1px;
   }
 }
 

@@ -9727,6 +9727,267 @@ const MoodleUI = {
     }
   },
 
+  getQuizEssayQuestions(quiz = {}) {
+    return (Array.isArray(quiz.questions) ? quiz.questions : [])
+      .filter(question => question && question.type === 'essay');
+  },
+
+  getQuizAttemptManualStatusMeta(quiz = {}, attempt = {}) {
+    const isEnglish = I18n.getLocale() === 'en';
+    const essayCount = this.getQuizEssayQuestions(quiz).length;
+    const questionCount = Number(attempt.manualQuestionCount || essayCount || 0);
+    const pendingCountRaw = Number(attempt.manualPendingCount);
+    const gradedCountRaw = Number(attempt.manualGradedCount);
+    const gradedCount = Number.isFinite(gradedCountRaw) ? gradedCountRaw : 0;
+    const pendingCount = Number.isFinite(pendingCountRaw)
+      ? pendingCountRaw
+      : Math.max(0, questionCount - gradedCount);
+
+    if (questionCount <= 0 && !attempt.manualGradingStatus && !attempt.needsManualGrading) {
+      return {
+        status: 'not_required',
+        label: isEnglish ? 'Not required' : '不需批改',
+        toneClass: 'is-neutral',
+        questionCount: 0,
+        pendingCount: 0,
+        gradedCount: 0
+      };
+    }
+
+    let status = String(attempt.manualGradingStatus || '').toLowerCase();
+    if (!status || status === 'not_required') {
+      status = pendingCount > 0
+        ? (gradedCount > 0 ? 'partial' : 'pending')
+        : 'graded';
+    }
+    if (attempt.needsManualGrading && pendingCount > 0) {
+      status = gradedCount > 0 ? 'partial' : 'pending';
+    }
+
+    const labels = {
+      pending: isEnglish ? 'Needs grading' : '待批改',
+      partial: isEnglish ? 'Partially graded' : '部分批改',
+      graded: isEnglish ? 'Graded' : '已批改',
+      not_required: isEnglish ? 'Not required' : '不需批改'
+    };
+    const tones = {
+      pending: 'is-warning',
+      partial: 'is-warning',
+      graded: 'is-success',
+      not_required: 'is-neutral'
+    };
+
+    return {
+      status,
+      label: labels[status] || labels.pending,
+      toneClass: tones[status] || 'is-warning',
+      questionCount,
+      pendingCount,
+      gradedCount
+    };
+  },
+
+  renderQuizAttemptManualStatus(quiz = {}, attempt = {}) {
+    const meta = this.getQuizAttemptManualStatusMeta(quiz, attempt);
+    const isEnglish = I18n.getLocale() === 'en';
+    const detail = meta.questionCount > 0
+      ? (isEnglish
+        ? `${meta.gradedCount}/${meta.questionCount} graded`
+        : `已批 ${meta.gradedCount}/${meta.questionCount}`)
+      : '';
+    return `
+      <div class="management-status-stack">
+        <span class="management-status-badge ${meta.toneClass}">${this.escapeText(meta.label)}</span>
+        ${detail ? `<small>${this.escapeText(detail)}</small>` : ''}
+      </div>
+    `;
+  },
+
+  renderQuizAttemptManualAction(quiz = {}, attempt = {}) {
+    const quizId = quiz.quizId || '';
+    const attemptId = attempt.attemptId || '';
+    const meta = this.getQuizAttemptManualStatusMeta(quiz, attempt);
+    if (!quizId || !attemptId || meta.questionCount <= 0 || attempt.status !== 'completed') {
+      return '—';
+    }
+    const isEnglish = I18n.getLocale() === 'en';
+    const label = meta.status === 'graded'
+      ? (isEnglish ? 'Edit grade' : '修改批改')
+      : (isEnglish ? 'Grade' : '批改');
+    const className = meta.status === 'graded' ? 'btn-sm' : 'btn-primary btn-sm';
+    return `
+      <button type="button" class="${className}" onclick="MoodleUI.openQuizManualGradeModal(${this.toInlineActionValue(quizId)}, ${this.toInlineActionValue(attemptId)})">
+        ${this.escapeText(label)}
+      </button>
+    `;
+  },
+
+  formatQuizManualAnswer(answer) {
+    if (answer === null || answer === undefined || answer === '') return '—';
+    if (Array.isArray(answer)) {
+      return answer.map(item => this.formatQuizManualAnswer(item)).join('\n');
+    }
+    if (typeof answer === 'object') {
+      return Object.entries(answer)
+        .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : String(value ?? '')}`)
+        .join('\n');
+    }
+    return String(answer);
+  },
+
+  openQuizManualGradeModal(quizId, attemptId) {
+    const context = this.currentTeacherQuizReportContext || {};
+    const quiz = context.quiz || {};
+    const report = context.report || {};
+    const attempts = Array.isArray(report.attempts) ? report.attempts : [];
+    const attempt = attempts.find(item => item.attemptId === attemptId);
+    const essayQuestions = this.getQuizEssayQuestions(quiz);
+    const isEnglish = I18n.getLocale() === 'en';
+
+    if (!attempt) {
+      showToast(isEnglish ? 'Attempt not found.' : '找不到這筆作答紀錄');
+      return;
+    }
+    if (essayQuestions.length === 0) {
+      showToast(isEnglish ? 'This quiz has no essay questions.' : '這份測驗沒有申論題');
+      return;
+    }
+
+    const resultByQuestionId = new Map(
+      (Array.isArray(attempt.questionResults) ? attempt.questionResults : [])
+        .map(result => [result.questionId, result])
+    );
+    const studentName = attempt.userName || attempt.userEmail || attempt.userId || (isEnglish ? 'Learner' : '學生');
+
+    const questionCards = essayQuestions.map((question, index) => {
+      const result = resultByQuestionId.get(question.questionId) || {};
+      const points = Number(question.points || result.maxPoints || 1);
+      const answer = attempt.answers?.[question.questionId];
+      const hasManualGrade = result.manualGraded === true || Boolean(result.manualGradedAt || result.manualGradedBy);
+      const scoreValue = hasManualGrade
+        ? this.escapeText(String(result.earnedPoints ?? ''))
+        : '';
+      return `
+        <section class="quiz-create-card" data-manual-grade-question-id="${this.escapeText(question.questionId)}" data-max-points="${this.escapeText(String(points))}">
+          <div class="quiz-create-card-head">
+            <div>
+              <div class="quiz-create-card-kicker">${this.escapeText(`${isEnglish ? 'Essay question' : '申論題'} ${index + 1}`)}</div>
+              <div class="quiz-create-card-title">${this.escapeText(question.text || question.questionText || (isEnglish ? 'Untitled question' : '未命名題目'))}</div>
+              <p class="quiz-create-card-note">${this.escapeText(`${isEnglish ? 'Maximum points' : '滿分'}: ${points}`)}</p>
+            </div>
+          </div>
+          <div class="management-kv-list">
+            <div class="management-kv-item">
+              <div class="management-kv-label">${isEnglish ? 'Student answer' : '學生答案'}</div>
+              <div class="management-kv-value">${this.formatMultilineText(this.formatQuizManualAnswer(answer))}</div>
+            </div>
+          </div>
+          <div class="activity-builder-grid">
+            <div class="form-group">
+              <label>${isEnglish ? 'Score' : '得分'}</label>
+              <input type="number" class="manual-grade-score-input" min="0" max="${this.escapeText(String(points))}" step="0.1" value="${scoreValue}" placeholder="0" required>
+            </div>
+            <div class="form-group">
+              <label>${isEnglish ? 'Maximum' : '滿分'}</label>
+              <input type="number" value="${this.escapeText(String(points))}" disabled>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>${isEnglish ? 'Feedback' : '回饋'}</label>
+            <textarea class="manual-grade-feedback-input" rows="3" placeholder="${this.escapeText(isEnglish ? 'Feedback shown to the student' : '給學生看的批改回饋')}">${this.escapeText(result.manualFeedback || result.feedback || '')}</textarea>
+          </div>
+        </section>
+      `;
+    }).join('');
+
+    this.createModal('quizManualGradeModal', isEnglish ? 'Grade essay questions' : '批改申論題', `
+      <form onsubmit="event.preventDefault(); MoodleUI.saveQuizManualGrades(${this.toInlineActionValue(quizId)}, ${this.toInlineActionValue(attemptId)})">
+        <div class="quiz-create-shell">
+          <section class="quiz-create-card quiz-create-card-primary">
+            <div class="quiz-create-card-head">
+              <div>
+                <div class="quiz-create-card-kicker">${isEnglish ? 'Manual grading' : '人工批改'}</div>
+                <div class="quiz-create-card-title">${this.escapeText(studentName)}</div>
+                <p class="quiz-create-card-note">${this.escapeText(isEnglish
+                  ? 'Enter scores for every essay question before the quiz grade is considered final.'
+                  : '所有申論題都批改完成後，這次測驗成績才會視為最終成績。')}</p>
+              </div>
+            </div>
+          </section>
+          ${questionCards}
+          <div class="form-actions">
+            <button type="button" onclick="MoodleUI.closeModal('quizManualGradeModal')" class="btn-secondary">${t('common.cancel')}</button>
+            <button type="submit" class="btn-primary">${isEnglish ? 'Save grades' : '儲存批改'}</button>
+          </div>
+        </div>
+      </form>
+    `, {
+      maxWidth: '980px',
+      className: 'modal-workspace modal-question-builder-modal',
+      kicker: isEnglish ? 'Assessment workspace' : '評量工作區',
+      description: isEnglish
+        ? 'Review the learner response and enter manual scores.'
+        : '檢視學生答案並輸入人工批改分數。'
+    });
+  },
+
+  async saveQuizManualGrades(quizId, attemptId) {
+    const modal = document.getElementById('quizManualGradeModal');
+    const rows = Array.from(modal?.querySelectorAll('[data-manual-grade-question-id]') || []);
+    const isEnglish = I18n.getLocale() === 'en';
+    const grades = [];
+
+    for (const row of rows) {
+      const questionId = row.getAttribute('data-manual-grade-question-id');
+      const maxPoints = Number(row.getAttribute('data-max-points') || 0);
+      const scoreInput = row.querySelector('.manual-grade-score-input');
+      const feedbackInput = row.querySelector('.manual-grade-feedback-input');
+      const earnedPoints = Number(scoreInput?.value);
+
+      if (!questionId || !Number.isFinite(earnedPoints) || earnedPoints < 0 || earnedPoints > maxPoints) {
+        showToast(isEnglish ? 'Please enter a valid score for every essay question.' : '請為每一題申論題輸入有效分數');
+        scoreInput?.focus();
+        return;
+      }
+
+      grades.push({
+        questionId,
+        earnedPoints,
+        feedback: feedbackInput?.value || ''
+      });
+    }
+
+    if (grades.length === 0) {
+      showToast(isEnglish ? 'No essay questions to grade.' : '沒有可批改的申論題');
+      return;
+    }
+
+    const submitButton = modal?.querySelector('button[type="submit"]');
+    if (submitButton) submitButton.disabled = true;
+
+    try {
+      const result = await API.quizzes.gradeAttempt(quizId, attemptId, grades);
+      if (!result.success) {
+        showToast(result.message || (isEnglish ? 'Failed to save grades.' : '儲存批改失敗'));
+        return;
+      }
+
+      showToast(result.message || (isEnglish ? 'Grades saved.' : '批改已儲存'));
+      this.closeModal('quizManualGradeModal');
+      const context = this.currentTeacherQuizReportContext || {};
+      await this.openQuizResults(quizId, {
+        quiz: context.quiz || null,
+        course: context.course || null,
+        replaceHistory: true
+      });
+    } catch (error) {
+      console.error('Save quiz manual grades error:', error);
+      showToast(isEnglish ? 'Failed to save grades.' : '儲存批改失敗');
+    } finally {
+      if (submitButton) submitButton.disabled = false;
+    }
+  },
+
   renderTeacherQuizResultsPage(quiz = {}, report = {}, course = null) {
     const container = document.getElementById('quizAttemptContent');
     if (!container) return;
@@ -9753,6 +10014,8 @@ const MoodleUI = {
       ? `showView('moodleQuizzes'); MoodleUI.loadQuizzes(${this.toInlineActionValue(this.currentQuizCourseId)})`
       : `showView('moodleQuizzes'); MoodleUI.loadQuizzes()`;
     const statusLabel = quiz.visible === false ? t('common.draft') : t('common.published');
+    const quizId = quiz.quizId || quizMeta.quizId || '';
+    this.currentTeacherQuizReportContext = { quiz: { ...quiz, quizId }, report, course };
 
     container.innerHTML = `
       <div class="management-detail-page quiz-report-shell">
@@ -9772,17 +10035,17 @@ const MoodleUI = {
                 {
                   label: I18n.getLocale() === 'en' ? 'Edit quiz' : '編輯測驗',
                   className: 'btn-sm',
-                  onclick: `MoodleUI.editQuizSettings(${this.toInlineActionValue(quiz.quizId || quizMeta.quizId || '')})`
+                  onclick: `MoodleUI.editQuizSettings(${this.toInlineActionValue(quizId)})`
                 },
                 {
                   label: I18n.getLocale() === 'en' ? 'Download CSV' : '下載 CSV',
                   className: 'btn-sm',
-                  onclick: `MoodleUI.downloadQuizResultsCsv(${this.toInlineActionValue(quiz.quizId || quizMeta.quizId || '')})`
+                  onclick: `MoodleUI.downloadQuizResultsCsv(${this.toInlineActionValue(quizId)})`
                 },
                 {
                   label: t('common.delete'),
                   className: 'btn-sm btn-danger',
-                  onclick: `MoodleUI.deleteQuiz(${this.toInlineActionValue(quiz.quizId || quizMeta.quizId || '')}, ${this.toInlineActionValue(targetCourseId || '')})`
+                  onclick: `MoodleUI.deleteQuiz(${this.toInlineActionValue(quizId)}, ${this.toInlineActionValue(targetCourseId || '')})`
                 }
               ]
             : []
@@ -9894,7 +10157,9 @@ const MoodleUI = {
                   <th>${t('moodleQuiz.startTime')}</th>
                   <th>${t('moodleQuiz.finishTime')}</th>
                   <th class="is-center">${t('moodleQuiz.scoreCol')}</th>
+                  <th class="is-center">${I18n.getLocale() === 'en' ? 'Essay grading' : '申論批改'}</th>
                   <th class="is-center">${I18n.getLocale() === 'en' ? 'Status' : '狀態'}</th>
+                  <th class="is-center">${I18n.getLocale() === 'en' ? 'Action' : '操作'}</th>
                 </tr>
               </thead>
               <tbody>
@@ -9904,7 +10169,9 @@ const MoodleUI = {
                     <td>${this.escapeText(this.formatPlatformDate(attempt.startedAt, { dateStyle: 'medium', timeStyle: 'short' }) || '—')}</td>
                     <td>${this.escapeText(this.formatPlatformDate(attempt.completedAt || attempt.submittedAt, { dateStyle: 'medium', timeStyle: 'short' }) || '—')}</td>
                     <td class="is-center">${attempt.score != null ? this.escapeText(String(attempt.score)) : (attempt.percentage != null ? `${this.escapeText(String(Math.round(attempt.percentage)))}%` : '—')}</td>
+                    <td class="is-center">${this.renderQuizAttemptManualStatus({ ...quiz, quizId }, attempt)}</td>
                     <td class="is-center">${this.renderManagementStatusBadge(attempt.status || 'completed', attempt.status === 'completed' ? t('common.completed') : t('common.pending'))}</td>
+                    <td class="is-center">${this.renderQuizAttemptManualAction({ ...quiz, quizId }, attempt)}</td>
                   </tr>
                 `).join('')}
               </tbody>
@@ -9947,7 +10214,7 @@ const MoodleUI = {
   async openQuizResults(quizId, { quiz: preloadedQuiz = null, course: preloadedCourse = null, path = null, replaceHistory = false } = {}) {
     try {
       let quiz = this.normalizeQuizState(preloadedQuiz || {});
-      if (!quiz.quizId || !quiz.courseId || !quiz.title) {
+      if (!quiz.quizId || !quiz.courseId || !quiz.title || !Array.isArray(quiz.questions)) {
         const quizDetailResult = await API.quizzes.get(quizId);
         if (!quizDetailResult.success) {
           showToast(quizDetailResult.message || t('moodleQuiz.loadFailed'));
@@ -14399,6 +14666,11 @@ const MoodleUI = {
    * 初始化 Moodle UI
    */
   init() {
+    if (this._initialized) {
+      this.applyDynamicUiMetrics(document);
+      return;
+    }
+    this._initialized = true;
     this.ensureDynamicUiMetricsObserver();
     this.applyDynamicUiMetrics(document);
     // 定期更新通知數量

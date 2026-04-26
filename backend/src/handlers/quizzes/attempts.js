@@ -80,9 +80,16 @@ function calculateAttemptScoreFromQuestionResults(questionResults = []) {
   };
 }
 
+function isQuizAttemptFinalForGrade(attempt = {}) {
+  return attempt.status === 'completed' &&
+    !attempt.needsManualGrading &&
+    !['pending', 'partial'].includes(String(attempt.manualGradingStatus || '').toLowerCase()) &&
+    Number.isFinite(Number(attempt.percentage));
+}
+
 function selectGradebookAttempt(quiz, attempts = []) {
   const completed = attempts
-    .filter(attempt => attempt?.status === 'completed' && Number.isFinite(Number(attempt.percentage)))
+    .filter(isQuizAttemptFinalForGrade)
     .sort((a, b) => Number(a.attemptNumber || 0) - Number(b.attemptNumber || 0));
 
   if (completed.length === 0) return null;
@@ -147,10 +154,12 @@ async function updateQuizStats(quiz, updatedAttempt = null) {
   const completedAttempts = attempts
     .map(attempt => updatedAttempt && attempt.attemptId === updatedAttempt.attemptId ? { ...attempt, ...updatedAttempt } : attempt)
     .filter(attempt => attempt.status === 'completed');
+  const gradedAttempts = completedAttempts.filter(isQuizAttemptFinalForGrade);
 
   if (completedAttempts.length === 0) {
     await db.updateItem(`QUIZ#${quiz.quizId}`, 'META', {
       'stats.totalAttempts': 0,
+      'stats.gradedAttempts': 0,
       'stats.averageScore': 0,
       'stats.passRate': 0,
       updatedAt: new Date().toISOString()
@@ -158,13 +167,14 @@ async function updateQuizStats(quiz, updatedAttempt = null) {
     return;
   }
 
-  const totalScore = completedAttempts.reduce((sum, attempt) => sum + (Number(attempt.percentage) || 0), 0);
-  const passCount = completedAttempts.filter(attempt => attempt.passed === true).length;
+  const totalScore = gradedAttempts.reduce((sum, attempt) => sum + (Number(attempt.percentage) || 0), 0);
+  const passCount = gradedAttempts.filter(attempt => attempt.passed === true).length;
 
   await db.updateItem(`QUIZ#${quiz.quizId}`, 'META', {
     'stats.totalAttempts': completedAttempts.length,
-    'stats.averageScore': Math.round((totalScore / completedAttempts.length) * 100) / 100,
-    'stats.passRate': Math.round((passCount / completedAttempts.length) * 100),
+    'stats.gradedAttempts': gradedAttempts.length,
+    'stats.averageScore': gradedAttempts.length > 0 ? Math.round((totalScore / gradedAttempts.length) * 100) / 100 : 0,
+    'stats.passRate': gradedAttempts.length > 0 ? Math.round((passCount / gradedAttempts.length) * 100) : 0,
     updatedAt: new Date().toISOString()
   });
 }
@@ -456,6 +466,7 @@ router.post('/:id/attempts/:attemptId/submit', authMiddleware, async (req, res) 
 
     // 評分
     const { score, totalPoints, questionResults } = gradeQuiz(quiz.questions, allAnswers);
+    const manualSummary = getManualGradeSummary(quiz, questionResults);
     const percentage = totalPoints > 0 ? Math.round((score / totalPoints) * 100) : 0;
     const passed = percentage >= quiz.passingGrade;
 
@@ -469,6 +480,7 @@ router.post('/:id/attempts/:attemptId/submit', authMiddleware, async (req, res) 
       percentage,
       passed,
       questionResults,
+      ...manualSummary,
       status: 'completed',
       submittedAt: now,
       updatedAt: now
@@ -493,23 +505,24 @@ router.post('/:id/attempts/:attemptId/submit', authMiddleware, async (req, res) 
 
     // 更新測驗統計
     const allAttempts = await db.query(`QUIZ#${id}`, { skPrefix: 'ATTEMPT#' });
-    const completedAttempts = allAttempts.filter(a => a.status === 'completed' || a.attemptId === attemptId);
-    const totalScore = completedAttempts.reduce((sum, a) =>
-      sum + (a.attemptId === attemptId ? percentage : a.percentage || 0), 0);
-    const averageScore = totalScore / completedAttempts.length;
-    const passCount = completedAttempts.filter(a =>
-      a.attemptId === attemptId ? passed : a.passed).length;
+    const completedAttempts = allAttempts
+      .map(a => a.attemptId === attemptId ? { ...a, ...updates } : a)
+      .filter(a => a.status === 'completed');
+    const gradedAttempts = completedAttempts.filter(isQuizAttemptFinalForGrade);
+    const totalScore = gradedAttempts.reduce((sum, a) => sum + (Number(a.percentage) || 0), 0);
+    const passCount = gradedAttempts.filter(a => a.passed === true).length;
 
     await db.updateItem(`QUIZ#${id}`, 'META', {
       'stats.totalAttempts': completedAttempts.length,
-      'stats.averageScore': Math.round(averageScore * 100) / 100,
-      'stats.passRate': Math.round((passCount / completedAttempts.length) * 100),
+      'stats.gradedAttempts': gradedAttempts.length,
+      'stats.averageScore': gradedAttempts.length > 0 ? Math.round((totalScore / gradedAttempts.length) * 100) / 100 : 0,
+      'stats.passRate': gradedAttempts.length > 0 ? Math.round((passCount / gradedAttempts.length) * 100) : 0,
       updatedAt: now
     });
 
     // 更新用戶課程進度中的成績
     const progress = await db.getItem(`USER#${userId}`, `PROG#COURSE#${quiz.courseId}`);
-    if (progress) {
+    if (progress && !manualSummary.needsManualGrading) {
       const grades = [...(progress.grades || [])];
       const existingIndex = grades.findIndex(g => g.quizId === id);
 
@@ -531,6 +544,11 @@ router.post('/:id/attempts/:attemptId/submit', authMiddleware, async (req, res) 
           totalPoints,
           percentage,
           passed,
+          manualGradingStatus: manualSummary.manualGradingStatus,
+          needsManualGrading: manualSummary.needsManualGrading,
+          manualQuestionCount: manualSummary.manualQuestionCount,
+          manualPendingCount: manualSummary.manualPendingCount,
+          manualGradedCount: manualSummary.manualGradedCount,
           gradedAt: now
         };
 
@@ -566,6 +584,7 @@ router.post('/:id/attempts/:attemptId/submit', authMiddleware, async (req, res) 
       percentage,
       passed,
       submittedAt: now,
+      ...manualSummary,
       gradeVisibility
     };
 
@@ -610,7 +629,7 @@ router.post('/:id/attempts/:attemptId/submit', authMiddleware, async (req, res) 
     res.json({
       success: true,
       message: gradeVisibility.gradesReleased
-        ? (passed ? '恭喜通過測驗！' : '測驗完成')
+        ? (manualSummary.needsManualGrading ? '測驗已提交，申論題待老師批改' : (passed ? '恭喜通過測驗！' : '測驗完成'))
         : '測驗已提交，成績待老師釋出',
       data: result
     });
@@ -621,6 +640,145 @@ router.post('/:id/attempts/:attemptId/submit', authMiddleware, async (req, res) 
       success: false,
       error: 'SUBMIT_FAILED',
       message: '提交測驗失敗'
+    });
+  }
+});
+
+/**
+ * PUT /api/quizzes/:id/attempts/:attemptId/manual-grades
+ * 教師批改申論題並重算測驗成績
+ */
+router.put('/:id/attempts/:attemptId/manual-grades', authMiddleware, async (req, res) => {
+  try {
+    const { id, attemptId } = req.params;
+
+    const quiz = await db.getItem(`QUIZ#${id}`, 'META');
+    if (!quiz) {
+      return res.status(404).json({
+        success: false,
+        error: 'QUIZ_NOT_FOUND',
+        message: '找不到此測驗'
+      });
+    }
+
+    if (!(await canManageQuiz(quiz, req.user))) {
+      return res.status(403).json({
+        success: false,
+        error: 'FORBIDDEN',
+        message: '沒有權限批改此測驗'
+      });
+    }
+
+    const attempts = await db.query(`QUIZ#${id}`, { skPrefix: 'ATTEMPT#' });
+    const attempt = attempts.find(item => item.attemptId === attemptId);
+    if (!attempt) {
+      return res.status(404).json({
+        success: false,
+        error: 'ATTEMPT_NOT_FOUND',
+        message: '找不到作答記錄'
+      });
+    }
+
+    if (attempt.status !== 'completed') {
+      return res.status(400).json({
+        success: false,
+        error: 'ATTEMPT_NOT_COMPLETED',
+        message: '只能批改已提交的測驗'
+      });
+    }
+
+    const manualGrades = normalizeManualGrades(req.body);
+    if (manualGrades.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'NO_GRADES',
+        message: '請至少輸入一題申論題分數'
+      });
+    }
+
+    const questionById = new Map((quiz.questions || []).map(question => [question.questionId, question]));
+    const questionResults = [...(attempt.questionResults || [])];
+    const now = new Date().toISOString();
+
+    for (const grade of manualGrades) {
+      const questionId = String(grade.questionId || '').trim();
+      const question = questionById.get(questionId);
+      if (!question || question.type !== 'essay') {
+        return res.status(400).json({
+          success: false,
+          error: 'INVALID_QUESTION',
+          message: '只能批改此測驗中的申論題'
+        });
+      }
+
+      const maxPoints = Number(question.points || 1);
+      const rawPoints = Number(grade.earnedPoints ?? grade.score ?? grade.points);
+      if (!Number.isFinite(rawPoints)) {
+        return res.status(400).json({
+          success: false,
+          error: 'INVALID_SCORE',
+          message: '請輸入有效分數'
+        });
+      }
+
+      const earnedPoints = Math.round(Math.max(0, Math.min(maxPoints, rawPoints)) * 100) / 100;
+      const resultIndex = questionResults.findIndex(result => result.questionId === questionId);
+      const nextResult = {
+        ...(resultIndex >= 0 ? questionResults[resultIndex] : {}),
+        questionId,
+        isCorrect: earnedPoints >= maxPoints,
+        earnedPoints,
+        maxPoints,
+        needsManualGrading: true,
+        manualGraded: true,
+        manualFeedback: String(grade.feedback || grade.comment || '').trim(),
+        manualGradedBy: req.user.userId,
+        manualGradedAt: now
+      };
+
+      if (resultIndex >= 0) {
+        questionResults[resultIndex] = nextResult;
+      } else {
+        questionResults.push(nextResult);
+      }
+    }
+
+    const { score, totalPoints } = calculateAttemptScoreFromQuestionResults(questionResults);
+    const percentage = totalPoints > 0 ? Math.round((score / totalPoints) * 100) : 0;
+    const passed = percentage >= Number(quiz.passingGrade || 60);
+    const manualSummary = getManualGradeSummary(quiz, questionResults);
+
+    const updates = {
+      questionResults,
+      score,
+      totalPoints,
+      percentage,
+      passed,
+      ...manualSummary,
+      manualGradedAt: manualSummary.needsManualGrading ? attempt.manualGradedAt : now,
+      updatedAt: now
+    };
+
+    const updatedAttempt = await db.updateItem(`QUIZ#${id}`, attempt.SK, updates);
+
+    await updateQuizStats(quiz, updatedAttempt);
+    const attemptsForUser = attempts.map(item => item.attemptId === attemptId ? { ...item, ...updatedAttempt } : item)
+      .filter(item => item.userId === attempt.userId);
+    await updateQuizGradebookEntry(quiz, attempt.userId, attemptsForUser, req.user.userId);
+    await invalidateGradebookSnapshots(quiz.courseId);
+
+    const { PK, SK, ...safeAttempt } = updatedAttempt;
+    res.json({
+      success: true,
+      message: manualSummary.needsManualGrading ? '申論題分數已儲存，仍有題目待批改' : '申論題批改已完成',
+      data: safeAttempt
+    });
+  } catch (error) {
+    console.error('Manual grade quiz attempt error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'MANUAL_GRADE_FAILED',
+      message: '批改申論題失敗'
     });
   }
 });

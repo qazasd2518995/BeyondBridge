@@ -8,6 +8,17 @@ const router = express.Router();
 const db = require('../../utils/db');
 const { authMiddleware } = require('../../utils/auth');
 const { canManageCourse } = require('../../utils/course-access');
+const {
+  buildTeacherQuizAnalytics,
+  buildTeacherAnalyticsCsv
+} = require('./analytics');
+
+function isQuizAttemptFinalForAnalytics(attempt = {}) {
+  return attempt.status === 'completed' &&
+    !attempt.needsManualGrading &&
+    !['pending', 'partial'].includes(String(attempt.manualGradingStatus || '').toLowerCase()) &&
+    Number.isFinite(Number(attempt.percentage));
+}
 
 // ==================== 教師報表 ====================
 
@@ -47,46 +58,33 @@ router.get('/:id/results', authMiddleware, async (req, res) => {
     const attemptsWithUser = await Promise.all(
       completedAttempts.map(async (a) => {
         const user = await db.getUser(a.userId);
-        delete a.PK;
-        delete a.SK;
+        const { PK, SK, ...attempt } = a;
         return {
-          ...a,
+          ...attempt,
           userName: user?.displayName || '未知用戶',
           userEmail: user?.email
         };
       })
     );
 
-    // 計算問題統計
-    const questionStats = quiz.questions.map(q => {
-      const responses = completedAttempts.map(a => ({
-        answer: a.answers[q.questionId],
-        isCorrect: a.questionResults?.find(r => r.questionId === q.questionId)?.isCorrect
-      }));
-
-      const correctCount = responses.filter(r => r.isCorrect).length;
-      const totalResponses = responses.length;
-
-      // 選擇題的選項分布
-      let optionDistribution = null;
-      if (q.type === 'multiple_choice' && q.options) {
-        optionDistribution = q.options.map(opt => ({
-          option: opt,
-          count: responses.filter(r => r.answer === opt).length,
-          percentage: totalResponses > 0 ?
-            Math.round((responses.filter(r => r.answer === opt).length / totalResponses) * 100) : 0
-        }));
-      }
-
-      return {
-        questionId: q.questionId,
-        questionText: q.text,
-        type: q.type,
-        correctRate: totalResponses > 0 ?
-          Math.round((correctCount / totalResponses) * 100) : 0,
-        optionDistribution
-      };
-    });
+    const analyticsAttempts = attemptsWithUser.filter(isQuizAttemptFinalForAnalytics);
+    const analytics = buildTeacherQuizAnalytics(quiz, analyticsAttempts);
+    const questionStats = analytics.sections.flatMap(section =>
+      (section.questionStats || []).map(question => ({
+        ...question,
+        sectionId: section.sectionId,
+        sectionTitle: section.title
+      }))
+    );
+    const percentages = analyticsAttempts
+      .map(attempt => Number(attempt.percentage))
+      .filter(Number.isFinite);
+    const averageScore = percentages.length > 0
+      ? Math.round(percentages.reduce((sum, score) => sum + score, 0) / percentages.length)
+      : null;
+    const highestScore = percentages.length > 0 ? Math.max(...percentages) : null;
+    const passingGrade = Number(quiz.passingGrade || 60);
+    const passedCount = analyticsAttempts.filter(attempt => Number(attempt.percentage) >= passingGrade).length;
 
     res.json({
       success: true,
@@ -98,8 +96,19 @@ router.get('/:id/results', authMiddleware, async (req, res) => {
           totalPoints: quiz.totalPoints,
           passingGrade: quiz.passingGrade
         },
-        stats: quiz.stats,
+        stats: {
+          ...(quiz.stats || {}),
+          totalAttempts: completedAttempts.length,
+          gradedAttempts: analyticsAttempts.length,
+          averageScore,
+          highestScore,
+          passedCount,
+          passRate: analyticsAttempts.length > 0
+            ? Math.round((passedCount / analyticsAttempts.length) * 100)
+            : 0
+        },
         questionStats,
+        sectionAnalytics: analytics,
         attempts: attemptsWithUser
       }
     });
@@ -110,6 +119,63 @@ router.get('/:id/results', authMiddleware, async (req, res) => {
       success: false,
       error: 'FETCH_FAILED',
       message: '取得測驗結果失敗'
+    });
+  }
+});
+
+/**
+ * GET /api/quizzes/:id/results.csv
+ * 匯出測驗 section 分析與學生 section 成績
+ */
+router.get('/:id/results.csv', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const quiz = await db.getItem(`QUIZ#${id}`, 'META');
+    if (!quiz) {
+      return res.status(404).json({
+        success: false,
+        error: 'QUIZ_NOT_FOUND',
+        message: '找不到此測驗'
+      });
+    }
+
+    const course = await db.getItem(`COURSE#${quiz.courseId}`, 'META');
+    if (!canManageCourse(course, req.user)) {
+      return res.status(403).json({
+        success: false,
+        error: 'FORBIDDEN',
+        message: '沒有權限匯出測驗結果'
+      });
+    }
+
+    const attempts = await db.query(`QUIZ#${id}`, { skPrefix: 'ATTEMPT#' });
+    const completedAttempts = attempts.filter(a => a.status === 'completed');
+    const attemptsWithUser = await Promise.all(
+      completedAttempts.map(async (a) => {
+        const user = await db.getUser(a.userId);
+        const { PK, SK, ...attempt } = a;
+        return {
+          ...attempt,
+          userName: user?.displayName || '未知用戶',
+          userEmail: user?.email || ''
+        };
+      })
+    );
+    const analyticsAttempts = attemptsWithUser.filter(isQuizAttemptFinalForAnalytics);
+    const analytics = buildTeacherQuizAnalytics(quiz, analyticsAttempts);
+    const csv = buildTeacherAnalyticsCsv(quiz, analyticsAttempts, analytics);
+    const filename = `quiz-${id}-section-analytics.csv`;
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(csv);
+  } catch (error) {
+    console.error('Export quiz results CSV error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'EXPORT_FAILED',
+      message: '匯出測驗結果失敗'
     });
   }
 });

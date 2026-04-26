@@ -940,8 +940,11 @@ const API = {
   // ===== 測驗 API =====
   quizzes: {
     async list(filters = {}) {
-      const params = new URLSearchParams(filters).toString();
-      return API.request(`/quizzes?${params}`);
+      const normalizedFilters = typeof filters === 'string'
+        ? { courseId: filters }
+        : (filters || {});
+      const params = new URLSearchParams(normalizedFilters).toString();
+      return API.request(params ? `/quizzes?${params}` : '/quizzes');
     },
 
     async get(quizId) {
@@ -949,10 +952,20 @@ const API = {
     },
 
     async submit(quizId, answers, timeSpent = 0) {
-      return API.request(`/quizzes/${quizId}/submit`, {
-        method: 'POST',
-        body: { answers, timeSpent }
-      });
+      if (typeof answers === 'string') {
+        return API.quizzes.submitAttempt(quizId, answers, {});
+      }
+
+      const startResult = await API.quizzes.start(quizId);
+      if (!startResult?.success) {
+        return startResult;
+      }
+
+      return API.quizzes.submitAttempt(
+        quizId,
+        startResult.data?.attemptId,
+        API.quizzes.normalizeAnswers(answers)
+      );
     },
 
     async getResult(quizId) {
@@ -1002,10 +1015,23 @@ const API = {
       });
     },
 
-    async submitAttempt(quizId, attemptId, answers) {
+    normalizeAnswers(answers) {
+      if (Array.isArray(answers)) {
+        return answers.reduce((map, item) => {
+          if (item && item.questionId) {
+            map[item.questionId] = item.answer;
+          }
+          return map;
+        }, {});
+      }
+
+      return answers && typeof answers === 'object' ? answers : {};
+    },
+
+    async submitAttempt(quizId, attemptId, answers = {}) {
       return API.request(`/quizzes/${quizId}/attempts/${attemptId}/submit`, {
         method: 'POST',
-        body: { answers }
+        body: { answers: API.quizzes.normalizeAnswers(answers) }
       });
     },
 
@@ -1013,8 +1039,51 @@ const API = {
       return API.request(`/quizzes/${quizId}/attempts/${attemptId}/review`);
     },
 
+    async gradeAttempt(quizId, attemptId, grades = []) {
+      return API.request(`/quizzes/${quizId}/attempts/${attemptId}/manual-grades`, {
+        method: 'PUT',
+        body: { grades }
+      });
+    },
+
     async getResults(quizId) {
       return API.request(`/quizzes/${quizId}/results`);
+    },
+
+    async downloadCsv(endpoint, filename) {
+      const response = await fetch(`${API.baseUrl}${endpoint}`, {
+        headers: {
+          'Authorization': `Bearer ${API.accessToken}`,
+          'X-Language': (typeof I18n !== 'undefined' && I18n.getLocale) ? I18n.getLocale() : 'zh-TW'
+        }
+      });
+      if (!response.ok) {
+        const message = await response.text();
+        throw new Error(message || 'CSV download failed');
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    },
+
+    async downloadResultsCsv(quizId) {
+      return API.quizzes.downloadCsv(
+        `/quizzes/${quizId}/results.csv`,
+        `quiz-${quizId}-section-analytics.csv`
+      );
+    },
+
+    async downloadAttemptAnalyticsCsv(quizId, attemptId) {
+      return API.quizzes.downloadCsv(
+        `/quizzes/${quizId}/attempts/${attemptId}/analytics.csv`,
+        `quiz-${quizId}-attempt-${attemptId}-section-analytics.csv`
+      );
     }
   },
 

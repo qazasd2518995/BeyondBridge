@@ -60,6 +60,53 @@ const App = {
     });
   },
 
+  getCourseDisplayOrder(course = {}) {
+    const candidates = [
+      course.sortOrder,
+      course.displayOrder,
+      course.order,
+      course.position,
+      course.sequence
+    ];
+    const value = candidates.find(item => Number.isFinite(Number(item)));
+    return value === undefined ? Number.POSITIVE_INFINITY : Number(value);
+  },
+
+  getCourseDisplayTitle(course = {}) {
+    return String(course.title || course.courseTitle || course.name || course.shortName || course.shortname || '').trim();
+  },
+
+  getCourseStableId(course = {}) {
+    return String(course.courseId || course.id || course.shortName || course.shortname || this.getCourseDisplayTitle(course)).trim();
+  },
+
+  sortCoursesForDisplay(courses = []) {
+    if (!Array.isArray(courses)) return [];
+
+    return courses
+      .map((course, index) => ({ course, index }))
+      .sort((a, b) => {
+        const pinnedDelta = Number(!!b.course?.pinned || !!b.course?.isPinned) - Number(!!a.course?.pinned || !!a.course?.isPinned);
+        if (pinnedDelta !== 0) return pinnedDelta;
+
+        const orderDelta = this.getCourseDisplayOrder(a.course) - this.getCourseDisplayOrder(b.course);
+        if (orderDelta !== 0) return orderDelta;
+
+        const titleDelta = this.getCourseDisplayTitle(a.course).localeCompare(this.getCourseDisplayTitle(b.course), I18n.getLocale() === 'en' ? 'en-US' : 'zh-TW', {
+          numeric: true,
+          sensitivity: 'base'
+        });
+        if (titleDelta !== 0) return titleDelta;
+
+        const idDelta = this.getCourseStableId(a.course).localeCompare(this.getCourseStableId(b.course), 'en-US', {
+          numeric: true,
+          sensitivity: 'base'
+        });
+        return idDelta || a.index - b.index;
+      })
+      .map(item => item.course);
+  },
+
   getPlatformViewHref(viewName, query = null) {
     if (window.PlatformRouter?.getPathForView) {
       return window.PlatformRouter.getPathForView(viewName, query) || '#';
@@ -151,6 +198,11 @@ const App = {
     this.updateUserUI();
     this.updateSidebarByRole();
     document.getElementById('appContainer').hidden = false;
+    if (window.MoodleUI?.init) {
+      window.MoodleUI.init();
+    } else if (window.PlatformUIRuntime?.applyRuntimeUi) {
+      window.PlatformUIRuntime.applyRuntimeUi(document);
+    }
     if (window.PlatformRouter?.applyCurrentRoute) {
       window.PlatformRouter.applyCurrentRoute({ replace: true }).catch((error) => {
         console.error('Apply platform route error:', error);
@@ -1001,6 +1053,7 @@ const App = {
       if (mergedCourses.length === 0 && courseStats.length > 0) {
         mergedCourses = courseStats;
       }
+      mergedCourses = this.sortCoursesForDisplay(mergedCourses);
 
       const setText = (id, value) => {
         const el = document.getElementById(id);
@@ -1051,8 +1104,9 @@ const App = {
   updateTeacherCourseList(courses) {
     const courseList = document.getElementById('teacherCourseList');
     if (!courseList) return;
+    const sortedCourses = this.sortCoursesForDisplay(courses);
 
-    if (courses.length === 0) {
+    if (sortedCourses.length === 0) {
       courseList.innerHTML = this.renderDashboardEmptyState(t('teacher.noCourses'), {
         iconMarkup: `
           <polygon points="12,2 2,7 12,12 22,7"></polygon>
@@ -1066,7 +1120,7 @@ const App = {
 
     const tones = ['tone-olive', 'tone-terracotta', 'tone-sand', 'tone-blue'];
 
-    courseList.innerHTML = `<div class="dashboard-stack">${courses.slice(0, 4).map((course, index) => {
+    courseList.innerHTML = `<div class="dashboard-stack">${sortedCourses.slice(0, 4).map((course, index) => {
       const toneClass = tones[index % tones.length];
       const avgProgress = course.avgProgress ?? course.averageProgress ?? 0;
       const pendingGrading = Number(course.pendingGrading || course.pendingAssignments || 0);
@@ -1306,7 +1360,7 @@ const App = {
     try {
       const result = await API.users.getCourses(userId);
       if (result.success) {
-        this.coursesCache = result.data || [];
+        this.coursesCache = this.sortCoursesForDisplay(result.data || []);
         this.updateCoursesUI();
       }
     } catch (error) {
@@ -1321,7 +1375,7 @@ const App = {
     // 更新 Dashboard 的進行中課程
     const courseList = document.querySelector('#dashboardView .course-list');
     if (courseList && this.coursesCache.length > 0) {
-      const inProgress = this.coursesCache.filter(c => c.progress < 100).slice(0, 3);
+      const inProgress = this.sortCoursesForDisplay(this.coursesCache.filter(c => c.progress < 100)).slice(0, 3);
       if (inProgress.length > 0) {
         courseList.innerHTML = inProgress.map(course => this.renderCourseItem(course)).join('');
         this.applyProgressData(courseList);
@@ -1331,7 +1385,8 @@ const App = {
     // 更新課程頁面
     const coursesGrid = document.querySelector('#coursesView .course-list');
     if (coursesGrid) {
-      coursesGrid.innerHTML = this.coursesCache.map(course => this.renderCourseItem(course)).join('');
+      const sortedCourses = this.sortCoursesForDisplay(this.coursesCache);
+      coursesGrid.innerHTML = sortedCourses.map(course => this.renderCourseItem(course)).join('');
       this.applyProgressData(coursesGrid);
     }
   },
@@ -3096,12 +3151,12 @@ const App = {
         <div class="quiz-question-head">
           <span class="quiz-question-number">${index + 1}</span>
           <div class="quiz-question-copy">
-            <p class="quiz-question-text">${this.escapeText(q.question)}</p>
+            <p class="quiz-question-text">${this.escapeText(q.question || q.text || '')}</p>
             ${q.imageUrl ? `<img src="${this.escapeText(q.imageUrl)}" alt="" class="quiz-question-image">` : ''}
           </div>
         </div>
         <div>
-          ${q.type === 'multiple_choice' ? this.renderMultipleChoice(q, index) : this.renderTextAnswer(q, index)}
+          ${['multiple_choice', 'true_false'].includes(q.type) ? this.renderMultipleChoice(q, index) : this.renderTextAnswer(q, index)}
         </div>
       </section>
     `).join('');
@@ -3111,17 +3166,39 @@ const App = {
    * 渲染選擇題選項
    */
   renderMultipleChoice(question, questionIndex) {
-    const options = question.options || [];
+    const options = this.normalizeQuizOptions(question);
     return `
       <div class="quiz-options">
         ${options.map((opt) => `
           <label class="quiz-option">
-            <input class="quiz-option-input" type="radio" name="q_${questionIndex}" value="${this.escapeText(opt)}" onchange="App.recordAnswer(${this.inlineActionValue(question.questionId)}, ${this.inlineActionValue(opt)})">
-            <span class="quiz-option-text">${this.escapeText(opt)}</span>
+            <input class="quiz-option-input" type="radio" name="q_${questionIndex}" value="${this.escapeText(String(opt.value))}" onchange="App.recordAnswer(${this.inlineActionValue(question.questionId)}, ${this.inlineActionValue(opt.value)})">
+            <span class="quiz-option-text">${this.escapeText(opt.text)}</span>
           </label>
         `).join('')}
       </div>
     `;
+  },
+
+  normalizeQuizOptions(question = {}) {
+    if (question.type === 'true_false' && (!Array.isArray(question.options) || question.options.length === 0)) {
+      return [
+        { text: I18n.getLocale() === 'en' ? 'True' : '是', value: true },
+        { text: I18n.getLocale() === 'en' ? 'False' : '否', value: false }
+      ];
+    }
+
+    return (question.options || []).map((option, index) => {
+      if (option && typeof option === 'object') {
+        return {
+          text: String(option.text ?? option.label ?? option.value ?? ''),
+          value: option.value ?? option.id ?? index
+        };
+      }
+      return {
+        text: String(option ?? ''),
+        value: index
+      };
+    });
   },
 
   /**
@@ -3580,7 +3657,7 @@ const App = {
       const user = API.getCurrentUser();
       const role = this.isTeachingUser(user) ? 'instructor' : 'student';
       const result = await API.courses.getMyCourses(role);
-      const courses = result.success ? (result.data || []) : [];
+      const courses = this.sortCoursesForDisplay(result.success ? (result.data || []) : []);
       if (courses.length === 0) {
         container.innerHTML = `<div class="empty-state"><p>${t('app.noCourses')}</p><button onclick="showView('moodleCourses')" class="btn-primary">${t('app.browseCourses')}</button></div>`;
         return;
@@ -4253,7 +4330,7 @@ const App = {
     try {
       const coursesResult = await API.courses.getMyCourses('instructor');
       const courses = coursesResult.success ? (coursesResult.data || []) : [];
-      const teacherCourses = courses;
+      const teacherCourses = this.sortCoursesForDisplay(courses);
       const locale = I18n.getLocale();
       const untitledCourseLabel = locale === 'en' ? 'Untitled Course' : '未命名課程';
 

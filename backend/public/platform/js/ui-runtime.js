@@ -113,11 +113,41 @@
     });
   }
 
+  const responsiveTableSelector = [
+    'table.management-table',
+    'table.data-table',
+    'table.attempts-table',
+    'table.proctoring-table',
+    'table.bridge-members-table'
+  ].join(',');
+
+  function applyResponsiveTableLabels(root = document) {
+    getScopedNodes(root, responsiveTableSelector).forEach((table) => {
+      if (!(table instanceof HTMLTableElement)) return;
+      const headers = Array.from(table.querySelectorAll('thead th')).map((header) => (
+        String(header.textContent || '').replace(/\s+/g, ' ').trim()
+      ));
+      if (headers.length === 0) return;
+
+      table.classList.add('responsive-card-table');
+      Array.from(table.querySelectorAll('tbody tr')).forEach((row) => {
+        Array.from(row.children).forEach((cell, index) => {
+          if (!(cell instanceof HTMLTableCellElement) || cell.tagName !== 'TD') return;
+          const label = headers[index] || '';
+          if (label && !cell.hasAttribute('data-label')) {
+            cell.setAttribute('data-label', label);
+          }
+        });
+      });
+    });
+  }
+
   function applyRuntimeUi(root = document) {
     applyProgressWidths(root);
     applyBackgroundFills(root);
     applyAccentTones(root);
     applyTreeIndent(root);
+    applyResponsiveTableLabels(root);
   }
 
   let runtimeObserver = null;
@@ -154,6 +184,7 @@
     applyAccentTones,
     setTreeIndent,
     applyTreeIndent,
+    applyResponsiveTableLabels,
     applyRuntimeUi,
     observeRuntimeUi
   };

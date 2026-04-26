@@ -165,6 +165,12 @@ const GRADEBOOK_ATTEMPT_PROJECTION = [
   'status',
   'percentage',
   'score',
+  'manualGradingStatus',
+  'needsManualGrading',
+  'manualQuestionCount',
+  'manualPendingCount',
+  'manualGradedCount',
+  'manualGradedAt',
   'submittedAt',
   'updatedAt',
   'createdAt',
@@ -605,9 +611,11 @@ function buildStudentGradeItems(dataset = {}, studentId, categories = []) {
         : calculatePercentage(bestScore, item.maxGrade),
       graded: bestScore !== null && bestScore !== undefined,
       submitted: quizSummary.attemptCount > 0,
-      feedback: null,
+      feedback: quizSummary.manualPendingCount > 0 ? '申論題待批改' : null,
       attemptCount: quizSummary.attemptCount,
-      gradedAt: quizSummary.bestAttempt?.submittedAt || quizSummary.completedAttempts?.slice(-1)?.[0]?.submittedAt || null
+      pendingManualGrading: quizSummary.manualPendingCount > 0,
+      manualPendingCount: quizSummary.manualPendingCount,
+      gradedAt: quizSummary.bestAttempt?.manualGradedAt || quizSummary.bestAttempt?.submittedAt || quizSummary.completedAttempts?.slice(-1)?.[0]?.submittedAt || null
     };
   });
 
@@ -724,38 +732,62 @@ function getQuizGradeSummary(quiz, attempts = []) {
   if (completedAttempts.length === 0) {
     return {
       completedAttempts: [],
+      gradeableAttempts: [],
       bestScore: null,
       bestPercentage: null,
       bestAttempt: null,
-      attemptCount: 0
+      attemptCount: 0,
+      manualPendingCount: 0
     };
   }
 
-  let selectedAttempt = completedAttempts[0];
-  if (quiz.gradeMethod === 'highest') {
-    selectedAttempt = completedAttempts.reduce((max, attempt) => (
-      (attempt.percentage || 0) > (max?.percentage || 0) ? attempt : max
-    ), completedAttempts[0]);
-  } else if (quiz.gradeMethod === 'average') {
-    const bestScore = completedAttempts.reduce((sum, attempt) => sum + Number(attempt.score || 0), 0) / completedAttempts.length;
-    const bestPercentage = completedAttempts.reduce((sum, attempt) => sum + Number(attempt.percentage || 0), 0) / completedAttempts.length;
+  const gradeableAttempts = completedAttempts.filter(attempt => (
+    !attempt.needsManualGrading &&
+    !['pending', 'partial'].includes(String(attempt.manualGradingStatus || '').toLowerCase())
+  ));
+  const manualPendingCount = completedAttempts.length - gradeableAttempts.length;
+
+  if (gradeableAttempts.length === 0) {
     return {
       completedAttempts,
+      gradeableAttempts,
+      bestScore: null,
+      bestPercentage: null,
+      bestAttempt: null,
+      attemptCount: completedAttempts.length,
+      manualPendingCount
+    };
+  }
+
+  let selectedAttempt = gradeableAttempts[0];
+  if (quiz.gradeMethod === 'highest') {
+    selectedAttempt = gradeableAttempts.reduce((max, attempt) => (
+      (attempt.percentage || 0) > (max?.percentage || 0) ? attempt : max
+    ), gradeableAttempts[0]);
+  } else if (quiz.gradeMethod === 'average') {
+    const bestScore = gradeableAttempts.reduce((sum, attempt) => sum + Number(attempt.score || 0), 0) / gradeableAttempts.length;
+    const bestPercentage = gradeableAttempts.reduce((sum, attempt) => sum + Number(attempt.percentage || 0), 0) / gradeableAttempts.length;
+    return {
+      completedAttempts,
+      gradeableAttempts,
       bestScore,
       bestPercentage,
       bestAttempt: null,
-      attemptCount: completedAttempts.length
+      attemptCount: completedAttempts.length,
+      manualPendingCount
     };
   } else if (quiz.gradeMethod === 'last') {
-    selectedAttempt = completedAttempts[completedAttempts.length - 1];
+    selectedAttempt = gradeableAttempts[gradeableAttempts.length - 1];
   }
 
   return {
     completedAttempts,
+    gradeableAttempts,
     bestScore: selectedAttempt?.score ?? null,
     bestPercentage: selectedAttempt?.percentage ?? null,
     bestAttempt: selectedAttempt || null,
-    attemptCount: completedAttempts.length
+    attemptCount: completedAttempts.length,
+    manualPendingCount
   };
 }
 
@@ -938,6 +970,8 @@ async function buildTeacherCourseGradebookSnapshot(courseId, course) {
           gradedAt: item.gradedAt || null,
           feedback: item.feedback || '',
           attemptCount: item.attemptCount || 0,
+          pendingManualGrading: !!item.pendingManualGrading,
+          manualPendingCount: item.manualPendingCount || 0,
           percentage: item.percentage,
           categoryId: item.categoryId,
           weight: item.weight ?? null
@@ -1850,6 +1884,9 @@ router.get('/courses/:courseId/students/:studentId', authMiddleware, async (req,
           score: attempt.score,
           percentage: attempt.percentage,
           passed: attempt.passed,
+          manualGradingStatus: attempt.manualGradingStatus || 'not_required',
+          needsManualGrading: !!attempt.needsManualGrading,
+          manualPendingCount: attempt.manualPendingCount || 0,
           submittedAt: attempt.submittedAt
         }));
 
@@ -1864,6 +1901,8 @@ router.get('/courses/:courseId/students/:studentId', authMiddleware, async (req,
         gradeMethod: quiz.gradeMethod,
         categoryId: item?.categoryId || defaultCategoryIdForType('quiz'),
         weight: item?.weight ?? null,
+        pendingManualGrading: quizSummary.manualPendingCount > 0,
+        manualPendingCount: quizSummary.manualPendingCount,
         attempts: completedAttempts,
         bestAttempt: quizSummary.bestAttempt
           ? {
@@ -1871,6 +1910,7 @@ router.get('/courses/:courseId/students/:studentId', authMiddleware, async (req,
             score: quizSummary.bestAttempt.score,
             percentage: quizSummary.bestAttempt.percentage,
             passed: quizSummary.bestAttempt.passed,
+            manualGradingStatus: quizSummary.bestAttempt.manualGradingStatus || 'graded',
             submittedAt: quizSummary.bestAttempt.submittedAt
           }
           : null
