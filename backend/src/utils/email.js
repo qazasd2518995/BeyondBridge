@@ -124,7 +124,7 @@ function emailTemplate(title, content, footerText = '') {
                 ${footerText || '這封郵件由系統自動發送，請勿直接回覆。'}
               </p>
               <p style="margin: 0; color: #6c757d; font-size: 12px;">
-                &copy; ${new Date().getFullYear()} ${PLATFORM_NAME}. All rights reserved.
+                2026 ${PLATFORM_NAME}. All rights reserved.
               </p>
             </td>
           </tr>
