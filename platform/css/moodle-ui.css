@@ -1998,6 +1998,80 @@
   font-size: 0.86rem;
 }
 
+.bulk-import-checkbox {
+  min-height: 46px;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.72rem 0.85rem;
+  border: 1px solid rgba(26, 58, 92, 0.08);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.bulk-import-checkbox input {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--olive);
+}
+
+.bulk-import-template-actions {
+  margin-bottom: 0;
+}
+
+.bulk-import-preview {
+  min-height: 160px;
+}
+
+.bulk-import-summary {
+  margin-bottom: 0.85rem;
+}
+
+.bulk-import-preview-list {
+  display: grid;
+  gap: 0.78rem;
+  max-height: 48vh;
+  overflow: auto;
+  padding-right: 0.15rem;
+}
+
+.bulk-import-preview-item {
+  padding: 0.95rem 1rem;
+  border-radius: 18px;
+  border: 1px solid rgba(26, 58, 92, 0.08);
+  background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248,245,239,0.92));
+}
+
+.bulk-import-preview-item.is-invalid {
+  border-color: rgba(185, 28, 28, 0.22);
+  background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(254,242,242,0.9));
+}
+
+.bulk-import-preview-main {
+  display: grid;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.bulk-import-preview-main h4 {
+  margin: 0;
+  color: var(--charcoal);
+  font-size: 0.98rem;
+  line-height: 1.5;
+}
+
+.bulk-import-error-list {
+  margin: 0.15rem 0 0;
+  padding-left: 1.1rem;
+  color: var(--terracotta);
+  font-size: 0.86rem;
+  line-height: 1.55;
+}
+
+.bulk-import-error {
+  border-color: rgba(185, 28, 28, 0.22);
+}
+
 .assignment-detail-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -16930,6 +17004,7 @@ iframe#interactive-video-player {
   .activity-builder-shell,
   .builder-question-list,
   .quiz-bank-list,
+  .bulk-import-preview-list,
   .qb-main,
   .qb-list {
     gap: 0.72rem;
@@ -16938,6 +17013,7 @@ iframe#interactive-video-player {
   .quiz-create-card,
   .builder-question-card,
   .quiz-bank-item,
+  .bulk-import-preview-item,
   .qb-sidebar-card,
   .qb-search-shell,
   .question-card {
@@ -16988,6 +17064,12 @@ iframe#interactive-video-player {
   .builder-summary-row,
   .builder-badge-row {
     gap: 0.45rem;
+  }
+
+  .bulk-import-preview-list {
+    max-height: none;
+    overflow: visible;
+    padding-right: 0;
   }
 
   .builder-badge {

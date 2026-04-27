@@ -17,6 +17,7 @@ const MoodleUI = {
   currentForumBuilderState: null,
   currentQuizQuestionEditorState: null,
   currentQuizQuestionBankPicker: null,
+  currentQuizBulkImportState: null,
   currentAssignmentDetail: null,
   assignmentSubmissionDraft: null,
   currentViewedAssignmentSubmission: null,
@@ -18091,6 +18092,781 @@ const MoodleUI = {
       : `已加入 ${appended.length} 題`);
   },
 
+  getQuizBulkImportSample(format = 'csv') {
+    if (format === 'json') {
+      return JSON.stringify([
+        {
+          type: 'multiple_choice',
+          text: '壓力管理的第一步通常是什麼？',
+          options: ['覺察自己的狀態', '忽略壓力', '立刻責怪自己', '完全停止學習'],
+          correctAnswer: 'A',
+          points: 10,
+          difficulty: 'medium',
+          analysisSection: '壓力覺察',
+          feedback: '先覺察狀態，才有機會選擇合適的調節策略。',
+          tags: ['正念', '壓力']
+        },
+        {
+          type: 'multiple_select',
+          text: '下列哪些做法有助於穩定情緒？',
+          options: ['深呼吸', '短暫休息', '熬夜硬撐', '向可信任的人求助'],
+          correctAnswers: ['A', 'B', 'D'],
+          points: 10,
+          difficulty: 'medium',
+          analysisSection: '情緒調節'
+        },
+        {
+          type: 'true_false',
+          text: '正念練習一定要完全沒有雜念才算成功。',
+          correctAnswer: false,
+          points: 5,
+          difficulty: 'easy'
+        },
+        {
+          type: 'short_answer',
+          text: '請寫出一個你可以在課堂前使用的放鬆方法。',
+          correctAnswers: ['深呼吸', '伸展', '覺察呼吸'],
+          points: 10,
+          difficulty: 'medium'
+        },
+        {
+          type: 'essay',
+          text: '請說明你會如何把今天學到的壓力調節方法用在生活中。',
+          referenceAnswer: '能具體描述情境、方法與後續調整。',
+          minWords: 50,
+          points: 20,
+          difficulty: 'hard'
+        }
+      ], null, 2);
+    }
+
+    return [
+      'type,text,options,correctAnswer,correctAnswers,points,difficulty,analysisSection,feedback,tags',
+      '"multiple_choice","壓力管理的第一步通常是什麼？","覺察自己的狀態|忽略壓力|立刻責怪自己|完全停止學習","A","",10,"medium","壓力覺察","先覺察狀態，才有機會選擇合適的調節策略。","正念|壓力"',
+      '"multiple_select","下列哪些做法有助於穩定情緒？","深呼吸|短暫休息|熬夜硬撐|向可信任的人求助","","A|B|D",10,"medium","情緒調節","","正念|情緒"',
+      '"true_false","正念練習一定要完全沒有雜念才算成功。","","false","",5,"easy","","",""',
+      '"short_answer","請寫出一個你可以在課堂前使用的放鬆方法。","","深呼吸|伸展|覺察呼吸","",10,"medium","","",""',
+      '"essay","請說明你會如何把今天學到的壓力調節方法用在生活中。","","","",20,"hard","生活應用","能具體描述情境、方法與後續調整。","反思"'
+    ].join('\n');
+  },
+
+  switchQuizBulkImportFormat(format) {
+    const textarea = document.getElementById('quizBulkImportData');
+    if (!textarea) return;
+    const previousFormat = this.currentQuizBulkImportState?.format || 'csv';
+    const previousSample = this.getQuizBulkImportSample(previousFormat).trim();
+    if (!textarea.value.trim() || textarea.value.trim() === previousSample) {
+      textarea.value = this.getQuizBulkImportSample(format);
+    }
+    this.currentQuizBulkImportState = {
+      ...(this.currentQuizBulkImportState || {}),
+      format
+    };
+    this.updateQuizBulkImportPreview();
+  },
+
+  openQuizBulkImportModal() {
+    const builderState = this.currentQuizBuilderState;
+    if (!builderState) return;
+
+    const courseId = document.getElementById('quizBuilderCourse')?.value || builderState.courseId;
+    if (!courseId) {
+      showToast(I18n.getLocale() === 'en' ? 'Please select a course first.' : '請先選擇課程。');
+      return;
+    }
+
+    const isEnglish = I18n.getLocale() === 'en';
+    this.currentQuizBulkImportState = {
+      format: 'csv',
+      rows: [],
+      validQuestions: []
+    };
+
+    const modal = this.createModal('quizBulkImportModal', isEnglish ? 'Bulk import questions' : '批量匯入題目', `
+      <form onsubmit="event.preventDefault(); MoodleUI.appendQuizBulkImportedQuestions()">
+        <div class="quiz-create-shell">
+          <section class="quiz-create-card quiz-create-card-primary">
+            <div class="quiz-create-card-head">
+              <div>
+                <div class="quiz-create-card-kicker">${isEnglish ? 'Question import' : '題目匯入'}</div>
+                <div class="quiz-create-card-title">${isEnglish ? 'Paste CSV or JSON questions' : '貼上 CSV 或 JSON 題目'}</div>
+                <p class="quiz-create-card-note">${isEnglish
+                  ? 'Import multiple quiz questions at once, validate the answer keys, then add them into this quiz builder.'
+                  : '一次貼上多題，先檢查題目與答案設定，再加入目前這份測驗。'}</p>
+              </div>
+              <span class="builder-badge">${isEnglish ? 'Supports 5 core types' : '支援 5 種核心題型'}</span>
+            </div>
+            <div class="activity-builder-grid">
+              <div class="form-group">
+                <label>${isEnglish ? 'Format' : '格式'}</label>
+                <select id="quizBulkImportFormat" onchange="MoodleUI.switchQuizBulkImportFormat(this.value)">
+                  <option value="csv">CSV</option>
+                  <option value="json">JSON</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>${isEnglish ? 'Save destination' : '儲存方式'}</label>
+                <label class="checkbox-label bulk-import-checkbox">
+                  <input type="checkbox" id="quizBulkImportSaveToBank" checked>
+                  <span>${isEnglish ? 'Also save imported questions to this course question bank' : '同時存入這門課的題庫，之後可重複使用'}</span>
+                </label>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>${isEnglish ? 'Question data' : '題目資料'}</label>
+              <textarea id="quizBulkImportData" rows="14" spellcheck="false" placeholder="${this.escapeText(isEnglish ? 'Paste CSV or JSON question data here' : '在這裡貼上 CSV 或 JSON 題目資料')}">${this.escapeText(this.getQuizBulkImportSample('csv'))}</textarea>
+              <p class="form-hint">${isEnglish
+                ? 'CSV fields: type, text, options, correctAnswer, correctAnswers, points, difficulty, analysisSection, feedback, tags. Separate options and multiple answers with |.'
+                : 'CSV 欄位：type, text, options, correctAnswer, correctAnswers, points, difficulty, analysisSection, feedback, tags。選項與多個答案用 | 分隔。'}</p>
+            </div>
+            <div class="builder-toolbar bulk-import-template-actions">
+              <button type="button" class="btn-secondary" onclick="MoodleUI.downloadQuizBulkImportTemplate()">${isEnglish ? 'Download template' : '下載範本'}</button>
+              <button type="button" class="btn-secondary" onclick="MoodleUI.updateQuizBulkImportPreview()">${isEnglish ? 'Preview validation' : '預覽驗證'}</button>
+            </div>
+          </section>
+
+          <section class="quiz-create-card">
+            <div class="quiz-create-card-head">
+              <div>
+                <div class="quiz-create-card-kicker">${isEnglish ? 'Validation' : '驗證結果'}</div>
+                <div class="quiz-create-card-title">${isEnglish ? 'Questions ready to add' : '準備加入的題目'}</div>
+                <p class="quiz-create-card-note">${isEnglish
+                  ? 'Rows with missing text, options, or answer keys must be fixed before importing.'
+                  : '缺少題目、選項或正確答案的列必須先修正，才會加入測驗。'}</p>
+              </div>
+            </div>
+            <div id="quizBulkImportPreview" class="bulk-import-preview"></div>
+          </section>
+
+          <div class="form-actions">
+            <button type="button" onclick="MoodleUI.closeModal('quizBulkImportModal')" class="btn-secondary">${t('common.cancel')}</button>
+            <button type="submit" class="btn-primary">${isEnglish ? 'Add questions to quiz' : '加入測驗'}</button>
+          </div>
+        </div>
+      </form>
+    `, {
+      maxWidth: '1080px',
+      className: 'modal-workspace modal-question-bulk-import-modal',
+      kicker: isEnglish ? 'Assessment workspace' : '評量工作區',
+      description: isEnglish
+        ? 'Bulk import into the current quiz and optionally keep reusable copies in the question bank.'
+        : '批量加入目前測驗，並可同步保存到題庫以便之後重複使用。'
+    });
+
+    modal.querySelector('#quizBulkImportData')?.addEventListener('input', () => this.updateQuizBulkImportPreview());
+    this.updateQuizBulkImportPreview();
+  },
+
+  parseQuizBulkImportInput(format, rawData) {
+    const trimmed = String(rawData || '').trim();
+    if (!trimmed) {
+      throw new Error(I18n.getLocale() === 'en' ? 'Question data is required.' : '請貼上題目資料。');
+    }
+
+    const parsed = format === 'json'
+      ? JSON.parse(trimmed)
+      : this.parseQuestionImportCsv(trimmed);
+    const questions = Array.isArray(parsed)
+      ? parsed
+      : (Array.isArray(parsed?.questions) ? parsed.questions : [parsed]);
+
+    return questions.filter(question => question && typeof question === 'object');
+  },
+
+  normalizeQuizImportQuestionType(type) {
+    const key = String(type || 'multiple_choice')
+      .trim()
+      .toLowerCase()
+      .replace(/[\s-]+/g, '_');
+    const aliases = {
+      single: 'multiple_choice',
+      single_choice: 'multiple_choice',
+      choice: 'multiple_choice',
+      radio: 'multiple_choice',
+      checkbox: 'multiple_select',
+      checkboxes: 'multiple_select',
+      multi_select: 'multiple_select',
+      multiple: 'multiple_select',
+      multi: 'multiple_select',
+      truefalse: 'true_false',
+      true_or_false: 'true_false',
+      tf: 'true_false',
+      boolean: 'true_false',
+      short: 'short_answer',
+      short_text: 'short_answer',
+      text: 'short_answer',
+      blank: 'fill_blank',
+      fill_in_blank: 'fill_blank',
+      numeric: 'numerical',
+      number: 'numerical',
+      open: 'essay',
+      long_answer: 'essay'
+    };
+    return aliases[key] || key || 'multiple_choice';
+  },
+
+  splitQuizImportValues(value, { allowComma = false } = {}) {
+    if (Array.isArray(value)) {
+      return value.flatMap(item => this.splitQuizImportValues(item, { allowComma }));
+    }
+    if (value === undefined || value === null || value === '') return [];
+    if (value && typeof value === 'object') {
+      const candidate = value.value ?? value.text ?? value.label ?? value.answer ?? '';
+      return this.splitQuizImportValues(candidate, { allowComma });
+    }
+    const text = String(value).trim();
+    if (!text) return [];
+    const separator = allowComma ? /[\n|,;]+/ : /[\n|;]+/;
+    return text.split(separator).map(item => item.trim()).filter(Boolean);
+  },
+
+  getFirstFilledQuizImportValue(...values) {
+    for (const value of values) {
+      if (Array.isArray(value)) {
+        if (value.length > 0) return value;
+        continue;
+      }
+      if (value && typeof value === 'object') return value;
+      if (value !== undefined && value !== null && String(value).trim() !== '') {
+        return value;
+      }
+    }
+    return '';
+  },
+
+  normalizeQuizImportOptions(value) {
+    if (Array.isArray(value)) {
+      return value
+        .map(option => {
+          if (option && typeof option === 'object') {
+            return String(option.text ?? option.label ?? option.value ?? '').trim();
+          }
+          return String(option ?? '').trim();
+        })
+        .filter(Boolean);
+    }
+
+    const text = String(value || '').trim();
+    if (!text) return [];
+
+    if (text.startsWith('[') && text.endsWith(']')) {
+      try {
+        return this.normalizeQuizImportOptions(JSON.parse(text));
+      } catch (error) {
+        // Fall through to delimiter parsing.
+      }
+    }
+
+    return text.split('|').map(option => option.trim()).filter(Boolean);
+  },
+
+  resolveQuizImportChoiceIndex(value, options = []) {
+    if (value && typeof value === 'object') {
+      return this.resolveQuizImportChoiceIndex(value.value ?? value.text ?? value.label, options);
+    }
+
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      const numericIndex = Math.trunc(value);
+      return numericIndex >= 0 && numericIndex < options.length ? numericIndex : null;
+    }
+
+    const text = String(value ?? '').trim();
+    if (!text) return null;
+    if (/^\d+$/.test(text)) {
+      return this.resolveQuizImportChoiceIndex(Number(text), options);
+    }
+
+    const letterMatch = text.toUpperCase().match(/^(?:OPTION|選項)?\s*([A-Z])$/);
+    if (letterMatch) {
+      const index = letterMatch[1].charCodeAt(0) - 65;
+      return index >= 0 && index < options.length ? index : null;
+    }
+
+    const lowered = text.toLowerCase();
+    const exactIndex = options.findIndex(option => String(option).trim().toLowerCase() === lowered);
+    return exactIndex >= 0 ? exactIndex : null;
+  },
+
+  parseQuizImportBooleanAnswer(value) {
+    if (Array.isArray(value)) return this.parseQuizImportBooleanAnswer(value[0]);
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'number') {
+      if (value === 1) return true;
+      if (value === 0) return false;
+    }
+    const text = String(value ?? '').trim().toLowerCase();
+    if (['true', 't', 'yes', 'y', '1', '是', '對', '正確'].includes(text)) return true;
+    if (['false', 'f', 'no', 'n', '0', '否', '錯', '錯誤'].includes(text)) return false;
+    return null;
+  },
+
+  normalizeQuizImportMatchingPairs(value) {
+    if (Array.isArray(value)) {
+      return value
+        .map(pair => {
+          if (Array.isArray(pair)) {
+            return {
+              prompt: String(pair[0] ?? '').trim(),
+              answer: String(pair[1] ?? '').trim()
+            };
+          }
+          return {
+            prompt: String(pair?.prompt ?? pair?.question ?? pair?.left ?? '').trim(),
+            answer: String(pair?.answer ?? pair?.right ?? pair?.match ?? '').trim()
+          };
+        })
+        .filter(pair => pair.prompt && pair.answer);
+    }
+
+    return String(value || '')
+      .split(/[\n;]+/)
+      .map(row => row.trim())
+      .filter(Boolean)
+      .map(row => {
+        const parts = row.includes('=>') ? row.split('=>') : row.split(':');
+        return {
+          prompt: String(parts[0] || '').trim(),
+          answer: String(parts.slice(1).join(':') || '').trim()
+        };
+      })
+      .filter(pair => pair.prompt && pair.answer);
+  },
+
+  normalizeQuizImportClozeAnswers(value) {
+    if (Array.isArray(value)) {
+      return value
+        .map((blank, index) => {
+          if (blank && typeof blank === 'object') {
+            const answers = this.splitQuizImportValues(blank.answers ?? blank.acceptedAnswers ?? blank.answer ?? blank.value);
+            return {
+              id: String(blank.id || blank.blankId || index + 1).trim(),
+              answers,
+              caseSensitive: !!blank.caseSensitive
+            };
+          }
+          return {
+            id: String(index + 1),
+            answers: this.splitQuizImportValues(blank),
+            caseSensitive: false
+          };
+        })
+        .filter(blank => blank.id && blank.answers.length > 0);
+    }
+
+    return String(value || '')
+      .split(/[\n;]+/)
+      .map((row, index) => {
+        const parts = row.split(':');
+        const hasExplicitId = parts.length > 1;
+        return {
+          id: hasExplicitId ? parts.shift().trim() : String(index + 1),
+          answers: this.splitQuizImportValues(parts.join(':') || row),
+          caseSensitive: false
+        };
+      })
+      .filter(blank => blank.id && blank.answers.length > 0);
+  },
+
+  normalizeQuizBulkImportQuestion(rawQuestion = {}, index = 0) {
+    const isEnglish = I18n.getLocale() === 'en';
+    const errors = [];
+    const type = this.normalizeQuizImportQuestionType(rawQuestion.type || rawQuestion.questionType || rawQuestion.kind);
+    const supportedTypes = new Set([
+      'multiple_choice',
+      'multiple_select',
+      'true_false',
+      'short_answer',
+      'fill_blank',
+      'essay',
+      'matching',
+      'ordering',
+      'numerical',
+      'cloze'
+    ]);
+
+    if (!supportedTypes.has(type)) {
+      errors.push(isEnglish ? `Unsupported question type: ${type}` : `不支援的題型：${type}`);
+    }
+
+    const text = String(
+      rawQuestion.questionText
+      ?? rawQuestion.text
+      ?? rawQuestion.question
+      ?? rawQuestion.prompt
+      ?? rawQuestion.title
+      ?? rawQuestion.clozeText
+      ?? ''
+    ).trim();
+    const pointsValue = Number(rawQuestion.points ?? rawQuestion.score ?? rawQuestion.grade ?? 10);
+    const points = Number.isFinite(pointsValue) && pointsValue > 0 ? pointsValue : 10;
+    const difficulty = ['easy', 'medium', 'hard'].includes(String(rawQuestion.difficulty || '').trim())
+      ? String(rawQuestion.difficulty).trim()
+      : 'medium';
+    const analysisSection = String(
+      rawQuestion.analysisSection
+      ?? rawQuestion.section
+      ?? rawQuestion.skill
+      ?? rawQuestion.categoryName
+      ?? ''
+    ).trim();
+    const feedback = String(rawQuestion.feedback ?? rawQuestion.explanation ?? rawQuestion.analysis ?? '').trim();
+    const tags = this.splitQuizImportValues(rawQuestion.tags, { allowComma: true });
+
+    const question = {
+      type: supportedTypes.has(type) ? type : 'multiple_choice',
+      text,
+      points,
+      difficulty,
+      analysisSection,
+      feedback,
+      tags
+    };
+
+    if (!text) {
+      errors.push(isEnglish ? 'Question text is required.' : '題目文字不可空白。');
+    }
+
+    if (type === 'multiple_choice') {
+      const options = this.normalizeQuizImportOptions(rawQuestion.options ?? rawQuestion.choices);
+      const correctAnswer = this.resolveQuizImportChoiceIndex(
+        this.getFirstFilledQuizImportValue(
+          rawQuestion.correctAnswer,
+          rawQuestion.correct_answer,
+          rawQuestion.answer,
+          rawQuestion.correct
+        ),
+        options
+      );
+      question.options = options;
+      question.correctAnswer = correctAnswer ?? 0;
+      question.correctAnswers = [];
+      if (options.length < 2) {
+        errors.push(isEnglish ? 'Multiple choice needs at least two options.' : '選擇題至少需要兩個選項。');
+      }
+      if (correctAnswer === null) {
+        errors.push(isEnglish ? 'Set a valid correct answer such as A, B, or 0.' : '請設定有效正確答案，例如 A、B 或 0。');
+      }
+    } else if (type === 'multiple_select') {
+      const options = this.normalizeQuizImportOptions(rawQuestion.options ?? rawQuestion.choices);
+      const answerValues = this.splitQuizImportValues(
+        this.getFirstFilledQuizImportValue(
+          rawQuestion.correctAnswers,
+          rawQuestion.correct_answers,
+          rawQuestion.correctAnswer,
+          rawQuestion.correct_answer,
+          rawQuestion.answer,
+          rawQuestion.correct
+        ),
+        { allowComma: true }
+      );
+      const correctAnswers = [...new Set(answerValues
+        .map(answer => this.resolveQuizImportChoiceIndex(answer, options))
+        .filter(answer => answer !== null)
+      )];
+      question.options = options;
+      question.correctAnswer = null;
+      question.correctAnswers = correctAnswers;
+      if (options.length < 2) {
+        errors.push(isEnglish ? 'Multiple select needs at least two options.' : '多選題至少需要兩個選項。');
+      }
+      if (correctAnswers.length === 0) {
+        errors.push(isEnglish ? 'Select at least one correct option.' : '請至少設定一個正確選項。');
+      }
+    } else if (type === 'true_false') {
+      const correctAnswer = this.parseQuizImportBooleanAnswer(
+        this.getFirstFilledQuizImportValue(
+          rawQuestion.correctAnswer,
+          rawQuestion.correct_answer,
+          rawQuestion.answer,
+          rawQuestion.correct
+        )
+      );
+      question.options = [];
+      question.correctAnswer = correctAnswer ?? true;
+      question.correctAnswers = [];
+      if (correctAnswer === null) {
+        errors.push(isEnglish ? 'True/false answer must be true or false.' : '是非題答案必須是 true 或 false。');
+      }
+    } else if (type === 'short_answer' || type === 'fill_blank') {
+      const correctAnswers = this.splitQuizImportValues(
+        this.getFirstFilledQuizImportValue(
+          rawQuestion.correctAnswers,
+          rawQuestion.correct_answers,
+          rawQuestion.correctAnswer,
+          rawQuestion.correct_answer,
+          rawQuestion.acceptedAnswers,
+          rawQuestion.answers,
+          rawQuestion.answer
+        ),
+        { allowComma: true }
+      );
+      question.options = [];
+      question.correctAnswer = null;
+      question.correctAnswers = correctAnswers;
+      question.caseSensitive = rawQuestion.caseSensitive === true || String(rawQuestion.caseSensitive || '').toLowerCase() === 'true';
+      if (correctAnswers.length === 0) {
+        errors.push(isEnglish ? 'Add at least one accepted answer.' : '請至少設定一個可接受答案。');
+      }
+    } else if (type === 'essay') {
+      question.options = [];
+      question.correctAnswer = null;
+      question.correctAnswers = [];
+      question.referenceAnswer = String(rawQuestion.referenceAnswer ?? rawQuestion.reference ?? rawQuestion.sampleAnswer ?? '').trim();
+      question.minWords = Number.isFinite(Number(rawQuestion.minWords)) ? Number(rawQuestion.minWords) : 0;
+    } else if (type === 'matching') {
+      const matchingPairs = this.normalizeQuizImportMatchingPairs(rawQuestion.matchingPairs ?? rawQuestion.pairs ?? rawQuestion.options);
+      question.options = [];
+      question.correctAnswer = null;
+      question.correctAnswers = [];
+      question.matchingPairs = matchingPairs;
+      if (matchingPairs.length < 2) {
+        errors.push(isEnglish ? 'Matching questions need at least two pairs.' : '配對題至少需要兩組配對。');
+      }
+    } else if (type === 'ordering') {
+      const orderingItems = this.normalizeQuizImportOptions(rawQuestion.orderingItems ?? rawQuestion.orderItems ?? rawQuestion.options);
+      question.options = [];
+      question.correctAnswer = null;
+      question.correctAnswers = [];
+      question.orderingItems = orderingItems;
+      if (orderingItems.length < 2) {
+        errors.push(isEnglish ? 'Ordering questions need at least two items.' : '排序題至少需要兩個項目。');
+      }
+    } else if (type === 'numerical') {
+      const numericAnswer = Number(this.getFirstFilledQuizImportValue(
+        rawQuestion.numericAnswer,
+        rawQuestion.correctAnswer,
+        rawQuestion.correct_answer,
+        rawQuestion.answer
+      ));
+      question.options = [];
+      question.correctAnswer = Number.isFinite(numericAnswer) ? numericAnswer : '';
+      question.correctAnswers = [];
+      question.numericAnswer = Number.isFinite(numericAnswer) ? numericAnswer : '';
+      question.numericTolerance = Math.max(0, Number(rawQuestion.numericTolerance ?? rawQuestion.tolerance ?? 0) || 0);
+      if (!Number.isFinite(numericAnswer)) {
+        errors.push(isEnglish ? 'Numerical questions need a valid numeric answer.' : '數值題需要有效的正確數值。');
+      }
+    } else if (type === 'cloze') {
+      const clozeText = String(rawQuestion.clozeText ?? text).trim();
+      const clozeAnswers = this.normalizeQuizImportClozeAnswers(this.getFirstFilledQuizImportValue(
+        rawQuestion.clozeAnswers,
+        rawQuestion.correctAnswers,
+        rawQuestion.answers
+      ));
+      question.text = clozeText;
+      question.clozeText = clozeText;
+      question.options = [];
+      question.correctAnswer = null;
+      question.correctAnswers = [];
+      question.clozeAnswers = clozeAnswers;
+      if (!clozeText) {
+        errors.push(isEnglish ? 'Cloze text is required.' : '克漏字文章不可空白。');
+      }
+      if (clozeAnswers.length === 0) {
+        errors.push(isEnglish ? 'Cloze questions need at least one blank answer.' : '克漏字至少需要一個空格答案。');
+      }
+    }
+
+    return {
+      index,
+      errors,
+      question: this.normalizeQuizBuilderQuestion(question)
+    };
+  },
+
+  updateQuizBulkImportPreview() {
+    const preview = document.getElementById('quizBulkImportPreview');
+    if (!preview) return this.currentQuizBulkImportState;
+
+    const isEnglish = I18n.getLocale() === 'en';
+    const format = document.getElementById('quizBulkImportFormat')?.value || this.currentQuizBulkImportState?.format || 'csv';
+    const rawData = document.getElementById('quizBulkImportData')?.value || '';
+
+    let rows = [];
+    try {
+      const rawQuestions = this.parseQuizBulkImportInput(format, rawData);
+      rows = rawQuestions.map((question, index) => this.normalizeQuizBulkImportQuestion(question, index));
+    } catch (error) {
+      this.currentQuizBulkImportState = {
+        format,
+        rows: [],
+        validQuestions: []
+      };
+      preview.innerHTML = `
+        <div class="builder-question-empty bulk-import-error">
+          <strong>${isEnglish ? 'Cannot parse question data' : '題目資料無法解析'}</strong>
+          <p>${this.escapeText(error.message || (isEnglish ? 'Check the CSV or JSON format.' : '請檢查 CSV 或 JSON 格式。'))}</p>
+        </div>
+      `;
+      return this.currentQuizBulkImportState;
+    }
+
+    const validRows = rows.filter(row => row.errors.length === 0);
+    this.currentQuizBulkImportState = {
+      format,
+      rows,
+      validQuestions: validRows.map(row => row.question)
+    };
+
+    if (rows.length === 0) {
+      preview.innerHTML = `
+        <div class="builder-question-empty">
+          <strong>${isEnglish ? 'No questions found' : '尚未找到題目'}</strong>
+          <p>${isEnglish ? 'Paste at least one question row before importing.' : '請至少貼上一列題目資料再匯入。'}</p>
+        </div>
+      `;
+      return this.currentQuizBulkImportState;
+    }
+
+    const invalidCount = rows.length - validRows.length;
+    const visibleRows = rows.slice(0, 80);
+    preview.innerHTML = `
+      <div class="builder-summary-row bulk-import-summary">
+        <span class="builder-badge">${rows.length} ${isEnglish ? 'row(s)' : '列'}</span>
+        <span class="builder-badge">${validRows.length} ${isEnglish ? 'valid' : '可匯入'}</span>
+        <span class="builder-badge">${invalidCount} ${isEnglish ? 'need fixes' : '需修正'}</span>
+      </div>
+      <div class="bulk-import-preview-list">
+        ${visibleRows.map((row) => {
+          const question = row.question;
+          const isInvalid = row.errors.length > 0;
+          const statusText = isInvalid
+            ? (isEnglish ? 'Needs fix' : '需修正')
+            : (isEnglish ? 'Ready' : '可匯入');
+          return `
+            <article class="bulk-import-preview-item ${isInvalid ? 'is-invalid' : ''}">
+              <div class="bulk-import-preview-main">
+                <div class="builder-badge-row">
+                  <span class="builder-badge">${isEnglish ? 'Row' : '第'} ${row.index + 1}${isEnglish ? '' : ' 列'}</span>
+                  <span class="builder-badge">${this.escapeText(statusText)}</span>
+                  <span class="builder-badge">${this.escapeText(this.getLocalizedQuestionType(question.type))}</span>
+                  <span class="builder-badge">${this.escapeText(String(question.points || 0))} ${isEnglish ? 'pts' : '分'}</span>
+                </div>
+                <h4>${this.escapeText(this.truncateText(question.text || question.clozeText || '', 180) || (isEnglish ? 'Untitled question' : '未命名題目'))}</h4>
+                ${row.errors.length ? `
+                  <ul class="bulk-import-error-list">
+                    ${row.errors.map(error => `<li>${this.escapeText(error)}</li>`).join('')}
+                  </ul>
+                ` : ''}
+              </div>
+            </article>
+          `;
+        }).join('')}
+      </div>
+      ${rows.length > visibleRows.length ? `<p class="form-hint">${isEnglish ? `Showing first ${visibleRows.length} rows.` : `目前只顯示前 ${visibleRows.length} 列。`}</p>` : ''}
+    `;
+
+    return this.currentQuizBulkImportState;
+  },
+
+  createQuestionBankPayloadFromQuizBuilderQuestion(question = {}) {
+    const normalized = this.normalizeQuizBuilderQuestion(question);
+    return {
+      type: normalized.type,
+      questionText: normalized.clozeText || normalized.text,
+      text: normalized.clozeText || normalized.text,
+      options: normalized.options || [],
+      correctAnswer: normalized.correctAnswer,
+      correctAnswers: normalized.correctAnswers || [],
+      caseSensitive: normalized.caseSensitive,
+      referenceAnswer: normalized.referenceAnswer || '',
+      minWords: normalized.minWords || 0,
+      matchingPairs: normalized.matchingPairs || [],
+      orderingItems: normalized.orderingItems || [],
+      numericAnswer: normalized.numericAnswer,
+      numericTolerance: normalized.numericTolerance,
+      clozeText: normalized.clozeText || '',
+      clozeAnswers: normalized.clozeAnswers || [],
+      points: normalized.points || 10,
+      difficulty: normalized.difficulty || 'medium',
+      explanation: normalized.feedback || '',
+      feedback: normalized.feedback || '',
+      tags: normalized.tags || []
+    };
+  },
+
+  async appendQuizBulkImportedQuestions() {
+    const builderState = this.currentQuizBuilderState;
+    if (!builderState) return;
+
+    const courseId = document.getElementById('quizBuilderCourse')?.value || builderState.courseId;
+    if (!courseId) {
+      showToast(I18n.getLocale() === 'en' ? 'Please select a course first.' : '請先選擇課程。');
+      return;
+    }
+
+    const importState = this.updateQuizBulkImportPreview();
+    const rows = importState?.rows || [];
+    const invalidCount = rows.filter(row => row.errors.length > 0).length;
+    if (rows.length === 0) {
+      showToast(I18n.getLocale() === 'en' ? 'Paste at least one question.' : '請至少貼上一題。');
+      return;
+    }
+    if (invalidCount > 0) {
+      showToast(I18n.getLocale() === 'en'
+        ? 'Fix invalid rows before importing.'
+        : '請先修正標示為錯誤的題目列。');
+      return;
+    }
+
+    const localQuestions = rows.map(row => row.question);
+    let appendedQuestions = localQuestions;
+    const shouldSaveToBank = document.getElementById('quizBulkImportSaveToBank')?.checked === true;
+
+    if (shouldSaveToBank) {
+      try {
+        const result = await API.questionBank.import({
+          format: importState.format,
+          courseId,
+          questions: localQuestions.map(question => this.createQuestionBankPayloadFromQuizBuilderQuestion(question))
+        });
+
+        if (!result?.success) {
+          showToast(result?.message || (I18n.getLocale() === 'en' ? 'Failed to save imported questions to question bank.' : '題目存入題庫失敗。'));
+          return;
+        }
+
+        const bankQuestions = Array.isArray(result.data?.questions) ? result.data.questions : [];
+        if (bankQuestions.length === localQuestions.length) {
+          appendedQuestions = bankQuestions.map((bankQuestion, index) => {
+            const bankBuilderQuestion = this.createQuizQuestionFromBankQuestion(bankQuestion);
+            return {
+              ...bankBuilderQuestion,
+              analysisSection: localQuestions[index]?.analysisSection || bankBuilderQuestion.analysisSection
+            };
+          });
+        }
+      } catch (error) {
+        console.error('Bulk import questions to bank failed:', error);
+        showToast(I18n.getLocale() === 'en' ? 'Failed to save imported questions to question bank.' : '題目存入題庫失敗。');
+        return;
+      }
+    }
+
+    builderState.questions.push(...appendedQuestions.map(question => this.normalizeQuizBuilderQuestion(question)));
+    this.closeModal('quizBulkImportModal');
+    this.renderQuizBuilderQuestionList();
+    showToast(I18n.getLocale() === 'en'
+      ? `${appendedQuestions.length} question(s) imported`
+      : `已批量加入 ${appendedQuestions.length} 題`);
+  },
+
+  downloadQuizBulkImportTemplate() {
+    const format = document.getElementById('quizBulkImportFormat')?.value || 'csv';
+    const content = this.getQuizBulkImportSample(format);
+    const blob = new Blob([content], {
+      type: format === 'json' ? 'application/json;charset=utf-8' : 'text/csv;charset=utf-8'
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `quiz-question-import-template.${format}`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  },
+
   async openQuizBuilderModal({ quizId = null, courseId = null, sectionId = null, returnTo = null } = {}) {
     const isEditing = !!quizId;
     const isEnglish = I18n.getLocale() === 'en';
@@ -18251,6 +19027,7 @@ const MoodleUI = {
             <div class="builder-toolbar">
               <button type="button" class="btn-secondary" onclick="MoodleUI.openQuizQuestionEditorModal()">${t('moodleQuestionBank.addQuestion')}</button>
               <button type="button" class="btn-secondary" onclick="MoodleUI.openQuizQuestionBankModal()">${isEnglish ? 'Add from question bank' : '從題庫加入'}</button>
+              <button type="button" class="btn-secondary" onclick="MoodleUI.openQuizBulkImportModal()">${isEnglish ? 'Bulk import' : '批量匯入'}</button>
             </div>
             <div id="quizBuilderQuestionSummary"></div>
             <div id="quizBuilderQuestionList" class="builder-question-list"></div>
@@ -19630,21 +20407,29 @@ const MoodleUI = {
         .map(option => option.trim())
         .filter(Boolean);
       const correctAnswerRaw = row.correctanswer ?? row.correct_answer ?? '';
+      const correctAnswersRaw = row.correctanswers ?? row.correct_answers ?? '';
       const normalizedType = String(row.type || 'multiple_choice').trim();
+      const booleanAnswer = String(correctAnswerRaw).trim().toLowerCase();
 
       return {
-        questionText: row.questiontext || row.question || '',
+        questionText: row.questiontext || row.text || row.question || row.prompt || '',
         type: normalizedType,
         options,
         correctAnswer: normalizedType === 'true_false'
-          ? String(correctAnswerRaw).toLowerCase() === 'true'
-          : (correctAnswerRaw === '' ? null : Number(correctAnswerRaw)),
+          ? (correctAnswerRaw === '' ? null : ['true', 't', 'yes', 'y', '1', '是', '對', '正確'].includes(booleanAnswer))
+          : (correctAnswerRaw === '' ? null : correctAnswerRaw),
+        correctAnswers: String(correctAnswersRaw || '')
+          .split(/[|,;]/)
+          .map(answer => answer.trim())
+          .filter(Boolean),
         difficulty: row.difficulty || 'medium',
+        analysisSection: row.analysissection || row.analysis_section || row.section || row.skill || '',
         tags: String(row.tags || '')
-          .split('|')
+          .split(/[|,]/)
           .map(tag => tag.trim())
           .filter(Boolean),
-        explanation: row.explanation || '',
+        explanation: row.explanation || row.feedback || '',
+        feedback: row.feedback || row.explanation || '',
         points: row.points ? Number(row.points) : 1
       };
     }).filter(question => question.questionText);
