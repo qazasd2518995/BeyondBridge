@@ -1023,7 +1023,6 @@ const MoodleUI = {
         </div>
       </div>
     `;
-    this.applyDynamicUiMetrics(container);
   },
 
   // ==================== 課程頁面 ====================
@@ -8182,6 +8181,11 @@ const MoodleUI = {
         this.currentQuestionIndex = 0;
         this.renderQuizQuestion();
         showView('quizAttempt');
+        if (this.hasQuizPendingAnswerSaves()) {
+          this.currentQuizAnswerSaveTimer = window.setTimeout(() => {
+            this.flushQuizAnswerSaves({ silent: true });
+          }, 500);
+        }
       } else {
         showToast(result.message || t('moodleQuiz.startFailed'));
       }
@@ -8195,7 +8199,154 @@ const MoodleUI = {
   currentQuestionIndex: 0,
   currentQuizPendingAnswerSaves: {},
   currentQuizAnswerSaveTimer: null,
+  currentQuizAnswerSavePromise: null,
   quizAnswerSaveWarningShown: false,
+  quizAutosaveLifecycleHandlersAttached: false,
+  quizAutosaveState: { state: 'idle', message: '' },
+
+  setupQuizAutosaveLifecycleHandlers() {
+    if (this.quizAutosaveLifecycleHandlersAttached) return;
+    this.quizAutosaveLifecycleHandlersAttached = true;
+
+    const flushBeforeLeaving = (event = null) => {
+      if (!this.currentQuizAttempt) return undefined;
+      this.saveCurrentQuestionAnswer({ immediate: false });
+      const hasPending = this.hasQuizPendingAnswerSaves();
+      if (hasPending) {
+        this.flushQuizAnswerSaves({ keepalive: true, silent: true });
+      }
+
+      if (event?.type === 'beforeunload' && hasPending) {
+        event.preventDefault();
+        event.returnValue = '';
+        return '';
+      }
+      return undefined;
+    };
+
+    window.addEventListener('beforeunload', flushBeforeLeaving);
+    window.addEventListener('pagehide', flushBeforeLeaving);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        flushBeforeLeaving({ type: 'visibilitychange' });
+      } else if (this.currentQuizAttempt) {
+        this.flushQuizAnswerSaves({ silent: true });
+      }
+    });
+    window.addEventListener('online', () => {
+      if (this.currentQuizAttempt) this.flushQuizAnswerSaves();
+    });
+  },
+
+  hasQuizPendingAnswerSaves() {
+    return Object.keys(this.currentQuizPendingAnswerSaves || {}).length > 0;
+  },
+
+  getQuizAutosaveStorageKey(attempt = this.currentQuizAttempt) {
+    if (!attempt?.quizId || !attempt?.attemptId) return null;
+    const userId = API.getCurrentUser()?.userId || 'anonymous';
+    return `bb.quizAutosave.${userId}.${attempt.quizId}.${attempt.attemptId}`;
+  },
+
+  readQuizPendingAnswerDraft(attempt = this.currentQuizAttempt) {
+    const key = this.getQuizAutosaveStorageKey(attempt);
+    if (!key) return {};
+    try {
+      const raw = window.localStorage.getItem(key);
+      if (!raw) return {};
+      const parsed = JSON.parse(raw);
+      if (parsed?.quizId !== attempt.quizId || parsed?.attemptId !== attempt.attemptId) return {};
+      return this.normalizeQuizObjectAnswer(parsed.answers);
+    } catch (error) {
+      return {};
+    }
+  },
+
+  writeQuizPendingAnswerDraft(attempt = this.currentQuizAttempt, answers = {}) {
+    const key = this.getQuizAutosaveStorageKey(attempt);
+    if (!key) return;
+    const safeAnswers = this.normalizeQuizObjectAnswer(answers);
+    try {
+      if (Object.keys(safeAnswers).length === 0) {
+        window.localStorage.removeItem(key);
+        return;
+      }
+      window.localStorage.setItem(key, JSON.stringify({
+        quizId: attempt.quizId,
+        attemptId: attempt.attemptId,
+        answers: safeAnswers,
+        updatedAt: new Date().toISOString()
+      }));
+    } catch (error) {
+      // localStorage may be unavailable in private mode; server autosave still runs.
+    }
+  },
+
+  mergeQuizPendingAnswerDraft(attempt = this.currentQuizAttempt, answers = {}) {
+    const merged = {
+      ...this.readQuizPendingAnswerDraft(attempt),
+      ...this.normalizeQuizObjectAnswer(answers)
+    };
+    this.writeQuizPendingAnswerDraft(attempt, merged);
+  },
+
+  clearQuizPendingAnswerDraft(attempt = this.currentQuizAttempt, sentAnswers = null) {
+    const key = this.getQuizAutosaveStorageKey(attempt);
+    if (!key) return;
+    if (!sentAnswers) {
+      try { window.localStorage.removeItem(key); } catch { /* ignore */ }
+      return;
+    }
+
+    const stored = this.readQuizPendingAnswerDraft(attempt);
+    Object.entries(sentAnswers).forEach(([questionId, answer]) => {
+      if (this.serializeQuizAnswer(stored[questionId]) === this.serializeQuizAnswer(answer)) {
+        delete stored[questionId];
+      }
+    });
+    this.writeQuizPendingAnswerDraft(attempt, stored);
+  },
+
+  setQuizAutosaveState(state = 'idle', message = null) {
+    const isEnglish = I18n.getLocale() === 'en';
+    const now = new Date();
+    const time = now.toLocaleTimeString(isEnglish ? 'en-US' : 'zh-TW', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+    const fallback = {
+      idle: '',
+      local: isEnglish ? 'Recovered local answers; syncing...' : '已回復本機暫存，等待同步...',
+      saving: isEnglish ? 'Saving answers...' : '答案儲存中...',
+      saved: isEnglish ? `Saved ${time}` : `已儲存 ${time}`,
+      error: isEnglish ? 'Saved locally; retrying when online' : '已暫存在本機，連線後會重送'
+    };
+    const nextMessage = message ?? fallback[state] ?? '';
+    this.quizAutosaveState = { state, message: nextMessage };
+
+    const indicator = document.getElementById('quizAutosaveStatus');
+    if (indicator) {
+      indicator.dataset.state = state;
+      indicator.textContent = nextMessage;
+    }
+  },
+
+  renderQuizAutosaveStatus() {
+    const state = this.quizAutosaveState?.state || 'idle';
+    const message = this.quizAutosaveState?.message || '';
+    return `<div id="quizAutosaveStatus" class="quiz-autosave-status" data-state="${this.escapeText(state)}" role="status" aria-live="polite">${this.escapeText(message)}</div>`;
+  },
+
+  scrollCurrentQuizQuestionNavIntoView(container = document) {
+    const nav = container.querySelector('.quiz-question-nav');
+    const currentNavButton = nav?.querySelector('.question-nav-btn.current');
+    if (!nav || !currentNavButton) return;
+
+    window.requestAnimationFrame(() => {
+      const left = currentNavButton.offsetLeft - ((nav.clientWidth - currentNavButton.offsetWidth) / 2);
+      nav.scrollTo({ left: Math.max(0, left) });
+    });
+  },
 
   normalizeQuizAttemptState(attempt = {}) {
     if (this.currentQuizAnswerSaveTimer) {
@@ -8203,11 +8354,16 @@ const MoodleUI = {
     }
 
     const savedAnswers = this.normalizeQuizObjectAnswer(attempt.answers);
+    const storedPendingAnswers = this.readQuizPendingAnswerDraft(attempt);
+    const mergedAnswers = {
+      ...savedAnswers,
+      ...storedPendingAnswers
+    };
     const questions = (Array.isArray(attempt.questions) ? attempt.questions : []).map((question = {}) => {
       const questionId = question.questionId;
       const nextQuestion = { ...question };
-      if (questionId && Object.prototype.hasOwnProperty.call(savedAnswers, questionId)) {
-        const savedAnswer = this.cloneQuizAnswerValue(savedAnswers[questionId]);
+      if (questionId && Object.prototype.hasOwnProperty.call(mergedAnswers, questionId)) {
+        const savedAnswer = this.cloneQuizAnswerValue(mergedAnswers[questionId]);
         nextQuestion.answer = savedAnswer;
         nextQuestion.answered = this.isQuizAnswerComplete(nextQuestion, savedAnswer);
         nextQuestion._savedAnswerKey = this.serializeQuizAnswer(savedAnswer);
@@ -8220,13 +8376,15 @@ const MoodleUI = {
       return nextQuestion;
     });
 
-    this.currentQuizPendingAnswerSaves = {};
+    this.currentQuizPendingAnswerSaves = { ...storedPendingAnswers };
     this.currentQuizAnswerSaveTimer = null;
+    this.currentQuizAnswerSavePromise = null;
     this.quizAnswerSaveWarningShown = false;
+    this.setQuizAutosaveState(Object.keys(storedPendingAnswers).length > 0 ? 'local' : 'idle');
 
     return {
       ...attempt,
-      answers: { ...savedAnswers },
+      answers: { ...mergedAnswers },
       questions
     };
   },
@@ -8287,6 +8445,8 @@ const MoodleUI = {
       ...pending,
       [question.questionId]: clonedAnswer
     };
+    this.mergeQuizPendingAnswerDraft(attempt, { [question.questionId]: clonedAnswer });
+    this.setQuizAutosaveState('saving');
 
     if (immediate) {
       return this.flushQuizAnswerSaves();
@@ -8302,7 +8462,16 @@ const MoodleUI = {
     return Promise.resolve(true);
   },
 
-  async flushQuizAnswerSaves() {
+  async flushQuizAnswerSaves({ keepalive = false, silent = false } = {}) {
+    if (this.currentQuizAnswerSavePromise) {
+      return this.currentQuizAnswerSavePromise.then(() => {
+        if (this.hasQuizPendingAnswerSaves()) {
+          return this.flushQuizAnswerSaves({ keepalive, silent });
+        }
+        return true;
+      });
+    }
+
     if (this.currentQuizAnswerSaveTimer) {
       window.clearTimeout(this.currentQuizAnswerSaveTimer);
       this.currentQuizAnswerSaveTimer = null;
@@ -8318,9 +8487,11 @@ const MoodleUI = {
       return map;
     }, {});
     this.currentQuizPendingAnswerSaves = {};
+    this.setQuizAutosaveState('saving');
 
+    this.currentQuizAnswerSavePromise = (async () => {
     try {
-      const result = await API.quizzes.answers(attempt.quizId, attempt.attemptId, answers);
+      const result = await API.quizzes.answers(attempt.quizId, attempt.attemptId, answers, keepalive ? { keepalive: true } : {});
       if (!result?.success) {
         throw new Error(result?.message || 'Save answers failed');
       }
@@ -8329,7 +8500,14 @@ const MoodleUI = {
         const question = attempt.questions?.find(item => item.questionId === questionId);
         this.markQuizQuestionAnswerSaved(question, answer);
       });
+      this.clearQuizPendingAnswerDraft(attempt, answers);
       this.quizAnswerSaveWarningShown = false;
+      this.setQuizAutosaveState('saved');
+      if (this.hasQuizPendingAnswerSaves()) {
+        this.currentQuizAnswerSaveTimer = window.setTimeout(() => {
+          this.flushQuizAnswerSaves({ silent: true });
+        }, 300);
+      }
       return true;
     } catch (error) {
       console.error('Save quiz answers error:', error);
@@ -8337,14 +8515,26 @@ const MoodleUI = {
         ...answers,
         ...(this.currentQuizPendingAnswerSaves || {})
       };
-      if (!this.quizAnswerSaveWarningShown) {
+      this.mergeQuizPendingAnswerDraft(attempt, answers);
+      this.setQuizAutosaveState('error');
+      if (!silent && !this.quizAnswerSaveWarningShown) {
         showToast(I18n.getLocale() === 'en'
           ? 'Answers are saved locally. They will retry automatically when you continue.'
           : '答案已先保留在畫面上，系統會在你繼續操作時重新儲存。');
         this.quizAnswerSaveWarningShown = true;
       }
+      if (!keepalive && navigator.onLine !== false && !this.currentQuizAnswerSaveTimer) {
+        this.currentQuizAnswerSaveTimer = window.setTimeout(() => {
+          this.flushQuizAnswerSaves({ silent: true });
+        }, 5000);
+      }
       return false;
+    } finally {
+      this.currentQuizAnswerSavePromise = null;
     }
+    })();
+
+    return this.currentQuizAnswerSavePromise;
   },
 
   /**
@@ -8382,6 +8572,7 @@ const MoodleUI = {
             </div>
           ` : ''}
         </div>
+        ${this.renderQuizAutosaveStatus()}
       </div>
       <div class="quiz-body">
         <div class="quiz-question-panel">
@@ -8394,21 +8585,28 @@ const MoodleUI = {
           </div>
         </div>
         <div class="quiz-navigation">
-          <button ${this.currentQuestionIndex === 0 ? 'disabled' : ''} onclick="MoodleUI.prevQuestion()" class="btn-secondary">${t('moodleQuiz.prevQuestion')}</button>
+          <button type="button" ${this.currentQuestionIndex === 0 ? 'disabled' : ''} onclick="MoodleUI.prevQuestion()" class="btn-secondary">${t('moodleQuiz.prevQuestion')}</button>
           ${this.currentQuestionIndex === totalQuestions - 1 ? `
-            <button onclick="MoodleUI.submitQuiz()" class="btn-primary">${t('moodleQuiz.submitQuiz')}</button>
+            <button type="button" onclick="MoodleUI.submitQuiz()" class="btn-primary">${t('moodleQuiz.submitQuiz')}</button>
           ` : `
-            <button onclick="MoodleUI.nextQuestion()" class="btn-primary">${t('moodleQuiz.nextQuestion')}</button>
+            <button type="button" onclick="MoodleUI.nextQuestion()" class="btn-primary">${t('moodleQuiz.nextQuestion')}</button>
           `}
         </div>
-        <div class="quiz-question-nav">
-          ${attempt.questions.map((q, i) => `
-            <button class="question-nav-btn ${i === this.currentQuestionIndex ? 'current' : ''} ${q.answered ? 'answered' : ''}" onclick="MoodleUI.goToQuestion(${i})">${i + 1}</button>
-          `).join('')}
+        <div class="quiz-question-nav" aria-label="${this.escapeText(isEnglish ? 'Question navigation' : '題號導覽')}">
+          ${attempt.questions.map((q, i) => {
+            const isCurrent = i === this.currentQuestionIndex;
+            const label = isEnglish
+              ? `Question ${i + 1}${q.answered ? ', answered' : ''}`
+              : `第 ${i + 1} 題${q.answered ? '，已作答' : ''}`;
+            return `
+            <button type="button" class="question-nav-btn ${isCurrent ? 'current' : ''} ${q.answered ? 'answered' : ''}" onclick="MoodleUI.goToQuestion(${i})" aria-label="${this.escapeText(label)}" ${isCurrent ? 'aria-current="step"' : ''}>${i + 1}</button>
+          `;
+          }).join('')}
         </div>
       </div>
     `;
     this.applyDynamicUiMetrics(container);
+    this.scrollCurrentQuizQuestionNavIntoView(container);
   },
 
   /**
@@ -8858,6 +9056,9 @@ const MoodleUI = {
       );
 
       if (result.success) {
+        this.clearQuizPendingAnswerDraft(this.currentQuizAttempt);
+        this.currentQuizPendingAnswerSaves = {};
+        this.setQuizAutosaveState('saved');
         if (result.data?.gradeVisibility?.pendingRelease) {
           showToast(t('moodleQuiz.submitPendingRelease'));
           showView('moodleQuizzes');
@@ -14826,6 +15027,7 @@ const MoodleUI = {
     }
     this._initialized = true;
     this.ensureDynamicUiMetricsObserver();
+    this.setupQuizAutosaveLifecycleHandlers();
     this.applyDynamicUiMetrics(document);
     // 定期更新通知數量
     this.updateNotificationCount();

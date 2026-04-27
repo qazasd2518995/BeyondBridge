@@ -3078,6 +3078,10 @@ const App = {
    * 開始測驗
    */
   async startQuiz(quizId) {
+    if (typeof MoodleUI !== 'undefined' && typeof MoodleUI.openQuiz === 'function') {
+      return MoodleUI.openQuiz(quizId);
+    }
+
     try {
       const result = await API.quizzes.get(quizId);
       if (!result.success) {

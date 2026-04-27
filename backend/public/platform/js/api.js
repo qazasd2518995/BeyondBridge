@@ -1052,10 +1052,11 @@ const API = {
       });
     },
 
-    async answers(quizId, attemptId, answers = {}) {
+    async answers(quizId, attemptId, answers = {}, options = {}) {
       return API.request(`/quizzes/${quizId}/attempts/${attemptId}/answers`, {
         method: 'PUT',
-        body: { answers: API.quizzes.normalizeAnswers(answers) }
+        body: { answers: API.quizzes.normalizeAnswers(answers) },
+        ...options
       });
     },
 
