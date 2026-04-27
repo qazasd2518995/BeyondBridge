@@ -150,7 +150,7 @@ const API = {
         body: userData
       });
 
-      if (result.success) {
+      if (result.success && result.data?.accessToken && result.data?.user) {
         API.setTokens(result.data.accessToken, result.data.refreshToken);
         API.setCurrentUser(result.data.user);
       }
@@ -241,6 +241,37 @@ const API = {
       return API.request('/auth/password/reset/confirm', {
         method: 'POST',
         body: { token, newPassword }
+      });
+    },
+
+    async validateEmailVerificationToken(token) {
+      const query = new URLSearchParams({ token }).toString();
+      return API.request(`/auth/email/verification/validate?${query}`);
+    },
+
+    async confirmEmailVerification(token) {
+      return API.request('/auth/email/verification/confirm', {
+        method: 'POST',
+        body: { token }
+      });
+    },
+
+    async resendEmailVerification(email) {
+      return API.request('/auth/email/verification/resend', {
+        method: 'POST',
+        body: { email }
+      });
+    },
+
+    async validateTeacherInviteToken(token) {
+      const query = new URLSearchParams({ token }).toString();
+      return API.request(`/auth/teacher/invite/validate?${query}`);
+    },
+
+    async acceptTeacherInvite(token, password) {
+      return API.request('/auth/teacher/invite/accept', {
+        method: 'POST',
+        body: { token, password }
       });
     }
   },
@@ -452,6 +483,12 @@ const API = {
       return API.request(`/admin/users/${userId}/status`, {
         method: 'PUT',
         body: { status }
+      });
+    },
+
+    async resendUserInvite(userId) {
+      return API.request(`/admin/users/${userId}/invite/resend`, {
+        method: 'POST'
       });
     },
 
@@ -1012,6 +1049,13 @@ const API = {
       return API.request(`/quizzes/${quizId}/attempts/${attemptId}/answer`, {
         method: 'PUT',
         body: data
+      });
+    },
+
+    async answers(quizId, attemptId, answers = {}) {
+      return API.request(`/quizzes/${quizId}/attempts/${attemptId}/answers`, {
+        method: 'PUT',
+        body: { answers: API.quizzes.normalizeAnswers(answers) }
       });
     },
 

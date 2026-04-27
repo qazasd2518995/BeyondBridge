@@ -11947,6 +11947,38 @@
                         <button type="button" class="auth-link-btn" onclick="showForgotPasswordForm()">重新寄送重設信</button>
                     </div>
                 </form>
+
+                <form id="verifyEmailForm" class="login-form hidden" onsubmit="event.preventDefault()" hidden>
+                    <div class="auth-panel-heading">
+                        <span class="auth-panel-eyebrow">Email 驗證</span>
+                        <h3 class="auth-panel-title">正在啟用帳號</h3>
+                        <p id="verifyEmailStatus" class="auth-token-note">正在驗證連結...</p>
+                    </div>
+                    <div class="auth-back-link">
+                        <button type="button" class="auth-link-btn" onclick="switchAuthTab('login')">返回登入</button>
+                    </div>
+                </form>
+
+                <form id="acceptInviteForm" class="login-form hidden" onsubmit="handleAcceptTeacherInvite(event)" hidden>
+                    <div class="auth-panel-heading">
+                        <span class="auth-panel-eyebrow">老師邀請</span>
+                        <h3 class="auth-panel-title">設定登入密碼</h3>
+                        <p id="acceptInviteEmailHint" class="auth-token-note">正在驗證邀請連結...</p>
+                    </div>
+                    <input type="hidden" id="acceptInviteToken" value="">
+                    <div class="form-group">
+                        <label for="acceptInvitePassword">密碼</label>
+                        <input type="password" id="acceptInvitePassword" name="acceptInvitePassword" placeholder="至少 8 個字元" autocomplete="new-password" minlength="8" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="acceptInviteConfirm">確認密碼</label>
+                        <input type="password" id="acceptInviteConfirm" name="acceptInviteConfirm" placeholder="再次輸入密碼" autocomplete="new-password" minlength="8" required>
+                    </div>
+                    <button type="submit" class="login-btn">啟用老師帳號</button>
+                    <div class="auth-back-link">
+                        <button type="button" class="auth-link-btn" onclick="switchAuthTab('login')">返回登入</button>
+                    </div>
+                </form>
             </div>
 
             <!-- Footer -->
@@ -12389,6 +12421,24 @@
                 return {
                     type: 'auth',
                     authMode: 'reset',
+                    token: url.searchParams.get('token') || '',
+                    path: `${url.pathname}${url.search}`
+                };
+            }
+
+            if (routeKey === 'verify-email') {
+                return {
+                    type: 'auth',
+                    authMode: 'verify',
+                    token: url.searchParams.get('token') || '',
+                    path: `${url.pathname}${url.search}`
+                };
+            }
+
+            if (routeKey === 'accept-invite') {
+                return {
+                    type: 'auth',
+                    authMode: 'invite',
                     token: url.searchParams.get('token') || '',
                     path: `${url.pathname}${url.search}`
                 };
@@ -16447,18 +16497,20 @@
         }
 
         function isAuthRoutePath(pathname = window.location.pathname) {
-            return /^\/platform\/(forgot-password|reset-password)(?:\/|$)/.test(pathname);
+            return /^\/platform\/(forgot-password|reset-password|verify-email|accept-invite)(?:\/|$)/.test(pathname);
         }
 
         function setAuthScreen(mode = 'login', options = {}) {
-            const normalizedMode = ['login', 'register', 'forgot', 'reset'].includes(mode) ? mode : 'login';
+            const normalizedMode = ['login', 'register', 'forgot', 'reset', 'verify', 'invite'].includes(mode) ? mode : 'login';
             const tabsContainer = document.querySelector('.auth-tabs');
             const tabs = document.querySelectorAll('.auth-tab');
             const formMap = {
                 login: document.getElementById('loginForm'),
                 register: document.getElementById('registerForm'),
                 forgot: document.getElementById('forgotPasswordForm'),
-                reset: document.getElementById('resetPasswordForm')
+                reset: document.getElementById('resetPasswordForm'),
+                verify: document.getElementById('verifyEmailForm'),
+                invite: document.getElementById('acceptInviteForm')
             };
 
             Object.entries(formMap).forEach(([key, form]) => {
@@ -16469,7 +16521,7 @@
             });
 
             if (tabsContainer) {
-                tabsContainer.hidden = normalizedMode === 'forgot' || normalizedMode === 'reset';
+                tabsContainer.hidden = ['forgot', 'reset', 'verify', 'invite'].includes(normalizedMode);
             }
 
             tabs.forEach((tab, index) => {
@@ -16500,11 +16552,33 @@
                 }
             }
 
+            if (normalizedMode === 'verify') {
+                const statusEl = document.getElementById('verifyEmailStatus');
+                if (statusEl && options.emailHint) {
+                    statusEl.textContent = options.emailHint;
+                }
+            }
+
+            if (normalizedMode === 'invite') {
+                const tokenInput = document.getElementById('acceptInviteToken');
+                const emailHint = document.getElementById('acceptInviteEmailHint');
+                if (tokenInput && typeof options.token === 'string') {
+                    tokenInput.value = options.token;
+                }
+                if (emailHint && options.emailHint) {
+                    emailHint.textContent = options.emailHint;
+                }
+            }
+
             let nextPath = null;
             if (normalizedMode === 'forgot') {
                 nextPath = '/platform/forgot-password';
             } else if (normalizedMode === 'reset') {
                 nextPath = options.path || `/platform/reset-password${options.token ? `?token=${encodeURIComponent(options.token)}` : ''}`;
+            } else if (normalizedMode === 'verify') {
+                nextPath = options.path || `/platform/verify-email${options.token ? `?token=${encodeURIComponent(options.token)}` : ''}`;
+            } else if (normalizedMode === 'invite') {
+                nextPath = options.path || `/platform/accept-invite${options.token ? `?token=${encodeURIComponent(options.token)}` : ''}`;
             } else if (options.forceHomeRoute) {
                 nextPath = '/platform';
             }
@@ -16577,6 +16651,99 @@
             }
         }
 
+        async function startEmailVerificationFlow(token, options = {}) {
+            if (!token) {
+                setAuthScreen('login', {
+                    forceHomeRoute: true,
+                    replaceHistory: true,
+                    message: '缺少 Email 驗證 token，請重新註冊或重新寄送驗證信。'
+                });
+                return false;
+            }
+
+            setAuthScreen('verify', {
+                updateHistory: options.updateHistory,
+                replaceHistory: options.replaceHistory,
+                token,
+                emailHint: '正在驗證連結並啟用帳號...',
+                preserveMessage: true
+            });
+
+            try {
+                const result = await API.auth.confirmEmailVerification(token);
+                if (!result.success) {
+                    setAuthScreen('login', {
+                        forceHomeRoute: true,
+                        replaceHistory: true,
+                        message: result.message || 'Email 驗證連結無效或已過期。'
+                    });
+                    return false;
+                }
+
+                setAuthScreen('login', {
+                    forceHomeRoute: true,
+                    replaceHistory: true,
+                    message: result.message || 'Email 已驗證，請登入。',
+                    tone: 'success'
+                });
+                return true;
+            } catch (error) {
+                setAuthScreen('login', {
+                    forceHomeRoute: true,
+                    replaceHistory: true,
+                    message: 'Email 驗證失敗，請稍後再試。'
+                });
+                return false;
+            }
+        }
+
+        async function startTeacherInviteFlow(token, options = {}) {
+            if (!token) {
+                setAuthScreen('login', {
+                    forceHomeRoute: true,
+                    replaceHistory: true,
+                    message: '缺少老師邀請 token，請聯繫管理員重新寄送邀請。'
+                });
+                return false;
+            }
+
+            setAuthScreen('invite', {
+                updateHistory: options.updateHistory,
+                replaceHistory: options.replaceHistory,
+                token,
+                emailHint: '正在驗證邀請連結...',
+                preserveMessage: true
+            });
+
+            try {
+                const result = await API.auth.validateTeacherInviteToken(token);
+                if (!result.success) {
+                    setAuthScreen('login', {
+                        forceHomeRoute: true,
+                        replaceHistory: true,
+                        message: result.message || '老師邀請連結無效或已過期。'
+                    });
+                    return false;
+                }
+
+                setAuthScreen('invite', {
+                    updateHistory: options.updateHistory,
+                    replaceHistory: options.replaceHistory,
+                    token,
+                    emailHint: `邀請帳號：${result.data?.email || '你的 Email'}，請設定登入密碼。`,
+                    preserveMessage: true
+                });
+                return true;
+            } catch (error) {
+                setAuthScreen('login', {
+                    forceHomeRoute: true,
+                    replaceHistory: true,
+                    message: '老師邀請連結驗證失敗，請聯繫管理員重新寄送邀請。'
+                });
+                return false;
+            }
+        }
+
         async function renderAuthRouteFromLocation() {
             const route = getPlatformRoute();
             if (route.type === 'auth' && route.authMode === 'reset') {
@@ -16589,6 +16756,20 @@
             if (route.type === 'auth' && route.authMode === 'forgot') {
                 setAuthScreen('forgot', { updateHistory: false });
                 return true;
+            }
+
+            if (route.type === 'auth' && route.authMode === 'verify') {
+                return startEmailVerificationFlow(route.token, {
+                    updateHistory: false,
+                    replaceHistory: true
+                });
+            }
+
+            if (route.type === 'auth' && route.authMode === 'invite') {
+                return startTeacherInviteFlow(route.token, {
+                    updateHistory: false,
+                    replaceHistory: true
+                });
             }
 
             setAuthScreen('login', { updateHistory: false });
@@ -16606,9 +16787,9 @@
             setAuthMessage('');
 
             try {
-                const success = await App.login(email, password);
-                if (!success) {
-                    setAuthMessage(t('login.error.invalid'));
+                const result = await App.login(email, password);
+                if (!result?.success) {
+                    setAuthMessage(result?.message || t('login.error.invalid'));
                 }
             } catch (error) {
                 setAuthMessage(t('login.error.network'));
@@ -16642,9 +16823,17 @@
             setAuthMessage('');
 
             try {
-                const success = await App.register(userData);
-                if (!success) {
-                    setAuthMessage(t('register.error.duplicate'));
+                const result = await App.register(userData);
+                if (result?.success && result.data?.pendingVerification) {
+                    e.target.reset();
+                    setAuthScreen('login', {
+                        forceHomeRoute: true,
+                        replaceHistory: true,
+                        message: result.message || '註冊資料已建立，請到信箱點擊驗證連結後再登入。',
+                        tone: result.data?.verificationEmailSent === false ? 'error' : 'success'
+                    });
+                } else if (!result?.success) {
+                    setAuthMessage(result?.message || t('register.error.duplicate'));
                 }
             } catch (error) {
                 setAuthMessage(t('login.error.network'));
@@ -16724,6 +16913,53 @@
 
             btn.disabled = false;
             btn.textContent = '更新密碼';
+        }
+
+        async function handleAcceptTeacherInvite(e) {
+            e.preventDefault();
+            const token = document.getElementById('acceptInviteToken').value.trim();
+            const password = document.getElementById('acceptInvitePassword').value;
+            const confirmPassword = document.getElementById('acceptInviteConfirm').value;
+            const btn = e.target.querySelector('button[type="submit"]');
+
+            if (!token) {
+                setAuthMessage('邀請 token 遺失，請聯繫管理員重新寄送邀請。');
+                return;
+            }
+
+            if (password.length < 8) {
+                setAuthMessage('密碼長度至少需要 8 個字元。');
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                setAuthMessage('兩次輸入的密碼不一致。');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = '啟用中...';
+            setAuthMessage('');
+
+            try {
+                const result = await API.auth.acceptTeacherInvite(token, password);
+                if (result.success) {
+                    document.getElementById('acceptInviteForm')?.reset();
+                    setAuthScreen('login', {
+                        forceHomeRoute: true,
+                        replaceHistory: true,
+                        message: result.message || '老師帳號已啟用，請登入。',
+                        tone: 'success'
+                    });
+                } else {
+                    setAuthMessage(result.message || '邀請連結無效或已過期。');
+                }
+            } catch (error) {
+                setAuthMessage('啟用老師帳號失敗，請稍後再試。');
+            }
+
+            btn.disabled = false;
+            btn.textContent = '啟用老師帳號';
         }
     </script>
 

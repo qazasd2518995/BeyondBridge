@@ -8,11 +8,20 @@ const router = express.Router();
 const crypto = require('crypto');
 const db = require('../utils/db');
 const auth = require('../utils/auth');
-const { sendPasswordResetEmail } = require('../utils/email');
+const {
+  sendPasswordResetEmail,
+  sendStudentEmailVerificationEmail
+} = require('../utils/email');
 const { logAuditEvent } = require('./audit-logs');
 const { enrollUserIntoClassLinkedCourse } = require('../utils/class-course-links');
 
 const PASSWORD_RESET_EXPIRY_MS = 60 * 60 * 1000;
+const EMAIL_VERIFICATION_EXPIRY_MS = 48 * 60 * 60 * 1000;
+const TEACHER_INVITE_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
+const ACCOUNT_TOKEN_KINDS = {
+  EMAIL_VERIFICATION: 'email_verification',
+  TEACHER_INVITE: 'teacher_invite'
+};
 
 function isValidEmail(email = '') {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || '').trim());
@@ -34,11 +43,31 @@ function generatePasswordResetToken() {
   return crypto.randomBytes(24).toString('base64url');
 }
 
+function generateAccountToken() {
+  return crypto.randomBytes(32).toString('base64url');
+}
+
+function hashAccountToken(token = '') {
+  return crypto.createHash('sha256').update(String(token)).digest('hex');
+}
+
+function buildAccountTokenPk(token) {
+  return `ACCOUNT_TOKEN#${hashAccountToken(token)}`;
+}
+
+function buildAccountTokenOwnerKey(kind, userId) {
+  return `ACCOUNT_TOKEN_OWNER#${kind}#${userId}`;
+}
+
 function maskEmail(email = '') {
   const [localPart, domain = ''] = String(email).split('@');
   if (!localPart || !domain) return email;
   if (localPart.length <= 2) return `${localPart.charAt(0)}***@${domain}`;
   return `${localPart.slice(0, 2)}***@${domain}`;
+}
+
+function normalizeEmail(email = '') {
+  return String(email || '').trim().toLowerCase();
 }
 
 async function revokePasswordResetTokens(accountType, userId, exceptPk = null) {
@@ -55,6 +84,115 @@ async function revokePasswordResetTokens(accountType, userId, exceptPk = null) {
   if (keysToDelete.length > 0) {
     await db.batchDelete(keysToDelete);
   }
+}
+
+async function revokeAccountTokens(kind, userId, exceptPk = null) {
+  const ownerKey = buildAccountTokenOwnerKey(kind, userId);
+  const existingTokens = await db.queryByIndex('GSI1', ownerKey, 'GSI1PK', {
+    skName: 'GSI1SK',
+    skPrefix: 'TOKEN#',
+    projection: ['PK', 'SK']
+  });
+  const keysToDelete = existingTokens
+    .filter(item => item?.PK && item?.SK && item.PK !== exceptPk)
+    .map(item => ({ PK: item.PK, SK: item.SK }));
+
+  if (keysToDelete.length > 0) {
+    await db.batchDelete(keysToDelete);
+  }
+}
+
+async function createAccountToken({ kind, userId, email, expiresInMs, req, metadata = {} }) {
+  const rawToken = generateAccountToken();
+  const now = new Date().toISOString();
+  const tokenItem = {
+    PK: buildAccountTokenPk(rawToken),
+    SK: 'META',
+    GSI1PK: buildAccountTokenOwnerKey(kind, userId),
+    GSI1SK: `TOKEN#${now}`,
+    entityType: 'ACCOUNT_TOKEN',
+    kind,
+    userId,
+    email,
+    createdAt: now,
+    expiresAt: new Date(Date.now() + expiresInMs).toISOString(),
+    requestedIp: req?.ip || req?.headers?.['x-forwarded-for'] || 'unknown',
+    userAgent: req?.headers?.['user-agent'] || '',
+    ...metadata
+  };
+
+  await revokeAccountTokens(kind, userId);
+  await db.putItem(tokenItem);
+  return { rawToken, tokenItem };
+}
+
+async function getValidAccountToken(token, expectedKind = null) {
+  if (!token) return null;
+
+  const tokenRecord = await db.getItem(buildAccountTokenPk(token), 'META');
+  if (!tokenRecord || tokenRecord.entityType !== 'ACCOUNT_TOKEN') {
+    return null;
+  }
+  if (expectedKind && tokenRecord.kind !== expectedKind) {
+    return null;
+  }
+  if (tokenRecord.consumedAt) {
+    return null;
+  }
+  if (!tokenRecord.expiresAt || new Date(tokenRecord.expiresAt).getTime() <= Date.now()) {
+    return null;
+  }
+
+  return tokenRecord;
+}
+
+async function activateStudentClassAndCourse(user, classData, now) {
+  if (!user?.userId || !classData?.classId) {
+    return null;
+  }
+
+  const existingMember = await db.getItem(`CLASS#${classData.classId}`, `MEMBER#${user.userId}`);
+  if (!existingMember) {
+    await db.putItem({
+      PK: `CLASS#${classData.classId}`,
+      SK: `MEMBER#${user.userId}`,
+      entityType: 'CLASS_MEMBER',
+      createdAt: now,
+      classId: classData.classId,
+      userId: user.userId,
+      userName: user.displayName,
+      userEmail: user.email,
+      role: 'student',
+      joinedAt: now,
+      status: 'active'
+    });
+
+    await db.updateItem(`CLASS#${classData.classId}`, 'META', {
+      memberCount: (classData.memberCount || 0) + 1,
+      updatedAt: now
+    });
+  }
+
+  const existingEnrollment = await db.getItem(`USER#${user.userId}`, `ENROLLMENT#${classData.classId}`);
+  if (!existingEnrollment) {
+    await db.putItem({
+      PK: `USER#${user.userId}`,
+      SK: `ENROLLMENT#${classData.classId}`,
+      entityType: 'ENROLLMENT',
+      createdAt: now,
+      userId: user.userId,
+      classId: classData.classId,
+      className: classData.name,
+      teacherName: classData.teacherName,
+      enrolledAt: now
+    });
+  }
+
+  return enrollUserIntoClassLinkedCourse(classData, {
+    userId: user.userId,
+    displayName: user.displayName,
+    email: user.email
+  }, { now });
 }
 
 async function getPasswordResetAccountByEmail(email) {
@@ -96,7 +234,8 @@ async function getValidPasswordResetRecord(token) {
  */
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const email = normalizeEmail(req.body?.email);
+    const { password } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({
@@ -124,22 +263,40 @@ router.post('/login', async (req, res) => {
       });
     }
 
+    // 檢查帳號狀態
+    if (user.status !== 'active') {
+      if (user.status === 'pending_email_verification') {
+        return res.status(403).json({
+          success: false,
+          error: 'EMAIL_NOT_VERIFIED',
+          message: '請先到信箱點擊驗證連結後再登入'
+        });
+      }
+
+      if (user.status === 'pending_invite') {
+        return res.status(403).json({
+          success: false,
+          error: 'INVITE_NOT_ACCEPTED',
+          message: '請先到信箱接受邀請並設定密碼'
+        });
+      }
+
+      return res.status(403).json({
+        success: false,
+        error: 'ACCOUNT_INACTIVE',
+        message: '帳號已被停用'
+      });
+    }
+
     // 驗證密碼
-    const passwordValid = await auth.verifyPassword(password, user.passwordHash);
+    const passwordValid = user.passwordHash
+      ? await auth.verifyPassword(password, user.passwordHash)
+      : false;
     if (!passwordValid) {
       return res.status(401).json({
         success: false,
         error: 'INVALID_CREDENTIALS',
         message: 'Email 或密碼錯誤'
-      });
-    }
-
-    // 檢查帳號狀態
-    if (user.status !== 'active') {
-      return res.status(403).json({
-        success: false,
-        error: 'ACCOUNT_INACTIVE',
-        message: '帳號已被停用'
       });
     }
 
@@ -195,7 +352,14 @@ router.post('/login', async (req, res) => {
  */
 router.post('/register', async (req, res) => {
   try {
-    const { email, password, displayName, organization, role = 'educator', inviteCode } = req.body;
+    const email = normalizeEmail(req.body?.email);
+    const {
+      password,
+      displayName,
+      organization,
+      role = 'student',
+      inviteCode
+    } = req.body;
 
     // 驗證必填欄位
     if (!email || !password || !displayName) {
@@ -207,12 +371,19 @@ router.post('/register', async (req, res) => {
     }
 
     // 驗證 Email 格式
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (!isValidEmail(email)) {
       return res.status(400).json({
         success: false,
         error: 'INVALID_EMAIL',
         message: 'Email 格式不正確'
+      });
+    }
+
+    if (role !== 'student') {
+      return res.status(403).json({
+        success: false,
+        error: 'TEACHER_INVITE_REQUIRED',
+        message: '教師帳號需由管理員建立並透過邀請信啟用'
       });
     }
 
@@ -258,8 +429,11 @@ router.post('/register', async (req, res) => {
     }
 
     // 檢查 Email 是否已存在
-    const existingUser = await db.getUserByEmail(email);
-    if (existingUser) {
+    const [existingUser, existingAdmin] = await Promise.all([
+      db.getUserByEmail(email),
+      db.getAdminByEmail(email)
+    ]);
+    if (existingUser || existingAdmin) {
       return res.status(409).json({
         success: false,
         error: 'EMAIL_EXISTS',
@@ -313,73 +487,47 @@ router.post('/register', async (req, res) => {
         coursesInProgress: 0
       },
 
-      status: 'active',
-      lastLoginAt: now,
+      status: 'pending_email_verification',
+      emailVerified: false,
+      emailVerifiedAt: null,
+      pendingEnrollment: classData ? {
+        type: 'class_invite',
+        classId: classData.classId,
+        className: classData.name,
+        inviteCode: String(inviteCode || '').trim().toUpperCase()
+      } : null,
+      lastLoginAt: null,
       updatedAt: now
     };
 
     await db.putItem(newUser);
-
-    let enrolledCourse = null;
-
-    // 學生自動加入班級
-    if (role === 'student' && classData) {
-      // 建立班級成員關係
-      const memberItem = {
-        PK: `CLASS#${classData.classId}`,
-        SK: `MEMBER#${userId}`,
-        entityType: 'CLASS_MEMBER',
-        createdAt: now,
-
-        classId: classData.classId,
-        userId,
-        userName: displayName,
-        userEmail: email,
-        role: 'student',
-        joinedAt: now,
-        status: 'active'
-      };
-
-      await db.putItem(memberItem);
-
-      // 建立用戶的 enrollment 記錄
-      const enrollmentItem = {
-        PK: `USER#${userId}`,
-        SK: `ENROLLMENT#${classData.classId}`,
-        entityType: 'ENROLLMENT',
-        createdAt: now,
-
-        userId,
-        classId: classData.classId,
-        className: classData.name,
-        teacherName: classData.teacherName,
-        enrolledAt: now
-      };
-
-      await db.putItem(enrollmentItem);
-
-      // 更新班級成員數
-      await db.updateItem(`CLASS#${classData.classId}`, 'META', {
-        memberCount: (classData.memberCount || 0) + 1,
-        updatedAt: now
-      });
-
-      enrolledCourse = await enrollUserIntoClassLinkedCourse(classData, {
-        userId,
-        displayName,
-        email
-      }, { now });
+    const { rawToken } = await createAccountToken({
+      kind: ACCOUNT_TOKEN_KINDS.EMAIL_VERIFICATION,
+      userId,
+      email,
+      expiresInMs: EMAIL_VERIFICATION_EXPIRY_MS,
+      req,
+      metadata: {
+        classId: classData?.classId || null,
+        inviteCode: String(inviteCode || '').trim().toUpperCase()
+      }
+    });
+    let verificationEmailSent = false;
+    try {
+      await sendStudentEmailVerificationEmail(newUser, rawToken, classData);
+      verificationEmailSent = true;
+    } catch (emailError) {
+      console.error('Send student verification email failed:', emailError);
     }
-
-    // 產生 Token
-    const tokens = auth.generateTokens(newUser);
 
     res.status(201).json({
       success: true,
-      message: role === 'student'
-        ? (enrolledCourse?.courseId ? '註冊成功，已加入班級與課程' : '註冊成功，已加入班級')
-        : '註冊成功',
+      message: verificationEmailSent
+        ? '註冊資料已建立，請到信箱點擊驗證連結後再登入'
+        : '註冊資料已建立，但驗證信寄送失敗，請稍後重新寄送驗證信',
       data: {
+        pendingVerification: true,
+        verificationEmailSent,
         user: {
           userId,
           email,
@@ -389,12 +537,8 @@ router.post('/register', async (req, res) => {
           organization,
           subscriptionTier: role === 'student' ? 'student' : 'free',
           enrolledClass: classData ? { classId: classData.classId, className: classData.name } : null,
-          enrolledCourse: enrolledCourse?.courseId ? {
-            courseId: enrolledCourse.courseId,
-            courseTitle: enrolledCourse.courseTitle
-          } : null
+          emailMasked: maskEmail(email)
         },
-        ...tokens
       }
     });
 
@@ -404,6 +548,333 @@ router.post('/register', async (req, res) => {
       success: false,
       error: 'REGISTER_FAILED',
       message: '註冊失敗，請稍後再試'
+    });
+  }
+});
+
+/**
+ * GET /api/auth/email/verification/validate
+ * 驗證學生 Email 驗證連結
+ */
+router.get('/email/verification/validate', async (req, res) => {
+  try {
+    const token = String(req.query?.token || '').trim();
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        error: 'MISSING_TOKEN',
+        message: '請提供驗證 token'
+      });
+    }
+
+    const tokenRecord = await getValidAccountToken(token, ACCOUNT_TOKEN_KINDS.EMAIL_VERIFICATION);
+    if (!tokenRecord) {
+      return res.status(400).json({
+        success: false,
+        error: 'INVALID_VERIFICATION_TOKEN',
+        message: '驗證連結無效或已過期'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        email: maskEmail(tokenRecord.email),
+        expiresAt: tokenRecord.expiresAt
+      }
+    });
+  } catch (error) {
+    console.error('Email verification validate error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'VERIFY_VALIDATE_FAILED',
+      message: '驗證連結檢查失敗'
+    });
+  }
+});
+
+/**
+ * POST /api/auth/email/verification/confirm
+ * 完成學生 Email 驗證，啟用帳號並加入班級/課程
+ */
+router.post('/email/verification/confirm', async (req, res) => {
+  try {
+    const token = String(req.body?.token || '').trim();
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        error: 'MISSING_TOKEN',
+        message: '請提供驗證 token'
+      });
+    }
+
+    const tokenRecord = await getValidAccountToken(token, ACCOUNT_TOKEN_KINDS.EMAIL_VERIFICATION);
+    if (!tokenRecord) {
+      return res.status(400).json({
+        success: false,
+        error: 'INVALID_VERIFICATION_TOKEN',
+        message: '驗證連結無效或已過期'
+      });
+    }
+
+    const user = await db.getUser(tokenRecord.userId);
+    if (!user || user.role !== 'student') {
+      return res.status(400).json({
+        success: false,
+        error: 'ACCOUNT_UNAVAILABLE',
+        message: '帳號不存在或驗證類型不正確'
+      });
+    }
+
+    if (user.status === 'active' && user.emailVerified) {
+      return res.json({
+        success: true,
+        message: 'Email 已驗證，請直接登入'
+      });
+    }
+
+    if (user.status !== 'pending_email_verification') {
+      return res.status(400).json({
+        success: false,
+        error: 'ACCOUNT_NOT_PENDING',
+        message: '此帳號目前不需要 Email 驗證'
+      });
+    }
+
+    const classId = tokenRecord.classId || user.pendingEnrollment?.classId;
+    const classData = classId ? await db.getItem(`CLASS#${classId}`, 'META') : null;
+    if (!classData || classData.status !== 'active') {
+      return res.status(400).json({
+        success: false,
+        error: 'INVITE_CLASS_UNAVAILABLE',
+        message: '原通行碼對應的班級已不可用，請聯繫老師重新取得通行碼'
+      });
+    }
+
+    const now = new Date().toISOString();
+    const enrolledCourse = await activateStudentClassAndCourse(user, classData, now);
+
+    await db.updateItem(`USER#${user.userId}`, 'PROFILE', {
+      status: 'active',
+      emailVerified: true,
+      emailVerifiedAt: now,
+      pendingEnrollment: null,
+      updatedAt: now
+    });
+
+    await db.updateItem(tokenRecord.PK, 'META', {
+      consumedAt: now,
+      consumedIp: req.ip || req.headers['x-forwarded-for'] || 'unknown',
+      updatedAt: now
+    });
+    await revokeAccountTokens(ACCOUNT_TOKEN_KINDS.EMAIL_VERIFICATION, user.userId, tokenRecord.PK);
+
+    await db.logActivity(user.userId, 'email_verified', 'auth', user.userId, {
+      role: 'student',
+      classId: classData.classId,
+      courseId: enrolledCourse?.courseId || null,
+      ip: req.ip || req.headers['x-forwarded-for'] || 'unknown'
+    });
+
+    res.json({
+      success: true,
+      message: enrolledCourse?.courseId
+        ? 'Email 已驗證，帳號已啟用並加入班級與課程'
+        : 'Email 已驗證，帳號已啟用並加入班級',
+      data: {
+        enrolledClass: { classId: classData.classId, className: classData.name },
+        enrolledCourse: enrolledCourse?.courseId ? {
+          courseId: enrolledCourse.courseId,
+          courseTitle: enrolledCourse.courseTitle
+        } : null
+      }
+    });
+  } catch (error) {
+    console.error('Email verification confirm error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'VERIFY_CONFIRM_FAILED',
+      message: 'Email 驗證失敗，請稍後再試'
+    });
+  }
+});
+
+/**
+ * POST /api/auth/email/verification/resend
+ * 重新寄送學生 Email 驗證信
+ */
+router.post('/email/verification/resend', async (req, res) => {
+  try {
+    const email = normalizeEmail(req.body?.email);
+    if (!email || !isValidEmail(email)) {
+      return res.status(400).json({
+        success: false,
+        error: 'INVALID_EMAIL',
+        message: '請提供有效 Email'
+      });
+    }
+
+    const user = await db.getUserByEmail(email);
+    if (user?.status === 'pending_email_verification') {
+      const classId = user.pendingEnrollment?.classId;
+      const classData = classId ? await db.getItem(`CLASS#${classId}`, 'META') : null;
+      const { rawToken } = await createAccountToken({
+        kind: ACCOUNT_TOKEN_KINDS.EMAIL_VERIFICATION,
+        userId: user.userId,
+        email: user.email,
+        expiresInMs: EMAIL_VERIFICATION_EXPIRY_MS,
+        req,
+        metadata: {
+          classId: classData?.classId || null,
+          inviteCode: user.pendingEnrollment?.inviteCode || null
+        }
+      });
+      await sendStudentEmailVerificationEmail(user, rawToken, classData);
+    }
+
+    res.json({
+      success: true,
+      message: '如果該 Email 仍待驗證，新的驗證信已寄出'
+    });
+  } catch (error) {
+    console.error('Email verification resend error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'VERIFY_RESEND_FAILED',
+      message: '重新寄送驗證信失敗'
+    });
+  }
+});
+
+/**
+ * GET /api/auth/teacher/invite/validate
+ * 驗證老師邀請連結
+ */
+router.get('/teacher/invite/validate', async (req, res) => {
+  try {
+    const token = String(req.query?.token || '').trim();
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        error: 'MISSING_TOKEN',
+        message: '請提供邀請 token'
+      });
+    }
+
+    const tokenRecord = await getValidAccountToken(token, ACCOUNT_TOKEN_KINDS.TEACHER_INVITE);
+    if (!tokenRecord) {
+      return res.status(400).json({
+        success: false,
+        error: 'INVALID_INVITE_TOKEN',
+        message: '邀請連結無效或已過期'
+      });
+    }
+
+    const user = await db.getUser(tokenRecord.userId);
+    if (!user || user.status !== 'pending_invite') {
+      return res.status(400).json({
+        success: false,
+        error: 'ACCOUNT_NOT_PENDING',
+        message: '此邀請已完成或帳號狀態不正確'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        email: maskEmail(tokenRecord.email),
+        displayName: user.displayName || user.displayNameZh || '',
+        role: user.role,
+        expiresAt: tokenRecord.expiresAt
+      }
+    });
+  } catch (error) {
+    console.error('Teacher invite validate error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'INVITE_VALIDATE_FAILED',
+      message: '驗證邀請連結失敗'
+    });
+  }
+});
+
+/**
+ * POST /api/auth/teacher/invite/accept
+ * 老師接受邀請並設定密碼
+ */
+router.post('/teacher/invite/accept', async (req, res) => {
+  try {
+    const token = String(req.body?.token || '').trim();
+    const password = String(req.body?.password || '');
+
+    if (!token || !password) {
+      return res.status(400).json({
+        success: false,
+        error: 'MISSING_FIELDS',
+        message: '請提供邀請 token 與密碼'
+      });
+    }
+
+    if (password.length < 8) {
+      return res.status(400).json({
+        success: false,
+        error: 'WEAK_PASSWORD',
+        message: '密碼長度至少需要 8 個字元'
+      });
+    }
+
+    const tokenRecord = await getValidAccountToken(token, ACCOUNT_TOKEN_KINDS.TEACHER_INVITE);
+    if (!tokenRecord) {
+      return res.status(400).json({
+        success: false,
+        error: 'INVALID_INVITE_TOKEN',
+        message: '邀請連結無效或已過期'
+      });
+    }
+
+    const user = await db.getUser(tokenRecord.userId);
+    if (!user || user.status !== 'pending_invite') {
+      return res.status(400).json({
+        success: false,
+        error: 'ACCOUNT_NOT_PENDING',
+        message: '此邀請已完成或帳號狀態不正確'
+      });
+    }
+
+    const now = new Date().toISOString();
+    const passwordHash = await auth.hashPassword(password);
+
+    await db.updateItem(`USER#${user.userId}`, 'PROFILE', {
+      passwordHash,
+      status: 'active',
+      emailVerified: true,
+      emailVerifiedAt: now,
+      invitationAcceptedAt: now,
+      updatedAt: now
+    });
+
+    await db.updateItem(tokenRecord.PK, 'META', {
+      consumedAt: now,
+      consumedIp: req.ip || req.headers['x-forwarded-for'] || 'unknown',
+      updatedAt: now
+    });
+    await revokeAccountTokens(ACCOUNT_TOKEN_KINDS.TEACHER_INVITE, user.userId, tokenRecord.PK);
+
+    await db.logActivity(user.userId, 'teacher_invite_accepted', 'auth', user.userId, {
+      role: user.role,
+      ip: req.ip || req.headers['x-forwarded-for'] || 'unknown'
+    });
+
+    res.json({
+      success: true,
+      message: '帳號已啟用，請使用剛設定的密碼登入'
+    });
+  } catch (error) {
+    console.error('Teacher invite accept error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'INVITE_ACCEPT_FAILED',
+      message: '接受邀請失敗，請稍後再試'
     });
   }
 });

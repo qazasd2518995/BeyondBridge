@@ -7,9 +7,12 @@ const express = require('express');
 const router = express.Router();
 const path = require('path');
 const fs = require('fs/promises');
+const crypto = require('crypto');
 const db = require('../utils/db');
 const auth = require('../utils/auth');
 const cache = require('../utils/cache');
+const permissions = require('../utils/permissions');
+const { sendTeacherInvitationEmail } = require('../utils/email');
 const {
   ADMIN_METRICS_SNAPSHOT_KEYS,
   scanUsersForAnalytics,
@@ -20,6 +23,8 @@ const {
 } = require('../utils/admin-metrics');
 const ADMIN_ANALYTICS_CACHE_TTL_MS = 2 * 60 * 1000;
 const ADMIN_ANALYTICS_ENTITY_CACHE_TTL_MS = 60 * 1000;
+const TEACHER_INVITE_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
+const TEACHER_INVITE_KIND = 'teacher_invite';
 const analyticsInflight = new Map();
 const ADMIN_ACTIVITY_ACTIONS = [
   'login',
@@ -30,6 +35,65 @@ const ADMIN_ACTIVITY_ACTIONS = [
   'course_enrolled',
   'course_progress'
 ];
+
+function normalizeEmail(email = '') {
+  return String(email || '').trim().toLowerCase();
+}
+
+function generateAccountToken() {
+  return crypto.randomBytes(32).toString('base64url');
+}
+
+function hashAccountToken(token = '') {
+  return crypto.createHash('sha256').update(String(token)).digest('hex');
+}
+
+function buildAccountTokenPk(token) {
+  return `ACCOUNT_TOKEN#${hashAccountToken(token)}`;
+}
+
+function buildAccountTokenOwnerKey(kind, userId) {
+  return `ACCOUNT_TOKEN_OWNER#${kind}#${userId}`;
+}
+
+async function revokeAccountTokens(kind, userId, exceptPk = null) {
+  const ownerKey = buildAccountTokenOwnerKey(kind, userId);
+  const existingTokens = await db.queryByIndex('GSI1', ownerKey, 'GSI1PK', {
+    skName: 'GSI1SK',
+    skPrefix: 'TOKEN#',
+    projection: ['PK', 'SK']
+  });
+  const keysToDelete = existingTokens
+    .filter(item => item?.PK && item?.SK && item.PK !== exceptPk)
+    .map(item => ({ PK: item.PK, SK: item.SK }));
+
+  if (keysToDelete.length > 0) {
+    await db.batchDelete(keysToDelete);
+  }
+}
+
+async function createTeacherInviteToken(user, req) {
+  const rawToken = generateAccountToken();
+  const now = new Date().toISOString();
+  const tokenItem = {
+    PK: buildAccountTokenPk(rawToken),
+    SK: 'META',
+    GSI1PK: buildAccountTokenOwnerKey(TEACHER_INVITE_KIND, user.userId),
+    GSI1SK: `TOKEN#${now}`,
+    entityType: 'ACCOUNT_TOKEN',
+    kind: TEACHER_INVITE_KIND,
+    userId: user.userId,
+    email: user.email,
+    createdAt: now,
+    expiresAt: new Date(Date.now() + TEACHER_INVITE_EXPIRY_MS).toISOString(),
+    requestedIp: req.ip || req.headers['x-forwarded-for'] || 'unknown',
+    userAgent: req.headers['user-agent'] || ''
+  };
+
+  await revokeAccountTokens(TEACHER_INVITE_KIND, user.userId);
+  await db.putItem(tokenItem);
+  return rawToken;
+}
 
 async function withAnalyticsCache(cacheKey, computeFn, ttlMs = ADMIN_ANALYTICS_CACHE_TTL_MS) {
   const cached = cache.get(cacheKey);
@@ -258,16 +322,29 @@ router.get('/users/:id', async (req, res) => {
 router.post('/users', async (req, res) => {
   try {
     const {
-      email, password, displayName, displayNameZh, role = 'educator',
-      organization, organizationType, subscriptionTier = 'basic'
+      password,
+      displayName,
+      displayNameZh,
+      role = 'teacher',
+      organization,
+      organizationType,
+      subscriptionTier = 'basic'
     } = req.body;
+    const email = normalizeEmail(req.body?.email);
+    const selectedCourseIds = Array.isArray(req.body.courseIds)
+      ? req.body.courseIds
+      : String(req.body.courseIds || '')
+        .split(',')
+        .map(courseId => courseId.trim())
+        .filter(Boolean);
+    const isTeacherInvite = role !== 'student';
 
     // 驗證必填欄位
-    if (!email || !password || !displayName) {
+    if (!email || !displayName || (!isTeacherInvite && !password)) {
       return res.status(400).json({
         success: false,
         error: 'MISSING_FIELDS',
-        message: '請填寫電子郵件、密碼和姓名'
+        message: isTeacherInvite ? '請填寫電子郵件和姓名' : '請填寫電子郵件、密碼和姓名'
       });
     }
 
@@ -282,7 +359,7 @@ router.post('/users', async (req, res) => {
     }
 
     // 驗證密碼長度
-    if (password.length < 6) {
+    if (!isTeacherInvite && password.length < 6) {
       return res.status(400).json({
         success: false,
         error: 'WEAK_PASSWORD',
@@ -291,8 +368,11 @@ router.post('/users', async (req, res) => {
     }
 
     // 檢查 Email 是否已存在
-    const existingUser = await db.getUserByEmail(email);
-    if (existingUser) {
+    const [existingUser, existingAdmin] = await Promise.all([
+      db.getUserByEmail(email),
+      db.getAdminByEmail(email)
+    ]);
+    if (existingUser || existingAdmin) {
       return res.status(400).json({
         success: false,
         error: 'EMAIL_EXISTS',
@@ -302,7 +382,7 @@ router.post('/users', async (req, res) => {
 
     const userId = db.generateId('usr');
     const now = new Date().toISOString();
-    const passwordHash = await auth.hashPassword(password);
+    const passwordHash = isTeacherInvite ? null : await auth.hashPassword(password);
 
     const user = {
       PK: `USER#${userId}`,
@@ -344,13 +424,41 @@ router.post('/users', async (req, res) => {
         coursesInProgress: 0
       },
 
-      status: 'active',
+      status: isTeacherInvite ? 'pending_invite' : 'active',
+      emailVerified: !isTeacherInvite,
+      emailVerifiedAt: isTeacherInvite ? null : now,
+      invitedBy: isTeacherInvite ? req.user.userId : null,
+      invitedAt: isTeacherInvite ? now : null,
       createdBy: req.user.userId,
       lastLoginAt: null,
       updatedAt: now
     };
 
     await db.putItem(user);
+
+    let courseNames = [];
+    let assignedCourseIds = [];
+    if (selectedCourseIds.length > 0) {
+      const courses = await db.getCoursesByIds(selectedCourseIds, {
+        projection: ['courseId', 'title', 'name']
+      });
+      assignedCourseIds = courses.map(course => course.courseId).filter(Boolean);
+      courseNames = courses.map(course => course.title || course.name || course.courseId).filter(Boolean);
+      await Promise.all(assignedCourseIds.map(courseId =>
+        permissions.setCourseRole(courseId, userId, 'teacher')
+      ));
+    }
+
+    let invitationEmailSent = false;
+    if (isTeacherInvite) {
+      const rawToken = await createTeacherInviteToken(user, req);
+      try {
+        await sendTeacherInvitationEmail(user, rawToken, { courseNames });
+        invitationEmailSent = true;
+      } catch (emailError) {
+        console.error('Send teacher invitation email failed:', emailError);
+      }
+    }
 
     // 記錄活動日誌
     await db.putItem({
@@ -361,19 +469,25 @@ router.post('/users', async (req, res) => {
       action: 'account_created',
       details: {
         createdBy: req.user.userId,
-        method: 'admin_create'
+        method: isTeacherInvite ? 'admin_invite' : 'admin_create',
+        courseIds: assignedCourseIds,
+        invitationEmailSent
       }
     });
 
     res.status(201).json({
       success: true,
-      message: '用戶帳號已建立',
+      message: isTeacherInvite
+        ? (invitationEmailSent ? '老師邀請已建立並寄出' : '老師邀請已建立，但邀請信寄送失敗，請稍後重寄')
+        : '用戶帳號已建立',
       data: {
         userId,
         email,
         displayName,
         role,
-        status: 'active'
+        status: user.status,
+        courseIds: assignedCourseIds,
+        invitationEmailSent
       }
     });
 
@@ -383,6 +497,65 @@ router.post('/users', async (req, res) => {
       success: false,
       error: 'CREATE_FAILED',
       message: '建立用戶失敗'
+    });
+  }
+});
+
+/**
+ * POST /api/admin/users/:id/invite/resend
+ * 重新寄送老師邀請信
+ */
+router.post('/users/:id/invite/resend', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await db.getUser(id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'USER_NOT_FOUND',
+        message: '找不到用戶'
+      });
+    }
+
+    if (user.status !== 'pending_invite') {
+      return res.status(400).json({
+        success: false,
+        error: 'ACCOUNT_NOT_PENDING',
+        message: '只有待接受邀請的老師帳號可以重寄邀請信'
+      });
+    }
+
+    const enrollments = await db.queryByIndex('GSI1', `USER#${id}`, 'GSI1PK', {
+      skName: 'GSI1SK',
+      skPrefix: 'ENROLLMENT#',
+      projection: ['courseId', 'courseRole']
+    });
+    const teacherCourseIds = enrollments
+      .filter(item => item.courseRole === 'teacher')
+      .map(item => item.courseId)
+      .filter(Boolean);
+    const courses = await db.getCoursesByIds(teacherCourseIds, {
+      projection: ['courseId', 'title', 'name']
+    });
+    const courseNames = courses.map(course => course.title || course.name || course.courseId).filter(Boolean);
+    const rawToken = await createTeacherInviteToken(user, req);
+    await sendTeacherInvitationEmail(user, rawToken, { courseNames });
+
+    await db.updateItem(`USER#${id}`, 'PROFILE', {
+      invitedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    });
+
+    res.json({
+      success: true,
+      message: '老師邀請信已重新寄出'
+    });
+  } catch (error) {
+    console.error('Resend teacher invite error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'RESEND_INVITE_FAILED',
+      message: '重寄邀請信失敗'
     });
   }
 });
@@ -511,11 +684,36 @@ router.put('/users/:id/status', async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    if (!['active', 'suspended', 'pending'].includes(status)) {
+    if (!['active', 'suspended', 'pending', 'pending_invite', 'pending_email_verification'].includes(status)) {
       return res.status(400).json({
         success: false,
         error: 'INVALID_STATUS',
         message: '無效的狀態值'
+      });
+    }
+
+    const user = await db.getUser(id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'USER_NOT_FOUND',
+        message: '找不到用戶'
+      });
+    }
+
+    if (status === 'active' && user.status === 'pending_invite' && !user.passwordHash) {
+      return res.status(400).json({
+        success: false,
+        error: 'INVITE_NOT_ACCEPTED',
+        message: '此老師尚未接受邀請並設定密碼，不能直接啟用'
+      });
+    }
+
+    if (status === 'active' && user.status === 'pending_email_verification' && !user.emailVerified) {
+      return res.status(400).json({
+        success: false,
+        error: 'EMAIL_NOT_VERIFIED',
+        message: '此學生尚未完成 Email 驗證，不能直接啟用'
       });
     }
 

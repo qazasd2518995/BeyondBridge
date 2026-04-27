@@ -627,7 +627,7 @@
             background: linear-gradient(135deg, rgba(72, 187, 120, 0.15) 0%, rgba(72, 187, 120, 0.1) 100%);
             color: var(--success);
         }
-        .status-badge.pending, .status-badge.draft {
+        .status-badge.pending, .status-badge.pending_invite, .status-badge.pending_email_verification, .status-badge.draft {
             background: linear-gradient(135deg, rgba(236, 201, 75, 0.15) 0%, rgba(236, 201, 75, 0.1) 100%);
             color: #B7791F;
         }
@@ -3088,6 +3088,37 @@
         .admin-empty-state-title {
             font-weight: 600;
             color: var(--charcoal);
+        }
+
+        .admin-checkbox-list {
+            display: grid;
+            gap: 0.55rem;
+            max-height: 220px;
+            overflow: auto;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--surface-light);
+        }
+
+        .admin-checkbox-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.55rem;
+            color: var(--text-primary);
+            line-height: 1.35;
+        }
+
+        .admin-checkbox-item input {
+            margin-top: 0.15rem;
+        }
+
+        .form-help {
+            display: block;
+            margin-top: 0.45rem;
+            color: var(--text-secondary);
+            font-size: 0.82rem;
+            line-height: 1.4;
         }
 
         .system-alert-item {
@@ -7225,16 +7256,20 @@
                         <input type="email" name="email" class="form-input" required placeholder="user@example.com">
                     </div>
                     <div class="form-group">
-                        <label data-i18n="admin.userModal.passwordLabel">密碼 *</label>
-                        <input type="password" name="password" class="form-input" required placeholder="至少 6 個字元" data-i18n-placeholder="admin.userModal.passwordPlaceholder" minlength="6">
-                    </div>
-                    <div class="form-group">
                         <label data-i18n="admin.userModal.roleLabel">角色 *</label>
                         <select name="role" class="form-input" required>
+                            <option value="teacher">老師</option>
                             <option value="educator" data-i18n="admin.userModal.roleEducator">教育工作者</option>
                             <option value="trainer" data-i18n="admin.userModal.roleTrainer">企業培訓主管</option>
                             <option value="creator" data-i18n="admin.userModal.roleCreator">內容創作者</option>
                         </select>
+                    </div>
+                    <div class="form-group">
+                        <label>可管理課程</label>
+                        <div id="createUserCourseAccessList" class="admin-checkbox-list">
+                            <div class="admin-empty">載入課程中...</div>
+                        </div>
+                        <small class="form-help">老師接受 Email 邀請並設定密碼後，即可管理已勾選課程。</small>
                     </div>
                     <div class="form-group">
                         <label data-i18n="admin.userModal.orgLabel">學校/機構</label>
@@ -7244,7 +7279,7 @@
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeModal('createUserModal')" data-i18n="common.cancel">取消</button>
-                <button class="btn btn-primary" onclick="submitCreateUser()" data-i18n="admin.userModal.createBtn">建立用戶</button>
+                <button class="btn btn-primary" onclick="submitCreateUser()">建立並寄送邀請</button>
             </div>
         </div>
     </div>
@@ -8820,6 +8855,7 @@
 
         // 角色名稱對照
         const roleNames = {
+            'teacher': '老師',
             'educator': t('admin.roles.educator'),
             'trainer': t('admin.roles.trainer'),
             'creator': t('admin.roles.creator'),
@@ -9223,6 +9259,20 @@
                     const role = u.role || 'educator';
                     const roleName = roleNames[role] || role;
                     const isSelected = BatchOperations.selectedItems.has(u.userId);
+                    const userActions = u.status === 'pending_invite'
+                        ? `
+                            <button class="btn btn-sm btn-secondary" onclick="resendUserInvite('${u.userId}')">
+                                重寄邀請
+                            </button>
+                            <button class="btn btn-sm btn-secondary" onclick="toggleUserStatus('${u.userId}', '${u.status}')">
+                                ${t('admin.users.suspend')}
+                            </button>
+                        `
+                        : `
+                            <button class="btn btn-sm btn-secondary" onclick="toggleUserStatus('${u.userId}', '${u.status}')">
+                                ${u.status === 'active' ? t('admin.users.suspend') : t('admin.users.activate')}
+                            </button>
+                        `;
 
                     return `
                         <tr data-role="${role}" data-id="${u.userId}" class="${isSelected ? 'selected' : ''}">
@@ -9252,9 +9302,7 @@
                             <td>${formatDate(u.createdAt)}</td>
                             <td>
                                 <div class="admin-user-actions">
-                                    <button class="btn btn-sm btn-secondary" onclick="toggleUserStatus('${u.userId}', '${u.status}')">
-                                        ${u.status === 'active' ? t('admin.users.suspend') : t('admin.users.activate')}
-                                    </button>
+                                    ${userActions}
                                 </div>
                             </td>
                         </tr>
@@ -9269,6 +9317,20 @@
         function handleUserSelectAll(checked) {
             const allIds = getFilteredUsers().map(u => u.userId);
             BatchOperations.toggleAll(allIds, checked);
+        }
+
+        async function resendUserInvite(userId) {
+            try {
+                const result = await API.admin.resendUserInvite(userId);
+                if (result.success) {
+                    showToast(result.message || '邀請信已重新寄出');
+                } else {
+                    showToast(result.message || '重寄邀請信失敗', 'error');
+                }
+            } catch (error) {
+                console.error('Resend invite error:', error);
+                showToast('重寄邀請信失敗', 'error');
+            }
         }
 
         // 批量變更用戶狀態
@@ -10146,22 +10208,56 @@
 
         function openCreateUserModal() {
             document.getElementById('createUserForm').reset();
+            renderCreateUserCourseAccessList();
             openModal('createUserModal');
+        }
+
+        async function renderCreateUserCourseAccessList() {
+            const container = document.getElementById('createUserCourseAccessList');
+            if (!container) return;
+
+            try {
+                if (!Array.isArray(adminCourses) || adminCourses.length === 0) {
+                    const result = await API.request('/courses');
+                    adminCourses = result.success ? getAdminCollection(result.data) : [];
+                }
+
+                if (!adminCourses.length) {
+                    container.innerHTML = '<div class="admin-empty">目前沒有可授權課程</div>';
+                    return;
+                }
+
+                container.innerHTML = adminCourses.map((course) => {
+                    const courseId = course.courseId || course.id || '';
+                    const title = course.title || course.name || courseId;
+                    const subtitle = course.categoryName || course.category || '';
+                    return `
+                        <label class="admin-checkbox-item">
+                            <input type="checkbox" name="courseIds" value="${escapeHtml(String(courseId))}">
+                            <span>
+                                <strong>${escapeHtml(String(title))}</strong>
+                                ${subtitle ? `<br><small>${escapeHtml(String(subtitle))}</small>` : ''}
+                            </span>
+                        </label>
+                    `;
+                }).join('');
+            } catch (error) {
+                console.error('Load create user course list error:', error);
+                container.innerHTML = '<div class="admin-empty">課程清單載入失敗</div>';
+            }
         }
 
         async function submitCreateUser() {
             const form = document.getElementById('createUserForm');
             const formData = new FormData(form);
             const data = Object.fromEntries(formData.entries());
+            data.courseIds = Array.from(form.querySelectorAll('input[name="courseIds"]:checked'))
+                .map(input => input.value)
+                .filter(Boolean);
 
             // Validate
-            if (!data.displayName || !data.email || !data.password) {
+            if (!data.displayName || !data.email) {
                 showToast(t('admin.validation.fillRequired'), 'error');
-                return;
-            }
-
-            if (data.password.length < 6) {
-                showToast(t('admin.validation.password'), 'error');
                 return;
             }
 
@@ -10170,7 +10266,7 @@
                 if (result.success) {
                     closeModal('createUserModal');
                     loadUsers();
-                    showToast(t('admin.users.createSuccess'));
+                    showToast(result.message || '老師邀請已寄出');
                 } else {
                     showToast(result.message || t('admin.users.createFailed'), 'error');
                 }

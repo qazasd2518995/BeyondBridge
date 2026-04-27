@@ -189,6 +189,71 @@ async function updateItem(pk, sk, updates, options = {}) {
 }
 
 /**
+ * 更新 map 欄位裡的多個 key，避免重寫整個 map。
+ */
+async function updateNestedMapItem(pk, sk, mapAttribute, values = {}, extraUpdates = {}, options = {}) {
+  const valueEntries = Object.entries(values || {})
+    .filter(([key, value]) => key && value !== undefined);
+  const extraEntries = Object.entries(extraUpdates || {})
+    .filter(([, value]) => value !== undefined);
+
+  if (valueEntries.length === 0 && extraEntries.length === 0) {
+    return getItem(pk, sk);
+  }
+
+  const updateExpressions = [];
+  const expressionAttributeNames = {
+    '#nestedMap': mapAttribute
+  };
+  const expressionAttributeValues = {};
+
+  valueEntries.forEach(([key, value], index) => {
+    const keyName = `#nestedKey${index}`;
+    const valueName = `:nestedVal${index}`;
+    expressionAttributeNames[keyName] = String(key);
+    expressionAttributeValues[valueName] = value;
+    updateExpressions.push(`#nestedMap.${keyName} = ${valueName}`);
+  });
+
+  extraEntries.forEach(([key, value], index) => {
+    const attrName = `#extraAttr${index}`;
+    const attrValue = `:extraVal${index}`;
+    expressionAttributeNames[attrName] = key;
+    expressionAttributeValues[attrValue] = value;
+    updateExpressions.push(`${attrName} = ${attrValue}`);
+  });
+
+  const commandInput = {
+    TableName: TABLE_NAME,
+    Key: { PK: pk, SK: sk },
+    UpdateExpression: `SET ${updateExpressions.join(', ')}`,
+    ExpressionAttributeNames: expressionAttributeNames,
+    ExpressionAttributeValues: expressionAttributeValues,
+    ReturnValues: 'ALL_NEW'
+  };
+
+  if (options.conditionExpression) {
+    commandInput.ConditionExpression = options.conditionExpression;
+    if (options.conditionAttributeNames) {
+      commandInput.ExpressionAttributeNames = {
+        ...commandInput.ExpressionAttributeNames,
+        ...options.conditionAttributeNames
+      };
+    }
+    if (options.conditionAttributeValues) {
+      commandInput.ExpressionAttributeValues = {
+        ...commandInput.ExpressionAttributeValues,
+        ...options.conditionAttributeValues
+      };
+    }
+  }
+
+  const command = new UpdateCommand(commandInput);
+  const response = await withRetry(() => docClient.send(command));
+  return response.Attributes;
+}
+
+/**
  * 刪除項目
  */
 async function deleteItem(pk, sk) {
@@ -696,6 +761,7 @@ module.exports = {
   getItem,
   putItem,
   updateItem,
+  updateNestedMapItem,
   deleteItem,
   query,
   queryByIndex,

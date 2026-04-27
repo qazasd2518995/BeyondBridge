@@ -112,21 +112,42 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
+function parsePositiveInt(value, fallback) {
+  const parsed = parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function isQuizAttemptTraffic(req) {
+  const requestPath = String(req.originalUrl || req.url || '').split('?')[0];
+  return /^\/api\/quizzes\/[^/]+\/start$/.test(requestPath) ||
+    /^\/api\/quizzes\/[^/]+\/attempts\/[^/]+\/(?:answer|answers|submit)$/.test(requestPath);
+}
+
 // Rate Limiting
 const apiLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 分鐘
-  max: 100,
+  max: parsePositiveInt(process.env.API_RATE_LIMIT_MAX, 600),
+  skip: isQuizAttemptTraffic,
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, error: 'RATE_LIMITED', message: '請求過於頻繁，請稍後再試' }
 });
+const quizAttemptLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: parsePositiveInt(process.env.QUIZ_ATTEMPT_RATE_LIMIT_MAX, 2400),
+  skip: req => !isQuizAttemptTraffic(req),
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'RATE_LIMITED', message: '測驗作答請求過於頻繁，請稍後再試' }
+});
 const authLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 10,
+  max: parsePositiveInt(process.env.AUTH_RATE_LIMIT_MAX, 60),
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, error: 'RATE_LIMITED', message: '登入嘗試過於頻繁，請稍後再試' }
 });
+app.use('/api/quizzes/', quizAttemptLimiter);
 app.use('/api/', apiLimiter);
 app.use('/api/auth/', authLimiter);
 

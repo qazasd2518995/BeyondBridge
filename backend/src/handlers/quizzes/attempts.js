@@ -36,6 +36,114 @@ async function canManageQuiz(quiz, user) {
   return quiz.createdBy === user.userId;
 }
 
+function normalizeAttemptAnswerPatch(body = {}) {
+  if (body.questionId) {
+    if (body.answer === undefined) {
+      return {};
+    }
+    return { [String(body.questionId)]: body.answer };
+  }
+
+  const answers = body.answers && typeof body.answers === 'object' && !Array.isArray(body.answers)
+    ? body.answers
+    : {};
+
+  return Object.entries(answers).reduce((patch, [questionId, answer]) => {
+    if (questionId && answer !== undefined) {
+      patch[String(questionId)] = answer;
+    }
+    return patch;
+  }, {});
+}
+
+async function getOwnedAttempt(quizId, attemptId, userId) {
+  const attempts = await db.query(`QUIZ#${quizId}`, {
+    skPrefix: `ATTEMPT#${userId}#`
+  });
+  return attempts.find(attempt => attempt.attemptId === attemptId) || null;
+}
+
+async function saveAttemptAnswers(quizId, attemptId, userId, answers) {
+  const attempt = await getOwnedAttempt(quizId, attemptId, userId);
+
+  if (!attempt) {
+    return {
+      status: 404,
+      payload: {
+        success: false,
+        error: 'ATTEMPT_NOT_FOUND',
+        message: '找不到作答記錄'
+      }
+    };
+  }
+
+  if (attempt.status !== 'in_progress') {
+    return {
+      status: 403,
+      payload: {
+        success: false,
+        error: 'ATTEMPT_COMPLETED',
+        message: '此作答已完成'
+      }
+    };
+  }
+
+  if (attempt.expiresAt && new Date() > new Date(attempt.expiresAt)) {
+    return {
+      status: 403,
+      payload: {
+        success: false,
+        error: 'TIME_EXPIRED',
+        message: '作答時間已過期'
+      }
+    };
+  }
+
+  const now = new Date().toISOString();
+  try {
+    const condition = {
+      conditionExpression: '#status = :inProgress',
+      conditionAttributeNames: { '#status': 'status' },
+      conditionAttributeValues: { ':inProgress': 'in_progress' }
+    };
+
+    if (!attempt.answers || typeof attempt.answers !== 'object' || Array.isArray(attempt.answers)) {
+      await db.updateItem(`QUIZ#${quizId}`, attempt.SK, {
+        answers: { ...answers },
+        updatedAt: now
+      }, condition);
+    } else {
+      await db.updateNestedMapItem(`QUIZ#${quizId}`, attempt.SK, 'answers', answers, {
+        updatedAt: now
+      }, condition);
+    }
+  } catch (error) {
+    if (error.name === 'ConditionalCheckFailedException') {
+      return {
+        status: 409,
+        payload: {
+          success: false,
+          error: 'ATTEMPT_ALREADY_SUBMITTED',
+          message: '此作答已被提交，請重新整理以查看結果'
+        }
+      };
+    }
+    throw error;
+  }
+
+  return {
+    status: 200,
+    payload: {
+      success: true,
+      message: '答案已儲存',
+      data: {
+        savedCount: Object.keys(answers).length,
+        updatedAt: now
+      }
+    }
+  };
+}
+
 function getManualGradeSummary(quiz, questionResults = []) {
   const essayQuestionIds = new Set(
     (quiz?.questions || [])
@@ -359,54 +467,51 @@ router.put('/:id/attempts/:attemptId/answer', authMiddleware, async (req, res) =
   try {
     const { id, attemptId } = req.params;
     const userId = req.user.userId;
-    const { questionId, answer } = req.body;
 
-    // 找到作答記錄
-    const attempts = await db.query(`QUIZ#${id}`, {
-      skPrefix: `ATTEMPT#${userId}#`
-    });
-    const attempt = attempts.find(a => a.attemptId === attemptId);
-
-    if (!attempt) {
-      return res.status(404).json({
+    const answers = normalizeAttemptAnswerPatch(req.body);
+    if (Object.keys(answers).length === 0) {
+      return res.status(400).json({
         success: false,
-        error: 'ATTEMPT_NOT_FOUND',
-        message: '找不到作答記錄'
+        error: 'MISSING_ANSWER',
+        message: '請提供要儲存的答案'
       });
     }
 
-    if (attempt.status !== 'in_progress') {
-      return res.status(403).json({
-        success: false,
-        error: 'ATTEMPT_COMPLETED',
-        message: '此作答已完成'
-      });
-    }
-
-    // 檢查時間是否過期
-    if (attempt.expiresAt && new Date() > new Date(attempt.expiresAt)) {
-      return res.status(403).json({
-        success: false,
-        error: 'TIME_EXPIRED',
-        message: '作答時間已過期'
-      });
-    }
-
-    // 更新答案
-    const answers = { ...attempt.answers, [questionId]: answer };
-
-    await db.updateItem(`QUIZ#${id}`, attempt.SK, {
-      answers,
-      updatedAt: new Date().toISOString()
-    });
-
-    res.json({
-      success: true,
-      message: '答案已儲存'
-    });
+    const result = await saveAttemptAnswers(id, attemptId, userId, answers);
+    res.status(result.status).json(result.payload);
 
   } catch (error) {
     console.error('Save answer error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'SAVE_FAILED',
+      message: '儲存答案失敗'
+    });
+  }
+});
+
+/**
+ * PUT /api/quizzes/:id/attempts/:attemptId/answers
+ * 批次儲存答案（自動儲存）
+ */
+router.put('/:id/attempts/:attemptId/answers', authMiddleware, async (req, res) => {
+  try {
+    const { id, attemptId } = req.params;
+    const userId = req.user.userId;
+    const answers = normalizeAttemptAnswerPatch(req.body);
+
+    if (Object.keys(answers).length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'MISSING_ANSWERS',
+        message: '請提供要儲存的答案'
+      });
+    }
+
+    const result = await saveAttemptAnswers(id, attemptId, userId, answers);
+    res.status(result.status).json(result.payload);
+  } catch (error) {
+    console.error('Save answers error:', error);
     res.status(500).json({
       success: false,
       error: 'SAVE_FAILED',

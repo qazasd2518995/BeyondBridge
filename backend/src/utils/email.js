@@ -21,6 +21,17 @@ const FROM_EMAIL = process.env.EMAIL_FROM || 'noreply@beyondbridge.com';
 const PLATFORM_NAME = 'BeyondBridge';
 const PLATFORM_URL = process.env.PLATFORM_URL || 'https://beyondbridge.onrender.com';
 
+function platformUrl(path = '/platform') {
+  const base = String(PLATFORM_URL || '').replace(/\/+$/, '');
+  const targetPath = String(path || '/platform').startsWith('/')
+    ? String(path || '/platform')
+    : `/${path}`;
+  if (/\/platform$/i.test(base) && targetPath.startsWith('/platform')) {
+    return `${base}${targetPath.replace(/^\/platform/, '') || '/'}`;
+  }
+  return `${base}${targetPath}`;
+}
+
 /**
  * 發送 Email
  * @param {string|string[]} to - 收件人 Email
@@ -156,7 +167,7 @@ async function sendWelcomeEmail(user) {
       您現在可以開始探索我們的教材庫，發現適合您的教學內容。
     </p>
     <div style="text-align: center; margin: 30px 0;">
-      ${buttonStyle('開始使用', `${PLATFORM_URL}/platform/`)}
+      ${buttonStyle('開始使用', platformUrl('/platform/'))}
     </div>
     <p style="margin: 20px 0 0; color: #6c757d; font-size: 14px;">
       如有任何問題，歡迎隨時聯繫我們的客服團隊。
@@ -200,7 +211,7 @@ async function sendLicenseExpiryReminder(user, license, daysRemaining) {
       為確保您的教學不受影響，請及時續約授權。
     </p>
     <div style="text-align: center; margin: 30px 0;">
-      ${buttonStyle('立即續約', `${PLATFORM_URL}/platform/#licenses`, daysRemaining <= 7 ? '#dc3545' : '#4F46E5')}
+      ${buttonStyle('立即續約', platformUrl('/platform/#licenses'), daysRemaining <= 7 ? '#dc3545' : '#4F46E5')}
     </div>
   `;
 
@@ -238,7 +249,7 @@ async function sendLicenseApproved(user, license) {
       </ul>
     </div>
     <div style="text-align: center; margin: 30px 0;">
-      ${buttonStyle('開始使用教材', `${PLATFORM_URL}/platform/#library`, '#28a745')}
+      ${buttonStyle('開始使用教材', platformUrl('/platform/#library'), '#28a745')}
     </div>
   `;
 
@@ -310,7 +321,7 @@ async function sendConsultationUpdate(user, consultation, updateType) {
       </ul>
     </div>
     <div style="text-align: center; margin: 30px 0;">
-      ${buttonStyle('查看諮詢詳情', `${PLATFORM_URL}/platform/#consultations`)}
+      ${buttonStyle('查看諮詢詳情', platformUrl('/platform/#consultations'))}
     </div>
   `;
 
@@ -344,7 +355,7 @@ async function sendDiscussionReplyNotification(user, post, reply) {
       </p>
     </div>
     <div style="text-align: center; margin: 30px 0;">
-      ${buttonStyle('查看完整回覆', `${PLATFORM_URL}/platform/#discussions/${post.postId}`)}
+      ${buttonStyle('查看完整回覆', platformUrl(`/platform/#discussions/${post.postId}`))}
     </div>
   `;
 
@@ -377,7 +388,7 @@ async function sendClassJoinNotification(teacher, student, classInfo) {
       </ul>
     </div>
     <div style="text-align: center; margin: 30px 0;">
-      ${buttonStyle('管理班級', `${PLATFORM_URL}/platform/#classes/${classInfo.classId}`)}
+      ${buttonStyle('管理班級', platformUrl(`/platform/#classes/${classInfo.classId}`))}
     </div>
   `;
 
@@ -427,7 +438,7 @@ async function sendAssignmentReminder(user, assignment, course) {
       </ul>
     </div>
     <div style="text-align: center; margin: 30px 0;">
-      ${buttonStyle('前往作業', `${PLATFORM_URL}/platform/assignment/${assignment.assignmentId}`, urgencyColor)}
+      ${buttonStyle('前往作業', platformUrl(`/platform/assignment/${assignment.assignmentId}`), urgencyColor)}
     </div>
   `;
 
@@ -479,7 +490,7 @@ async function sendGradeNotification(user, gradeData) {
     </div>
     ` : ''}
     <div style="text-align: center; margin: 30px 0;">
-      ${buttonStyle('查看詳情', `${PLATFORM_URL}/platform/grades`)}
+      ${buttonStyle('查看詳情', platformUrl('/platform/grades'))}
     </div>
   `;
 
@@ -519,7 +530,7 @@ async function sendCourseAnnouncement(users, announcement, course) {
         </p>
       </div>
       <div style="text-align: center; margin: 30px 0;">
-        ${buttonStyle('前往課程', `${PLATFORM_URL}/platform/course/${course.courseId}`)}
+        ${buttonStyle('前往課程', platformUrl(`/platform/course/${course.courseId}`))}
       </div>
     `;
 
@@ -578,7 +589,7 @@ async function sendQuizReminder(user, quiz, course) {
       </ul>
     </div>
     <div style="text-align: center; margin: 30px 0;">
-      ${buttonStyle('開始測驗', `${PLATFORM_URL}/platform/quiz/${quiz.quizId}`, urgencyColor)}
+      ${buttonStyle('開始測驗', platformUrl(`/platform/quiz/${quiz.quizId}`), urgencyColor)}
     </div>
   `;
 
@@ -648,7 +659,7 @@ async function sendLearningSummary(user, summaryData) {
     ` : ''}
 
     <div style="text-align: center; margin: 30px 0;">
-      ${buttonStyle('查看完整報告', `${PLATFORM_URL}/platform/dashboard`)}
+      ${buttonStyle('查看完整報告', platformUrl('/platform/dashboard'))}
     </div>
   `;
 
@@ -696,7 +707,7 @@ async function sendBulkEmails(emails, options = {}) {
  * 發送密碼重設 Email
  */
 async function sendPasswordResetEmail(user, resetToken) {
-  const resetUrl = `${PLATFORM_URL}/platform/reset-password?token=${resetToken}`;
+  const resetUrl = platformUrl(`/platform/reset-password?token=${resetToken}`);
 
   const content = `
     <h2 style="margin: 0 0 20px; color: #1a1a1a; font-size: 20px;">
@@ -724,6 +735,85 @@ async function sendPasswordResetEmail(user, resetToken) {
     user.email,
     `重設您的 ${PLATFORM_NAME} 密碼`,
     emailTemplate('密碼重設', content)
+  );
+}
+
+/**
+ * 發送學生 Email 驗證信
+ */
+async function sendStudentEmailVerificationEmail(user, verificationToken, classInfo = null) {
+  const verificationUrl = platformUrl(`/platform/verify-email?token=${verificationToken}`);
+  const className = classInfo?.name || user.pendingEnrollment?.className || '課程班級';
+
+  const content = `
+    <h2 style="margin: 0 0 20px; color: #1a1a1a; font-size: 20px;">
+      驗證 Email 以啟用學生帳號
+    </h2>
+    <p style="margin: 0 0 15px; color: #4a4a4a; line-height: 1.6;">
+      親愛的 ${user.displayName || user.email}，
+    </p>
+    <p style="margin: 0 0 15px; color: #4a4a4a; line-height: 1.6;">
+      你已使用通行碼註冊 ${PLATFORM_NAME}。請點擊下方按鈕驗證 Email，驗證後系統會正式啟用帳號並加入「${className}」。
+    </p>
+    <div style="text-align: center; margin: 30px 0;">
+      ${buttonStyle('驗證 Email 並啟用帳號', verificationUrl)}
+    </div>
+    <p style="margin: 20px 0 0; color: #6c757d; font-size: 14px;">
+      此連結將於 48 小時後失效。如果你沒有註冊 ${PLATFORM_NAME}，請忽略此郵件。
+    </p>
+    <p style="margin: 10px 0 0; color: #6c757d; font-size: 12px;">
+      如果按鈕無法點擊，請複製以下連結到瀏覽器：<br>
+      <a href="${verificationUrl}" style="color: #4F46E5;">${verificationUrl}</a>
+    </p>
+  `;
+
+  return sendEmail(
+    user.email,
+    `驗證你的 ${PLATFORM_NAME} 學生帳號`,
+    emailTemplate('Email 驗證', content)
+  );
+}
+
+/**
+ * 發送老師邀請信
+ */
+async function sendTeacherInvitationEmail(user, inviteToken, options = {}) {
+  const inviteUrl = platformUrl(`/platform/accept-invite?token=${inviteToken}`);
+  const courseNames = Array.isArray(options.courseNames) ? options.courseNames.filter(Boolean) : [];
+  const courseList = courseNames.length > 0
+    ? `<ul style="margin: 10px 0 20px; padding-left: 20px; color: #4a4a4a;">${courseNames.map(name => `<li>${name}</li>`).join('')}</ul>`
+    : '<p style="margin: 0 0 20px; color: #4a4a4a; line-height: 1.6;">管理員尚未指定課程，帳號啟用後可再由管理員授權。</p>';
+
+  const content = `
+    <h2 style="margin: 0 0 20px; color: #1a1a1a; font-size: 20px;">
+      你已受邀成為 ${PLATFORM_NAME} 老師
+    </h2>
+    <p style="margin: 0 0 15px; color: #4a4a4a; line-height: 1.6;">
+      親愛的 ${user.displayName || user.email}，
+    </p>
+    <p style="margin: 0 0 15px; color: #4a4a4a; line-height: 1.6;">
+      管理員已為你建立老師帳號。請點擊下方按鈕驗證 Email 並設定自己的登入密碼。
+    </p>
+    <p style="margin: 0 0 10px; color: #4a4a4a; line-height: 1.6;">
+      已預先授權的課程：
+    </p>
+    ${courseList}
+    <div style="text-align: center; margin: 30px 0;">
+      ${buttonStyle('接受邀請並設定密碼', inviteUrl)}
+    </div>
+    <p style="margin: 20px 0 0; color: #6c757d; font-size: 14px;">
+      此邀請連結將於 7 天後失效。如果你沒有預期收到這封信，請忽略此郵件。
+    </p>
+    <p style="margin: 10px 0 0; color: #6c757d; font-size: 12px;">
+      如果按鈕無法點擊，請複製以下連結到瀏覽器：<br>
+      <a href="${inviteUrl}" style="color: #4F46E5;">${inviteUrl}</a>
+    </p>
+  `;
+
+  return sendEmail(
+    user.email,
+    `${PLATFORM_NAME} 老師帳號邀請`,
+    emailTemplate('老師帳號邀請', content)
   );
 }
 
@@ -764,6 +854,8 @@ module.exports = {
   // 用戶通知
   sendWelcomeEmail,
   sendPasswordResetEmail,
+  sendStudentEmailVerificationEmail,
+  sendTeacherInvitationEmail,
 
   // 授權相關
   sendLicenseExpiryReminder,

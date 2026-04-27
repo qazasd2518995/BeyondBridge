@@ -30,6 +30,33 @@ function stripDbKeys(item = {}) {
   return rest;
 }
 
+const MAX_SAFE_QUIZ_ITEM_BYTES = (() => {
+  const configured = parseInt(process.env.MAX_QUIZ_ITEM_BYTES, 10);
+  return Number.isFinite(configured) && configured > 0 ? configured : 360 * 1024;
+})();
+
+function estimateItemBytes(item) {
+  return Buffer.byteLength(JSON.stringify(item || {}), 'utf8');
+}
+
+function ensureQuizItemWithinLimit(res, item) {
+  const sizeBytes = estimateItemBytes(item);
+  if (sizeBytes <= MAX_SAFE_QUIZ_ITEM_BYTES) {
+    return true;
+  }
+
+  res.status(400).json({
+    success: false,
+    error: 'QUIZ_TOO_LARGE',
+    message: '這份測驗題目資料過大，請拆成多份測驗或減少題幹、解析、選項中的重複長文字後再儲存。',
+    data: {
+      sizeBytes,
+      maxBytes: MAX_SAFE_QUIZ_ITEM_BYTES
+    }
+  });
+  return false;
+}
+
 async function getManagedQuizCourseIds(user) {
   if (!user?.userId || !isTeachingUser(user) || user.isAdmin) {
     return [];
@@ -430,6 +457,8 @@ router.post('/', authMiddleware, async (req, res) => {
       updatedAt: now
     };
 
+    if (!ensureQuizItemWithinLimit(res, quizItem)) return;
+
     await db.putItem(quizItem);
 
     // 如果有 sectionId，也在課程活動中建立連結
@@ -536,6 +565,9 @@ router.put('/:id', authMiddleware, async (req, res) => {
     }
 
     updates.updatedAt = new Date().toISOString();
+
+    const estimatedQuiz = { ...quiz, ...updates };
+    if (!ensureQuizItemWithinLimit(res, estimatedQuiz)) return;
 
     const updatedQuiz = await db.updateItem(`QUIZ#${id}`, 'META', updates);
 
@@ -676,6 +708,13 @@ router.post('/:id/questions', authMiddleware, async (req, res) => {
     const questions = [...(quiz.questions || []), newQuestion];
     const totalPoints = questions.reduce((sum, q) => sum + (q.points || 1), 0);
 
+    if (!ensureQuizItemWithinLimit(res, {
+      ...quiz,
+      questions,
+      questionCount: questions.length,
+      totalPoints
+    })) return;
+
     await db.updateItem(`QUIZ#${id}`, 'META', {
       questions,
       questionCount: questions.length,
@@ -737,6 +776,12 @@ router.put('/:id/questions/:questionId', authMiddleware, async (req, res) => {
     });
 
     const totalPoints = questions.reduce((sum, q) => sum + (q.points || 1), 0);
+
+    if (!ensureQuizItemWithinLimit(res, {
+      ...quiz,
+      questions,
+      totalPoints
+    })) return;
 
     await db.updateItem(`QUIZ#${id}`, 'META', {
       questions,

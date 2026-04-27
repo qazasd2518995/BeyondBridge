@@ -1831,7 +1831,7 @@ const App = {
           setTimeout(() => {
             window.location.href = '/admin';
           }, 1000);
-          return true;
+          return result;
         }
 
         // 一般用戶顯示主應用程式
@@ -1840,15 +1840,15 @@ const App = {
         showToast(t('toast.loginSuccess'));
         // 觸發登入事件，通知聊天系統初始化
         window.dispatchEvent(new CustomEvent('userLoggedIn'));
-        return true;
+        return result;
       } else {
         showToast(result.message || t('toast.loginFailed'));
-        return false;
+        return result;
       }
     } catch (error) {
       console.error('Login error:', error);
       showToast(t('toast.loginError'));
-      return false;
+      return { success: false, message: t('toast.loginError') };
     }
   },
 
@@ -1860,19 +1860,24 @@ const App = {
       const result = await API.auth.register(userData);
 
       if (result.success) {
+        if (result.data?.pendingVerification) {
+          showToast(result.message || '註冊資料已建立，請先完成 Email 驗證');
+          return result;
+        }
+
         this.currentUser = result.data.user;
         this.showApp();
         await this.loadDashboardData();
         showToast(t('toast.registerSuccess'));
-        return true;
+        return result;
       } else {
         showToast(result.message || t('toast.registerFailed'));
-        return false;
+        return result;
       }
     } catch (error) {
       console.error('Register error:', error);
       showToast(t('toast.registerError'));
-      return false;
+      return { success: false, message: t('toast.registerError') };
     }
   },
 

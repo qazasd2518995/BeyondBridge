@@ -8178,7 +8178,7 @@ const MoodleUI = {
     try {
       const result = await API.quizzes.start(quizId);
       if (result.success) {
-        this.currentQuizAttempt = result.data;
+        this.currentQuizAttempt = this.normalizeQuizAttemptState(result.data);
         this.currentQuestionIndex = 0;
         this.renderQuizQuestion();
         showView('quizAttempt');
@@ -8193,6 +8193,159 @@ const MoodleUI = {
 
   currentQuizAttempt: null,
   currentQuestionIndex: 0,
+  currentQuizPendingAnswerSaves: {},
+  currentQuizAnswerSaveTimer: null,
+  quizAnswerSaveWarningShown: false,
+
+  normalizeQuizAttemptState(attempt = {}) {
+    if (this.currentQuizAnswerSaveTimer) {
+      window.clearTimeout(this.currentQuizAnswerSaveTimer);
+    }
+
+    const savedAnswers = this.normalizeQuizObjectAnswer(attempt.answers);
+    const questions = (Array.isArray(attempt.questions) ? attempt.questions : []).map((question = {}) => {
+      const questionId = question.questionId;
+      const nextQuestion = { ...question };
+      if (questionId && Object.prototype.hasOwnProperty.call(savedAnswers, questionId)) {
+        const savedAnswer = this.cloneQuizAnswerValue(savedAnswers[questionId]);
+        nextQuestion.answer = savedAnswer;
+        nextQuestion.answered = this.isQuizAnswerComplete(nextQuestion, savedAnswer);
+        nextQuestion._savedAnswerKey = this.serializeQuizAnswer(savedAnswer);
+      } else {
+        nextQuestion.answered = this.isQuizAnswerComplete(nextQuestion);
+        if (nextQuestion.answer !== undefined) {
+          nextQuestion._savedAnswerKey = this.serializeQuizAnswer(nextQuestion.answer);
+        }
+      }
+      return nextQuestion;
+    });
+
+    this.currentQuizPendingAnswerSaves = {};
+    this.currentQuizAnswerSaveTimer = null;
+    this.quizAnswerSaveWarningShown = false;
+
+    return {
+      ...attempt,
+      answers: { ...savedAnswers },
+      questions
+    };
+  },
+
+  cloneQuizAnswerValue(value) {
+    if (Array.isArray(value)) {
+      return value.map(item => this.cloneQuizAnswerValue(item));
+    }
+    if (value && typeof value === 'object') {
+      return Object.keys(value).reduce((copy, key) => {
+        copy[key] = this.cloneQuizAnswerValue(value[key]);
+        return copy;
+      }, {});
+    }
+    return value;
+  },
+
+  serializeQuizAnswer(value) {
+    const normalize = (input) => {
+      if (Array.isArray(input)) return input.map(item => normalize(item));
+      if (input && typeof input === 'object') {
+        return Object.keys(input).sort().reduce((copy, key) => {
+          copy[key] = normalize(input[key]);
+          return copy;
+        }, {});
+      }
+      return input;
+    };
+
+    try {
+      return JSON.stringify(normalize(value));
+    } catch (error) {
+      return String(value);
+    }
+  },
+
+  markQuizQuestionAnswerSaved(question, answer) {
+    if (!question) return;
+    question._savedAnswerKey = this.serializeQuizAnswer(answer);
+  },
+
+  queueQuizAnswerSave(question, answer, { immediate = false } = {}) {
+    const attempt = this.currentQuizAttempt;
+    if (!attempt || !question?.questionId) return Promise.resolve(true);
+
+    const savedKey = this.serializeQuizAnswer(answer);
+    const pending = this.currentQuizPendingAnswerSaves || {};
+    if (question._savedAnswerKey === savedKey && !Object.prototype.hasOwnProperty.call(pending, question.questionId)) {
+      return Promise.resolve(true);
+    }
+
+    const clonedAnswer = this.cloneQuizAnswerValue(answer);
+    attempt.answers = {
+      ...(attempt.answers || {}),
+      [question.questionId]: clonedAnswer
+    };
+    this.currentQuizPendingAnswerSaves = {
+      ...pending,
+      [question.questionId]: clonedAnswer
+    };
+
+    if (immediate) {
+      return this.flushQuizAnswerSaves();
+    }
+
+    if (this.currentQuizAnswerSaveTimer) {
+      window.clearTimeout(this.currentQuizAnswerSaveTimer);
+    }
+    this.currentQuizAnswerSaveTimer = window.setTimeout(() => {
+      this.flushQuizAnswerSaves();
+    }, 700);
+
+    return Promise.resolve(true);
+  },
+
+  async flushQuizAnswerSaves() {
+    if (this.currentQuizAnswerSaveTimer) {
+      window.clearTimeout(this.currentQuizAnswerSaveTimer);
+      this.currentQuizAnswerSaveTimer = null;
+    }
+
+    const attempt = this.currentQuizAttempt;
+    const pending = this.currentQuizPendingAnswerSaves || {};
+    const entries = Object.entries(pending);
+    if (!attempt || entries.length === 0) return true;
+
+    const answers = entries.reduce((map, [questionId, answer]) => {
+      map[questionId] = this.cloneQuizAnswerValue(answer);
+      return map;
+    }, {});
+    this.currentQuizPendingAnswerSaves = {};
+
+    try {
+      const result = await API.quizzes.answers(attempt.quizId, attempt.attemptId, answers);
+      if (!result?.success) {
+        throw new Error(result?.message || 'Save answers failed');
+      }
+
+      entries.forEach(([questionId, answer]) => {
+        const question = attempt.questions?.find(item => item.questionId === questionId);
+        this.markQuizQuestionAnswerSaved(question, answer);
+      });
+      this.quizAnswerSaveWarningShown = false;
+      return true;
+    } catch (error) {
+      console.error('Save quiz answers error:', error);
+      this.currentQuizPendingAnswerSaves = {
+        ...answers,
+        ...(this.currentQuizPendingAnswerSaves || {})
+      };
+      if (!this.quizAnswerSaveWarningShown) {
+        showToast(I18n.getLocale() === 'en'
+          ? 'Answers are saved locally. They will retry automatically when you continue.'
+          : '答案已先保留在畫面上，系統會在你繼續操作時重新儲存。');
+        this.quizAnswerSaveWarningShown = true;
+      }
+      return false;
+    }
+  },
 
   /**
    * 渲染測驗題目
@@ -8456,6 +8609,7 @@ const MoodleUI = {
     question.answer = answer;
     question.answered = String(answer || '').trim().length > 0;
     this.updateQuizCurrentNavAnsweredState(question.answered);
+    this.queueQuizAnswerSave(question, answer);
   },
 
   getCurrentOrderingOptions(question = {}) {
@@ -8494,6 +8648,7 @@ const MoodleUI = {
     question.answer = answerMap;
     question.answered = this.isQuizAnswerComplete(question, answerMap);
     this.updateQuizCurrentNavAnsweredState(question.answered);
+    this.queueQuizAnswerSave(question, answerMap);
   },
 
   updateClozeAnswer(blankId, value) {
@@ -8503,6 +8658,7 @@ const MoodleUI = {
     question.answer = answerMap;
     question.answered = this.isQuizAnswerComplete(question, answerMap);
     this.updateQuizCurrentNavAnsweredState(question.answered);
+    this.queueQuizAnswerSave(question, answerMap);
   },
 
   moveOrderingAnswer(index, delta) {
@@ -8515,6 +8671,7 @@ const MoodleUI = {
     orderedOptions.splice(nextIndex, 0, item);
     question.answer = orderedOptions.map(option => option.value);
     question.answered = question.answer.length > 0;
+    this.queueQuizAnswerSave(question, question.answer);
     this.renderQuizQuestion();
   },
 
@@ -8612,20 +8769,17 @@ const MoodleUI = {
     return question.answer;
   },
 
-  async saveCurrentQuestionAnswer() {
+  async saveCurrentQuestionAnswer({ immediate = false } = {}) {
     const attempt = this.currentQuizAttempt;
     const question = attempt?.questions?.[this.currentQuestionIndex];
-    if (!attempt || !question) return;
+    if (!attempt || !question) return true;
 
     const answer = this.collectCurrentQuestionAnswer(question);
-    if (answer === undefined) return;
+    if (answer === undefined) return true;
     question.answer = answer;
     question.answered = this.isQuizAnswerComplete(question, answer);
 
-    await API.quizzes.answer(attempt.quizId, attempt.attemptId, {
-      questionId: question.questionId,
-      answer
-    });
+    return this.queueQuizAnswerSave(question, answer, { immediate });
   },
 
   async saveCurrentTextAnswer() {
@@ -8636,15 +8790,13 @@ const MoodleUI = {
    * 選擇答案
    */
   async selectAnswer(answer) {
-    const question = this.currentQuizAttempt.questions[this.currentQuestionIndex];
+    const question = this.currentQuizAttempt?.questions?.[this.currentQuestionIndex];
+    if (!question) return;
     question.answer = answer;
     question.answered = true;
 
-    await API.quizzes.answer(this.currentQuizAttempt.quizId, this.currentQuizAttempt.attemptId, {
-      questionId: question.questionId,
-      answer
-    });
-
+    this.updateQuizCurrentNavAnsweredState(true);
+    this.queueQuizAnswerSave(question, answer);
     this.renderQuizQuestion();
   },
 
@@ -8652,7 +8804,7 @@ const MoodleUI = {
    * 下一題
    */
   async nextQuestion() {
-    await this.saveCurrentQuestionAnswer();
+    this.saveCurrentQuestionAnswer();
     if (this.currentQuestionIndex < this.currentQuizAttempt.questions.length - 1) {
       this.currentQuestionIndex++;
       this.renderQuizQuestion();
@@ -8663,7 +8815,7 @@ const MoodleUI = {
    * 上一題
    */
   async prevQuestion() {
-    await this.saveCurrentQuestionAnswer();
+    this.saveCurrentQuestionAnswer();
     if (this.currentQuestionIndex > 0) {
       this.currentQuestionIndex--;
       this.renderQuizQuestion();
@@ -8674,7 +8826,7 @@ const MoodleUI = {
    * 跳轉到指定題目
    */
   async goToQuestion(index) {
-    await this.saveCurrentQuestionAnswer();
+    this.saveCurrentQuestionAnswer();
     this.currentQuestionIndex = index;
     this.renderQuizQuestion();
   },
@@ -8683,7 +8835,7 @@ const MoodleUI = {
    * 提交測驗
    */
   async submitQuiz() {
-    await this.saveCurrentQuestionAnswer();
+    await this.saveCurrentQuestionAnswer({ immediate: true });
 
     const confirmed = await showConfirmDialog({
       message: t('moodleQuiz.confirmSubmit'),
@@ -8692,6 +8844,7 @@ const MoodleUI = {
     if (!confirmed) return;
 
     try {
+      await this.flushQuizAnswerSaves();
       const finalAnswers = (this.currentQuizAttempt.questions || []).reduce((answers, question) => {
         if (question.questionId && question.answer !== undefined) {
           answers[question.questionId] = question.answer;
@@ -19058,6 +19211,17 @@ const MoodleUI = {
     window.requestAnimationFrame(() => modal.querySelector('#quizBuilderTitle')?.focus());
   },
 
+  estimateQuizPayloadSizeBytes(payload = {}) {
+    const json = JSON.stringify(payload || {});
+    if (typeof TextEncoder !== 'undefined') {
+      return new TextEncoder().encode(json).length;
+    }
+    if (typeof Blob !== 'undefined') {
+      return new Blob([json]).size;
+    }
+    return json.length;
+  },
+
   async saveQuizBuilder() {
     const state = this.currentQuizBuilderState || {};
     const isEditing = !!state.quizId;
@@ -19113,6 +19277,27 @@ const MoodleUI = {
 
     if (state.sectionId) {
       payload.sectionId = state.sectionId;
+    }
+
+    const payloadSizeBytes = this.estimateQuizPayloadSizeBytes(payload);
+    const payloadSizeKb = Math.round(payloadSizeBytes / 1024);
+    const hardLimitBytes = 360 * 1024;
+    const warningLimitBytes = 320 * 1024;
+    if (payloadSizeBytes > hardLimitBytes) {
+      showToast(isEnglish
+        ? `This quiz is too large to save safely (${payloadSizeKb} KB). Split it into smaller quizzes or shorten repeated passages.`
+        : `這份測驗資料量太大（約 ${payloadSizeKb} KB），請拆成多份測驗或縮短重複題幹後再儲存。`);
+      return;
+    }
+    if (payloadSizeBytes > warningLimitBytes) {
+      const confirmed = await showConfirmDialog({
+        message: isEnglish
+          ? `This quiz is already large (${payloadSizeKb} KB). Saving may be slower; continue?`
+          : `這份測驗資料量偏大（約 ${payloadSizeKb} KB），儲存可能較慢。是否繼續？`,
+        confirmLabel: isEnglish ? 'Continue' : '繼續',
+        tone: 'warning'
+      });
+      if (!confirmed) return;
     }
 
     try {
@@ -19939,14 +20124,7 @@ const MoodleUI = {
       }
     });
     this.updateQuizCurrentNavAnsweredState(q.answered);
-    try {
-      await API.quizzes.answer(this.currentQuizAttempt.quizId, this.currentQuizAttempt.attemptId, {
-        questionId: q.questionId,
-        answer: q.answer
-      });
-    } catch (error) {
-      console.error('Save multi-select answer error:', error);
-    }
+    this.queueQuizAnswerSave(q, q.answer);
   },
 
   // ======== Sort Gradebook ========
