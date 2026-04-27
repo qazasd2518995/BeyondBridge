@@ -348,7 +348,7 @@ router.post('/users', async (req, res) => {
       });
     }
 
-    // 驗證 Email 格式
+    // 驗證電子郵件格式
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return res.status(400).json({
@@ -713,7 +713,7 @@ router.put('/users/:id/status', async (req, res) => {
       return res.status(400).json({
         success: false,
         error: 'EMAIL_NOT_VERIFIED',
-        message: '此學生尚未完成 Email 驗證，不能直接啟用'
+        message: '此學生尚未完成電子郵件驗證，不能直接啟用'
       });
     }
 

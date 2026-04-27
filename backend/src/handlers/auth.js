@@ -241,7 +241,7 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({
         success: false,
         error: 'MISSING_FIELDS',
-        message: '請提供 Email 和密碼'
+        message: '請提供電子郵件和密碼'
       });
     }
 
@@ -259,7 +259,7 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({
         success: false,
         error: 'INVALID_CREDENTIALS',
-        message: 'Email 或密碼錯誤'
+        message: '電子郵件或密碼錯誤'
       });
     }
 
@@ -296,7 +296,7 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({
         success: false,
         error: 'INVALID_CREDENTIALS',
-        message: 'Email 或密碼錯誤'
+        message: '電子郵件或密碼錯誤'
       });
     }
 
@@ -370,12 +370,12 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    // 驗證 Email 格式
+    // 驗證電子郵件格式
     if (!isValidEmail(email)) {
       return res.status(400).json({
         success: false,
         error: 'INVALID_EMAIL',
-        message: 'Email 格式不正確'
+        message: '電子郵件格式不正確'
       });
     }
 
@@ -437,7 +437,7 @@ router.post('/register', async (req, res) => {
       return res.status(409).json({
         success: false,
         error: 'EMAIL_EXISTS',
-        message: '此 Email 已被註冊'
+        message: '此電子郵件已被註冊'
       });
     }
 
@@ -523,7 +523,7 @@ router.post('/register', async (req, res) => {
     res.status(201).json({
       success: true,
       message: verificationEmailSent
-        ? '註冊資料已建立，請到信箱點擊驗證連結後再登入'
+        ? '註冊資料已建立，請到信箱點擊電子郵件驗證連結後再登入'
         : '註冊資料已建立，但驗證信寄送失敗，請稍後重新寄送驗證信',
       data: {
         pendingVerification: true,
@@ -554,7 +554,7 @@ router.post('/register', async (req, res) => {
 
 /**
  * GET /api/auth/email/verification/validate
- * 驗證學生 Email 驗證連結
+ * 驗證學生電子郵件驗證連結
  */
 router.get('/email/verification/validate', async (req, res) => {
   try {
@@ -595,7 +595,7 @@ router.get('/email/verification/validate', async (req, res) => {
 
 /**
  * POST /api/auth/email/verification/confirm
- * 完成學生 Email 驗證，啟用帳號並加入班級/課程
+ * 完成學生電子郵件驗證，啟用帳號並加入班級/課程
  */
 router.post('/email/verification/confirm', async (req, res) => {
   try {
@@ -629,7 +629,7 @@ router.post('/email/verification/confirm', async (req, res) => {
     if (user.status === 'active' && user.emailVerified) {
       return res.json({
         success: true,
-        message: 'Email 已驗證，請直接登入'
+        message: '電子郵件已驗證，請直接登入'
       });
     }
 
@@ -637,7 +637,7 @@ router.post('/email/verification/confirm', async (req, res) => {
       return res.status(400).json({
         success: false,
         error: 'ACCOUNT_NOT_PENDING',
-        message: '此帳號目前不需要 Email 驗證'
+        message: '此帳號目前不需要電子郵件驗證'
       });
     }
 
@@ -679,8 +679,8 @@ router.post('/email/verification/confirm', async (req, res) => {
     res.json({
       success: true,
       message: enrolledCourse?.courseId
-        ? 'Email 已驗證，帳號已啟用並加入班級與課程'
-        : 'Email 已驗證，帳號已啟用並加入班級',
+        ? '電子郵件已驗證，帳號已啟用並加入班級與課程'
+        : '電子郵件已驗證，帳號已啟用並加入班級',
       data: {
         enrolledClass: { classId: classData.classId, className: classData.name },
         enrolledCourse: enrolledCourse?.courseId ? {
@@ -694,14 +694,14 @@ router.post('/email/verification/confirm', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'VERIFY_CONFIRM_FAILED',
-      message: 'Email 驗證失敗，請稍後再試'
+      message: '電子郵件驗證失敗，請稍後再試'
     });
   }
 });
 
 /**
  * POST /api/auth/email/verification/resend
- * 重新寄送學生 Email 驗證信
+ * 重新寄送學生電子郵件驗證信
  */
 router.post('/email/verification/resend', async (req, res) => {
   try {
@@ -710,7 +710,7 @@ router.post('/email/verification/resend', async (req, res) => {
       return res.status(400).json({
         success: false,
         error: 'INVALID_EMAIL',
-        message: '請提供有效 Email'
+        message: '請提供有效電子郵件'
       });
     }
 
@@ -734,7 +734,7 @@ router.post('/email/verification/resend', async (req, res) => {
 
     res.json({
       success: true,
-      message: '如果該 Email 仍待驗證，新的驗證信已寄出'
+      message: '如果該電子郵件仍待驗證，新的驗證信已寄出'
     });
   } catch (error) {
     console.error('Email verification resend error:', error);
@@ -967,7 +967,7 @@ router.post('/password/reset/request', async (req, res) => {
       return res.status(400).json({
         success: false,
         error: 'MISSING_EMAIL',
-        message: '請提供 Email'
+        message: '請提供電子郵件'
       });
     }
 
@@ -975,7 +975,7 @@ router.post('/password/reset/request', async (req, res) => {
       return res.status(400).json({
         success: false,
         error: 'INVALID_EMAIL',
-        message: 'Email 格式不正確'
+        message: '電子郵件格式不正確'
       });
     }
 
@@ -1008,7 +1008,7 @@ router.post('/password/reset/request', async (req, res) => {
 
     res.json({
       success: true,
-      message: '如果該 Email 存在，重設密碼連結已寄出'
+      message: '如果該電子郵件存在，重設密碼連結已寄出'
     });
   } catch (error) {
     console.error('Password reset request error:', error);

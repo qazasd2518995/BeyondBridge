@@ -1861,7 +1861,7 @@ const App = {
 
       if (result.success) {
         if (result.data?.pendingVerification) {
-          showToast(result.message || '註冊資料已建立，請先完成 Email 驗證');
+          showToast(result.message || '註冊資料已建立，請先完成電子郵件驗證');
           return result;
         }
 

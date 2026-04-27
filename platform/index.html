@@ -7657,7 +7657,7 @@
                                 <div class="settings-field-card is-muted">
                                     <span class="settings-field-kicker" data-i18n="settings.email">電子郵件</span>
                                     <input type="email" class="form-input" id="settingsEmail" value="" disabled>
-                                    <small class="settings-field-note">此欄位與登入帳號綁定，若需調整請聯絡平台管理員。</small>
+                                    <small class="settings-field-note">此欄位與登入電子郵件綁定，若需調整請聯絡平台管理員。</small>
                                 </div>
                             </div>
                             <div class="settings-field-card">
@@ -11865,7 +11865,7 @@
                 <form id="loginForm" class="login-form" onsubmit="handleLogin(event)">
                     <div class="form-group">
                         <label for="loginEmail" data-i18n="login.email">電子郵件</label>
-                        <input type="text" id="loginEmail" name="email" data-i18n-placeholder="login.emailPlaceholder" placeholder="帳號或 Email" autocomplete="username" spellcheck="false" required>
+                        <input type="email" id="loginEmail" name="email" data-i18n-placeholder="login.emailPlaceholder" placeholder="請輸入電子郵件" autocomplete="email" inputmode="email" spellcheck="false" required>
                     </div>
                     <div class="form-group">
                         <label for="loginPassword" data-i18n="login.password">密碼</label>
@@ -11913,12 +11913,12 @@
 
                 <form id="forgotPasswordForm" class="login-form hidden" onsubmit="handleForgotPasswordRequest(event)" hidden>
                     <div class="auth-panel-heading">
-                        <span class="auth-panel-eyebrow">帳號協助</span>
+                        <span class="auth-panel-eyebrow">電子郵件協助</span>
                         <h3 class="auth-panel-title">寄送重設連結</h3>
-                        <p class="auth-panel-description">輸入你註冊時使用的 Email，我們會寄送一封 1 小時內有效的重設密碼連結。</p>
+                        <p class="auth-panel-description">輸入你註冊時使用的電子郵件，我們會寄送一封 1 小時內有效的重設密碼連結。</p>
                     </div>
                     <div class="form-group">
-                        <label for="forgotPasswordEmail">帳號 Email</label>
+                        <label for="forgotPasswordEmail">電子郵件</label>
                         <input type="email" id="forgotPasswordEmail" name="forgotPasswordEmail" placeholder="your@email.com" autocomplete="email" inputmode="email" spellcheck="false" required>
                     </div>
                     <button type="submit" class="login-btn">寄送重設連結</button>
@@ -11950,7 +11950,7 @@
 
                 <form id="verifyEmailForm" class="login-form hidden" onsubmit="event.preventDefault()" hidden>
                     <div class="auth-panel-heading">
-                        <span class="auth-panel-eyebrow">Email 驗證</span>
+                        <span class="auth-panel-eyebrow">電子郵件驗證</span>
                         <h3 class="auth-panel-title">正在啟用帳號</h3>
                         <p id="verifyEmailStatus" class="auth-token-note">正在驗證連結...</p>
                     </div>
@@ -16636,7 +16636,7 @@
                     updateHistory: options.updateHistory,
                     replaceHistory: options.replaceHistory,
                     token,
-                    emailHint: `這個連結綁定 ${result.data?.email || '你的帳號'}，請設定新密碼。`,
+                    emailHint: `這個連結綁定 ${result.data?.email || '你的電子郵件'}，請設定新密碼。`,
                     preserveMessage: true
                 });
                 return true;
@@ -16656,7 +16656,7 @@
                 setAuthScreen('login', {
                     forceHomeRoute: true,
                     replaceHistory: true,
-                    message: '缺少 Email 驗證 token，請重新註冊或重新寄送驗證信。'
+                    message: '缺少電子郵件驗證 token，請重新註冊或重新寄送驗證信。'
                 });
                 return false;
             }
@@ -16675,7 +16675,7 @@
                     setAuthScreen('login', {
                         forceHomeRoute: true,
                         replaceHistory: true,
-                        message: result.message || 'Email 驗證連結無效或已過期。'
+                        message: result.message || '電子郵件驗證連結無效或已過期。'
                     });
                     return false;
                 }
@@ -16683,7 +16683,7 @@
                 setAuthScreen('login', {
                     forceHomeRoute: true,
                     replaceHistory: true,
-                    message: result.message || 'Email 已驗證，請登入。',
+                    message: result.message || '電子郵件已驗證，請登入。',
                     tone: 'success'
                 });
                 return true;
@@ -16691,7 +16691,7 @@
                 setAuthScreen('login', {
                     forceHomeRoute: true,
                     replaceHistory: true,
-                    message: 'Email 驗證失敗，請稍後再試。'
+                    message: '電子郵件驗證失敗，請稍後再試。'
                 });
                 return false;
             }
@@ -16730,7 +16730,7 @@
                     updateHistory: options.updateHistory,
                     replaceHistory: options.replaceHistory,
                     token,
-                    emailHint: `邀請帳號：${result.data?.email || '你的 Email'}，請設定登入密碼。`,
+                    emailHint: `邀請電子郵件：${result.data?.email || '你的電子郵件'}，請設定登入密碼。`,
                     preserveMessage: true
                 });
                 return true;
@@ -16855,7 +16855,7 @@
             try {
                 const result = await API.auth.requestPasswordReset(email);
                 if (result.success) {
-                    setAuthMessage(result.message || '如果該 Email 存在，重設密碼連結已寄出。', 'success');
+                    setAuthMessage(result.message || '如果該電子郵件存在，重設密碼連結已寄出。', 'success');
                 } else {
                     setAuthMessage(result.message || '無法寄送重設密碼連結，請稍後再試。');
                 }

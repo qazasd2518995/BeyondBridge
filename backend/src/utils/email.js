@@ -739,7 +739,7 @@ async function sendPasswordResetEmail(user, resetToken) {
 }
 
 /**
- * 發送學生 Email 驗證信
+ * 發送學生電子郵件驗證信
  */
 async function sendStudentEmailVerificationEmail(user, verificationToken, classInfo = null) {
   const verificationUrl = platformUrl(`/platform/verify-email?token=${verificationToken}`);
@@ -747,16 +747,16 @@ async function sendStudentEmailVerificationEmail(user, verificationToken, classI
 
   const content = `
     <h2 style="margin: 0 0 20px; color: #1a1a1a; font-size: 20px;">
-      驗證 Email 以啟用學生帳號
+      驗證電子郵件以啟用學生帳號
     </h2>
     <p style="margin: 0 0 15px; color: #4a4a4a; line-height: 1.6;">
       親愛的 ${user.displayName || user.email}，
     </p>
     <p style="margin: 0 0 15px; color: #4a4a4a; line-height: 1.6;">
-      你已使用通行碼註冊 ${PLATFORM_NAME}。請點擊下方按鈕驗證 Email，驗證後系統會正式啟用帳號並加入「${className}」。
+      你已使用通行碼註冊 ${PLATFORM_NAME}。請點擊下方按鈕驗證電子郵件，驗證後系統會正式啟用帳號並加入「${className}」。
     </p>
     <div style="text-align: center; margin: 30px 0;">
-      ${buttonStyle('驗證 Email 並啟用帳號', verificationUrl)}
+      ${buttonStyle('驗證電子郵件並啟用帳號', verificationUrl)}
     </div>
     <p style="margin: 20px 0 0; color: #6c757d; font-size: 14px;">
       此連結將於 48 小時後失效。如果你沒有註冊 ${PLATFORM_NAME}，請忽略此郵件。
@@ -770,7 +770,7 @@ async function sendStudentEmailVerificationEmail(user, verificationToken, classI
   return sendEmail(
     user.email,
     `驗證你的 ${PLATFORM_NAME} 學生帳號`,
-    emailTemplate('Email 驗證', content)
+    emailTemplate('電子郵件驗證', content)
   );
 }
 
@@ -792,7 +792,7 @@ async function sendTeacherInvitationEmail(user, inviteToken, options = {}) {
       親愛的 ${user.displayName || user.email}，
     </p>
     <p style="margin: 0 0 15px; color: #4a4a4a; line-height: 1.6;">
-      管理員已為你建立老師帳號。請點擊下方按鈕驗證 Email 並設定自己的登入密碼。
+      管理員已為你建立老師帳號。請點擊下方按鈕驗證電子郵件並設定自己的登入密碼。
     </p>
     <p style="margin: 0 0 10px; color: #4a4a4a; line-height: 1.6;">
       已預先授權的課程：
