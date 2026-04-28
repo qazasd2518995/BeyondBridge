@@ -1095,7 +1095,7 @@ const API = {
       return API.request(`/quizzes/${quizId}/results`);
     },
 
-    async downloadCsv(endpoint, filename) {
+    async downloadFile(endpoint, filename, failureMessage = 'Download failed') {
       const response = await fetch(`${API.baseUrl}${endpoint}`, {
         headers: {
           'Authorization': `Bearer ${API.accessToken}`,
@@ -1104,7 +1104,7 @@ const API = {
       });
       if (!response.ok) {
         const message = await response.text();
-        throw new Error(message || 'CSV download failed');
+        throw new Error(message || failureMessage);
       }
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
@@ -1117,10 +1117,22 @@ const API = {
       URL.revokeObjectURL(url);
     },
 
+    async downloadCsv(endpoint, filename) {
+      return API.quizzes.downloadFile(endpoint, filename, 'CSV download failed');
+    },
+
     async downloadResultsCsv(quizId) {
       return API.quizzes.downloadCsv(
         `/quizzes/${quizId}/results.csv`,
         `quiz-${quizId}-section-analytics.csv`
+      );
+    },
+
+    async downloadResultsXlsx(quizId) {
+      return API.quizzes.downloadFile(
+        `/quizzes/${quizId}/results.xlsx`,
+        `quiz-${quizId}-analytics.xlsx`,
+        'XLSX download failed'
       );
     },
 

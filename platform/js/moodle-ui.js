@@ -10154,6 +10154,15 @@ const MoodleUI = {
     }
   },
 
+  async downloadQuizResultsXlsx(quizId) {
+    try {
+      await API.quizzes.downloadResultsXlsx(quizId);
+    } catch (error) {
+      console.error('Download quiz results XLSX error:', error);
+      showToast(I18n.getLocale() === 'en' ? 'XLSX download failed' : 'XLSX 下載失敗');
+    }
+  },
+
   async downloadQuizAttemptCsv(quizId, attemptId) {
     try {
       await API.quizzes.downloadAttemptAnalyticsCsv(quizId, attemptId);
@@ -10477,6 +10486,11 @@ const MoodleUI = {
                   label: I18n.getLocale() === 'en' ? 'Download CSV' : '下載 CSV',
                   className: 'btn-sm',
                   onclick: `MoodleUI.downloadQuizResultsCsv(${this.toInlineActionValue(quizId)})`
+                },
+                {
+                  label: I18n.getLocale() === 'en' ? 'Download XLSX' : '下載 XLSX',
+                  className: 'btn-sm',
+                  onclick: `MoodleUI.downloadQuizResultsXlsx(${this.toInlineActionValue(quizId)})`
                 },
                 {
                   label: t('common.delete'),

@@ -10,7 +10,8 @@ const { authMiddleware } = require('../../utils/auth');
 const { canManageCourse } = require('../../utils/course-access');
 const {
   buildTeacherQuizAnalytics,
-  buildTeacherAnalyticsCsv
+  buildTeacherAnalyticsCsv,
+  buildTeacherAnalyticsXlsx
 } = require('./analytics');
 
 function isQuizAttemptFinalForAnalytics(attempt = {}) {
@@ -176,6 +177,84 @@ router.get('/:id/results.csv', authMiddleware, async (req, res) => {
       success: false,
       error: 'EXPORT_FAILED',
       message: '匯出測驗結果失敗'
+    });
+  }
+});
+
+/**
+ * GET /api/quizzes/:id/results.xlsx
+ * 匯出測驗多分頁 Excel 報表與圖表
+ */
+router.get('/:id/results.xlsx', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const quiz = await db.getItem(`QUIZ#${id}`, 'META');
+    if (!quiz) {
+      return res.status(404).json({
+        success: false,
+        error: 'QUIZ_NOT_FOUND',
+        message: '找不到此測驗'
+      });
+    }
+
+    const course = await db.getItem(`COURSE#${quiz.courseId}`, 'META');
+    if (!canManageCourse(course, req.user)) {
+      return res.status(403).json({
+        success: false,
+        error: 'FORBIDDEN',
+        message: '沒有權限匯出測驗結果'
+      });
+    }
+
+    const attempts = await db.query(`QUIZ#${id}`, { skPrefix: 'ATTEMPT#' });
+    const completedAttempts = attempts.filter(a => a.status === 'completed');
+    const attemptsWithUser = await Promise.all(
+      completedAttempts.map(async (a) => {
+        const user = await db.getUser(a.userId);
+        const { PK, SK, ...attempt } = a;
+        return {
+          ...attempt,
+          userName: user?.displayName || '未知用戶',
+          userEmail: user?.email || ''
+        };
+      })
+    );
+    const analyticsAttempts = attemptsWithUser.filter(isQuizAttemptFinalForAnalytics);
+    const analytics = buildTeacherQuizAnalytics(quiz, analyticsAttempts);
+    const percentages = analyticsAttempts
+      .map(attempt => Number(attempt.percentage))
+      .filter(Number.isFinite);
+    const averageScore = percentages.length > 0
+      ? Math.round(percentages.reduce((sum, score) => sum + score, 0) / percentages.length)
+      : null;
+    const highestScore = percentages.length > 0 ? Math.max(...percentages) : null;
+    const passingGrade = Number(quiz.passingGrade || 60);
+    const passedCount = analyticsAttempts.filter(attempt => Number(attempt.percentage) >= passingGrade).length;
+    const workbook = await buildTeacherAnalyticsXlsx({
+      quiz,
+      attempts: attemptsWithUser,
+      analytics,
+      course,
+      stats: {
+        gradedAttempts: analyticsAttempts.length,
+        averageScore,
+        highestScore,
+        passingGrade,
+        passedCount
+      }
+    });
+    const filename = `quiz-${id}-analytics.xlsx`;
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(workbook);
+  } catch (error) {
+    console.error('Export quiz results XLSX error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'EXPORT_FAILED',
+      message: '匯出測驗 Excel 報表失敗'
     });
   }
 });

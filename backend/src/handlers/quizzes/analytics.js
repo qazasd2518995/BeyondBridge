@@ -10,6 +10,10 @@ const {
   isToeicFullTest,
   getToeicQuestionSection
 } = require('../../utils/toeic-parts');
+const {
+  buildXlsxWorkbook,
+  sheetRange
+} = require('../../utils/xlsx-workbook');
 
 function roundNumber(value, digits = 0) {
   const number = Number(value);
@@ -364,6 +368,24 @@ function rowsToCsv(rows) {
   return `\uFEFF${rows.map(row => row.map(csvEscape).join(',')).join('\n')}\n`;
 }
 
+function buildQuestionMetadataMap(quiz = {}) {
+  const questionById = new Map();
+  buildQuestionGroups(quiz).forEach(section => {
+    section.questions.forEach((question, index) => {
+      questionById.set(question.questionId, {
+        ...question,
+        sectionTitle: section.title,
+        questionNo: question.order || index + 1
+      });
+    });
+  });
+  return questionById;
+}
+
+function getAttemptStudentName(attempt = {}) {
+  return attempt.userName || attempt.userEmail || attempt.userId || '';
+}
+
 function buildTeacherAnalyticsCsv(quiz = {}, attempts = [], analytics = {}) {
   const headers = [
     'row_type',
@@ -398,16 +420,7 @@ function buildTeacherAnalyticsCsv(quiz = {}, attempts = [], analytics = {}) {
   const pushRow = (row = {}) => {
     rows.push(headers.map(header => row[header] ?? ''));
   };
-  const questionById = new Map();
-  buildQuestionGroups(quiz).forEach(section => {
-    section.questions.forEach((question, index) => {
-      questionById.set(question.questionId, {
-        ...question,
-        sectionTitle: section.title,
-        questionNo: question.order || index + 1
-      });
-    });
-  });
+  const questionById = buildQuestionMetadataMap(quiz);
 
   (analytics.sections || []).forEach(section => {
     pushRow({
@@ -473,7 +486,7 @@ function buildTeacherAnalyticsCsv(quiz = {}, attempts = [], analytics = {}) {
   attempts
     .filter(attempt => attempt.status === 'completed')
     .forEach(attempt => {
-      const studentName = attempt.userName || attempt.userEmail || attempt.userId || '';
+      const studentName = getAttemptStudentName(attempt);
       const studentEmail = attempt.userEmail || '';
       pushRow({
         row_type: 'student_attempt',
@@ -555,6 +568,264 @@ function buildTeacherAnalyticsCsv(quiz = {}, attempts = [], analytics = {}) {
   return rowsToCsv(rows);
 }
 
+async function buildTeacherAnalyticsXlsx({
+  quiz = {},
+  attempts = [],
+  analytics = {},
+  stats = {},
+  course = null
+} = {}) {
+  const questionById = buildQuestionMetadataMap(quiz);
+  const completedAttempts = attempts.filter(attempt => attempt.status === 'completed');
+  const numericPercentages = completedAttempts
+    .map(attempt => Number(attempt.percentage))
+    .filter(Number.isFinite);
+  const averageScore = Number.isFinite(Number(stats.averageScore))
+    ? Number(stats.averageScore)
+    : (numericPercentages.length > 0
+        ? roundNumber(numericPercentages.reduce((sum, value) => sum + value, 0) / numericPercentages.length, 2)
+        : '');
+  const highestScore = Number.isFinite(Number(stats.highestScore))
+    ? Number(stats.highestScore)
+    : (numericPercentages.length > 0 ? Math.max(...numericPercentages) : '');
+  const passingGrade = Number(quiz.passingGrade || stats.passingGrade || 60);
+  const passedCount = Number.isFinite(Number(stats.passedCount))
+    ? Number(stats.passedCount)
+    : completedAttempts.filter(attempt => Number(attempt.percentage) >= passingGrade).length;
+  const passRate = completedAttempts.length > 0
+    ? roundNumber((passedCount / completedAttempts.length) * 100, 2)
+    : 0;
+
+  const summaryRows = [
+    ['Quiz Report'],
+    ['Course', course?.title || course?.name || ''],
+    ['Quiz', quiz.title || ''],
+    ['Quiz ID', quiz.quizId || ''],
+    ['Total Questions', Array.isArray(quiz.questions) ? quiz.questions.length : 0],
+    ['Total Points', quiz.totalPoints || ''],
+    ['Completed Attempts', completedAttempts.length],
+    ['Graded Attempts', stats.gradedAttempts ?? numericPercentages.length],
+    ['Average Score %', averageScore],
+    ['Highest Score %', highestScore],
+    ['Passing Grade %', passingGrade],
+    ['Passed Count', passedCount],
+    ['Pass Rate %', passRate],
+    ['Generated At', new Date().toISOString()]
+  ];
+
+  const sectionRows = [
+    ['Section', 'Questions', 'Total Points', 'Attempts', 'Average Score %', 'Correct Rate %', 'Correct Count', 'Response Count'],
+    ...(analytics.sections || []).map(section => [
+      section.title,
+      section.questionCount || 0,
+      section.totalPoints || 0,
+      section.attempts || 0,
+      section.averageScore ?? 0,
+      section.correctRate ?? 0,
+      section.correctCount ?? 0,
+      section.responseCount ?? 0
+    ])
+  ];
+
+  const scoreDistributionRows = [
+    ['Section', 'Score Bin', 'Count', 'Percentage %'],
+    ...(analytics.sections || []).flatMap(section =>
+      (section.scoreDistribution || []).map(bin => [
+        section.title,
+        bin.label,
+        bin.count || 0,
+        bin.percentage || 0
+      ])
+    )
+  ];
+
+  const questionRows = [
+    ['Section', 'Question No', 'Question ID', 'Type', 'Question Text', 'Correct Answer', 'Correct Rate %', 'Correct Count', 'Response Count'],
+    ...(analytics.sections || []).flatMap(section =>
+      (section.questionStats || []).map(question => {
+        const sourceQuestion = questionById.get(question.questionId) || {};
+        return [
+          section.title,
+          sourceQuestion.questionNo || '',
+          question.questionId || '',
+          question.type || '',
+          question.questionText || '',
+          getQuestionCorrectAnswer(sourceQuestion),
+          question.correctRate ?? 0,
+          question.correctCount ?? 0,
+          question.responseCount ?? 0
+        ];
+      })
+    )
+  ];
+
+  const optionRows = [
+    ['Section', 'Question No', 'Question ID', 'Question Text', 'Option', 'Count', 'Percentage %'],
+    ...(analytics.sections || []).flatMap(section =>
+      (section.questionStats || []).flatMap(question => {
+        const sourceQuestion = questionById.get(question.questionId) || {};
+        return (question.optionDistribution || []).map(option => [
+          section.title,
+          sourceQuestion.questionNo || '',
+          question.questionId || '',
+          question.questionText || '',
+          option.option || '',
+          option.count || 0,
+          option.percentage || 0
+        ]);
+      })
+    )
+  ];
+
+  const attemptRows = [
+    ['Student Name', 'Email', 'User ID', 'Attempt ID', 'Status', 'Manual Grading', 'Started At', 'Submitted At', 'Completed At', 'Score', 'Total Points', 'Percentage %', 'Passed'],
+    ...completedAttempts.map(attempt => [
+      getAttemptStudentName(attempt),
+      attempt.userEmail || '',
+      attempt.userId || '',
+      attempt.attemptId || '',
+      attempt.status || '',
+      attempt.manualGradingStatus || '',
+      attempt.startedAt || '',
+      attempt.submittedAt || '',
+      attempt.completedAt || attempt.submittedAt || '',
+      attempt.score ?? '',
+      attempt.totalPoints ?? quiz.totalPoints ?? '',
+      attempt.percentage ?? '',
+      attempt.passed ?? ''
+    ])
+  ];
+
+  const studentSectionRows = [
+    ['Student Name', 'Email', 'User ID', 'Attempt ID', 'Section', 'Score %', 'Correct Rate %', 'Earned Points', 'Total Points', 'Correct Count', 'Question Count'],
+    ...completedAttempts.flatMap(attempt => {
+      const studentAnalytics = buildStudentQuizAnalytics(quiz, attempt);
+      return (studentAnalytics.sections || []).map(section => [
+        getAttemptStudentName(attempt),
+        attempt.userEmail || '',
+        attempt.userId || '',
+        attempt.attemptId || '',
+        section.title,
+        section.percentage ?? 0,
+        section.correctRate ?? '',
+        section.earnedPoints ?? 0,
+        section.totalPoints ?? 0,
+        section.correctCount ?? 0,
+        section.questionCount ?? 0
+      ]);
+    })
+  ];
+
+  const studentQuestionRows = [
+    ['Student Name', 'Email', 'User ID', 'Attempt ID', 'Section', 'Question No', 'Question ID', 'Type', 'Question Text', 'Student Answer', 'Correct Answer', 'Is Correct', 'Earned Points', 'Max Points'],
+    ...completedAttempts.flatMap(attempt => {
+      const studentAnalytics = buildStudentQuizAnalytics(quiz, attempt);
+      return (studentAnalytics.sections || []).flatMap(section =>
+        (section.questionResults || []).map(question => {
+          const sourceQuestion = questionById.get(question.questionId) || {};
+          return [
+            getAttemptStudentName(attempt),
+            attempt.userEmail || '',
+            attempt.userId || '',
+            attempt.attemptId || '',
+            section.title,
+            sourceQuestion.questionNo || '',
+            question.questionId || '',
+            question.type || '',
+            question.questionText || '',
+            formatQuestionAnswer(sourceQuestion, question.answer),
+            getQuestionCorrectAnswer(sourceQuestion),
+            question.isCorrect ?? '',
+            question.earnedPoints ?? 0,
+            question.maxPoints ?? 0
+          ];
+        })
+      );
+    })
+  ];
+
+  const sectionChartStart = 2;
+  const sectionChartRows = (analytics.sections || []).map(section => [
+    section.title,
+    section.averageScore ?? 0,
+    section.correctRate ?? 0
+  ]);
+  const distributionTotals = SCORE_BINS.map(bin => {
+    const count = completedAttempts.filter(attempt => {
+      const percentage = Math.max(0, Math.min(100, Math.round(Number(attempt.percentage || 0))));
+      return percentage >= bin.min && percentage <= bin.max;
+    }).length;
+    return [
+      bin.label,
+      count,
+      completedAttempts.length > 0 ? Math.round((count / completedAttempts.length) * 100) : 0
+    ];
+  });
+  const distributionStart = sectionChartStart + sectionChartRows.length + 4;
+  const chartsRows = [
+    ['Section Chart Data'],
+    ['Section', 'Average Score %', 'Correct Rate %'],
+    ...sectionChartRows,
+    [],
+    [],
+    ['Overall Score Distribution'],
+    ['Score Bin', 'Count', 'Percentage %'],
+    ...distributionTotals
+  ];
+  const chartSheetName = 'Charts';
+  const safeSectionEndRow = Math.max(sectionChartStart, sectionChartStart + sectionChartRows.length - 1);
+  const distributionDataStart = distributionStart + 1;
+  const distributionEndRow = distributionDataStart + distributionTotals.length - 1;
+  const chartDefinitions = sectionChartRows.length > 0
+    ? [
+        {
+          title: 'Section Average Score',
+          seriesName: 'Average Score %',
+          categories: sectionChartRows.map(row => row[0]),
+          values: sectionChartRows.map(row => row[1]),
+          categoryRange: sheetRange(chartSheetName, sectionChartStart, 0, safeSectionEndRow, 0),
+          valueRange: sheetRange(chartSheetName, sectionChartStart, 1, safeSectionEndRow, 1),
+          from: { col: 4, row: 1 },
+          to: { col: 14, row: 17 }
+        },
+        {
+          title: 'Section Correct Rate',
+          seriesName: 'Correct Rate %',
+          categories: sectionChartRows.map(row => row[0]),
+          values: sectionChartRows.map(row => row[2]),
+          categoryRange: sheetRange(chartSheetName, sectionChartStart, 0, safeSectionEndRow, 0),
+          valueRange: sheetRange(chartSheetName, sectionChartStart, 2, safeSectionEndRow, 2),
+          from: { col: 4, row: 19 },
+          to: { col: 14, row: 35 }
+        },
+        {
+          title: 'Overall Score Distribution',
+          seriesName: 'Attempt Count',
+          categories: distributionTotals.map(row => row[0]),
+          values: distributionTotals.map(row => row[1]),
+          categoryRange: sheetRange(chartSheetName, distributionDataStart, 0, distributionEndRow, 0),
+          valueRange: sheetRange(chartSheetName, distributionDataStart, 1, distributionEndRow, 1),
+          from: { col: 4, row: 37 },
+          to: { col: 14, row: 53 }
+        }
+      ]
+    : [];
+
+  return buildXlsxWorkbook({
+    sheets: [
+      { name: 'Summary', rows: summaryRows, freezeRows: 0, widths: [24, 36] },
+      { name: 'Charts', rows: chartsRows, freezeRows: 1, widths: [34, 18, 18], charts: chartDefinitions },
+      { name: 'Section Analytics', rows: sectionRows, freezeRows: 1, widths: [44, 12, 14, 12, 18, 16, 14, 16] },
+      { name: 'Score Distribution', rows: scoreDistributionRows, freezeRows: 1, widths: [44, 16, 12, 16] },
+      { name: 'Question Analytics', rows: questionRows, freezeRows: 1, widths: [44, 12, 22, 18, 56, 30, 16, 14, 16] },
+      { name: 'Option Distribution', rows: optionRows, freezeRows: 1, widths: [44, 12, 22, 56, 28, 12, 16] },
+      { name: 'Student Attempts', rows: attemptRows, freezeRows: 1, widths: [24, 30, 22, 28, 14, 18, 24, 24, 24, 12, 14, 14, 12] },
+      { name: 'Student Sections', rows: studentSectionRows, freezeRows: 1, widths: [24, 30, 22, 28, 44, 12, 14, 14, 14, 14, 14] },
+      { name: 'Student Questions', rows: studentQuestionRows, freezeRows: 1, widths: [24, 30, 22, 28, 44, 12, 22, 18, 56, 34, 34, 12, 14, 14] }
+    ]
+  });
+}
+
 function buildStudentAnalyticsCsv(quiz = {}, attempt = {}) {
   const analytics = buildStudentQuizAnalytics(quiz, attempt);
   const rows = [
@@ -595,6 +866,7 @@ module.exports = {
   buildTeacherQuizAnalytics,
   buildStudentQuizAnalytics,
   buildTeacherAnalyticsCsv,
+  buildTeacherAnalyticsXlsx,
   buildStudentAnalyticsCsv,
   getQuestionSection
 };
