@@ -6102,16 +6102,23 @@ const MoodleUI = {
 
   getManagementStatusMeta(status = '', fallbackLabel = '') {
     const key = String(status || '').toLowerCase();
+    const localized = (translationKey, fallback) => {
+      const value = t(translationKey);
+      return value && value !== translationKey ? value : fallback;
+    };
+    const safeFallback = fallbackLabel && !/^[a-z][\w-]*(\.[\w-]+)+$/i.test(String(fallbackLabel))
+      ? fallbackLabel
+      : '';
     const labelMap = {
-      active: t('common.active'),
-      published: t('common.published'),
-      draft: t('common.draft'),
-      inactive: t('common.inactive'),
-      archived: t('moodleScorm.archived'),
-      completed: t('common.completed'),
-      complete: t('common.completed'),
-      pending: t('common.pending'),
-      failed: t('common.failed')
+      active: localized('common.active', I18n.getLocale() === 'en' ? 'Active' : '啟用'),
+      published: localized('common.published', I18n.getLocale() === 'en' ? 'Published' : '已發布'),
+      draft: localized('common.draft', I18n.getLocale() === 'en' ? 'Draft' : '草稿'),
+      inactive: localized('common.inactive', I18n.getLocale() === 'en' ? 'Inactive' : '停用'),
+      archived: localized('moodleScorm.archived', I18n.getLocale() === 'en' ? 'Archived' : '已封存'),
+      completed: localized('common.completed', I18n.getLocale() === 'en' ? 'Completed' : '已完成'),
+      complete: localized('common.completed', I18n.getLocale() === 'en' ? 'Completed' : '已完成'),
+      pending: localized('common.pending', I18n.getLocale() === 'en' ? 'Pending' : '待處理'),
+      failed: localized('common.failed', I18n.getLocale() === 'en' ? 'Failed' : '失敗')
     };
     const toneMap = {
       active: 'is-success',
@@ -6125,7 +6132,7 @@ const MoodleUI = {
       failed: 'is-danger'
     };
     return {
-      label: fallbackLabel || labelMap[key] || status || '—',
+      label: safeFallback || labelMap[key] || status || '—',
       toneClass: toneMap[key] || 'is-neutral'
     };
   },

@@ -51,23 +51,110 @@ function getAttemptScoreSummary(attempt = {}, quiz = {}) {
   };
 }
 
+function truncatePromptText(value, maxLength = 100) {
+  const text = String(value ?? '').replace(/\s+/g, ' ').trim();
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, maxLength - 1)}…`;
+}
+
+function compactPromptAnswer(value, maxLength = 80) {
+  if (value === null || value === undefined || value === '') return null;
+  const raw = typeof value === 'string' ? value : JSON.stringify(value);
+  return truncatePromptText(raw, maxLength);
+}
+
 function buildQuestionPromptContext(quiz = {}, attempt = {}) {
   const questions = Array.isArray(quiz.questions) ? quiz.questions : [];
   const resultsByQuestionId = new Map((attempt.questionResults || []).map(result => [result.questionId, result]));
-  return questions.map((question, index) => {
+  const sectionMap = new Map();
+  const sampledMissedQuestions = [];
+  const sampledUnansweredQuestions = [];
+  const questionOutcomes = [];
+  const answers = attempt.answers && typeof attempt.answers === 'object' ? attempt.answers : {};
+  const configuredSampleLimit = Number(process.env.GROQ_QUESTION_SAMPLE_LIMIT || 36);
+  const maxMissedSamples = Number.isFinite(configuredSampleLimit)
+    ? Math.max(0, Math.min(80, Math.floor(configuredSampleLimit)))
+    : 36;
+  const maxUnansweredSamples = 12;
+
+  questions.forEach((question, index) => {
     const result = resultsByQuestionId.get(question.questionId) || {};
-    return {
-      number: index + 1,
-      section: getQuestionSection(question, index, quiz),
+    const number = Number(question.order || question.questionNumber || index + 1) || index + 1;
+    const section = getQuestionSection(question, index, quiz);
+    const answer = answers[question.questionId];
+    const isCorrect = result.isCorrect === true;
+    const isIncorrect = result.isCorrect === false;
+    const isAnswered = answer !== undefined && answer !== null && answer !== '';
+    const earnedPoints = Number(result.earnedPoints ?? 0) || 0;
+    const maxPoints = Number(result.maxPoints ?? question.points ?? 1) || 1;
+
+    if (!sectionMap.has(section)) {
+      sectionMap.set(section, {
+        title: section,
+        questionCount: 0,
+        correctCount: 0,
+        incorrectCount: 0,
+        unansweredCount: 0,
+        earnedPoints: 0,
+        totalPoints: 0,
+        missedQuestionNumbers: [],
+        unansweredQuestionNumbers: []
+      });
+    }
+
+    const sectionSummary = sectionMap.get(section);
+    sectionSummary.questionCount += 1;
+    sectionSummary.earnedPoints += earnedPoints;
+    sectionSummary.totalPoints += maxPoints;
+    if (isCorrect) sectionSummary.correctCount += 1;
+    if (isIncorrect) {
+      sectionSummary.incorrectCount += 1;
+      sectionSummary.missedQuestionNumbers.push(number);
+    }
+    if (!isAnswered) {
+      sectionSummary.unansweredCount += 1;
+      sectionSummary.unansweredQuestionNumbers.push(number);
+    }
+
+    questionOutcomes.push({
+      n: number,
+      section,
+      ok: result.isCorrect === null || result.isCorrect === undefined ? null : isCorrect,
+      pts: earnedPoints,
+      max: maxPoints
+    });
+
+    const sampleBase = {
+      number,
+      section,
       type: question.type,
-      text: String(question.text || question.question || '').slice(0, 160),
-      answer: attempt.answers?.[question.questionId] ?? null,
-      correctAnswer: question.correctAnswer ?? question.correctAnswers ?? null,
-      isCorrect: result.isCorrect ?? null,
-      earnedPoints: result.earnedPoints ?? 0,
-      maxPoints: result.maxPoints ?? question.points ?? 1
+      text: truncatePromptText(question.text || question.question || '', 100),
+      studentAnswer: compactPromptAnswer(answer),
+      correctAnswer: compactPromptAnswer(question.correctAnswer ?? question.correctAnswers),
+      earnedPoints,
+      maxPoints
     };
+
+    if (isIncorrect && sampledMissedQuestions.length < maxMissedSamples) {
+      sampledMissedQuestions.push(sampleBase);
+    } else if (!isAnswered && sampledUnansweredQuestions.length < maxUnansweredSamples) {
+      sampledUnansweredQuestions.push(sampleBase);
+    }
   });
+
+  return {
+    totalQuestions: questions.length,
+    answeredCount: Object.keys(answers).length,
+    sectionSummaries: Array.from(sectionMap.values()).map(section => ({
+      ...section,
+      earnedPoints: Math.round(section.earnedPoints * 100) / 100,
+      totalPoints: Math.round(section.totalPoints * 100) / 100,
+      percentage: section.totalPoints > 0 ? Math.round((section.earnedPoints / section.totalPoints) * 100) : 0
+    })),
+    questionOutcomes,
+    sampledMissedQuestions,
+    sampledUnansweredQuestions
+  };
 }
 
 function buildGroqPromptMessages({ prompt, quiz, attempt, student, analytics }) {
@@ -93,7 +180,7 @@ function buildGroqPromptMessages({ prompt, quiz, attempt, student, analytics }) 
       questionCount: section.questionCount
     })),
     weakestSections: analytics.weakestSections || [],
-    questions: buildQuestionPromptContext(quiz, attempt)
+    questionSummary: buildQuestionPromptContext(quiz, attempt)
   };
 
   return [
@@ -139,15 +226,26 @@ async function callGroqChat(messages) {
         model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
         messages,
         temperature: Number(process.env.GROQ_TEMPERATURE || 0.2),
-        max_tokens: Number(process.env.GROQ_MAX_TOKENS || 900)
+        max_tokens: Number(process.env.GROQ_MAX_TOKENS || 700)
       }),
       signal: controller.signal
     });
 
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
-      const error = new Error(payload?.error?.message || 'Groq request failed');
-      error.code = 'GROQ_REQUEST_FAILED';
+      const message = payload?.error?.message || 'Groq request failed';
+      const normalizedMessage = String(message).toLowerCase();
+      const error = new Error(message);
+      if (response.status === 413 ||
+        normalizedMessage.includes('request too large') ||
+        normalizedMessage.includes('tokens per minute') ||
+        normalizedMessage.includes('tpm')) {
+        error.code = 'GROQ_CONTEXT_TOO_LARGE';
+      } else if (response.status === 429 || normalizedMessage.includes('rate limit')) {
+        error.code = 'GROQ_RATE_LIMITED';
+      } else {
+        error.code = 'GROQ_REQUEST_FAILED';
+      }
       error.status = response.status;
       throw error;
     }
@@ -1139,7 +1237,7 @@ router.post('/:id/attempts/:attemptId/ai-analysis', authMiddleware, async (req, 
       });
     }
 
-    const prompt = String(req.body.prompt || '').trim().slice(0, 3000);
+    const prompt = String(req.body.prompt || '').trim().slice(0, 1200);
     const student = attempt.userId ? await db.getUser(attempt.userId) : null;
     const analytics = buildStudentQuizAnalytics(quiz, attempt);
     const analysis = await callGroqChat(buildGroqPromptMessages({
@@ -1166,6 +1264,20 @@ router.post('/:id/attempts/:attemptId/ai-analysis', authMiddleware, async (req, 
         success: false,
         error: 'GROQ_NOT_CONFIGURED',
         message: '尚未設定 GROQ_API_KEY，請先在伺服器環境變數設定 Groq API Key'
+      });
+    }
+    if (error.code === 'GROQ_CONTEXT_TOO_LARGE') {
+      return res.status(413).json({
+        success: false,
+        error: 'GROQ_CONTEXT_TOO_LARGE',
+        message: '這份報表內容超過目前 Groq 模型額度，系統已改用精簡報表摘要；請縮短提示詞或稍後再試。'
+      });
+    }
+    if (error.code === 'GROQ_RATE_LIMITED') {
+      return res.status(429).json({
+        success: false,
+        error: 'GROQ_RATE_LIMITED',
+        message: 'Groq 目前請求量過高，請稍後再產生 AI 分析。'
       });
     }
     res.status(error.status || 500).json({
