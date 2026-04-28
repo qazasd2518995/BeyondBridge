@@ -22,7 +22,7 @@ function prepareQuestionsForStudent(questions, shuffleQuestions, shuffleAnswers,
     return [];
   }
 
-  let preparedQuestions = questions.map(q => {
+  let preparedQuestions = questions.map((q, index) => {
     // 移除正確答案
     const {
       correctAnswer,

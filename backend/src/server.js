@@ -76,6 +76,22 @@ const { initSocketServer } = require('./realtime/socketServer');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+function parseTrustProxy(value) {
+  const rawValue = String(value || '').trim().toLowerCase();
+  if (!rawValue || rawValue === 'false' || rawValue === '0') {
+    return false;
+  }
+  if (rawValue === 'true') {
+    return true;
+  }
+  const parsed = parseInt(rawValue, 10);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : rawValue;
+}
+
+// Render/custom domains always sit behind a proxy. Keep this at one trusted hop
+// unless a direct deployment explicitly opts out with TRUST_PROXY=false.
+app.set('trust proxy', parseTrustProxy(process.env.TRUST_PROXY ?? '1'));
+
 function parseOriginList(value) {
   return String(value || '')
     .split(',')
