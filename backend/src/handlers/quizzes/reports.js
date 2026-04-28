@@ -164,7 +164,7 @@ router.get('/:id/results.csv', authMiddleware, async (req, res) => {
     );
     const analyticsAttempts = attemptsWithUser.filter(isQuizAttemptFinalForAnalytics);
     const analytics = buildTeacherQuizAnalytics(quiz, analyticsAttempts);
-    const csv = buildTeacherAnalyticsCsv(quiz, analyticsAttempts, analytics);
+    const csv = buildTeacherAnalyticsCsv(quiz, attemptsWithUser, analytics);
     const filename = `quiz-${id}-section-analytics.csv`;
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');

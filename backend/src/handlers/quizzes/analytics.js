@@ -75,6 +75,51 @@ function optionText(option) {
   return String(option ?? '');
 }
 
+function optionLabel(index) {
+  const code = 65 + Number(index || 0);
+  return code >= 65 && code <= 90 ? String.fromCharCode(code) : String(index + 1);
+}
+
+function formatAnswerValue(value) {
+  if (value === null || value === undefined || value === '') return '';
+  if (Array.isArray(value)) return value.map(formatAnswerValue).filter(Boolean).join(' | ');
+  if (typeof value === 'object') {
+    return Object.entries(value)
+      .map(([key, item]) => `${key}: ${formatAnswerValue(item)}`)
+      .join(' | ');
+  }
+  return String(value);
+}
+
+function formatQuestionAnswer(question = {}, answer) {
+  if (answer === null || answer === undefined || answer === '') return '';
+  if (Array.isArray(answer)) {
+    return answer.map(item => formatQuestionAnswer(question, item)).filter(Boolean).join(' | ');
+  }
+
+  const options = Array.isArray(question.options) ? question.options : [];
+  if (options.length > 0) {
+    const matchedIndex = options.findIndex((option, index) => answerMatchesOption(answer, option, index));
+    if (matchedIndex >= 0) {
+      return `${optionLabel(matchedIndex)}. ${optionText(options[matchedIndex])}`;
+    }
+  }
+
+  return formatAnswerValue(answer);
+}
+
+function getQuestionCorrectAnswer(question = {}) {
+  if (question.correctAnswers !== undefined) return formatQuestionAnswer(question, question.correctAnswers);
+  if (question.correctAnswer !== undefined) return formatQuestionAnswer(question, question.correctAnswer);
+  if (question.numericAnswer !== undefined) return formatAnswerValue(question.numericAnswer);
+  if (question.clozeAnswers !== undefined) return formatAnswerValue(question.clozeAnswers);
+  if (question.matchingPairs !== undefined) return formatAnswerValue(question.matchingPairs);
+  if (question.pairs !== undefined) return formatAnswerValue(question.pairs);
+  if (question.orderingItems !== undefined) return formatAnswerValue(question.orderingItems);
+  if (question.orderItems !== undefined) return formatAnswerValue(question.orderItems);
+  return '';
+}
+
 function answersEqual(left, right) {
   return JSON.stringify(left) === JSON.stringify(right);
 }
@@ -320,20 +365,107 @@ function rowsToCsv(rows) {
 }
 
 function buildTeacherAnalyticsCsv(quiz = {}, attempts = [], analytics = {}) {
-  const rows = [
-    ['type', 'section', 'student', 'email', 'attemptId', 'metric', 'value', 'extra']
+  const headers = [
+    'row_type',
+    'section',
+    'student_name',
+    'student_email',
+    'user_id',
+    'attempt_id',
+    'status',
+    'manual_grading_status',
+    'started_at',
+    'submitted_at',
+    'completed_at',
+    'score',
+    'total_points',
+    'percentage',
+    'passed',
+    'question_no',
+    'question_id',
+    'question_type',
+    'question_text',
+    'student_answer',
+    'correct_answer',
+    'is_correct',
+    'earned_points',
+    'max_points',
+    'metric',
+    'value',
+    'extra'
   ];
+  const rows = [headers];
+  const pushRow = (row = {}) => {
+    rows.push(headers.map(header => row[header] ?? ''));
+  };
+  const questionById = new Map();
+  buildQuestionGroups(quiz).forEach(section => {
+    section.questions.forEach((question, index) => {
+      questionById.set(question.questionId, {
+        ...question,
+        sectionTitle: section.title,
+        questionNo: question.order || index + 1
+      });
+    });
+  });
 
   (analytics.sections || []).forEach(section => {
-    rows.push(['section_summary', section.title, '', '', '', 'average_score', section.averageScore, `${section.attempts} attempts`]);
-    rows.push(['section_summary', section.title, '', '', '', 'correct_rate', section.correctRate, `${section.correctCount}/${section.responseCount}`]);
+    pushRow({
+      row_type: 'chart_radar',
+      section: section.title,
+      metric: 'average_score',
+      value: section.averageScore,
+      extra: 'teacher_section_radar'
+    });
+    pushRow({
+      row_type: 'section_summary',
+      section: section.title,
+      metric: 'average_score',
+      value: section.averageScore,
+      extra: `${section.attempts} attempts`
+    });
+    pushRow({
+      row_type: 'section_summary',
+      section: section.title,
+      metric: 'correct_rate',
+      value: section.correctRate,
+      extra: `${section.correctCount}/${section.responseCount}`
+    });
     (section.scoreDistribution || []).forEach(bin => {
-      rows.push(['score_distribution', section.title, '', '', '', bin.label, bin.count, `${bin.percentage}%`]);
+      pushRow({
+        row_type: 'score_distribution',
+        section: section.title,
+        metric: bin.label,
+        value: bin.count,
+        extra: `${bin.percentage}%`
+      });
     });
     (section.questionStats || []).forEach(question => {
-      rows.push(['question', section.title, '', '', '', question.questionText, `${question.correctRate}%`, `${question.correctCount}/${question.responseCount}`]);
+      const sourceQuestion = questionById.get(question.questionId) || {};
+      pushRow({
+        row_type: 'question_summary',
+        section: section.title,
+        question_no: sourceQuestion.questionNo || '',
+        question_id: question.questionId,
+        question_type: question.type,
+        question_text: question.questionText,
+        correct_answer: getQuestionCorrectAnswer(sourceQuestion),
+        metric: 'correct_rate',
+        value: `${question.correctRate}%`,
+        extra: `${question.correctCount}/${question.responseCount}`
+      });
       (question.optionDistribution || []).forEach(option => {
-        rows.push(['option', section.title, '', '', '', question.questionText, option.option, `${option.count} (${option.percentage}%)`]);
+        pushRow({
+          row_type: 'option_distribution',
+          section: section.title,
+          question_no: sourceQuestion.questionNo || '',
+          question_id: question.questionId,
+          question_type: question.type,
+          question_text: question.questionText,
+          metric: option.option,
+          value: option.count,
+          extra: `${option.percentage}%`
+        });
       });
     });
   });
@@ -341,18 +473,82 @@ function buildTeacherAnalyticsCsv(quiz = {}, attempts = [], analytics = {}) {
   attempts
     .filter(attempt => attempt.status === 'completed')
     .forEach(attempt => {
+      const studentName = attempt.userName || attempt.userEmail || attempt.userId || '';
+      const studentEmail = attempt.userEmail || '';
+      pushRow({
+        row_type: 'student_attempt',
+        student_name: studentName,
+        student_email: studentEmail,
+        user_id: attempt.userId || '',
+        attempt_id: attempt.attemptId || '',
+        status: attempt.status || '',
+        manual_grading_status: attempt.manualGradingStatus || '',
+        started_at: attempt.startedAt || '',
+        submitted_at: attempt.submittedAt || '',
+        completed_at: attempt.completedAt || attempt.submittedAt || '',
+        score: attempt.score ?? '',
+        total_points: attempt.totalPoints ?? quiz.totalPoints ?? '',
+        percentage: attempt.percentage ?? '',
+        passed: attempt.passed ?? '',
+        metric: 'attempt_summary',
+        value: attempt.percentage ?? attempt.score ?? '',
+        extra: attempt.needsManualGrading ? 'needs_manual_grading' : ''
+      });
+
       const studentAnalytics = buildStudentQuizAnalytics(quiz, attempt);
       (studentAnalytics.sections || []).forEach(section => {
-        rows.push([
-          'student_section',
-          section.title,
-          attempt.userName || attempt.userEmail || attempt.userId || '',
-          attempt.userEmail || '',
-          attempt.attemptId || '',
-          'score',
-          section.percentage,
-          `${section.earnedPoints}/${section.totalPoints}`
-        ]);
+        pushRow({
+          row_type: 'student_section',
+          section: section.title,
+          student_name: studentName,
+          student_email: studentEmail,
+          user_id: attempt.userId || '',
+          attempt_id: attempt.attemptId || '',
+          status: attempt.status || '',
+          manual_grading_status: attempt.manualGradingStatus || '',
+          started_at: attempt.startedAt || '',
+          submitted_at: attempt.submittedAt || '',
+          completed_at: attempt.completedAt || attempt.submittedAt || '',
+          score: attempt.score ?? '',
+          total_points: attempt.totalPoints ?? quiz.totalPoints ?? '',
+          percentage: attempt.percentage ?? '',
+          passed: attempt.passed ?? '',
+          metric: 'section_score_percent',
+          value: section.percentage,
+          extra: `${section.earnedPoints}/${section.totalPoints}`
+        });
+        (section.questionResults || []).forEach(question => {
+          const sourceQuestion = questionById.get(question.questionId) || {};
+          pushRow({
+            row_type: 'student_question',
+            section: section.title,
+            student_name: studentName,
+            student_email: studentEmail,
+            user_id: attempt.userId || '',
+            attempt_id: attempt.attemptId || '',
+            status: attempt.status || '',
+            manual_grading_status: attempt.manualGradingStatus || '',
+            started_at: attempt.startedAt || '',
+            submitted_at: attempt.submittedAt || '',
+            completed_at: attempt.completedAt || attempt.submittedAt || '',
+            score: attempt.score ?? '',
+            total_points: attempt.totalPoints ?? quiz.totalPoints ?? '',
+            percentage: attempt.percentage ?? '',
+            passed: attempt.passed ?? '',
+            question_no: sourceQuestion.questionNo || '',
+            question_id: question.questionId,
+            question_type: question.type,
+            question_text: question.questionText,
+            student_answer: formatQuestionAnswer(sourceQuestion, question.answer),
+            correct_answer: getQuestionCorrectAnswer(sourceQuestion),
+            is_correct: question.isCorrect ?? '',
+            earned_points: question.earnedPoints,
+            max_points: question.maxPoints,
+            metric: 'question_result',
+            value: question.isCorrect === true ? 'correct' : question.isCorrect === false ? 'incorrect' : 'ungraded',
+            extra: `${question.earnedPoints}/${question.maxPoints}`
+          });
+        });
       });
     });
 
