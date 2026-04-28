@@ -4491,7 +4491,7 @@ const MoodleUI = {
   /**
    * 共用活動 viewer shell
    */
-  openActivityViewerShell({ overlayId, title, subtitle = '', externalUrl = '', externalLabel = '' }) {
+  openActivityViewerShell({ overlayId, title, subtitle = '', externalUrl = '', externalLabel = '', compact = false }) {
     const isEnglish = I18n.getLocale() === 'en';
     const closeLabel = isEnglish ? 'Close' : '關閉';
     const defaultExternalHint = isEnglish ? 'External resource' : '外部資源';
@@ -4501,7 +4501,7 @@ const MoodleUI = {
 
     const overlay = document.createElement('div');
     overlay.id = overlayId;
-    overlay.className = 'activity-viewer-overlay';
+    overlay.className = `activity-viewer-overlay${compact ? ' activity-viewer-overlay--compact' : ''}`;
     overlay.innerHTML = `
       <div class="activity-viewer-shell">
         <div class="activity-viewer-header">
@@ -4659,6 +4659,7 @@ const MoodleUI = {
     const loadingLabel = isEnglish ? 'Loading PDF…' : 'PDF 載入中…';
     const zoomOutLabel = isEnglish ? 'Zoom out' : '縮小';
     const zoomInLabel = isEnglish ? 'Zoom in' : '放大';
+    const fitWidthLabel = isEnglish ? 'Fit width' : '符合寬度';
     const pageCountLabel = (count) => isEnglish ? `${count} pages` : `共 ${count} 頁`;
     const pageLabel = (pageNumber) => isEnglish ? `Page ${pageNumber}` : `第 ${pageNumber} 頁`;
     const loadErrorLabel = isEnglish ? 'This PDF cannot be previewed right now.' : '目前無法預覽這份 PDF。';
@@ -4671,6 +4672,7 @@ const MoodleUI = {
               <button type="button" class="activity-viewer-pdf-btn" data-pdf-zoom-out aria-label="${this.escapeText(zoomOutLabel)}">−</button>
               <span class="activity-viewer-pdf-scale" data-pdf-scale>110%</span>
               <button type="button" class="activity-viewer-pdf-btn" data-pdf-zoom-in aria-label="${this.escapeText(zoomInLabel)}">+</button>
+              <button type="button" class="activity-viewer-pdf-fit" data-pdf-fit>${this.escapeText(fitWidthLabel)}</button>
             </div>
             <span class="activity-viewer-pdf-pages" data-pdf-pages>${this.escapeText(loadingLabel)}</span>
           </div>
@@ -4686,17 +4688,20 @@ const MoodleUI = {
     const pagesLabel = viewer.body.querySelector('[data-pdf-pages]');
     const zoomOutButton = viewer.body.querySelector('[data-pdf-zoom-out]');
     const zoomInButton = viewer.body.querySelector('[data-pdf-zoom-in]');
+    const fitButton = viewer.body.querySelector('[data-pdf-fit]');
     const state = {
       destroyed: false,
       renderRunId: 0,
       renderTasks: [],
-      scale: 1.1,
+      scale: window.matchMedia?.('(max-width: 640px)').matches ? 1 : 1.1,
       pdf: null,
       loadingTask: null
     };
     let renderedSuccessfully = false;
+    let fitResizeTimer = null;
+    let handleResize = null;
 
-    if (!mount || !scaleLabel || !pagesLabel || !zoomOutButton || !zoomInButton) {
+    if (!mount || !scaleLabel || !pagesLabel || !zoomOutButton || !zoomInButton || !fitButton) {
       return false;
     }
 
@@ -4713,6 +4718,12 @@ const MoodleUI = {
 
     viewer.overlay._activityViewerCleanup = () => {
       state.destroyed = true;
+      if (fitResizeTimer) {
+        clearTimeout(fitResizeTimer);
+      }
+      if (handleResize) {
+        window.removeEventListener('resize', handleResize);
+      }
       cancelRenders();
       try {
         state.loadingTask?.destroy?.();
@@ -4730,6 +4741,23 @@ const MoodleUI = {
     if (state.destroyed) {
       return;
     }
+
+    const getFitWidthScale = async () => {
+      if (!state.pdf || state.destroyed) return state.scale;
+      const page = await state.pdf.getPage(1);
+      const viewport = page.getViewport({ scale: 1 });
+      const samplePage = mount.querySelector('.activity-viewer-pdf-page');
+      const pagePadding = samplePage
+        ? parseFloat(getComputedStyle(samplePage).paddingLeft || '0') + parseFloat(getComputedStyle(samplePage).paddingRight || '0')
+        : (window.matchMedia?.('(max-width: 640px)').matches ? 12 : 28);
+      const availableWidth = Math.max(260, mount.clientWidth - pagePadding - 2);
+      return Math.max(0.45, Math.min(2.2, Number((availableWidth / Math.max(1, viewport.width)).toFixed(2))));
+    };
+
+    const renderFitWidth = async () => {
+      state.scale = await getFitWidthScale();
+      return renderDocument();
+    };
 
     const renderDocument = async () => {
       if (!state.pdf || state.destroyed) {
@@ -4805,6 +4833,21 @@ const MoodleUI = {
       }
     };
 
+    handleResize = () => {
+      if (state.destroyed || !state.pdf) {
+        return;
+      }
+      if (fitResizeTimer) {
+        clearTimeout(fitResizeTimer);
+      }
+      fitResizeTimer = setTimeout(() => {
+        if (!state.destroyed) {
+          renderFitWidth();
+        }
+      }, 180);
+    };
+    window.addEventListener('resize', handleResize, { passive: true });
+
     zoomOutButton.addEventListener('click', () => {
       if (state.destroyed) return;
       state.scale = Math.max(0.7, Number((state.scale - 0.1).toFixed(2)));
@@ -4817,6 +4860,11 @@ const MoodleUI = {
       renderDocument();
     });
 
+    fitButton.addEventListener('click', () => {
+      if (state.destroyed) return;
+      renderFitWidth();
+    });
+
     try {
       state.loadingTask = pdfjsLib.getDocument({
         url,
@@ -4825,7 +4873,7 @@ const MoodleUI = {
       });
       state.pdf = await state.loadingTask.promise;
       pagesLabel.textContent = pageCountLabel(state.pdf.numPages);
-      await renderDocument();
+      await renderFitWidth();
       return renderedSuccessfully;
     } catch (error) {
       if (state.destroyed) {
@@ -4868,7 +4916,8 @@ const MoodleUI = {
         overlayId: 'file-viewer-overlay',
         title,
         subtitle: contentType,
-        externalUrl: isPdf ? '' : authedUrl
+        externalUrl: isPdf ? '' : authedUrl,
+        compact: true
       });
       viewer.overlay.oncontextmenu = () => false;
 
