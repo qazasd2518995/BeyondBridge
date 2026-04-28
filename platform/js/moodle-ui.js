@@ -10904,6 +10904,7 @@ const MoodleUI = {
       }
 
       const quiz = this.normalizeQuizState(result.data || {});
+      const isEnglish = I18n.getLocale() === 'en';
       const user = API.getCurrentUser();
       let course = null;
       if (quiz.courseId) {
