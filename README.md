@@ -53,6 +53,43 @@ npm run dev
 - `npm run setup`: 建立/檢查 DynamoDB 表結構
 - `npm run seed`: 建立初始資料
 - `npm run sync-platform`: 同步 `backend/public/platform` 到根目錄 `platform/`
+- `npm run email:setup-ses-domain -- beyondbridge.com`: 產生 SES 寄件網域驗證需要加入 DNS 的 TXT/CNAME records
+- `npm run email:diagnose -- --to someone@example.com`: 檢查 SES identity 狀態並實測寄信
+
+## Email / SES 設定
+
+學生電子郵件驗證與老師邀請信可使用 SMTP/Gmail 或 AWS SES。
+
+目前若先用 Gmail 寄出，Render 建議設定：
+
+```text
+EMAIL_PROVIDER=smtp
+EMAIL_FROM=beyondbridge1020@gmail.com
+EMAIL_FROM_NAME=BeyondBridge
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=465
+SMTP_SECURE=true
+SMTP_USER=beyondbridge1020@gmail.com
+SMTP_PASS=<Google App Password>
+```
+
+`SMTP_PASS` 請使用 Google App Password，不要使用 Gmail 登入密碼。Google App Password 需要該 Google 帳號已啟用 2-Step Verification。
+
+若改用 AWS SES。正式環境需要完成同一個 SES region 的兩件事：
+
+1. 驗證寄件網域或寄件信箱，例如 `beyondbridge.com` 或 `noreply@beyondbridge.com`。
+2. 將 SES account 從 sandbox 移到 production access，否則只能寄給已驗證的收件人。
+
+SES Render 建議設定：
+
+```text
+EMAIL_PROVIDER=ses
+AWS_SES_REGION=ap-southeast-2
+EMAIL_FROM=noreply@beyondbridge.com
+EMAIL_FROM_NAME=BeyondBridge
+```
+
+如果 SES identity 建在其他 region，`AWS_SES_REGION` 必須跟該 identity 的 region 一致。
 
 ## Git 工作流建議
 

@@ -12,7 +12,11 @@ const db = require('../utils/db');
 const auth = require('../utils/auth');
 const cache = require('../utils/cache');
 const permissions = require('../utils/permissions');
-const { sendTeacherInvitationEmail } = require('../utils/email');
+const {
+  sendTeacherInvitationEmail,
+  classifyEmailError,
+  isEmailServiceSetupError
+} = require('../utils/email');
 const {
   ADMIN_METRICS_SNAPSHOT_KEYS,
   scanUsersForAnalytics,
@@ -450,12 +454,14 @@ router.post('/users', async (req, res) => {
     }
 
     let invitationEmailSent = false;
+    let emailDeliveryError = null;
     if (isTeacherInvite) {
       const rawToken = await createTeacherInviteToken(user, req);
       try {
         await sendTeacherInvitationEmail(user, rawToken, { courseNames });
         invitationEmailSent = true;
       } catch (emailError) {
+        emailDeliveryError = classifyEmailError(emailError);
         console.error('Send teacher invitation email failed:', emailError);
       }
     }
@@ -478,7 +484,11 @@ router.post('/users', async (req, res) => {
     res.status(201).json({
       success: true,
       message: isTeacherInvite
-        ? (invitationEmailSent ? '老師邀請已建立並寄出' : '老師邀請已建立，但邀請信寄送失敗，請稍後重寄')
+        ? (invitationEmailSent
+            ? '老師邀請已建立並寄出'
+            : isEmailServiceSetupError(emailDeliveryError)
+              ? '老師邀請已建立，但郵件服務尚未完成 SES 寄件設定'
+              : '老師邀請已建立，但邀請信寄送失敗，請稍後重寄')
         : '用戶帳號已建立',
       data: {
         userId,
@@ -487,7 +497,8 @@ router.post('/users', async (req, res) => {
         role,
         status: user.status,
         courseIds: assignedCourseIds,
-        invitationEmailSent
+        invitationEmailSent,
+        emailDeliveryError: invitationEmailSent ? null : emailDeliveryError
       }
     });
 
@@ -539,7 +550,20 @@ router.post('/users/:id/invite/resend', async (req, res) => {
     });
     const courseNames = courses.map(course => course.title || course.name || course.courseId).filter(Boolean);
     const rawToken = await createTeacherInviteToken(user, req);
-    await sendTeacherInvitationEmail(user, rawToken, { courseNames });
+    try {
+      await sendTeacherInvitationEmail(user, rawToken, { courseNames });
+    } catch (emailError) {
+      const emailDeliveryError = classifyEmailError(emailError);
+      if (isEmailServiceSetupError(emailDeliveryError)) {
+        return res.status(503).json({
+          success: false,
+          error: emailDeliveryError.code,
+          message: '郵件服務尚未完成 SES 寄件設定，請先完成寄件網域驗證與 production access',
+          data: { emailDeliveryError }
+        });
+      }
+      throw emailError;
+    }
 
     await db.updateItem(`USER#${id}`, 'PROFILE', {
       invitedAt: new Date().toISOString(),

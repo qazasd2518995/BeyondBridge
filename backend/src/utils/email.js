@@ -6,10 +6,17 @@
  */
 
 const { SESClient, SendEmailCommand } = require('@aws-sdk/client-ses');
+const nodemailer = require('nodemailer');
+
+const PLATFORM_NAME = 'BeyondBridge';
+const PLATFORM_URL = process.env.PLATFORM_URL || 'https://beyondbridge.onrender.com';
+const EMAIL_PROVIDER = String(process.env.EMAIL_PROVIDER || (process.env.SMTP_PASS ? 'smtp' : 'ses')).trim().toLowerCase();
+const DEFAULT_FROM_EMAIL = process.env.SMTP_USER || 'beyondbridge1020@gmail.com';
 
 // 初始化 SES 客戶端
+const SES_REGION = process.env.AWS_SES_REGION || process.env.AWS_REGION || 'ap-southeast-2';
 const sesClient = new SESClient({
-  region: process.env.AWS_REGION || 'ap-southeast-2',
+  region: SES_REGION,
   credentials: {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
@@ -17,9 +24,102 @@ const sesClient = new SESClient({
 });
 
 // 發送者 Email（需在 SES 中驗證）
-const FROM_EMAIL = process.env.EMAIL_FROM || 'noreply@beyondbridge.com';
-const PLATFORM_NAME = 'BeyondBridge';
-const PLATFORM_URL = process.env.PLATFORM_URL || 'https://beyondbridge.onrender.com';
+const FROM_EMAIL = process.env.EMAIL_FROM || DEFAULT_FROM_EMAIL;
+const FROM_NAME = process.env.EMAIL_FROM_NAME || PLATFORM_NAME;
+const SMTP_HOST = process.env.SMTP_HOST || 'smtp.gmail.com';
+const SMTP_PORT = Number(process.env.SMTP_PORT || 465);
+const SMTP_SECURE = process.env.SMTP_SECURE
+  ? process.env.SMTP_SECURE !== 'false'
+  : SMTP_PORT === 465;
+const SMTP_USER = process.env.SMTP_USER || DEFAULT_FROM_EMAIL;
+const SMTP_PASS = process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD || '';
+let smtpTransporter = null;
+
+function buildEmailSource() {
+  if (/<[^>]+>/.test(FROM_EMAIL)) return FROM_EMAIL;
+  return `${FROM_NAME} <${FROM_EMAIL}>`;
+}
+
+function getSmtpTransporter() {
+  if (!SMTP_USER || !SMTP_PASS) {
+    const error = new Error('SMTP_USER and SMTP_PASS are required when EMAIL_PROVIDER=smtp');
+    error.code = 'SMTP_NOT_CONFIGURED';
+    throw error;
+  }
+
+  if (!smtpTransporter) {
+    smtpTransporter = nodemailer.createTransport({
+      host: SMTP_HOST,
+      port: SMTP_PORT,
+      secure: SMTP_SECURE,
+      auth: {
+        user: SMTP_USER,
+        pass: SMTP_PASS
+      }
+    });
+  }
+  return smtpTransporter;
+}
+
+function classifyEmailError(error = {}) {
+  const message = String(error?.message || error?.Error?.Message || '');
+  const code = error?.Code || error?.code || error?.name || error?.Error?.Code || '';
+  if (code === 'SMTP_NOT_CONFIGURED') {
+    return {
+      code: 'SMTP_NOT_CONFIGURED',
+      message,
+      provider: EMAIL_PROVIDER,
+      source: buildEmailSource(),
+      actionable: true
+    };
+  }
+  if (/invalid login|authentication failed|username and password not accepted|application-specific password/i.test(message)) {
+    return {
+      code: 'SMTP_AUTH_FAILED',
+      message,
+      provider: EMAIL_PROVIDER,
+      source: buildEmailSource(),
+      actionable: true
+    };
+  }
+  if (code === 'MessageRejected' && /not verified|failed the check/i.test(message)) {
+    return {
+      code: 'SES_IDENTITY_NOT_VERIFIED',
+      message,
+      provider: EMAIL_PROVIDER,
+      region: SES_REGION,
+      source: buildEmailSource(),
+      actionable: true
+    };
+  }
+  if (/sandbox/i.test(message)) {
+    return {
+      code: 'SES_SANDBOX_RESTRICTION',
+      message,
+      provider: EMAIL_PROVIDER,
+      region: SES_REGION,
+      source: buildEmailSource(),
+      actionable: true
+    };
+  }
+  return {
+    code: code || 'EMAIL_SEND_FAILED',
+    message: message || 'Email send failed',
+    provider: EMAIL_PROVIDER,
+    region: SES_REGION,
+    source: buildEmailSource(),
+    actionable: false
+  };
+}
+
+function isEmailServiceSetupError(error = {}) {
+  return [
+    'SMTP_NOT_CONFIGURED',
+    'SMTP_AUTH_FAILED',
+    'SES_IDENTITY_NOT_VERIFIED',
+    'SES_SANDBOX_RESTRICTION'
+  ].includes(classifyEmailError(error).code);
+}
 
 function platformUrl(path = '/platform') {
   const base = String(PLATFORM_URL || '').replace(/\/+$/, '');
@@ -47,8 +147,29 @@ async function sendEmail(to, subject, htmlBody, textBody = '') {
     textBody = htmlBody.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
   }
 
+  if (EMAIL_PROVIDER === 'smtp') {
+    try {
+      const info = await getSmtpTransporter().sendMail({
+        from: buildEmailSource(),
+        to: toAddresses,
+        subject,
+        html: htmlBody,
+        text: textBody
+      });
+      console.log(`Email sent successfully via SMTP to ${toAddresses.join(', ')}: ${info.messageId}`);
+      return { success: true, messageId: info.messageId, provider: 'smtp' };
+    } catch (error) {
+      const deliveryError = classifyEmailError(error);
+      console.error('Failed to send email via SMTP:', deliveryError, error);
+      if (process.env.NODE_ENV === 'production') {
+        throw error;
+      }
+      return { success: false, error: deliveryError.message, deliveryError };
+    }
+  }
+
   const command = new SendEmailCommand({
-    Source: `${PLATFORM_NAME} <${FROM_EMAIL}>`,
+    Source: buildEmailSource(),
     Destination: {
       ToAddresses: toAddresses
     },
@@ -75,12 +196,13 @@ async function sendEmail(to, subject, htmlBody, textBody = '') {
     console.log(`Email sent successfully to ${toAddresses.join(', ')}: ${response.MessageId}`);
     return { success: true, messageId: response.MessageId };
   } catch (error) {
-    console.error('Failed to send email:', error);
+    const deliveryError = classifyEmailError(error);
+    console.error('Failed to send email:', deliveryError, error);
     // 在開發環境中不拋出錯誤，只記錄
     if (process.env.NODE_ENV === 'production') {
       throw error;
     }
-    return { success: false, error: error.message };
+    return { success: false, error: deliveryError.message, deliveryError };
   }
 }
 
@@ -847,6 +969,8 @@ function getConsultationStatusName(status) {
 module.exports = {
   // 核心函數
   sendEmail,
+  classifyEmailError,
+  isEmailServiceSetupError,
   sendBulkEmails,
   emailTemplate,
   buttonStyle,

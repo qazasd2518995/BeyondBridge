@@ -8,6 +8,8 @@
     "seed": "node scripts/seed-data.js",
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
+    "email:setup-ses-domain": "node scripts/setup-ses-domain.js",
+    "email:diagnose": "node scripts/diagnose-email-delivery.js",
     "sync-platform": "mkdir -p ../platform && cp -R public/platform/. ../platform/ && echo 'Platform files synced from backend/public/platform'"
   },
   "dependencies": {

@@ -13,6 +13,12 @@ function validateEnv() {
   const optional = {
     DYNAMODB_TABLE: 'beyondbridge',
     AWS_REGION: 'ap-southeast-2',
+    AWS_SES_REGION: process.env.AWS_REGION || 'ap-southeast-2',
+    EMAIL_PROVIDER: process.env.SMTP_PASS ? 'smtp' : 'ses',
+    EMAIL_FROM: process.env.SMTP_USER || 'beyondbridge1020@gmail.com',
+    EMAIL_FROM_NAME: 'BeyondBridge',
+    SMTP_HOST: 'smtp.gmail.com',
+    SMTP_PORT: '465',
     PORT: '3000',
     NODE_ENV: 'development'
   };

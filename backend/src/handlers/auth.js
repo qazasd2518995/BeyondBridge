@@ -10,7 +10,9 @@ const db = require('../utils/db');
 const auth = require('../utils/auth');
 const {
   sendPasswordResetEmail,
-  sendStudentEmailVerificationEmail
+  sendStudentEmailVerificationEmail,
+  classifyEmailError,
+  isEmailServiceSetupError
 } = require('../utils/email');
 const { logAuditEvent } = require('./audit-logs');
 const { enrollUserIntoClassLinkedCourse } = require('../utils/class-course-links');
@@ -513,10 +515,12 @@ router.post('/register', async (req, res) => {
       }
     });
     let verificationEmailSent = false;
+    let emailDeliveryError = null;
     try {
       await sendStudentEmailVerificationEmail(newUser, rawToken, classData);
       verificationEmailSent = true;
     } catch (emailError) {
+      emailDeliveryError = classifyEmailError(emailError);
       console.error('Send student verification email failed:', emailError);
     }
 
@@ -524,10 +528,13 @@ router.post('/register', async (req, res) => {
       success: true,
       message: verificationEmailSent
         ? '註冊資料已建立，請到信箱點擊電子郵件驗證連結後再登入'
-        : '註冊資料已建立，但驗證信寄送失敗，請稍後重新寄送驗證信',
+        : isEmailServiceSetupError(emailDeliveryError)
+          ? '註冊資料已建立，但郵件服務尚未完成 SES 寄件設定，請聯絡管理員完成寄件網域驗證'
+          : '註冊資料已建立，但驗證信寄送失敗，請稍後重新寄送驗證信',
       data: {
         pendingVerification: true,
         verificationEmailSent,
+        emailDeliveryError: verificationEmailSent ? null : emailDeliveryError,
         user: {
           userId,
           email,
@@ -729,7 +736,20 @@ router.post('/email/verification/resend', async (req, res) => {
           inviteCode: user.pendingEnrollment?.inviteCode || null
         }
       });
-      await sendStudentEmailVerificationEmail(user, rawToken, classData);
+      try {
+        await sendStudentEmailVerificationEmail(user, rawToken, classData);
+      } catch (emailError) {
+        const emailDeliveryError = classifyEmailError(emailError);
+        if (isEmailServiceSetupError(emailDeliveryError)) {
+          return res.status(503).json({
+            success: false,
+            error: emailDeliveryError.code,
+            message: '郵件服務尚未完成 SES 寄件設定，請管理員完成寄件網域驗證與 production access 後再重寄',
+            data: { emailDeliveryError }
+          });
+        }
+        throw emailError;
+      }
     }
 
     res.json({
