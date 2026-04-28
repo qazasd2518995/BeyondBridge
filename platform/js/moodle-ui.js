@@ -9269,6 +9269,7 @@ const MoodleUI = {
     const passed = percentage !== null && percentage >= 60;
     const attemptId = data.attemptId || attempt?.attemptId || '';
     const sectionAnalytics = data.sectionAnalytics || null;
+    const teacherFeedback = data.teacherFeedback || data.feedbackSummary || '';
 
     container.innerHTML = `
       <div class="quiz-results">
@@ -9288,6 +9289,12 @@ const MoodleUI = {
               ${attemptId ? `<button class="btn-sm" onclick="MoodleUI.downloadQuizAttemptCsv(${this.toInlineActionValue(quizId)}, ${this.toInlineActionValue(attemptId)})">${isEnglish ? 'Download CSV' : '下載 CSV'}</button>` : ''}
             </div>
             ${this.renderQuizSectionAnalytics(sectionAnalytics, { mode: 'student' })}
+          </div>
+        ` : ''}
+        ${teacherFeedback ? `
+          <div class="assignment-feedback-card quiz-results-feedback-card">
+            <h3>${isEnglish ? 'Teacher feedback' : '老師備註'}</h3>
+            <p>${this.formatMultilineText(teacherFeedback)}</p>
           </div>
         ` : ''}
         <div class="quiz-results-questions">
@@ -10267,6 +10274,181 @@ const MoodleUI = {
     `;
   },
 
+  renderQuizAttemptTeacherActions(quiz = {}, attempt = {}) {
+    const quizId = quiz.quizId || '';
+    const attemptId = attempt.attemptId || '';
+    const manualAction = this.renderQuizAttemptManualAction(quiz, attempt);
+    const isEnglish = I18n.getLocale() === 'en';
+    const feedbackLabel = attempt.teacherFeedback
+      ? (isEnglish ? 'Edit feedback' : '編輯備註')
+      : (isEnglish ? 'Analysis / feedback' : '分析/備註');
+    const actions = [];
+    if (manualAction && manualAction !== '—') actions.push(manualAction);
+    if (quizId && attemptId && attempt.status === 'completed') {
+      actions.push(`
+        <button type="button" class="btn-sm" onclick="MoodleUI.openQuizAttemptInsightModal(${this.toInlineActionValue(quizId)}, ${this.toInlineActionValue(attemptId)})">
+          ${this.escapeText(feedbackLabel)}
+        </button>
+      `);
+    }
+    return actions.length > 0 ? `<div class="management-row-actions">${actions.join('')}</div>` : '—';
+  },
+
+  openQuizAttemptInsightModal(quizId, attemptId) {
+    const context = this.currentTeacherQuizReportContext || {};
+    const quiz = context.quiz || {};
+    const report = context.report || {};
+    const attempts = Array.isArray(report.attempts) ? report.attempts : [];
+    const attempt = attempts.find(item => item.attemptId === attemptId);
+    const isEnglish = I18n.getLocale() === 'en';
+
+    if (!attempt) {
+      showToast(isEnglish ? 'Attempt not found.' : '找不到這筆作答紀錄');
+      return;
+    }
+
+    const studentName = attempt.userName || attempt.userEmail || attempt.userId || (isEnglish ? 'Learner' : '學生');
+    const scoreLabel = attempt.score != null
+      ? `${attempt.score}${attempt.totalPoints ? ` / ${attempt.totalPoints}` : ''}`
+      : (attempt.percentage != null ? `${Math.round(attempt.percentage)}%` : '—');
+    const sectionAnalytics = attempt.sectionAnalytics || null;
+    const existingAiAnalysis = attempt.teacherAiAnalysis || '';
+    const defaultPrompt = isEnglish
+      ? 'Analyze this learner\'s TOEIC part performance and draft concise feedback with strengths, weak areas, and next practice steps.'
+      : '請根據這位學生的 TOEIC 各 Part 表現，產生可給學生看的簡潔回饋，包含優勢、弱項與下一步練習建議。';
+
+    this.createModal('quizAttemptInsightModal', isEnglish ? 'Learner analysis and feedback' : '學生分析與備註', `
+      <div class="quiz-create-shell">
+        <section class="quiz-create-card quiz-create-card-primary">
+          <div class="quiz-create-card-head">
+            <div>
+              <div class="quiz-create-card-kicker">${isEnglish ? 'Learner attempt' : '學生作答'}</div>
+              <div class="quiz-create-card-title">${this.escapeText(studentName)}</div>
+              <p class="quiz-create-card-note">${this.escapeText(`${isEnglish ? 'Score' : '分數'}: ${scoreLabel}${attempt.percentage != null ? ` · ${Math.round(attempt.percentage)}%` : ''}`)}</p>
+            </div>
+          </div>
+        </section>
+        ${sectionAnalytics ? `
+          <section class="quiz-create-card">
+            <div class="quiz-create-card-head">
+              <div>
+                <div class="quiz-create-card-kicker">${isEnglish ? 'Part analytics' : 'Part 分析'}</div>
+                <div class="quiz-create-card-title">${isEnglish ? 'Individual section performance' : '個人各 Part 表現'}</div>
+              </div>
+            </div>
+            ${this.renderQuizSectionAnalytics(sectionAnalytics, { mode: 'student' })}
+          </section>
+        ` : ''}
+        <section class="quiz-create-card">
+          <div class="quiz-create-card-head">
+            <div>
+              <div class="quiz-create-card-kicker">${isEnglish ? 'AI analysis' : 'AI 分析'}</div>
+              <div class="quiz-create-card-title">${isEnglish ? 'Generate a feedback draft' : '產生備註草稿'}</div>
+              <p class="quiz-create-card-note">${this.escapeText(isEnglish
+                ? 'Groq will use the prompt and this learner report. The result is not shown to the learner until you save it as teacher feedback.'
+                : 'Groq 會使用提示詞與這位學生的完整報表。AI 結果在你儲存成老師備註前，不會顯示給學生。')}</p>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>${isEnglish ? 'Prompt' : '提示詞'}</label>
+            <textarea id="quizAttemptAiPrompt" rows="3">${this.escapeText(defaultPrompt)}</textarea>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn-secondary" onclick="MoodleUI.generateQuizAttemptAiAnalysis(${this.toInlineActionValue(quizId)}, ${this.toInlineActionValue(attemptId)})">${isEnglish ? 'Generate AI analysis' : '產生 AI 分析'}</button>
+          </div>
+          <div id="quizAttemptAiOutput" class="assignment-feedback-card" data-analysis="${this.escapeText(existingAiAnalysis)}">
+            ${existingAiAnalysis
+              ? this.formatMultilineText(existingAiAnalysis)
+              : this.escapeText(isEnglish ? 'AI analysis will appear here.' : 'AI 分析會顯示在這裡。')}
+          </div>
+        </section>
+        <section class="quiz-create-card">
+          <div class="quiz-create-card-head">
+            <div>
+              <div class="quiz-create-card-kicker">${isEnglish ? 'Teacher feedback' : '老師備註'}</div>
+              <div class="quiz-create-card-title">${isEnglish ? 'Visible to learner' : '學生可見'}</div>
+            </div>
+          </div>
+          <div class="form-group">
+            <textarea id="quizAttemptTeacherFeedback" rows="6" placeholder="${this.escapeText(isEnglish ? 'Write feedback shown to the learner' : '輸入要顯示給學生的備註')}">${this.escapeText(attempt.teacherFeedback || '')}</textarea>
+          </div>
+          <div class="form-actions">
+            <button type="button" onclick="MoodleUI.closeModal('quizAttemptInsightModal')" class="btn-secondary">${t('common.cancel')}</button>
+            <button type="button" onclick="MoodleUI.saveQuizAttemptFeedback(${this.toInlineActionValue(quizId)}, ${this.toInlineActionValue(attemptId)})" class="btn-primary">${isEnglish ? 'Save feedback' : '儲存備註'}</button>
+          </div>
+        </section>
+      </div>
+    `, {
+      maxWidth: '1120px',
+      className: 'modal-workspace modal-question-builder-modal',
+      kicker: isEnglish ? 'Assessment insight' : '測驗分析',
+      description: isEnglish
+        ? 'Review this learner\'s section analytics, generate AI support, and publish teacher feedback.'
+        : '檢視這位學生的各 Part 分析，使用 AI 產生輔助建議，並發布老師備註。'
+    });
+  },
+
+  async generateQuizAttemptAiAnalysis(quizId, attemptId) {
+    const output = document.getElementById('quizAttemptAiOutput');
+    const feedbackInput = document.getElementById('quizAttemptTeacherFeedback');
+    const prompt = document.getElementById('quizAttemptAiPrompt')?.value || '';
+    const isEnglish = I18n.getLocale() === 'en';
+    if (output) {
+      output.dataset.analysis = '';
+      output.innerHTML = this.escapeText(isEnglish ? 'Generating analysis...' : '正在產生 AI 分析...');
+    }
+
+    try {
+      const result = await API.quizzes.generateAttemptAiAnalysis(quizId, attemptId, prompt);
+      if (!result.success) {
+        showToast(result.message || (isEnglish ? 'AI analysis failed.' : 'AI 分析失敗'));
+        if (output) output.innerHTML = this.escapeText(result.message || (isEnglish ? 'AI analysis failed.' : 'AI 分析失敗'));
+        return;
+      }
+
+      const analysis = result.data?.analysis || '';
+      if (output) {
+        output.dataset.analysis = analysis;
+        output.innerHTML = this.formatMultilineText(analysis || (isEnglish ? 'No analysis returned.' : '沒有產生分析內容。'));
+      }
+      if (feedbackInput && !feedbackInput.value.trim() && analysis) {
+        feedbackInput.value = analysis;
+      }
+      showToast(result.message || (isEnglish ? 'AI analysis generated.' : 'AI 分析已產生'));
+    } catch (error) {
+      console.error('Generate quiz attempt AI analysis error:', error);
+      const message = isEnglish ? 'AI analysis failed.' : 'AI 分析失敗';
+      if (output) output.innerHTML = this.escapeText(message);
+      showToast(message);
+    }
+  },
+
+  async saveQuizAttemptFeedback(quizId, attemptId) {
+    const feedback = document.getElementById('quizAttemptTeacherFeedback')?.value || '';
+    const aiAnalysis = document.getElementById('quizAttemptAiOutput')?.dataset?.analysis || '';
+    const isEnglish = I18n.getLocale() === 'en';
+
+    try {
+      const result = await API.quizzes.saveAttemptFeedback(quizId, attemptId, feedback, aiAnalysis);
+      if (!result.success) {
+        showToast(result.message || (isEnglish ? 'Failed to save feedback.' : '儲存備註失敗'));
+        return;
+      }
+
+      showToast(result.message || (isEnglish ? 'Feedback saved.' : '備註已儲存'));
+      this.closeModal('quizAttemptInsightModal');
+      const context = this.currentTeacherQuizReportContext || {};
+      await this.openQuizResults(quizId, {
+        quiz: context.quiz || null,
+        course: context.course || null,
+        replaceHistory: true
+      });
+    } catch (error) {
+      console.error('Save quiz attempt feedback error:', error);
+      showToast(isEnglish ? 'Failed to save feedback.' : '儲存備註失敗');
+    }
+  },
+
   formatQuizManualAnswer(answer) {
     if (answer === null || answer === undefined || answer === '') return '—';
     if (Array.isArray(answer)) {
@@ -10615,13 +10797,18 @@ const MoodleUI = {
               <tbody>
                 ${attempts.map(attempt => `
                   <tr>
-                    <td>${this.escapeText(attempt.userName || attempt.userEmail || attempt.userId || '—')}</td>
+                    <td>
+                      <div class="management-status-stack">
+                        <span>${this.escapeText(attempt.userName || attempt.userEmail || attempt.userId || '—')}</span>
+                        ${attempt.teacherFeedback ? `<small>${I18n.getLocale() === 'en' ? 'Feedback added' : '已新增備註'}</small>` : ''}
+                      </div>
+                    </td>
                     <td>${this.escapeText(this.formatPlatformDate(attempt.startedAt, { dateStyle: 'medium', timeStyle: 'short' }) || '—')}</td>
                     <td>${this.escapeText(this.formatPlatformDate(attempt.completedAt || attempt.submittedAt, { dateStyle: 'medium', timeStyle: 'short' }) || '—')}</td>
                     <td class="is-center">${attempt.score != null ? this.escapeText(String(attempt.score)) : (attempt.percentage != null ? `${this.escapeText(String(Math.round(attempt.percentage)))}%` : '—')}</td>
                     <td class="is-center">${this.renderQuizAttemptManualStatus({ ...quiz, quizId }, attempt)}</td>
                     <td class="is-center">${this.renderManagementStatusBadge(attempt.status || 'completed', attempt.status === 'completed' ? t('common.completed') : t('common.pending'))}</td>
-                    <td class="is-center">${this.renderQuizAttemptManualAction({ ...quiz, quizId }, attempt)}</td>
+                    <td class="is-center">${this.renderQuizAttemptTeacherActions({ ...quiz, quizId }, attempt)}</td>
                   </tr>
                 `).join('')}
               </tbody>

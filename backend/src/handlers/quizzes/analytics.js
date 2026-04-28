@@ -403,6 +403,7 @@ function buildTeacherAnalyticsCsv(quiz = {}, attempts = [], analytics = {}) {
     'total_points',
     'percentage',
     'passed',
+    'teacher_feedback',
     'question_no',
     'question_id',
     'question_type',
@@ -503,6 +504,7 @@ function buildTeacherAnalyticsCsv(quiz = {}, attempts = [], analytics = {}) {
         total_points: attempt.totalPoints ?? quiz.totalPoints ?? '',
         percentage: attempt.percentage ?? '',
         passed: attempt.passed ?? '',
+        teacher_feedback: attempt.teacherFeedback || '',
         metric: 'attempt_summary',
         value: attempt.percentage ?? attempt.score ?? '',
         extra: attempt.needsManualGrading ? 'needs_manual_grading' : ''
@@ -526,6 +528,7 @@ function buildTeacherAnalyticsCsv(quiz = {}, attempts = [], analytics = {}) {
           total_points: attempt.totalPoints ?? quiz.totalPoints ?? '',
           percentage: attempt.percentage ?? '',
           passed: attempt.passed ?? '',
+          teacher_feedback: attempt.teacherFeedback || '',
           metric: 'section_score_percent',
           value: section.percentage,
           extra: `${section.earnedPoints}/${section.totalPoints}`
@@ -548,6 +551,7 @@ function buildTeacherAnalyticsCsv(quiz = {}, attempts = [], analytics = {}) {
             total_points: attempt.totalPoints ?? quiz.totalPoints ?? '',
             percentage: attempt.percentage ?? '',
             passed: attempt.passed ?? '',
+            teacher_feedback: attempt.teacherFeedback || '',
             question_no: sourceQuestion.questionNo || '',
             question_id: question.questionId,
             question_type: question.type,
@@ -678,7 +682,7 @@ async function buildTeacherAnalyticsXlsx({
   ];
 
   const attemptRows = [
-    ['Student Name', 'Email', 'User ID', 'Attempt ID', 'Status', 'Manual Grading', 'Started At', 'Submitted At', 'Completed At', 'Score', 'Total Points', 'Percentage %', 'Passed'],
+    ['Student Name', 'Email', 'User ID', 'Attempt ID', 'Status', 'Manual Grading', 'Started At', 'Submitted At', 'Completed At', 'Score', 'Total Points', 'Percentage %', 'Passed', 'Teacher Feedback'],
     ...completedAttempts.map(attempt => [
       getAttemptStudentName(attempt),
       attempt.userEmail || '',
@@ -692,7 +696,8 @@ async function buildTeacherAnalyticsXlsx({
       attempt.score ?? '',
       attempt.totalPoints ?? quiz.totalPoints ?? '',
       attempt.percentage ?? '',
-      attempt.passed ?? ''
+      attempt.passed ?? '',
+      attempt.teacherFeedback || ''
     ])
   ];
 
@@ -819,7 +824,7 @@ async function buildTeacherAnalyticsXlsx({
       { name: 'Score Distribution', rows: scoreDistributionRows, freezeRows: 1, widths: [44, 16, 12, 16] },
       { name: 'Question Analytics', rows: questionRows, freezeRows: 1, widths: [44, 12, 22, 18, 56, 30, 16, 14, 16] },
       { name: 'Option Distribution', rows: optionRows, freezeRows: 1, widths: [44, 12, 22, 56, 28, 12, 16] },
-      { name: 'Student Attempts', rows: attemptRows, freezeRows: 1, widths: [24, 30, 22, 28, 14, 18, 24, 24, 24, 12, 14, 14, 12] },
+      { name: 'Student Attempts', rows: attemptRows, freezeRows: 1, widths: [24, 30, 22, 28, 14, 18, 24, 24, 24, 12, 14, 14, 12, 44] },
       { name: 'Student Sections', rows: studentSectionRows, freezeRows: 1, widths: [24, 30, 22, 28, 44, 12, 14, 14, 14, 14, 14] },
       { name: 'Student Questions', rows: studentQuestionRows, freezeRows: 1, widths: [24, 30, 22, 28, 44, 12, 22, 18, 56, 34, 34, 12, 14, 14] }
     ]

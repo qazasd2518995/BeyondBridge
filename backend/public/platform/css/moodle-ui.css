@@ -4300,6 +4300,7 @@ iframe#interactive-video-player {
   border: 1px solid rgba(74, 93, 35, 0.14);
 }
 
+.assignment-feedback-card h3,
 .assignment-feedback-card h4 {
   margin: 0 0 0.45rem;
   color: var(--olive-deep);
@@ -13659,6 +13660,13 @@ iframe#interactive-video-player {
   font-size: 0.72rem;
   line-height: 1.2;
   white-space: nowrap;
+}
+
+.management-row-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.45rem;
 }
 
 .management-metric-grid {

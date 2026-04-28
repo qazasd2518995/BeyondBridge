@@ -1091,6 +1091,20 @@ const API = {
       });
     },
 
+    async saveAttemptFeedback(quizId, attemptId, feedback = '', aiAnalysis = '') {
+      return API.request(`/quizzes/${quizId}/attempts/${attemptId}/feedback`, {
+        method: 'PUT',
+        body: { feedback, aiAnalysis }
+      });
+    },
+
+    async generateAttemptAiAnalysis(quizId, attemptId, prompt = '') {
+      return API.request(`/quizzes/${quizId}/attempts/${attemptId}/ai-analysis`, {
+        method: 'POST',
+        body: { prompt }
+      });
+    },
+
     async getResults(quizId) {
       return API.request(`/quizzes/${quizId}/results`);
     },

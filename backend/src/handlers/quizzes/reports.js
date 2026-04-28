@@ -10,6 +10,7 @@ const { authMiddleware } = require('../../utils/auth');
 const { canManageCourse } = require('../../utils/course-access');
 const {
   buildTeacherQuizAnalytics,
+  buildStudentQuizAnalytics,
   buildTeacherAnalyticsCsv,
   buildTeacherAnalyticsXlsx
 } = require('./analytics');
@@ -63,7 +64,8 @@ router.get('/:id/results', authMiddleware, async (req, res) => {
         return {
           ...attempt,
           userName: user?.displayName || '未知用戶',
-          userEmail: user?.email
+          userEmail: user?.email,
+          sectionAnalytics: buildStudentQuizAnalytics(quiz, attempt)
         };
       })
     );

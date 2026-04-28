@@ -76,6 +76,8 @@ npm run dev
   - `JWT_SECRET`
   - `AWS_ACCESS_KEY_ID`
   - `AWS_SECRET_ACCESS_KEY`
+  - `GROQ_API_KEY`（可選，用於老師測驗 AI 分析）
+  - `GROQ_MODEL`（可選，預設 `llama-3.3-70b-versatile`）
   - 其他部署相關變數
 
 ### Actions

@@ -25,7 +25,8 @@ const {
 } = require('./utils');
 const {
   buildStudentQuizAnalytics,
-  buildStudentAnalyticsCsv
+  buildStudentAnalyticsCsv,
+  getQuestionSection
 } = require('./analytics');
 const { inferQuizAnalysisProfile } = require('../../utils/toeic-parts');
 
@@ -39,6 +40,122 @@ async function canManageQuiz(quiz, user) {
     }
   }
   return quiz.createdBy === user.userId;
+}
+
+function getAttemptScoreSummary(attempt = {}, quiz = {}) {
+  return {
+    score: attempt.score ?? null,
+    totalPoints: attempt.totalPoints ?? quiz.totalPoints ?? null,
+    percentage: attempt.percentage ?? null,
+    passed: attempt.passed ?? null
+  };
+}
+
+function buildQuestionPromptContext(quiz = {}, attempt = {}) {
+  const questions = Array.isArray(quiz.questions) ? quiz.questions : [];
+  const resultsByQuestionId = new Map((attempt.questionResults || []).map(result => [result.questionId, result]));
+  return questions.map((question, index) => {
+    const result = resultsByQuestionId.get(question.questionId) || {};
+    return {
+      number: index + 1,
+      section: getQuestionSection(question, index, quiz),
+      type: question.type,
+      text: String(question.text || question.question || '').slice(0, 160),
+      answer: attempt.answers?.[question.questionId] ?? null,
+      correctAnswer: question.correctAnswer ?? question.correctAnswers ?? null,
+      isCorrect: result.isCorrect ?? null,
+      earnedPoints: result.earnedPoints ?? 0,
+      maxPoints: result.maxPoints ?? question.points ?? 1
+    };
+  });
+}
+
+function buildGroqPromptMessages({ prompt, quiz, attempt, student, analytics }) {
+  const reportContext = {
+    quiz: {
+      title: quiz.title,
+      totalQuestions: Array.isArray(quiz.questions) ? quiz.questions.length : 0,
+      passingGrade: quiz.passingGrade,
+      analysisProfile: quiz.analysisProfile || null
+    },
+    student: {
+      name: student?.displayName || attempt.userName || '',
+      email: student?.email || attempt.userEmail || ''
+    },
+    attempt: getAttemptScoreSummary(attempt, quiz),
+    sections: (analytics.sections || []).map(section => ({
+      title: section.title,
+      percentage: section.percentage,
+      correctRate: section.correctRate,
+      earnedPoints: section.earnedPoints,
+      totalPoints: section.totalPoints,
+      correctCount: section.correctCount,
+      questionCount: section.questionCount
+    })),
+    weakestSections: analytics.weakestSections || [],
+    questions: buildQuestionPromptContext(quiz, attempt)
+  };
+
+  return [
+    {
+      role: 'system',
+      content: [
+        'You are an assessment analyst helping a teacher write learner-facing quiz feedback.',
+        'Use the provided report data only. Do not invent scores, answers, or student behavior.',
+        'Respond in Traditional Chinese unless the teacher prompt explicitly asks for another language.',
+        'Keep the output practical: strengths, weaknesses by section, and concrete next steps.'
+      ].join('\n')
+    },
+    {
+      role: 'user',
+      content: [
+        `Teacher prompt: ${String(prompt || '').trim() || '請根據學生測驗結果產生簡潔、可給學生看的學習建議。'}`,
+        '',
+        'Quiz report JSON:',
+        JSON.stringify(reportContext)
+      ].join('\n')
+    }
+  ];
+}
+
+async function callGroqChat(messages) {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) {
+    const error = new Error('GROQ_API_KEY is not configured');
+    error.code = 'GROQ_NOT_CONFIGURED';
+    throw error;
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), Number(process.env.GROQ_TIMEOUT_MS || 30000));
+  try {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
+        messages,
+        temperature: Number(process.env.GROQ_TEMPERATURE || 0.2),
+        max_tokens: Number(process.env.GROQ_MAX_TOKENS || 900)
+      }),
+      signal: controller.signal
+    });
+
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const error = new Error(payload?.error?.message || 'Groq request failed');
+      error.code = 'GROQ_REQUEST_FAILED';
+      error.status = response.status;
+      throw error;
+    }
+
+    return String(payload?.choices?.[0]?.message?.content || '').trim();
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 function normalizeAttemptAnswerPatch(body = {}) {
@@ -903,6 +1020,158 @@ router.put('/:id/attempts/:attemptId/manual-grades', authMiddleware, async (req,
       success: false,
       error: 'MANUAL_GRADE_FAILED',
       message: '批改申論題失敗'
+    });
+  }
+});
+
+/**
+ * PUT /api/quizzes/:id/attempts/:attemptId/feedback
+ * 儲存老師給單一測驗作答的總評備註
+ */
+router.put('/:id/attempts/:attemptId/feedback', authMiddleware, async (req, res) => {
+  try {
+    const { id, attemptId } = req.params;
+    const quiz = await db.getItem(`QUIZ#${id}`, 'META');
+    if (!quiz) {
+      return res.status(404).json({
+        success: false,
+        error: 'QUIZ_NOT_FOUND',
+        message: '找不到此測驗'
+      });
+    }
+
+    const canManage = await canManageQuiz(quiz, req.user);
+    if (!canManage) {
+      return res.status(403).json({
+        success: false,
+        error: 'FORBIDDEN',
+        message: '沒有權限更新此測驗備註'
+      });
+    }
+
+    const attempts = await db.query(`QUIZ#${id}`, { skPrefix: 'ATTEMPT#' });
+    const attempt = attempts.find(a => a.attemptId === attemptId);
+    if (!attempt) {
+      return res.status(404).json({
+        success: false,
+        error: 'ATTEMPT_NOT_FOUND',
+        message: '找不到作答記錄'
+      });
+    }
+
+    const now = new Date().toISOString();
+    const feedback = String(req.body.feedback || '').trim().slice(0, 12000);
+    const aiAnalysis = String(req.body.aiAnalysis || '').trim().slice(0, 12000);
+    const updates = {
+      teacherFeedback: feedback,
+      teacherFeedbackUpdatedAt: now,
+      teacherFeedbackUpdatedBy: req.user.userId,
+      updatedAt: now
+    };
+
+    if (aiAnalysis) {
+      updates.teacherAiAnalysis = aiAnalysis;
+      updates.teacherAiAnalysisUpdatedAt = now;
+      updates.teacherAiAnalysisUpdatedBy = req.user.userId;
+    }
+
+    const updatedAttempt = await db.updateItem(`QUIZ#${id}`, attempt.SK, updates);
+    const { PK, SK, ...safeAttempt } = updatedAttempt;
+
+    res.json({
+      success: true,
+      message: '老師備註已儲存',
+      data: {
+        ...safeAttempt,
+        sectionAnalytics: buildStudentQuizAnalytics(quiz, safeAttempt)
+      }
+    });
+  } catch (error) {
+    console.error('Save quiz attempt feedback error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'SAVE_FEEDBACK_FAILED',
+      message: '儲存老師備註失敗'
+    });
+  }
+});
+
+/**
+ * POST /api/quizzes/:id/attempts/:attemptId/ai-analysis
+ * 使用 Groq 依測驗報表產生老師備註草稿
+ */
+router.post('/:id/attempts/:attemptId/ai-analysis', authMiddleware, async (req, res) => {
+  try {
+    const { id, attemptId } = req.params;
+    const quiz = await db.getItem(`QUIZ#${id}`, 'META');
+    if (!quiz) {
+      return res.status(404).json({
+        success: false,
+        error: 'QUIZ_NOT_FOUND',
+        message: '找不到此測驗'
+      });
+    }
+
+    const canManage = await canManageQuiz(quiz, req.user);
+    if (!canManage) {
+      return res.status(403).json({
+        success: false,
+        error: 'FORBIDDEN',
+        message: '沒有權限分析此測驗作答'
+      });
+    }
+
+    const attempts = await db.query(`QUIZ#${id}`, { skPrefix: 'ATTEMPT#' });
+    const attempt = attempts.find(a => a.attemptId === attemptId);
+    if (!attempt) {
+      return res.status(404).json({
+        success: false,
+        error: 'ATTEMPT_NOT_FOUND',
+        message: '找不到作答記錄'
+      });
+    }
+
+    if (attempt.status !== 'completed') {
+      return res.status(400).json({
+        success: false,
+        error: 'ATTEMPT_NOT_COMPLETED',
+        message: '此作答尚未完成，無法產生分析'
+      });
+    }
+
+    const prompt = String(req.body.prompt || '').trim().slice(0, 3000);
+    const student = attempt.userId ? await db.getUser(attempt.userId) : null;
+    const analytics = buildStudentQuizAnalytics(quiz, attempt);
+    const analysis = await callGroqChat(buildGroqPromptMessages({
+      prompt,
+      quiz,
+      attempt,
+      student,
+      analytics
+    }));
+
+    res.json({
+      success: true,
+      message: 'AI 分析已產生',
+      data: {
+        analysis,
+        model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
+        generatedAt: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    console.error('Generate quiz AI analysis error:', error);
+    if (error.code === 'GROQ_NOT_CONFIGURED') {
+      return res.status(503).json({
+        success: false,
+        error: 'GROQ_NOT_CONFIGURED',
+        message: '尚未設定 GROQ_API_KEY，請先在伺服器環境變數設定 Groq API Key'
+      });
+    }
+    res.status(error.status || 500).json({
+      success: false,
+      error: error.code || 'AI_ANALYSIS_FAILED',
+      message: error.message || '產生 AI 分析失敗'
     });
   }
 });
