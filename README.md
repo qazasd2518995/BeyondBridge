@@ -63,6 +63,7 @@ npm run dev
 目前若先用 Gmail 寄出，Render 建議設定：
 
 ```text
+STUDENT_EMAIL_VERIFICATION_REQUIRED=false
 EMAIL_PROVIDER=smtp
 EMAIL_FROM=beyondbridge1020@gmail.com
 EMAIL_FROM_NAME=BeyondBridge

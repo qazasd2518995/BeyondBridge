@@ -19,6 +19,7 @@ function validateEnv() {
     EMAIL_FROM_NAME: 'BeyondBridge',
     SMTP_HOST: 'smtp.gmail.com',
     SMTP_PORT: '465',
+    STUDENT_EMAIL_VERIFICATION_REQUIRED: 'false',
     PORT: '3000',
     NODE_ENV: 'development'
   };

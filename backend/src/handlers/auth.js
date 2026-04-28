@@ -25,6 +25,10 @@ const ACCOUNT_TOKEN_KINDS = {
   TEACHER_INVITE: 'teacher_invite'
 };
 
+function isStudentEmailVerificationRequired() {
+  return String(process.env.STUDENT_EMAIL_VERIFICATION_REQUIRED || '').trim().toLowerCase() === 'true';
+}
+
 function isValidEmail(email = '') {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || '').trim());
 }
@@ -265,6 +269,31 @@ router.post('/login', async (req, res) => {
       });
     }
 
+    if (!isAdmin && user.status === 'pending_email_verification' && !isStudentEmailVerificationRequired()) {
+      const now = new Date().toISOString();
+      const classId = user.pendingEnrollment?.classId;
+      const classData = classId ? await db.getItem(`CLASS#${classId}`, 'META') : null;
+      let enrolledCourse = null;
+      if (classData && classData.status === 'active') {
+        enrolledCourse = await activateStudentClassAndCourse(user, classData, now);
+      }
+      user = await db.updateItem(`USER#${user.userId}`, 'PROFILE', {
+        status: 'active',
+        emailVerified: true,
+        emailVerifiedAt: now,
+        emailVerificationSkipped: true,
+        emailVerificationSkippedAt: now,
+        pendingEnrollment: null,
+        updatedAt: now
+      });
+      await db.logActivity(user.userId, 'email_verification_skipped_auto_activate', 'auth', user.userId, {
+        role: 'student',
+        classId: classData?.classId || null,
+        courseId: enrolledCourse?.courseId || null,
+        ip: req.ip || req.headers['x-forwarded-for'] || 'unknown'
+      });
+    }
+
     // 檢查帳號狀態
     if (user.status !== 'active') {
       if (user.status === 'pending_email_verification') {
@@ -447,6 +476,7 @@ router.post('/register', async (req, res) => {
     const userId = db.generateId('usr');
     const passwordHash = await auth.hashPassword(password);
     const now = new Date().toISOString();
+    const emailVerificationRequired = isStudentEmailVerificationRequired();
 
     // 建立用戶資料
     const newUser = {
@@ -489,20 +519,60 @@ router.post('/register', async (req, res) => {
         coursesInProgress: 0
       },
 
-      status: 'pending_email_verification',
-      emailVerified: false,
-      emailVerifiedAt: null,
-      pendingEnrollment: classData ? {
+      status: emailVerificationRequired ? 'pending_email_verification' : 'active',
+      emailVerified: !emailVerificationRequired,
+      emailVerifiedAt: emailVerificationRequired ? null : now,
+      emailVerificationSkipped: !emailVerificationRequired,
+      emailVerificationSkippedAt: emailVerificationRequired ? null : now,
+      pendingEnrollment: emailVerificationRequired && classData ? {
         type: 'class_invite',
         classId: classData.classId,
         className: classData.name,
         inviteCode: String(inviteCode || '').trim().toUpperCase()
       } : null,
-      lastLoginAt: null,
+      lastLoginAt: emailVerificationRequired ? null : now,
       updatedAt: now
     };
 
     await db.putItem(newUser);
+    if (!emailVerificationRequired) {
+      const enrolledCourse = await activateStudentClassAndCourse(newUser, classData, now);
+      await db.logActivity(userId, 'register', 'auth', userId, {
+        role: 'student',
+        emailVerificationSkipped: true,
+        classId: classData?.classId || null,
+        courseId: enrolledCourse?.courseId || null,
+        ip: req.ip || req.headers['x-forwarded-for'] || 'unknown'
+      });
+
+      const tokens = auth.generateTokens(newUser);
+      return res.status(201).json({
+        success: true,
+        message: enrolledCourse?.courseId
+          ? '註冊成功，帳號已啟用並加入班級與課程'
+          : '註冊成功，帳號已啟用並加入班級',
+        data: {
+          user: {
+            userId,
+            email,
+            displayName,
+            role,
+            isAdmin: false,
+            organization,
+            subscriptionTier: 'student',
+            avatarUrl: null,
+            enrolledClass: classData ? { classId: classData.classId, className: classData.name } : null,
+            enrolledCourse: enrolledCourse?.courseId ? {
+              courseId: enrolledCourse.courseId,
+              courseName: enrolledCourse.courseName || enrolledCourse.title || null
+            } : null,
+            emailVerified: true
+          },
+          ...tokens
+        }
+      });
+    }
+
     const { rawToken } = await createAccountToken({
       kind: ACCOUNT_TOKEN_KINDS.EMAIL_VERIFICATION,
       userId,
