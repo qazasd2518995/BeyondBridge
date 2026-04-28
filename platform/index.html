@@ -16279,13 +16279,14 @@
         // 遮罩層點擊關閉
         sidebarOverlay.addEventListener('click', closeSidebar);
 
-        // Close sidebar on mobile when nav item clicked
-        document.querySelectorAll('.nav-item').forEach(item => {
-            item.addEventListener('click', () => {
-                if (window.innerWidth <= 768) {
-                    closeSidebar();
-                }
-            });
+        // Close sidebar after nav clicks. The sidebar content is replaced by role,
+        // so this must be delegated instead of bound to the initial nav items.
+        sidebar.addEventListener('click', (event) => {
+            const navItem = event.target.closest('.nav-item');
+            if (!navItem || !sidebar.contains(navItem) || window.innerWidth > 768) {
+                return;
+            }
+            window.requestAnimationFrame(closeSidebar);
         });
 
         // 滑動手勢支援
@@ -16301,6 +16302,7 @@
 
             touchStartX = e.touches[0].clientX;
             touchStartY = e.touches[0].clientY;
+            touchMoveX = touchStartX;
             isSwiping = false;
 
             // 如果側邊欄已開啟，允許從任何位置開始滑動
@@ -16346,6 +16348,7 @@
 
             // 重置
             touchStartX = 0;
+            touchStartY = 0;
             touchMoveX = 0;
             isSwiping = false;
         }, { passive: true });
