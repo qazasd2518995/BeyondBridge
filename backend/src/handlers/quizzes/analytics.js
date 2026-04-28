@@ -6,6 +6,11 @@ const SCORE_BINS = [
   { key: '90-100', label: '90-100%', min: 90, max: 100 }
 ];
 
+const {
+  isToeicFullTest,
+  getToeicQuestionSection
+} = require('../../utils/toeic-parts');
+
 function roundNumber(value, digits = 0) {
   const number = Number(value);
   if (!Number.isFinite(number)) return null;
@@ -24,7 +29,12 @@ function normalizeSectionLabel(value) {
   return label || 'General';
 }
 
-function getQuestionSection(question = {}) {
+function getQuestionSection(question = {}, index = 0, quiz = {}) {
+  if (isToeicFullTest(quiz)) {
+    const toeicSection = getToeicQuestionSection(question, index);
+    if (toeicSection?.sectionTitle) return toeicSection.sectionTitle;
+  }
+
   return normalizeSectionLabel(
     question.analysisSection ||
     question.sectionTitle ||
@@ -92,11 +102,12 @@ function finalizeScoreDistribution(distribution, total) {
   }));
 }
 
-function buildQuestionGroups(questions = []) {
+function buildQuestionGroups(quiz = {}) {
   const sections = new Map();
+  const questions = Array.isArray(quiz.questions) ? quiz.questions : [];
 
   questions.forEach((question, index) => {
-    const title = getQuestionSection(question);
+    const title = getQuestionSection(question, index, quiz);
     const sectionId = sectionIdFromLabel(title);
     if (!sections.has(sectionId)) {
       sections.set(sectionId, {
@@ -118,7 +129,7 @@ function buildQuestionGroups(questions = []) {
 }
 
 function buildAttemptSectionAnalytics(quiz = {}, attempt = {}) {
-  const sections = buildQuestionGroups(quiz.questions || []);
+  const sections = buildQuestionGroups(quiz);
 
   return sections.map(section => {
     let earnedPoints = 0;
@@ -167,7 +178,7 @@ function buildAttemptSectionAnalytics(quiz = {}, attempt = {}) {
 
 function buildTeacherQuizAnalytics(quiz = {}, attempts = []) {
   const completedAttempts = attempts.filter(attempt => attempt.status === 'completed');
-  const sections = buildQuestionGroups(quiz.questions || []);
+  const sections = buildQuestionGroups(quiz);
 
   const sectionAnalytics = sections.map(section => {
     let earnedPointsSum = 0;

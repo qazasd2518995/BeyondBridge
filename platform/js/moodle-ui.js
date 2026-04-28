@@ -8337,6 +8337,37 @@ const MoodleUI = {
     return `<div id="quizAutosaveStatus" class="quiz-autosave-status" data-state="${this.escapeText(state)}" role="status" aria-live="polite">${this.escapeText(message)}</div>`;
   },
 
+  getQuizQuestionPartMeta(question = {}) {
+    if (question.toeicSectionTitle || question.toeicTaskTitle || question.toeicPartTitle) {
+      return {
+        label: question.toeicPartTitle || (question.toeicPart ? `Part ${question.toeicPart}` : 'TOEIC'),
+        title: question.toeicTaskTitle || question.toeicSectionTitle || question.analysisSection || '',
+        detail: question.toeicQuestionRangeLabel || ''
+      };
+    }
+
+    const sectionTitle = String(question.analysisSection || question.sectionTitle || question.section || '').trim();
+    if (!sectionTitle) return null;
+    return {
+      label: I18n.getLocale() === 'en' ? 'Section' : '區段',
+      title: sectionTitle,
+      detail: ''
+    };
+  },
+
+  renderQuizQuestionPartHeader(question = {}) {
+    const meta = this.getQuizQuestionPartMeta(question);
+    if (!meta?.title) return '';
+
+    return `
+      <div class="quiz-question-part-header">
+        <span class="quiz-question-part-label">${this.escapeText(meta.label)}</span>
+        <strong>${this.escapeText(meta.title)}</strong>
+        ${meta.detail ? `<span>${this.escapeText(meta.detail)}</span>` : ''}
+      </div>
+    `;
+  },
+
   scrollCurrentQuizQuestionNavIntoView(container = document) {
     const nav = container.querySelector('.quiz-question-nav');
     const currentNavButton = nav?.querySelector('.question-nav-btn.current');
@@ -8577,6 +8608,7 @@ const MoodleUI = {
       <div class="quiz-body">
         <div class="quiz-question-panel">
           <div class="question-content">
+            ${this.renderQuizQuestionPartHeader(question)}
             <div class="question-kicker">${isEnglish ? 'Question prompt' : '題目內容'}</div>
             <h3>${question.type === 'cloze'
               ? this.escapeText(isEnglish ? 'Complete the blanks' : '完成空格')

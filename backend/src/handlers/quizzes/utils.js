@@ -4,6 +4,7 @@
  */
 
 const db = require('../../utils/db');
+const { decorateToeicQuestion } = require('../../utils/toeic-parts');
 
 /**
  * 獲取測驗
@@ -15,7 +16,7 @@ async function getQuiz(quizId) {
 /**
  * 準備學生作答用的問題（可能打亂順序）
  */
-function prepareQuestionsForStudent(questions, shuffleQuestions, shuffleAnswers) {
+function prepareQuestionsForStudent(questions, shuffleQuestions, shuffleAnswers, quiz = {}) {
   // 如果沒有題目，返回空陣列
   if (!questions || !Array.isArray(questions) || questions.length === 0) {
     return [];
@@ -81,7 +82,7 @@ function prepareQuestionsForStudent(questions, shuffleQuestions, shuffleAnswers)
       }
     }
 
-    return rest;
+    return decorateToeicQuestion(rest, index, quiz);
   });
 
   // 打亂問題順序（如果需要）

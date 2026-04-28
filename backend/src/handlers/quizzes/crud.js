@@ -19,6 +19,7 @@ const {
   listManagedCourseIds,
   backfillCourseOwnerLinks
 } = require('../../utils/course-owner-links');
+const { inferQuizAnalysisProfile } = require('../../utils/toeic-parts');
 
 function uniqueIds(values = []) {
   return [...new Set(values.filter(Boolean))];
@@ -406,6 +407,13 @@ router.post('/', authMiddleware, async (req, res) => {
 
     // 計算總分
     const totalPoints = processedQuestions.reduce((sum, q) => sum + (q.points || 1), 0);
+    const analysisProfile = req.body.analysisProfile || inferQuizAnalysisProfile({
+      title,
+      description,
+      instructions,
+      courseTitle: course.title || course.name,
+      questions: processedQuestions
+    });
 
     const quizItem = {
       PK: `QUIZ#${quizId}`,
@@ -441,6 +449,7 @@ router.post('/', authMiddleware, async (req, res) => {
       questions: processedQuestions,
       questionCount: processedQuestions.length,
       totalPoints,
+      analysisProfile: analysisProfile || undefined,
 
       visible,
       status: 'active',
@@ -562,6 +571,17 @@ router.put('/:id', authMiddleware, async (req, res) => {
       });
       updates.questionCount = updates.questions.length;
       updates.totalPoints = updates.questions.reduce((sum, q) => sum + (q.points || 1), 0);
+    }
+
+    const inferredAnalysisProfile = inferQuizAnalysisProfile({
+      ...quiz,
+      ...updates,
+      courseTitle: course?.title || course?.name
+    }, {
+      questions: updates.questions || quiz.questions
+    });
+    if (inferredAnalysisProfile) {
+      updates.analysisProfile = inferredAnalysisProfile;
     }
 
     updates.updatedAt = new Date().toISOString();

@@ -23,6 +23,7 @@ const {
   buildStudentQuizAnalytics,
   buildStudentAnalyticsCsv
 } = require('./analytics');
+const { inferQuizAnalysisProfile } = require('../../utils/toeic-parts');
 
 async function canManageQuiz(quiz, user) {
   if (!quiz || !user) return false;
@@ -389,7 +390,11 @@ router.post('/:id/start', authMiddleware, async (req, res) => {
         message: '繼續進行中的測驗',
         data: {
           ...inProgressAttempt,
-          questions: prepareQuestionsForStudent(quiz.questions, quiz.shuffleQuestions, quiz.shuffleAnswers)
+          quizTitle: quiz.title,
+          analysisProfile: inferQuizAnalysisProfile(quiz),
+          questions: prepareQuestionsForStudent(quiz.questions, quiz.shuffleQuestions, quiz.shuffleAnswers, quiz),
+          timeLimit: quiz.timeLimit,
+          totalQuestions: quiz.questionCount || quiz.questions?.length || 0
         }
       });
     }
@@ -436,13 +441,15 @@ router.post('/:id/start', authMiddleware, async (req, res) => {
     delete attemptItem.PK;
     delete attemptItem.SK;
 
-    const preparedQuestions = prepareQuestionsForStudent(quiz.questions, quiz.shuffleQuestions, quiz.shuffleAnswers);
+    const preparedQuestions = prepareQuestionsForStudent(quiz.questions, quiz.shuffleQuestions, quiz.shuffleAnswers, quiz);
 
     res.status(201).json({
       success: true,
       message: '測驗開始',
       data: {
         ...attemptItem,
+        quizTitle: quiz.title,
+        analysisProfile: inferQuizAnalysisProfile(quiz),
         questions: preparedQuestions,
         timeLimit: quiz.timeLimit,
         totalQuestions: preparedQuestions.length || quiz.questionCount || 0
