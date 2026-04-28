@@ -12,6 +12,10 @@ const { invalidateGradebookSnapshots } = require('../../utils/gradebook-snapshot
 const { syncCourseCertificates } = require('../../utils/certificates');
 const { getGradeVisibility } = require('../../utils/grade-visibility');
 const {
+  getQuizResultVisibility,
+  getQuizResultVisibilityMessage
+} = require('../../utils/quiz-result-visibility');
+const {
   getQuiz,
   prepareQuestionsForStudent,
   gradeQuiz,
@@ -688,20 +692,26 @@ router.post('/:id/attempts/:attemptId/submit', authMiddleware, async (req, res) 
 
     await invalidateGradebookSnapshots(quiz.courseId);
 
+    const resultVisibility = getQuizResultVisibility(quiz, gradeVisibility);
+
     // 準備回傳結果
     let result = {
       attemptId,
-      score,
       totalPoints,
-      percentage,
-      passed,
       submittedAt: now,
       ...manualSummary,
-      gradeVisibility
+      gradeVisibility,
+      resultVisibility
     };
 
     // 根據設定決定是否顯示詳細結果
-    if (gradeVisibility.gradesReleased && quiz.showResults === 'immediately') {
+    if (resultVisibility.resultsAvailable && quiz.showResults === 'immediately') {
+      result = {
+        ...result,
+        score,
+        percentage,
+        passed
+      };
       result.questionResults = questionResults;
       result.sectionAnalytics = buildStudentQuizAnalytics(quiz, {
         ...attempt,
@@ -729,20 +739,22 @@ router.post('/:id/attempts/:attemptId/submit', authMiddleware, async (req, res) 
       }
     }
 
-    if (!gradeVisibility.gradesReleased) {
+    if (!resultVisibility.resultsAvailable) {
       result = {
         attemptId,
         totalPoints,
         submittedAt: now,
-        gradeVisibility
+        ...manualSummary,
+        gradeVisibility,
+        resultVisibility
       };
     }
 
     res.json({
       success: true,
-      message: gradeVisibility.gradesReleased
+      message: resultVisibility.resultsAvailable
         ? (manualSummary.needsManualGrading ? '測驗已提交，申論題待老師批改' : (passed ? '恭喜通過測驗！' : '測驗完成'))
-        : '測驗已提交，成績待老師釋出',
+        : getQuizResultVisibilityMessage(resultVisibility),
       data: result
     });
 
@@ -913,10 +925,12 @@ router.get('/:id/attempts/:attemptId/review', authMiddleware, async (req, res) =
       });
     }
     const course = quiz.courseId ? await db.getItem(`COURSE#${quiz.courseId}`, 'META') : null;
+    const canManage = req.user.isAdmin || canManageCourse(course, req.user);
     const gradeVisibility = getGradeVisibility(course, {
-      canManage: req.user.isAdmin || canManageCourse(course, req.user),
+      canManage,
       isAdmin: req.user.isAdmin
     });
+    const resultVisibility = getQuizResultVisibility(quiz, gradeVisibility, new Date(), { canManage });
 
     // 找到作答記錄
     const attempts = await db.query(`QUIZ#${id}`, {
@@ -940,29 +954,19 @@ router.get('/:id/attempts/:attemptId/review', authMiddleware, async (req, res) =
       });
     }
 
-    // 檢查是否可以查看結果
-    const now = new Date();
-    if (quiz.showResults === 'never') {
+    if (!resultVisibility.resultsAvailable) {
       return res.status(403).json({
         success: false,
-        error: 'RESULTS_HIDDEN',
-        message: '此測驗不顯示結果'
-      });
-    }
-
-    if (quiz.showResults === 'after_close' && quiz.closeDate && new Date(quiz.closeDate) > now) {
-      return res.status(403).json({
-        success: false,
-        error: 'RESULTS_NOT_AVAILABLE',
-        message: '結果將在測驗關閉後顯示'
-      });
-    }
-
-    if (!gradeVisibility.gradesReleased) {
-      return res.status(403).json({
-        success: false,
-        error: 'GRADES_PENDING_RELEASE',
-        message: '此課程成績尚未釋出'
+        error: resultVisibility.reason === 'results_hidden'
+          ? 'RESULTS_HIDDEN'
+          : resultVisibility.reason === 'after_close'
+            ? 'RESULTS_NOT_AVAILABLE'
+            : 'GRADES_PENDING_RELEASE',
+        message: getQuizResultVisibilityMessage(resultVisibility),
+        data: {
+          gradeVisibility,
+          resultVisibility
+        }
       });
     }
 
@@ -971,6 +975,9 @@ router.get('/:id/attempts/:attemptId/review', authMiddleware, async (req, res) =
 
     const result = {
       ...attempt,
+      quizTitle: quiz.title,
+      gradeVisibility,
+      resultVisibility,
       sectionAnalytics: buildStudentQuizAnalytics(quiz, attempt),
       questions: quiz.questions.map(q => ({
         questionId: q.questionId,
@@ -1049,11 +1056,16 @@ router.get('/:id/attempts/:attemptId/analytics.csv', authMiddleware, async (req,
       canManage,
       isAdmin: req.user.isAdmin
     });
-    if (!gradeVisibility.gradesReleased && !canManage) {
+    const resultVisibility = getQuizResultVisibility(quiz, gradeVisibility, new Date(), { canManage });
+    if (!canManage && !resultVisibility.resultsAvailable) {
       return res.status(403).json({
         success: false,
-        error: 'GRADES_PENDING_RELEASE',
-        message: '此課程成績尚未釋出'
+        error: resultVisibility.reason === 'after_close'
+          ? 'RESULTS_NOT_AVAILABLE'
+          : resultVisibility.reason === 'results_hidden'
+            ? 'RESULTS_HIDDEN'
+            : 'GRADES_PENDING_RELEASE',
+        message: getQuizResultVisibilityMessage(resultVisibility)
       });
     }
 

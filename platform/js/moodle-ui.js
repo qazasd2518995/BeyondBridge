@@ -798,6 +798,7 @@ const MoodleUI = {
 
   normalizeQuizState(quiz = {}) {
     const userStatus = quiz.userStatus || {};
+    const resultVisibility = quiz.resultVisibility || {};
     const attempts = Array.isArray(quiz.attempts) ? quiz.attempts : [];
     const completedAttempts = attempts.filter(a => a.status === 'completed').length;
     const bestScore = quiz.bestScore ?? userStatus.bestScore ?? null;
@@ -824,10 +825,31 @@ const MoodleUI = {
       ...quiz,
       completed,
       bestScore,
+      resultVisibility,
       gradePendingRelease,
       attemptCount,
       canAttempt
     };
+  },
+
+  isQuizResultAvailable(record = {}) {
+    const visibility = record.resultVisibility || {};
+    return visibility.resultsAvailable !== false;
+  },
+
+  getQuizResultUnavailableLabel(record = {}) {
+    const isEnglish = I18n.getLocale() === 'en';
+    const visibility = record.resultVisibility || {};
+    if (record.gradePendingRelease || visibility.reason === 'grades_pending_release' || visibility.pendingRelease) {
+      return t('moodleQuiz.pendingRelease');
+    }
+    if (visibility.reason === 'after_close') {
+      return isEnglish ? 'Available after close' : '截止後公布';
+    }
+    if (visibility.reason === 'results_hidden') {
+      return isEnglish ? 'Results hidden' : '不顯示結果';
+    }
+    return isEnglish ? 'Results unavailable' : '結果尚未開放';
   },
 
   isGradeReleasePending(record = {}) {
@@ -6304,8 +6326,9 @@ const MoodleUI = {
     const averageScoreLabel = averageScore !== undefined && averageScore !== null && averageScore !== '' && Number.isFinite(averageScoreNumber)
       ? averageScoreNumber.toFixed(0)
       : '-';
-    const bestScoreLabel = q.gradePendingRelease
-      ? t('moodleQuiz.pendingRelease')
+    const resultsAvailable = this.isQuizResultAvailable(q);
+    const bestScoreLabel = !resultsAvailable
+      ? this.getQuizResultUnavailableLabel(q)
       : q.bestScore !== undefined && q.bestScore !== null && q.bestScore !== ''
       ? `${Number.isFinite(bestScoreNumber) ? bestScoreNumber.toFixed(0) : q.bestScore} ${t('moodleQuiz.score')}`
       : `- ${t('moodleQuiz.score')}`;
@@ -6335,8 +6358,8 @@ const MoodleUI = {
         ? { label: isEnglish ? 'Closed' : '已關閉', tone: 'is-neutral' }
         : { label: isEnglish ? 'Scheduled' : '未開放', tone: 'is-warning' };
     const studentStatusMeta = q.completed
-      ? (q.gradePendingRelease
-        ? { label: t('moodleQuiz.pendingRelease'), tone: 'is-neutral' }
+      ? (!resultsAvailable
+        ? { label: this.getQuizResultUnavailableLabel(q), tone: 'is-neutral' }
         : { label: t('moodleQuiz.completed'), tone: 'is-accent' })
       : isOpen && q.canAttempt !== false
         ? { label: isEnglish ? 'Available now' : '可立即作答', tone: 'is-success' }
@@ -9091,8 +9114,8 @@ const MoodleUI = {
         this.clearQuizPendingAnswerDraft(this.currentQuizAttempt);
         this.currentQuizPendingAnswerSaves = {};
         this.setQuizAutosaveState('saved');
-        if (result.data?.gradeVisibility?.pendingRelease) {
-          showToast(t('moodleQuiz.submitPendingRelease'));
+        if (result.data?.gradeVisibility?.pendingRelease || result.data?.resultVisibility?.resultsAvailable === false) {
+          showToast(result.message || t('moodleQuiz.submitPendingRelease'));
           showView('moodleQuizzes');
           this.loadQuizzes();
         } else {
@@ -9105,6 +9128,32 @@ const MoodleUI = {
     } catch (error) {
       console.error('Submit quiz error:', error);
       showToast(t('moodleAssignment.submitFailed'));
+    }
+  },
+
+  async reviewQuizAttempt(quizId, attemptId) {
+    try {
+      const result = await API.quizzes.reviewAttempt(quizId, attemptId);
+      if (!result?.success) {
+        showToast(result?.message || (I18n.getLocale() === 'en' ? 'Quiz results are not available yet.' : '測驗結果尚未開放。'));
+        return;
+      }
+
+      const data = result.data || {};
+      this.currentQuizAttempt = {
+        ...(this.currentQuizAttempt || {}),
+        quizId,
+        attemptId,
+        quizTitle: data.quizTitle || data.title || this.currentQuizAttempt?.quizTitle,
+        questions: Array.isArray(data.questions) ? data.questions : (this.currentQuizAttempt?.questions || [])
+      };
+      this.renderQuizResults(quizId, data);
+      showView('quizAttempt', {
+        path: `/platform/quiz/${encodeURIComponent(quizId)}/attempt/${encodeURIComponent(attemptId)}`
+      });
+    } catch (error) {
+      console.error('Review quiz attempt error:', error);
+      showToast(I18n.getLocale() === 'en' ? 'Quiz results are not available yet.' : '測驗結果尚未開放。');
     }
   },
 
@@ -10682,6 +10731,7 @@ const MoodleUI = {
         ? quiz.myAttempts
         : (Array.isArray(quiz.attempts) ? quiz.attempts : []);
       const gradePendingRelease = Boolean(quiz.gradePendingRelease);
+      const quizResultsAvailable = this.isQuizResultAvailable(quiz);
       const attemptsAllowedRaw = Number(quiz.maxAttempts);
       const attemptsAllowed = Number.isFinite(attemptsAllowedRaw) ? attemptsAllowedRaw : 0;
       const now = new Date();
@@ -10722,10 +10772,12 @@ const MoodleUI = {
               <span class="value">${quiz.closeDate ? this.formatPlatformDate(quiz.closeDate, { dateStyle: 'medium', timeStyle: 'short' }) : t('moodleQuiz.noLimit')}</span>
             </div>
           </div>
-          ${gradePendingRelease ? `
+          ${(!quizResultsAvailable || gradePendingRelease) ? `
             <div class="assignment-deadline-note is-submitted">
-              <strong>${t('moodleQuiz.pendingRelease')}</strong>
-              <span>${t('moodleQuiz.pendingReleaseNote')}</span>
+              <strong>${this.escapeText(this.getQuizResultUnavailableLabel(quiz))}</strong>
+              <span>${quiz.resultVisibility?.reason === 'after_close'
+                ? this.escapeText(isEnglish ? 'Your attempt is saved. The report will open after the quiz close date.' : '你的作答已保存，測驗截止後會開放報表。')
+                : t('moodleQuiz.pendingReleaseNote')}</span>
             </div>
           ` : ''}
           ${attemptsHistory.length > 0 ? `
@@ -10738,6 +10790,7 @@ const MoodleUI = {
                     <th>${t('moodleQuiz.startTime')}</th>
                     <th>${t('moodleQuiz.finishTime')}</th>
                     <th>${t('moodleQuiz.scoreCol')}</th>
+                    <th>${isEnglish ? 'Review' : '檢視'}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -10746,9 +10799,12 @@ const MoodleUI = {
                       <td>${i + 1}</td>
                       <td>${a.startedAt ? this.formatPlatformDate(a.startedAt, { dateStyle: 'medium', timeStyle: 'short' }) : '-'}</td>
                       <td>${(a.completedAt || a.submittedAt) ? this.formatPlatformDate(a.completedAt || a.submittedAt, { dateStyle: 'medium', timeStyle: 'short' }) : '-'}</td>
-                      <td>${gradePendingRelease && a.status === 'completed'
-                        ? t('moodleGrade.pendingReleaseLabel')
+                      <td>${(!quizResultsAvailable || a.resultVisibility?.resultsAvailable === false) && a.status === 'completed'
+                        ? this.escapeText(this.getQuizResultUnavailableLabel(a.resultVisibility ? a : quiz))
                         : (a.score !== undefined && a.score !== null ? a.score + ' ' + t('moodleQuiz.pointsSuffix') : (a.percentage !== undefined && a.percentage !== null ? `${a.percentage}%` : '-'))}</td>
+                      <td>${(a.canReview || a.resultVisibility?.resultsAvailable === true) && a.status === 'completed'
+                        ? `<button type="button" class="btn-sm" onclick="MoodleUI.reviewQuizAttempt(${this.toInlineActionValue(quizId)}, ${this.toInlineActionValue(a.attemptId)})">${isEnglish ? 'Open report' : '查看報表'}</button>`
+                        : '-'}</td>
                     </tr>
                   `).join('')}
                 </tbody>

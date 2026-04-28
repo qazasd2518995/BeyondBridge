@@ -15,6 +15,7 @@ const {
   maskQuizUserStatus,
   maskQuizAttempt
 } = require('../../utils/grade-visibility');
+const { getQuizResultVisibility } = require('../../utils/quiz-result-visibility');
 const {
   listManagedCourseIds,
   backfillCourseOwnerLinks
@@ -198,10 +199,12 @@ router.get('/', authMiddleware, async (req, res) => {
           return best;
         }, null);
         const course = courseMap.get(q.courseId) || null;
+        const canManage = req.user.isAdmin || canManageCourse(course, req.user);
         const gradeVisibility = getGradeVisibility(course, {
-          canManage: req.user.isAdmin || canManageCourse(course, req.user),
+          canManage,
           isAdmin: req.user.isAdmin
         });
+        const resultVisibility = getQuizResultVisibility(q, gradeVisibility, new Date(), { canManage });
         const userStatus = {
           attemptCount: attempts.length,
           bestScore: bestAttempt?.score || null,
@@ -211,8 +214,9 @@ router.get('/', authMiddleware, async (req, res) => {
         };
         return {
           ...stripDbKeys(q),
-          userStatus: gradeVisibility.gradesReleased ? userStatus : maskQuizUserStatus(userStatus),
-          gradeVisibility
+          userStatus: resultVisibility.resultsAvailable ? userStatus : maskQuizUserStatus(userStatus),
+          gradeVisibility,
+          resultVisibility
         };
       })
     );
@@ -280,6 +284,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
       canManage,
       isAdmin: req.user.isAdmin
     });
+    const resultVisibility = getQuizResultVisibility(quiz, gradeVisibility, new Date(), { canManage });
 
     // 檢查是否有進行中的作答
     const inProgressAttempt = attempts.find(a => a.status === 'in_progress');
@@ -317,11 +322,17 @@ router.get('/:id', authMiddleware, async (req, res) => {
           delete a.SK;
           // 不返回詳細答案
           delete a.answers;
-          return gradeVisibility.gradesReleased ? a : maskQuizAttempt(a);
+          const visibleAttempt = resultVisibility.resultsAvailable ? a : maskQuizAttempt(a);
+          return {
+            ...visibleAttempt,
+            resultVisibility,
+            canReview: resultVisibility.resultsAvailable && a.status === 'completed'
+          };
         }),
         inProgressAttemptId: inProgressAttempt?.attemptId,
         canAttempt: !quiz.maxAttempts || attempts.filter(a => a.status === 'completed').length < quiz.maxAttempts,
-        gradeVisibility
+        gradeVisibility,
+        resultVisibility
       }
     });
 
